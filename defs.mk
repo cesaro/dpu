@@ -52,8 +52,8 @@ DEPS:=$(patsubst %.o,%.d,$(OBJS) $(MOBJS))
 
 # define the toolchain
 CROSS:=
-VERS:=-5
-#VERS:=
+#VERS:=-5
+VERS:=
 
 LD:=$(CROSS)ld$(VERS)
 CC:=$(CROSS)gcc$(VERS)

@@ -1,5 +1,5 @@
 
-# Copyright (C) 2010, 2011  Cesar Rodriguez <cesar.rodriguez@lsv.ens-cachan.fr>
+# Copyright (C) 2010-2016  Cesar Rodriguez <cesar.rodriguez@lipn.fr>
 #
 # This program is free software: you can redistribute it and/or modify it
 # under the terms of the GNU General Public License as published by the Free
@@ -18,6 +18,7 @@ include defs.mk
 .PHONY: fake all g test clean distclean prof dist
 
 all: $(TARGETS) tags
+	./src/main
 
 $(TARGETS) : % : %.o $(OBJS)
 	@echo "LD  $@"

@@ -1,5 +1,5 @@
 
-# Copyright (C) 2010--2014  Cesar Rodriguez <cesar.rodriguez@cs.ox.ac.uk>
+# Copyright (C) 2010--2016  Cesar Rodriguez <cesar.rodriguez@lipn>
 #
 # This program is free software: you can redistribute it and/or modify it
 # under the terms of the GNU General Public License as published by the Free
@@ -16,12 +16,13 @@
 # traditional variables
 #CFLAGS:=-Wall -Wextra -std=c99 -O3
 #CFLAGS:=-Wall -Wextra -std=c99 -pg
-CFLAGS:=-Wall -Wextra -std=c99 -g
+CFLAGS:=-Wall -Wextra -std=c11 -g
 #CXXFLAGS:=-Wall -Wextra -std=c++0x
-CXXFLAGS:=-Wall -Wextra -std=c++11 -O3
+#CXXFLAGS:=-Wall -Wextra -std=c++11 -O3
 #CXXFLAGS:=-Wall -Wextra -std=c++11 -pg
-#CXXFLAGS:=-Wall -Wextra -std=c++11 -g
-CPPFLAGS:=-I src/ -D_POSIX_C_SOURCE=200809L -D__STDC_LIMIT_MACROS -D__STDC_FORMAT_MACROS -D NDEBUG
+CXXFLAGS:=-Wall -Wextra -std=c++11 -g
+#CPPFLAGS:=-I src/ -D_POSIX_C_SOURCE=200809L -D__STDC_LIMIT_MACROS -D__STDC_FORMAT_MACROS -D NDEBUG
+CPPFLAGS:=-I src/ -D_POSIX_C_SOURCE=200809L -D__STDC_LIMIT_MACROS -D__STDC_FORMAT_MACROS
 #LDFLAGS:=-dead_strip -static
 LDFLAGS:=-dead_strip
 #LDFLAGS:=

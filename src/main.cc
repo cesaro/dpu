@@ -1,11 +1,12 @@
 
-#include <stdio.h>
+#include <cstdio>
+#include <cstdlib>
 
-int main (int argc, char ** argv)
+#include "test.hh"
+
+int main (int, char **)
 {
-   printf ("hello world\n");
+   test6 ();
    return 0;
 }
-
-
 

@@ -1,2 +1,0 @@
-# dpu
-Distributed Program Unfolding

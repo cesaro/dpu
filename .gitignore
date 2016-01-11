@@ -1,0 +1,17 @@
+*.mci
+*.pdf
+*.dot
+*.cuf
+*.mp
+*.cnf
+*.bc
+*.tr
+*.r
+*.d
+*.o
+*.pyc
+*.pdftex
+*.pdftex_t
+tags
+src/cunf/cunf
+src/pep2dot

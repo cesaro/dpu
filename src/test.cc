@@ -217,7 +217,13 @@ void test5 ()
    t = & m.add_trans (p1, 0, 1);
    t = & m.add_trans (p2, 0, 1);
 
-   ir::State s (m);
+   ir::State * s = m.init_state;
+
+   for (int var = 0; var < m.memsize; var++)
+   {
+      printf ("variable %d stores '%u'\n", s[var]);
+   }
+
 
    // x state
 

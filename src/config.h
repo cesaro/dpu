@@ -17,8 +17,10 @@ class Process;
 
 class Config
 {
-	std::map<Process*,Event*> latest_proc;
+   std::vector<Event*>  latest_global_wr;
 	std::map<int, Event*> latest_global_wr;
+
+	std::map<Process*,Event*> latest_proc;
 	std::map<std::pair<Process*,int>, Event*> latest_global_rdwr;
 	std::map<int, Event*> latest_local_wr;
 	State gstate;

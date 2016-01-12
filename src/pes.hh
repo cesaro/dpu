@@ -21,7 +21,10 @@ public:
    uint32_t             val;
    std::vector<uint32_t>localvals;
    Trans *              trans;
-}
+
+   Trans * getTrans(){return trans;}
+   State fire(State st);
+} // end of class Event
 
 } // namespace pes
 

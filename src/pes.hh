@@ -26,6 +26,15 @@ public:
    State fire(State st);
 } // end of class Event
 
+
+class Unfolding
+{
+};
+
+class Config
+{
+};
+
 } // namespace pes
 
 #endif 

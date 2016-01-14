@@ -41,17 +41,24 @@ class Config
    std::vector<Event*> latest_local_wr; // size=number of processes
 
    State * gstate;
+
 public:
    Config();
    std::vector<Event *> compute_en();
    std::vector<Event *> compute_cex();
    void update(Event & e);
-   Config add(Event & e); // creat new Config and update the cut
+   void add(Event & e); // update the cut and the new event
 };
 
 class Unfolding
 {
+public:
    std::vector<Event> evt;
+   std::vector<Event *> cfl; // set of events in conflict
+
+   //methods
+   void extend();
+   void construct();
 };
 
 

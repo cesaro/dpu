@@ -18,6 +18,22 @@ namespace pes{
 std::vector<Event *> Config::compute_en()
 {
    std::vector<Event *> en;
+   ir::State & gs=*gstate;
+   std::vector<Process>::iterator it;
+   Event * e;
+   int count=0;
+   for (it=gs.m.procs.begin(); it!=gs.m.procs.end(); it++)
+   {
+	   std::vector<Trans *>::iterator i;
+	   for (i=(*it.))
+	   for (i=(*it).trans.begin(); i!=(*it).trans.end(); i++)
+	      if    ==gs[count])
+	         e=new Event(*i);
+
+   }
+
+
+
    return en;
 }
 /*
@@ -36,28 +52,65 @@ void Config::update(Event & e)
 /*
  * function to add new event to a configuration and update necessary properties
  */
-Config Config::add(Event & e)
+void Config::add(Event & e)
 {
-   Config c;
    ir::Trans * s=e.getTrans();
    ir::State & gs=*gstate;
-   gstate=s->fire(gs); //update new global state
 
-   e.pre_proc=latest_proc[s->proc];//e becomes the latest event of its process
-   latest_proc[s->proc]=e;
-   e.post_proc.clear(); // e has no children
+   //update the configuration
+   //update new global states
+   gstate=s->fire(gs);
+   latest_proc[s->proc]=&e;
+   //update local variables
+   std::vector<uint32_t>::iterator i;
+   for (i=s->localaddr.begin();i!=s->localaddr.end();i++)
+      this->latest_local_wr[*i]=&e;
 
    switch (s->type)
       case ir::Trans::RD:
       {
-    	  e.pre_mem=latest_global_rdwr;
-
-
+         this->latest_global_rdwr[s->proc][s->addr]=&e;
+         break;
       }
-      case ir::Trans::WR: update_WR();
-      case ir::Trans::SYN: update_SYN();
-      case ir::Trans::LOC: update_LOC();
-   return c;
+      case ir::Trans::WR:
+      {
+       	 this->latest_global_wr[s->addr]=&e;
+       	 this->latest_global_rdwr[s->proc][s->addr]=&e;
+         break;
+      }
+      case ir::Trans::SYN:
+      {
+       	 this->latest_global_wr[s->addr]=&e;
+       	 break;
+      }
+   //update the event e
+   e.pre_proc=latest_proc[s->proc];//e becomes the latest event of its process
+   e.post_proc.clear(); // e has no children
+   switch (s->type)
+      case ir::Trans::RD:
+      {
+       	  e.pre_mem = latest_global_rdwr;
+       	  e.post_mem[e.val]=e.val;
+      }
+      case ir::Trans::WR:
+      {
+      	  e.pre_mem=latest_global_wr;
+       	  std::vector<Event *>::iterator it;
+       	  for (it=e.post_mem.begin();it<e.post_mem.end();it++)
+          	  it=e.val;
+       	  // set pre-readers = set of latest events which use the variable in all processes.
+       	  //size of pre-readers is numbers of copies of the variable
+       	  for (it=e.pre_readers.begin();it<e.pre_readers.end();it++)
+       	  {
+       		  int numofproc=gs.m.procs.size();
+       		  for (i=0;i<numofproc;i++)
+      		  it=latest_global_rdwr[i][s->addr]; // the latest global event of the process
+       	  }
+       }
+       case ir::Trans::SYN:
+       case ir::Trans::LOC:
+
+
 }
 
 } // end of namespace

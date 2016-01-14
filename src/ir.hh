@@ -35,7 +35,7 @@ class Machine
 public:
    std::vector<Process> procs;
    std::vector<Trans>   trans;
-   unsigned             memsize;
+   unsigned             memsize; // number of variable
 
    Machine (unsigned memsize, unsigned numprocs, unsigned numtrans = 0);
 

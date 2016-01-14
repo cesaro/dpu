@@ -17,9 +17,7 @@ class Machine;
 
 class State
 {
-private:
-   Machine & m;
-   uint32_t * tab;
+
 public:
    uint32_t & operator [] (unsigned);
 
@@ -27,9 +25,9 @@ public:
    State (const State &);
    State & operator = (const State & s);
    ~State ();
-   State fire(Trans t);
-
-
+private:
+   Machine & m;
+   uint32_t * tab;
 };
 
 class Machine
@@ -79,7 +77,6 @@ public:
    State * fire    (const State &);
 
    Trans (Process & p, unsigned src, unsigned dst);
-
 };
 
 } // namespace ir

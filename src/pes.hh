@@ -2,10 +2,12 @@
 #ifndef __PES_HH_
 #define __PES_HH_
 
-#include <ir.hh>
+#include "ir.hh"
 
 namespace pes
 {
+class Trans;
+class State;
 
 class Event
 {
@@ -22,18 +24,36 @@ public:
    std::vector<uint32_t>localvals;
    Trans *              trans;
 
-   Trans * getTrans(){return trans;}
-   State fire(State st);
-} // end of class Event
+   Trans & getTrans(){return trans;}
 
+}; // end of class Event
+
+/*
+ *  class to represent a configuration in unfolding
+ */
+class Config
+{
+   std::vector <Event*> latest_proc; //size of vector = number of processes
+
+   std::vector<Event*>  latest_global_wr; //size of vector = number of variable
+   std::vector<std::vector<Event*>> latest_global_rdwr; //size =ProcessxVariable
+
+   std::vector<Event*> latest_local_wr; // size=number of processes
+
+   State * gstate;
+public:
+   Config();
+   std::vector<Event *> compute_en();
+   std::vector<Event *> compute_cex();
+   void update(Event & e);
+   Config add(Event & e); // creat new Config and update the cut
+};
 
 class Unfolding
 {
+   std::vector<Event> evt;
 };
 
-class Config
-{
-};
 
 } // namespace pes
 

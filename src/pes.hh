@@ -20,7 +20,7 @@ public:
 
    uint32_t             val;
    std::vector<uint32_t>localvals;
-   ir::Trans *              trans;
+   ir::Trans *          trans;
 
 }; // end of class Event
 

@@ -6,8 +6,6 @@
 
 namespace pes
 {
-class Trans;
-class State;
 
 class Event
 {
@@ -22,9 +20,7 @@ public:
 
    uint32_t             val;
    std::vector<uint32_t>localvals;
-   Trans *              trans;
-
-   Trans & getTrans(){return trans;}
+   ir::Trans *              trans;
 
 }; // end of class Event
 
@@ -40,7 +36,7 @@ class Config
 
    std::vector<Event*> latest_local_wr; // size=number of processes
 
-   State * gstate;
+   ir::State * gstate;
 
 public:
    Config();

@@ -24,8 +24,6 @@ public:
    std::vector<uint32_t>localvals;
    Trans *              trans;
 
-   Trans & getTrans(){return trans;}
-
 }; // end of class Event
 
 /*

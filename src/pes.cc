@@ -56,33 +56,13 @@ void Config::add(Event & e)
 {
    ir::Trans * s=e.getTrans();
    ir::State & gs=*gstate;
-
-   //update the configuration
-   //update new global states
-   gstate=s->fire(gs);
-   latest_proc[s->proc]=&e;
-   //update local variables
-   std::vector<uint32_t>::iterator i;
-   for (i=s->localaddr.begin();i!=s->localaddr.end();i++)
-      this->latest_local_wr[*i]=&e;
-
-   switch (s->type)
-      case ir::Trans::RD:
-         this->latest_global_rdwr[s->proc][s->addr]=&e;
-         break;
-
-      case ir::Trans::WR:
-       	 this->latest_global_wr[s->addr]=&e;
-       	 this->latest_global_rdwr[s->proc][s->addr]=&e;
-         break;
-
-      case ir::Trans::SYN:
-       	 this->latest_global_wr[s->addr]=&e;
-       	 break;
-
-   //update the event e
-   e.pre_proc=latest_proc[s->proc];//e becomes the latest event of its process
+   int numofproc=gs.m.procs.size();
+   /*
+    * update the event e
+   */
+   e.pre_proc=latest_proc[s->proc];//e's parent is the latest event of the process
    e.post_proc.clear(); // e has no children
+
    switch (s->type)
    {
       case ir::Trans::RD:
@@ -91,20 +71,50 @@ void Config::add(Event & e)
 
       case ir::Trans::WR:
          e.pre_mem=latest_global_wr;
-       	 std::vector<Event *>::iterator it;
+         this->latest_global_wr->post_mem[]
+      	 std::vector<Event *>::iterator it;
        	 for (it=e.post_mem.begin();it<e.post_mem.end();it++)
-            it=e.val;
-       	    // set pre-readers = set of latest events which use the variable in all processes.
-       	    //size of pre-readers is numbers of copies of the variable
+           it=e.val;
+   	    // set pre-readers = set of latest events which use the variable in all processes.
+   	    //size of pre-readers is numbers of copies of the variable
        	 for (it=e.pre_readers.begin();it<e.pre_readers.end();it++)
-       	 {
-       	    int numofproc=gs.m.procs.size();
-       		for (i=0;i<numofproc;i++)
+       	    for(i=0;i<numofproc;i++)
       		   it=latest_global_rdwr[i][s->addr]; // the latest global event of the process
-       	 }
+
       case ir::Trans::SYN:
       case ir::Trans::LOC:
    }
+
+   /*
+    * update the configuration
+    */
+
+   this->latest_proc[s->proc]=&e; //update latest event of the process
+   gstate=s->fire(gs); //update new global states
+
+   //update local variables
+   std::vector<uint32_t>::iterator i;
+   for (i=s->localaddr.begin();i!=s->localaddr.end();i++)
+      this->latest_local_wr[*i]=&e;
+
+   //update particular attribute according to type of transition.
+   switch (s->type)
+      case ir::Trans::RD:
+         this->latest_global_rdwr[s->proc][s->addr] = &e;
+         break;
+
+      case ir::Trans::WR:
+    	 this->latest_global_wr[s->addr] = &e;
+    	 for (i=0; i<numofproc; i++)
+       	    this->latest_global_rdwr[i][s->addr] = &e;
+
+         break;
+
+      case ir::Trans::SYN:
+       	 this->latest_global_wr[s->addr]=&e;
+       	 break;
+
+
 }
 
 } // end of namespace

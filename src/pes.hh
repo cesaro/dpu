@@ -16,13 +16,17 @@ public:
    std::vector<Event *> post_proc;
 
    Event *              pre_mem;     // for all events except LOCAL
-   std::vector<Event *> post_mem;
+   std::vector<Event *> post_mem; // for both RD and WR trans
 
    std::vector<Event *> pre_readers; // only for WR events
 
    uint32_t             val;
    std::vector<uint32_t>localvals;
+
    Trans *              trans;
+   std::vector<Event *> cfl; // set of events in conflict
+
+   bool in_U;  //bit to define the event in U or not
 
 }; // end of class Event
 
@@ -52,11 +56,10 @@ class Unfolding
 {
 public:
    std::vector<Event> evt;
-   std::vector<Event *> cfl; // set of events in conflict
 
    //methods
-   void extend();
-   void construct();
+   void extend(Config c);
+   void explore(Config c,std::vector<Event *> d, std::vector<Event *> a);
 };
 
 

@@ -45,9 +45,6 @@ std::vector<Event *>Config::compute_cex()
    std::vector<Event *> cex;
    return cex;
 }
-void Config::update(Event & e)
-{
-}
 
 /*
  * function to add new event to a configuration and update necessary properties
@@ -113,6 +110,31 @@ void Config::add(Event & e)
       case ir::Trans::SYN:
        	 this->latest_global_wr[s->addr]=&e;
        	 break;
+
+
+}
+
+void Unfolding:: extend(Config c)
+{
+   std::vector<Event *>::iterator it;
+   for (it=c.compute_en().begin(); it!=c.compute_en().end(); it++)
+	   (*it)->in_U = true;
+   for (it=c.compute_cex().begin(); it!=c.compute_cex().end(); it++)
+	   (*it)->in_U = true;
+}
+
+void Unfolding:: explore(Config c,std::vector<Event *> d, std::vector<Event *> a)
+{
+   // extend(c);
+   std::vector<Event *> en = c.compute_en();
+   std::vector<Event *>::iterator it;
+   for (it=c.compute_cex().begin(); it!=c.compute_cex().end(); it++)
+	  (*it)->in_U = true;
+   if (en.empty()== true) return;
+   if (a.empty()==true)
+   for (it=en.begin(); it!=en.end(); it++)
+      (*it)->in_U = true;
+
 
 
 }

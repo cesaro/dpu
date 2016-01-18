@@ -17,24 +17,21 @@ namespace pes{
  */
 std::vector<Event *> Config::compute_en()
 {
-   std::vector<Event *> en;
-   ir::State & gs=*gstate;
-   std::vector<Process>::iterator it;
-   Event * e;
-   int count=0;
-   for (it=gs.m.procs.begin(); it!=gs.m.procs.end(); it++)
-   {
-	   std::vector<Trans *>::iterator i;
-	   for (i=(*it.))
-	   for (i=(*it).trans.begin(); i!=(*it).trans.end(); i++)
-	      if    ==gs[count])
-	         e=new Event(*i);
+	std::vector<Event *> en;
+	   Event * e;
+	   ir::State & gs=*gstate;
+	   int numprocs=gs.m.getNumofProcs();
+	   std::vector<Trans *> trans=gs.m.getTrans();
 
-   }
+	   uint32_t & t = gs.getTab();
+	   for (int i=0; i<numprocs; i++)
+	   {
 
-
-
-   return en;
+	      std::vector<Trans *>::iterator it;
+		  for (it=trans.begin(; it!=trans.end(); it++)
+	         if ()
+	   }
+return en;
 }
 /*
  * function to compute a set of conflicting extension to the current configuration

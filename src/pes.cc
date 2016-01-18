@@ -5,6 +5,7 @@
  *      Author: tnguyen
  */
 
+#include <cstdint>
 #include "pes.hh"
 
 using std::vector;

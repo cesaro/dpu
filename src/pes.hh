@@ -6,8 +6,6 @@
 
 namespace pes
 {
-class Trans;
-class State;
 
 class Event
 {
@@ -22,11 +20,15 @@ public:
 
    uint32_t             val;
    std::vector<uint32_t>localvals;
+<<<<<<< HEAD
 
    Trans *              trans;
    std::vector<Event *> cfl; // set of events in conflict
 
    bool in_U;  //bit to define the event in U or not
+=======
+   ir::Trans *          trans;
+>>>>>>> ae253f1a1c5b80546c18bcec0b00bdaf8a72a534
 
 }; // end of class Event
 
@@ -42,7 +44,7 @@ class Config
 
    std::vector<Event*> latest_local_wr; // size=number of processes
 
-   State * gstate;
+   ir::State * gstate;
 
 public:
    Config();

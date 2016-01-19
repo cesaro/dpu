@@ -1,0 +1,34 @@
+
+*** These modified files were found in JOE when it aborted on Mon Jan 18 09:50:51 2016
+*** JOE was aborted because the terminal closed
+
+*** File '.git/COMMIT_EDITMSG'
+q
+
+e git.lipn.univ-paris13.fr:dpu
+
+Conflicts:
+	src/pes.hh
+#
+# It looks like you may be committing a merge.
+# If this is not correct, please remove the file
+#	.git/MERGE_HEAD
+# and try again.
+
+
+# Please enter the commit message for your changes. Lines starting
+# with '#' will be ignored, and an empty message aborts the commit.
+# On branch master
+# Your branch is ahead of 'origin/master' by 3 commits.
+#
+# Changes to be committed:
+#
+#	modified:   src/pes.cc
+#	modified:   src/pes.hh
+#
+
+*** File '(Unnamed)'
+.git/COMMIT_EDITMSG
+.git/COMMIT_EDITMSG
+.git/COMMIT_EDITMSG
+.git/COMMIT_EDITMSG

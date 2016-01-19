@@ -6,8 +6,6 @@
 
 namespace pes
 {
-class Trans;
-class State;
 
 class Event
 {
@@ -16,15 +14,15 @@ public:
    std::vector<Event *> post_proc;
 
    Event *              pre_mem;     // for all events except LOCAL
-   std::vector<Event *> post_mem;
+   std::vector<Event *> post_mem; // for both RD and WR trans
 
    std::vector<Event *> pre_readers; // only for WR events
 
    uint32_t             val;
    std::vector<uint32_t>localvals;
-   Trans *              trans;
 
-   Trans & getTrans(){return trans;}
+   ir::Trans *          trans;
+   std::vector<Event *> cfl; // set of events in conflict
 
 }; // end of class Event
 
@@ -40,13 +38,12 @@ class Config
 
    std::vector<Event*> latest_local_wr; // size=number of processes
 
-   State * gstate;
+   ir::State * gstate;
 
 public:
    Config();
    std::vector<Event *> compute_en();
    std::vector<Event *> compute_cex();
-   void update(Event & e);
    void add(Event & e); // update the cut and the new event
 };
 
@@ -54,11 +51,11 @@ class Unfolding
 {
 public:
    std::vector<Event> evt;
-   std::vector<Event *> cfl; // set of events in conflict
+   std::vector <Event> U;
 
    //methods
-   void extend();
-   void construct();
+   void extend(Config c);
+   void explore(Config c,std::vector<Event *> d, std::vector<Event *> a);
 };
 
 

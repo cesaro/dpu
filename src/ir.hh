@@ -26,6 +26,7 @@ public:
    State & operator = (const State & s);
    ~State ();
    uint32_t & getTab(){return *tab;}
+   std::vector <Process *> getMProcs() {return m.getProcs();}
 private:
    Machine & m;
    uint32_t * tab;  // as an array of uint32_t
@@ -46,7 +47,7 @@ public:
 
    void sanity_check ();
    const State & init_state;
-   int getNumofProcs();
+   int getProcs();
    std::vector<Trans *> getTrans();
 
 private :

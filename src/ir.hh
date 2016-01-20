@@ -15,23 +15,6 @@ class Trans;
 class Process;
 class Machine;
 
-class State
-{
-
-public:
-   uint32_t & operator [] (unsigned);
-
-   State (Machine & m);
-   State (const State &);
-   State & operator = (const State & s);
-   ~State ();
-   uint32_t & getTab(){return *tab;}
-   std::vector <Process *> getMProcs() {return m.getProcs();}
-private:
-   Machine & m;
-   uint32_t * tab;  // as an array of uint32_t
-};
-
 class Machine
 {
 public:
@@ -82,6 +65,24 @@ public:
    State * fire    (const State &);
 
    Trans (Process & p, unsigned src, unsigned dst);
+};
+
+class State
+{
+
+public:
+	uint32_t & operator [] (unsigned); // return element at a specific position in tab
+
+   State (Machine & m);
+   State (const State &);
+   State & operator = (const State & s);
+   ~State ();
+   std::vector <Process *> getSProc();
+   std::vector <Trans *> getSTrans();
+
+private:
+   Machine & m;
+   uint32_t * tab;  // as an array of uint32_t
 };
 
 } // namespace ir

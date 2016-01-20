@@ -18,11 +18,16 @@ public:
 
    std::vector<Event *> pre_readers; // only for WR events
 
-   uint32_t             val;
-   std::vector<uint32_t>localvals;
+   int             val;
+   std::vector<int>localvals;
 
    ir::Trans *          trans;
    std::vector<Event *> cfl; // set of events in conflict
+
+   Event (ir::Trans * t);
+
+   ir::Trans & getTrans() {return *trans;}
+   ir::Process & getProc() {return *(trans->proc);}
 
 }; // end of class Event
 
@@ -31,31 +36,30 @@ public:
  */
 class Config
 {
-   std::vector <Event*> latest_proc; //size of vector = number of processes
-
-   std::vector<Event*>  latest_global_wr; //size of vector = number of variable
-   std::vector<std::vector<Event*>> latest_global_rdwr; //size =ProcessxVariable
-
-   std::vector<Event*> latest_local_wr; // size=number of processes
-
+public:
    ir::State * gstate;
 
-public:
    Config();
-   std::vector<Event *> compute_en();
-   std::vector<Event *> compute_cex();
-   void add(Event & e); // update the cut and the new event
+   Config(Config & c);
+   Config & add(Event & e); // update the cut and the new event
+   ir::State * getState() {return gstate;}
 };
 
 class Unfolding
 {
 public:
    std::vector<Event> evt;
-   std::vector <Event> U;
+   std::vector <Event *> U;
+   std::vector <Event*> latest_proc; //latest events of all processes
+   std::vector<Event*>  latest_global_wr; //size of vector = number of variable
+   std::vector<std::vector<Event*>> latest_global_rdwr; //size =ProcessxVariable
+   std::vector<Event*> latest_local_wr; // size=number of processes
 
    //methods
-   void extend(Config c);
-   void explore(Config c,std::vector<Event *> d, std::vector<Event *> a);
+   std::vector<Event *> compute_en(const Config & c);
+   std::vector<Event *> compute_cex(const Config & c);
+   void extend(const Config & c);
+   void explore(Config & C, std::vector<Event *> D, std::vector<Event *> A);
 };
 
 

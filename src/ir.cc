@@ -116,4 +116,15 @@ uint32_t & State::operator [] (unsigned i)
    return tab[i];
 }
 
+std::vector <Process *> State::getSProc()
+{
+	return m.procs;
+}
+
+std::vector <Trans *> State::getSTrans()
+{
+	return m.trans;
+}
+
+
 } // namespace ir

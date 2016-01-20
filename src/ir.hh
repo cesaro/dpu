@@ -3,6 +3,7 @@
 #define __IR_HH_
 
 #include <cstdint>
+#include <iostream>
 #include <array>
 #include <vector>
 

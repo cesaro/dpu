@@ -22,8 +22,7 @@ std::vector<Event *> Unfolding::compute_en(const Config & c)
    Event e;
    ir::State & gs = *(c.gstate);
    std::vector<ir::Trans *> trans = gs.getSTrans();
-   std::vector <ir::Process *> procs = gs.getSProcs();
-  // int * t = gs.getTab();
+   std::vector <ir::Process *> procs = gs.getSProc();
    std::vector <Process *>::iterator it;
    for (it = procs.begin(); it != procs.end(); it++)
    {
@@ -63,8 +62,22 @@ void Unfolding:: extend(const Config & c)
    for (it = compute_cex(c).begin(); it != compute_cex(c).end(); it++)
 	  U.push_back(*it);
 }
+/*
+ * Compute set of events in conflict with event e
+ */
 
-void Unfolding:: explore(Config & C,std::vector<Event *> D, std::vector<Event *> A)
+void compute_cfl(Event & e)
+{
+   std::vector <Event *> cfl;
+   ir::Trans & trans = e.getTrans();
+   switch (trans.type)
+   {
+      case ir::Trans::RD:
+    	  break;
+   }
+}
+
+void Unfolding:: explore(Config & C, std::vector<Event *> D, std::vector<Event *> A)
 {
    Event * e;
    extend(C);
@@ -93,11 +106,11 @@ void Unfolding:: explore(Config & C,std::vector<Event *> D, std::vector<Event *>
 Config & Config::add(Event & e)
 {
    Config c = *this;
+   ir::State & gs               = *(c.gstate);
+   std::vector<Process *> procs = gs.getSProc();
+   int numofproc                = procs.size();
    ir::Trans & s                = e.getTrans();
    ir::Process & p              = e.getProc();
-   ir::State & gs               = *(c.gstate);
-   std::vector<Process *> procs = gs.getSProcs();
-   int numofproc                = procs.size();
    /*
     * update the event e
    */

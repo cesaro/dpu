@@ -10,15 +10,15 @@ namespace pes
 class Event
 {
 public:
-   Event *              pre_proc;    // for all events
-   std::vector<Event *> post_proc;
+   Event *              pre_proc;    // for all events, predecessor in the same process
+   std::vector<Event *> post_proc;  // set of successors in the same process
 
-   Event *              pre_mem;     // for all events except LOCAL
-   std::vector<Event *> post_mem; // for both RD and WR trans
+   Event *              pre_mem;     // parent of the event, for all events except LOCAL,
 
    // only for WR events
+   std::vector<vector <Event *>> post_mem; // each vector of events children for a process
    std::vector<Event *> pre_readers; // only for WR events
-   std::vector <std::vector <Event *>> post_wr; //write children of a writen trans
+   std::vector <std::vector <Event *>> post_wr; //write children of a written trans
 
    //only for RD events
    std::vector <Event *> post_rd;

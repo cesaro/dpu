@@ -68,25 +68,28 @@ void Unfolding:: extend(const Config & c)
 
 void compute_cfl(Event & e)
 {
-   std::vector <Event *> cfl;
    Event & parent = *(e.pre_mem);
    ir::Trans & trans = parent.getTrans();
    std::vector<Event *>::iterator it;
    switch (trans.type)
    {
       case ir::Trans::RD:
+    	  // a read can access more than one global variable, for example l=x+y
+    	  //-> pre_mem???? e.cfl = e.cfl(x) + e.cfl(y)
          for (it = parent.post_rd.begin(); it != parent.post_rd.end(); it++)
-            cfl.push_back(*it);
-    	 break;
-      case ir::Trans::WR:
+            if (*it != e)
+        	   e.cfl.push_back(*it);
+         break;
+      case ir::Trans::WR: // only access one variable
          std::vector<vector<Event *>>::iterator i;
          for (i = parent.post_mem.begin(); i != parent.post_mem.end(); i++)
-            if (find(i->begin(), i->end(), e) == true)
+            if (find(i->begin(), i->end(), e) != i->end())
                for (it = i->begin(); it != i->end(); it++)
                   if (*i != e)
-                     cfl.push_back(*it);
+                     e.cfl.push_back(*it);
          break;
       case ir::Trans::SYN:
+
 
 
    }

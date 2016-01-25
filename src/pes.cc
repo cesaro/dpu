@@ -16,9 +16,8 @@ namespace pes{
 /*
  * function to compute a set of events enabled at a configuration c
  */
-std::vector<Event *> Unfolding::compute_en(const Config & c)
+void Unfolding::compute_en(Config & c)
 {
-   std::vector<Event *> en;
    Event e;
    ir::State & gs = *(c.gstate);
    std::vector<ir::Trans *> trans = gs.getSTrans();
@@ -33,22 +32,20 @@ std::vector<Event *> Unfolding::compute_en(const Config & c)
 		   {
 			   e = new Event (*i);
 			   evt.push_back(e);
-			   en.push_back(&evt.back());
+			   Event * p = evt.back();
+			   c.en.push_back(p);
 		   }
 	   }
    }
-   return en;
 }
 
 /*
  * function to compute a set of conflicting extension to a configuration
  */
 
-std::vector<Event *> Unfolding::compute_cex(const Config & c)
+void Unfolding::compute_cex(Config & c)
 {
-   std::vector<Event *> cex;
 
-   return cex;
 }
 
 /*
@@ -57,16 +54,16 @@ std::vector<Event *> Unfolding::compute_cex(const Config & c)
 void Unfolding:: extend(const Config & c)
 {
    std::vector<Event *>::iterator it;
-   for (it = compute_en(c).begin(); it != compute_en(c).end(); it++)
+   for (it = c.en.begin(); it != c.en.end(); it++)
       U.push_back(*it);
-   for (it = compute_cex(c).begin(); it != compute_cex(c).end(); it++)
+   for (it = c.cex.begin(); it != c.cex.end(); it++)
 	  U.push_back(*it);
 }
 /*
  * Compute set of events in conflict with event e
  */
 
-void compute_cfl(Event & e)
+void Unfolding::compute_cfl(Event & e)
 {
    Event & parent = *(e.pre_mem);
    ir::Trans & trans = parent.getTrans();
@@ -75,13 +72,13 @@ void compute_cfl(Event & e)
    {
       case ir::Trans::RD:
     	  // a read can access more than one global variable, for example l=x+y
-    	  //-> pre_mem???? e.cfl = e.cfl(x) + e.cfl(y)
-         for (it = parent.post_rd.begin(); it != parent.post_rd.end(); it++)
+    	  // divide into 2 different transition: l=x; l=l+y;
+         for (it = parent.post_rdsyn.begin(); it != parent.post_rdsyn.end(); it++)
             if (*it != e)
         	   e.cfl.push_back(*it);
          break;
       case ir::Trans::WR: // only access one variable
-         std::vector<vector<Event *>>::iterator i;
+    	 std::vector<std::vector<Event *>>::iterator i;
          for (i = parent.post_mem.begin(); i != parent.post_mem.end(); i++)
             if (find(i->begin(), i->end(), e) != i->end())
                for (it = i->begin(); it != i->end(); it++)
@@ -89,9 +86,16 @@ void compute_cfl(Event & e)
                      e.cfl.push_back(*it);
          break;
       case ir::Trans::SYN:
-
-
-
+    	 for (it = parent.post_rdsyn.begin(); it != parent.post_rdsyn.end(); it++)
+    	   if (*it != e)
+    	      e.cfl.push_back(*it);
+    	 break;
+      case ir::Trans::LOC:
+    	 Event & parent_loc = e.pre_proc;
+    	 for (it = parent_loc.post_proc.begin(); it != parent_loc.post_proc.end(); it++)
+    	    if (*it != e)
+    	       e.cfl.push_back(*it);
+    	 break;
    }
 }
 
@@ -99,15 +103,15 @@ void Unfolding:: explore(Config & C, std::vector<Event *> D, std::vector<Event *
 {
    Event * e;
    extend(C);
-   std::vector<Event *> en = compute_en(C);
-   if (en.empty() == true) return ;
+   compute_en(C);
+   if (C.en.empty() == true) return ;
    if (A.empty() == true)
-       e = en.back();
+       e = C.en.back();
    else
    {
       std::vector <Event *>::iterator it;
       for (it = A.begin(); it != A.end(); it++)
-         if (std::find(en.begin(), en.end(), *it) == true)
+         if (std::find(C.en.begin(), C.en.end(), *it) != C.en.end()) //found an element of A in C
          {
             e = *it;
             A.erase(it);
@@ -133,7 +137,7 @@ Config & Config::add(Event & e)
     * update the event e
    */
    e.pre_proc = latest_proc[p.id];//e's parent is the latest event of the process
-   e.post_proc.clear(); // e has no children
+   e.post_proc.clear(); // e has no child
 
    switch (s.type)
    {
@@ -153,9 +157,11 @@ Config & Config::add(Event & e)
        	 for (it = e.pre_readers.begin(); it < e.pre_readers.end(); it++)
        	    for(int i = 0; i < numofproc; i++)
       		   *it = latest_global_rdwr[i][s.addr]; // the latest global event of the process
-
+         break;
       case ir::Trans::SYN:
+    	 break;
       case ir::Trans::LOC:
+    	 break;
    }
 
    /*
@@ -172,6 +178,7 @@ Config & Config::add(Event & e)
 
    //update particular attribute according to type of transition.
    switch (s.type)
+   {
       case ir::Trans::RD:
          c.latest_global_rdwr[s.proc][s.addr] = &e;
          break;
@@ -186,6 +193,7 @@ Config & Config::add(Event & e)
       case ir::Trans::SYN:
        	 c.latest_global_wr[s.addr]=&e;
        	 break;
+   }
 
    return new Config(c);
 }

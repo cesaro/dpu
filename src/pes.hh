@@ -34,6 +34,8 @@ public:
 
    ir::Trans & getTrans() {return *trans;}
    ir::Process & getProc() {return *(trans->proc);}
+   void update (Config & c);
+   void compute_cfl(Event & e);
 
 }; // end of class Event
 
@@ -52,14 +54,14 @@ public:
    std::vector<std::vector<Event*>> latest_global_rdwr; //size =ProcessxVariable
 
    std::vector<Event*>              latest_local_wr; // size=number of processes
-   std::vector<Event *>               en;
-   std::vector<Event *>               cex;
+   std::vector<Event *>             en;
+   std::vector<Event *>             cex;
 
 
    Config();
    Config(Config & c);
    ir::State * getState() {return gstate;}
-   Config & add(Event & e); // update the cut and the new event
+   void add(Event & e); // update the cut and the new event
 };
 
 class Unfolding
@@ -71,8 +73,6 @@ public:
    //methods
    void compute_en(Config & c);
    void compute_cex(Config & c);
-   void extend(const Config & c);
-   void compute_cfl(Event & e);
    void explore(Config & C, std::vector<Event *> D, std::vector<Event *> A);
 };
 

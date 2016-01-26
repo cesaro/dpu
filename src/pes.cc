@@ -22,8 +22,7 @@ void Unfolding::compute_en(Config & c)
    ir::State & gs = *(c.gstate);
    std::vector<ir::Trans *> trans = gs.getSTrans();
    std::vector <ir::Process *> procs = gs.getSProc();
-   std::vector <Process *>::iterator it;
-   for (it = procs.begin(); it != procs.end(); it++)
+   for (auto it = procs.begin(); it != procs.end(); it++)
    {
 	   std::vector<Trans *>::iterator i;
 	   for (i = trans.begin(); i != trans.end(); i++)
@@ -199,11 +198,19 @@ Config & Config::add(Event & e)
 }
 
 
+void Unfolding::explore_rnd_config ()
+{
+   assert (U.size () == 0);
+
+   // create an empty configuration conf;
+
+   // in a loop:
+      // choose randomly one event e enabled at conf;
+      // conf.add (e); --> trigger construction of enabled events at the new
+      //                   configuration, and addition of them to this->evt
+      // reapeat until there is no event enabled
+
+}
 
 } // end of namespace
-
-
-
-
-
 

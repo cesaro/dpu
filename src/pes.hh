@@ -51,7 +51,7 @@ public:
 
    std::vector<std::vector<Event*>> latest_global_rdwr; //size =ProcessxVariable
 
-   std::vector<Event*>              latest_local_wr; // size=number of processes
+   std::vector<Event*>              latest_local_wr; // size=number of variables
    std::vector<Event *>               en;
    std::vector<Event *>               cex;
 
@@ -60,13 +60,19 @@ public:
    Config(Config & c);
    ir::State * getState() {return gstate;}
    Config & add(Event & e); // update the cut and the new event
+
+private:
+   void __update_en (Event & e);
 };
 
 class Unfolding
 {
 public:
-   std::vector<Event> evt;
+   std::vector<Event>    evt;
    std::vector <Event *> U;
+   ir::Machine &         m;
+
+   Unfolding (ir::Machine & m);
 
    //methods
    void compute_en(Config & c);
@@ -74,6 +80,8 @@ public:
    void extend(const Config & c);
    void compute_cfl(Event & e);
    void explore(Config & C, std::vector<Event *> D, std::vector<Event *> A);
+
+   void explore_rnd_config ();
 };
 
 

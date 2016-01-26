@@ -243,6 +243,7 @@ void test5 ()
 
 void test6 ()
 {
+
    std::vector<int> v {1, 2, 3, 4, 5};
 
    auto it = std::find (v.begin(), v.end(), 3);
@@ -252,3 +253,12 @@ void test6 ()
       printf ("find didn't find\n");
 }
 
+void test7 ()
+{
+   // load the program -> new 
+   ir::Machine m; //= new ....;
+
+   pes::Unfolding u (m);
+
+   u.explore_rnd_config ();
+}

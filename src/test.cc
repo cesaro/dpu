@@ -255,8 +255,23 @@ void test6 ()
 
 void test7 ()
 {
-   // load the program -> new 
-   ir::Machine m; //= new ....;
+   // load the program -> new machine
+   ir::Machine m (3, 4, 3);
+   ir::Process & p0 = m.add_process (2);
+   ir::Process & p1 = m.add_process (2);
+   ir::Process & p2 = m.add_process (2);
+
+   ir::Trans * t;
+
+   t = & m.add_trans (p0, 0, 1);
+   t->type = ir::Trans::WR;
+   t->addr = 3;
+   t->offset = 0;
+
+   t = & m.add_trans (p1, 0, 1);
+   t = & m.add_trans (p2, 0, 1);
+
+   ir::State * s = m.init_state;//= new ....;
 
    pes::Unfolding u (m);
 

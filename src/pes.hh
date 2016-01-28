@@ -6,6 +6,7 @@
 
 namespace pes
 {
+class Config;
 
 class Event
 {
@@ -23,19 +24,22 @@ public:
    //only for RD and SYN events
    std::vector <Event *> post_rdsyn; // for RD and SYN events
 
-   int                  val;
-   std::vector<int>     localvals;
+   int                  val; //??? value for global variable?
+   std::vector<int>     localvals; //???
 
    ir::Trans *          trans;
    std::vector<Event *> cfl; // set of events in conflict
-
+   Event ();
    Event (ir::Trans * t);
 
 
+   bool        operator ==   (const Event &) const;
+   Event & 	   operator =    (const Event &);
    ir::Trans & getTrans() {return *trans;}
-   ir::Process & getProc() {return *(trans->proc);}
+   ir::Process & getProc() {return trans->proc;}
    void update (Config & c);
    void compute_cfl(Event & e);
+   bool check_cfl(Event & e);
 
 }; // end of class Event
 
@@ -53,28 +57,20 @@ public:
 
    std::vector<std::vector<Event*>> latest_global_rdwr; //size =ProcessxVariable
 
-<<<<<<< HEAD
-   std::vector<Event*>              latest_local_wr; // size=number of processes
+   std::vector<Event*>              latest_local_wr; // size=number of variables
    std::vector<Event *>             en;
    std::vector<Event *>             cex;
-=======
-   std::vector<Event*>              latest_local_wr; // size=number of variables
-   std::vector<Event *>               en;
-   std::vector<Event *>               cex;
->>>>>>> c938e5adec9c40f57a95a12ef0aea42db006a354
-
 
    Config();
    Config(Config & c);
    ir::State * getState() {return gstate;}
-<<<<<<< HEAD
    void add(Event & e); // update the cut and the new event
-=======
-   Config & add(Event & e); // update the cut and the new event
+   void compute_en();
+
 
 private:
-   void __update_en (Event & e);
->>>>>>> c938e5adec9c40f57a95a12ef0aea42db006a354
+   void __update_en (Event & e);//???
+
 };
 
 class Unfolding

@@ -60,11 +60,24 @@ Trans & Machine::add_trans (Process & p, unsigned src, unsigned dst)
 }
 
 Process::Process (Machine & m, unsigned numlocations)
-   : m (m)
+   : id (0)
+   , m (m)
    , trans (0)
    , cfg (numlocations)
+
 {
    cfg.shrink_to_fit ();
+}
+
+std::vector<Trans> & Machine::getTrans()
+{
+   //return &trans;
+}
+
+std::vector<Process> & Machine::getProcs()
+{
+	//return &procs;
+
 }
 
 Trans::Trans (Process & p, unsigned src, unsigned dst)
@@ -116,15 +129,14 @@ uint32_t & State::operator [] (unsigned i)
    return tab[i];
 }
 
-std::vector <Process *> State::getSProc()
+int State::getNumProcs()
 {
-	return m.procs;
+   return m.procs.size();
 }
 
-std::vector <Trans *> State::getSTrans()
+std::vector<Process> & State::getSProcs()
 {
-	return m.trans;
+	return m.getProcs();
 }
-
 
 } // namespace ir

@@ -15,6 +15,28 @@ namespace ir
 class Trans;
 class Process;
 class Machine;
+//class State;
+
+//=============================
+class State
+{
+
+public:
+   Machine & m;
+
+   uint32_t & operator [] (unsigned); // return element at a specific position in tab
+   State (Machine & m);
+   State (const State &);
+   State & operator = (const State & s);
+   ~State ();
+   int getNumProcs();
+   std::vector<Process> & getSProcs();
+
+private:
+
+   uint32_t * tab;  // as an array of uint32_t
+};
+//==============================
 
 class Machine
 {
@@ -31,12 +53,17 @@ public:
 
    void sanity_check ();
    const State & init_state;
-   int getProcs();
-   std::vector<Trans *> getTrans();
+   std::vector<Trans> & getTrans();
+   std::vector<Process> & getProcs();
+
 
 private :
-   State _init_state;
+   ir::State _init_state;
 };
+
+/*
+ * ==============================
+ */
 
 class Process
 {
@@ -49,6 +76,7 @@ public:
    Process (Machine & m, unsigned numlocations);
 };
 
+//================================
 class Trans
 {
 public:
@@ -66,24 +94,6 @@ public:
    State * fire    (const State &);
 
    Trans (Process & p, unsigned src, unsigned dst);
-};
-
-class State
-{
-
-public:
-	uint32_t & operator [] (unsigned); // return element at a specific position in tab
-
-   State (Machine & m);
-   State (const State &);
-   State & operator = (const State & s);
-   ~State ();
-   std::vector <Process *> getSProc();
-   std::vector <Trans *> getSTrans();
-
-private:
-   Machine & m;
-   uint32_t * tab;  // as an array of uint32_t
 };
 
 } // namespace ir

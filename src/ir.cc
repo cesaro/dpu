@@ -61,11 +61,12 @@ Trans & Machine::add_trans (Process & p, unsigned src, unsigned dst)
 
 std::vector<Trans *> Machine::getTrans1()
 {
-   std::vector<Trans *> t;
+   std::vector<Trans *> temp;
+   Trans * p;
    for (auto i:trans)
-	   for (auto it:t)
-		   it = &i;
-   return t;
+	  p = new Trans(i);
+      temp.push_back(p);
+   return *temp;
    //return (std::vector<Trans *>) malloc(t.size());
 
 }

@@ -138,10 +138,8 @@ bool Event::check_cfl(Event & e)
    switch (trans.type)
    {
       case ir::Trans::RD:
-	  // a read can access more than one global variable, for example l=x+y
-	  // divide into 2 different transition: l=x; l=l+y;
 	     if (std::find(parent.post_rdsyn.begin(), parent.post_rdsyn.end(), &e) != parent.post_rdsyn.end())
-	    	 return true;
+	        return true;
     	 break;
 
 	  case ir::Trans::WR: // only access one variable
@@ -151,7 +149,7 @@ bool Event::check_cfl(Event & e)
 	     break;
 
 	  case ir::Trans::SYN:
-		  if (std::find(parent.post_rdsyn.begin(), parent.post_rdsyn.end(), &e) != parent.post_rdsyn.end())
+		  if (find(parent.post_rdsyn.begin(), parent.post_rdsyn.end(), &e) != parent.post_rdsyn.end())
 		     return true;
 		  break;
 
@@ -231,7 +229,7 @@ void Config::add(Event & e)
    }
 
 }
-#if 0
+
 void Config::compute_en()
 {
    ir::State & gs = *gstate;
@@ -248,15 +246,12 @@ void Config::compute_en()
 		      {
 			     Event e(&i);
 	             e.update(*this);
-				 //evt.push_back(e);
-				 //Event * p = &evt.back();
-				 en.push_back(&e);
-	             //U.push_back(&e);
+				 en.push_back(e);
 			  }
 		}
    }
 }
-#endif
+
 
 /*
  * Methods for class Unfolding
@@ -265,6 +260,7 @@ Unfolding::Unfolding (ir::Machine & ma): m(ma)
 {
 }
 
+#if 0
 /*
  * function to compute a set of events enabled at a configuration c in unfolding
  */
@@ -284,15 +280,14 @@ void Unfolding::compute_en(Config & c)
 		  {
 		     Event e(&i);
              e.update(c);
-			 U.push_back(e);
-			 Event * p = &U.back();
-			 c.en.push_back(p);
-			 //U.push_back(p);
+			 c.en.push_back(e);
+			 Event * p = &(c.en.back());
+			 U.push_back(p);
 		  }
 	  }
    }
 }
-
+#endif
 /*
  * function to compute a set of conflicting extension to a configuration
  */
@@ -300,7 +295,7 @@ void Unfolding::compute_en(Config & c)
 void Unfolding::compute_cex(Config & c)
 {
    Event * e;
-   c.cex.push_back(e);
+   c.cex.push_back(*e);
 }
 
 /*
@@ -335,6 +330,13 @@ void Unfolding:: explore(Config & C, std::vector<Event *> D, std::vector<Event *
  */
 void Unfolding::explore_rnd_config ()
 {
+	// create an empty configuration conf;
+
+	// in a loop:
+	//choose randomly one event e enabled at conf;
+	// conf.add (e); --> trigger construction of enabled events at the new
+	//                   configuration, and addition of them to this->evt
+	// reapeat until there is no event enabled
    assert (evt.size () == 0);
    Config c(m.init_state);
    Event * e;
@@ -346,15 +348,6 @@ void Unfolding::explore_rnd_config ()
 	   c.add(*e);
 	   compute_en(c);
    }
-
-   // create an empty configuration conf;
-
-   // in a loop:
-      // choose randomly one event e enabled at conf;
-      // conf.add (e); --> trigger construction of enabled events at the new
-      //                   configuration, and addition of them to this->evt
-      // reapeat until there is no event enabled
-
 }
 
 } // end of namespace

@@ -53,8 +53,10 @@ public:
 
    void sanity_check ();
    const State & init_state;
-   std::vector<Trans> & getTrans();
-   std::vector<Process> & getProcs();
+   std::vector<Trans> * getTrans();
+   std::vector<Process> * getProcs();
+   std::vector<Trans*>  getTrans1();
+
 
 
 private :

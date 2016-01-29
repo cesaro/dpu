@@ -59,6 +59,29 @@ Trans & Machine::add_trans (Process & p, unsigned src, unsigned dst)
    return *t;
 }
 
+std::vector<Trans *> Machine::getTrans1()
+{
+   std::vector<Trans *> t;
+   for (auto i:trans)
+	   for (auto it:t)
+		   it = &i;
+   return t;
+   //return (std::vector<Trans *>) malloc(t.size());
+
+}
+
+std::vector<Trans> * Machine::getTrans()
+{
+   return &trans;
+}
+
+std::vector<Process> * Machine::getProcs()
+{
+	return &procs;
+
+}
+
+// methods of class Process
 Process::Process (Machine & m, unsigned numlocations)
    : id (0)
    , m (m)
@@ -69,17 +92,7 @@ Process::Process (Machine & m, unsigned numlocations)
    cfg.shrink_to_fit ();
 }
 
-std::vector<Trans> & Machine::getTrans()
-{
-   //return &trans;
-}
-
-std::vector<Process> & Machine::getProcs()
-{
-	//return &procs;
-
-}
-
+//methods for class Trans
 Trans::Trans (Process & p, unsigned src, unsigned dst)
    : src (src)
    , dst (dst)
@@ -92,7 +105,7 @@ Trans::Trans (Process & p, unsigned src, unsigned dst)
    assert (std::find (p.trans.begin(), p.trans.end(), this) != p.trans.end());
 }
 
-
+// methods for class State
 State::State (Machine & m)
    : m (m)
    , tab (new uint32_t[m.memsize])
@@ -136,7 +149,7 @@ int State::getNumProcs()
 
 std::vector<Process> & State::getSProcs()
 {
-	return m.getProcs();
+	return *(m.getProcs());
 }
 
 } // namespace ir

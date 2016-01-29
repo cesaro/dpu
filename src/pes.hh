@@ -61,7 +61,7 @@ public:
    std::vector<Event *>             en;
    std::vector<Event *>             cex;
 
-   Config();
+   Config(const ir::State & s);
    Config(Config & c);
    ir::State * getState() {return gstate;}
    void add(Event & e); // update the cut and the new event
@@ -76,11 +76,11 @@ private:
 class Unfolding
 {
 public:
-   std::vector<Event>    evt;
-   std::vector <Event *> U;
+   std::vector<Event>    evt; // events actually in the unfolding
+   std::vector <Event> U;  // Universe of events
    ir::Machine &         m;
 
-   Unfolding (ir::Machine & m);
+   Unfolding (ir::Machine & ma);
 
    //methods
    void compute_en(Config & c);

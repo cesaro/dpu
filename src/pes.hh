@@ -58,9 +58,12 @@ public:
    std::vector<std::vector<Event*>> latest_global_rdwr; //size =ProcessxVariable
 
    std::vector<Event*>              latest_local_wr; // size=number of variables
-   std::vector<Event*>               en;
-   std::vector<Event*>               cex;
+   std::vector<Event*>              en;
+   std::vector<Event*>              cex;
+   Unfolding                        unf;
 
+
+   Config(Unfolding & u); // creates an empty configuration
    Config(const ir::State & s);
    Config(Config & c);
    ir::State * getState() {return gstate;}
@@ -69,7 +72,7 @@ public:
 
 
 private:
-   void __update_en (Event & e);//???
+   void __update_encex ();//???
 
 };
 

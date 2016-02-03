@@ -171,6 +171,13 @@ Config::Config(const ir::State & s)
 	*gstate = s;
 }
 
+Config::Config(Unfolding & u)
+: unf(u)
+{
+	gstate = u.m.init_state;
+	__update_encex();
+}
+
 Config:: Config(Config & c)
 : latest_proc (c.latest_proc)
 , latest_global_wr (c.latest_global_wr)
@@ -187,15 +194,13 @@ Config:: Config(Config & c)
 void Config::add(Event & e)
 {
    ir::State & gs               = *gstate;
-   //std::vector<Process> & procs = gs.getSProcs();
-   // int numofproc                = procs.size();
-   ir::Trans & s                = e.getTrans();
+   ir::Trans & tran             = e.getTrans();
    ir::Process & p              = e.getProc();
    /*
     * update the configuration
     */
 
-   latest_proc[s.proc.id] = &e; //update latest event of the process
+   latest_proc[p.id] = &e; //update latest event of the process
    gstate = s.fire(gs); //update new global states
 
    //update local variables in trans
@@ -213,7 +218,7 @@ void Config::add(Event & e)
         break;
 
       case ir::Trans::WR:
-    	 latest_global_wr[s.addr] = &e;
+    	 latest_global_wr[s.addr] = &e; // update latest wr event for the variable s.addr
     	// std::vector<Event *> * p_vec;
     	// p_vec = find (latest_global_wr.begin(), latest_global_wr.end(), s.proc);
     	// p_vec[s.addr] = &e;
@@ -227,9 +232,10 @@ void Config::add(Event & e)
       case ir::Trans::LOC:
          break;
    }
+   __update_encex();
 
 }
-
+#if 0
 void Config::compute_en()
 {
    ir::State & gs = *gstate;
@@ -238,18 +244,38 @@ void Config::compute_en()
    assert(trans.size()==0);
    assert(procs.size()==0);
 
-   for (auto const& it : procs)
+   for (auto & i: trans)
    {
-      for (auto & i: trans)
-	    {
-		   if ( i.src == gs[it.id] )
-		      {
-			     Event e(&i);
-	             e.update(*this);
-				 en.push_back(e);
-			  }
-		}
+      if (i.enabled(gs))
+      {
+         e.update(*this);
+		 en.push_back(e);
+      }
    }
+}
+#endif
+
+void Config::__update_encex ()
+{
+   Event * p;
+   ir::State & gs = *gstate;
+   std::vector<ir::Trans> & trans = *(gs.m.getTrans());
+   std::vector <ir::Process> & procs = *(gs.m.getProcs());
+   assert(trans.size()==0);
+   assert(procs.size()==0);
+   for (auto & i: trans)
+      for (auto & e: unf.evt)
+      {
+         if (i.enabled(gs) && (e.trans == i))
+         {
+            p = &e;
+            for (auto ep: en)
+               if (e.check_cfl(*ep) == true)
+                  cex.push_back(p);
+               else
+                  en.push_back(p);
+         }
+      }
 }
 
 
@@ -287,16 +313,8 @@ void Unfolding::compute_en(Config & c)
 	  }
    }
 }
-#endif
-/*
- * function to compute a set of conflicting extension to a configuration
- */
 
-void Unfolding::compute_cex(Config & c)
-{
-   Event * e;
-   c.cex.push_back(*e);
-}
+#endif
 
 /*
  * Compute set of events in conflict with event e
@@ -338,15 +356,13 @@ void Unfolding::explore_rnd_config ()
 	//                   configuration, and addition of them to this->evt
 	// reapeat until there is no event enabled
    assert (evt.size () == 0);
-   Config c(m.init_state);
+   Config c(*this);
    Event * e;
-   compute_en(c);
    while (c.en.empty() == false)
    {
 	   e = *(c.en.begin());
 	   evt.push_back(*e);
 	   c.add(*e);
-	   compute_en(c);
    }
 }
 

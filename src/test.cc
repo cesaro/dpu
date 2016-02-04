@@ -108,7 +108,7 @@ void operator delete(void* ptr) noexcept
    std::free(ptr);
 }
 #endif
-
+#if 0
 void test1 ()
 {
    Stack * s = new Stack [10];
@@ -120,6 +120,7 @@ void test1 ()
    printf ("%d\n", *p3);
    delete[] p3;
 }
+#endif
 
 void test2 ()
 {
@@ -203,7 +204,7 @@ void test4 ()
 void test5 ()
 {
    ir::Machine m (3, 4, 3);
-
+#if 0
    ir::Process & p0 = m.add_process (2);
    ir::Process & p1 = m.add_process (2);
    ir::Process & p2 = m.add_process (2);
@@ -218,15 +219,14 @@ void test5 ()
    t = & m.add_trans (p1, 0, 1);
    t = & m.add_trans (p2, 0, 1);
 
-   ir::State * s = nullptr;
-   *s = m.init_state;
+   const ir::State & s (m.init_state);
 
-   for (int var = 0; var < m.memsize; var++)
+   for (unsigned var = 0; var < m.memsize; var++)
    {
-     // printf ("variable %d stores '%u'\n", s[var]);
+     printf ("variable %d stores '%u'\n", var, s[var]);
    }
 
-
+#endif
    // x state
 
    // pensar en el formato objetivo que necesitas, formato en memoria; en
@@ -258,12 +258,15 @@ void test6 ()
 void test7 ()
 {
    // load the program -> new machine
-   ir::Machine m (3, 4, 3); // 3 vars, 4 trans, 3 procs
+   ir::Machine m (3, 3, 3); // 3 vars, 3 procs, 3 trans
    ir::Process & p0 = m.add_process (2); // 2 locations
    ir::Process & p1 = m.add_process (2);
    ir::Process & p2 = m.add_process (2);
 
    ir::Trans * t;
+
+   printf ("p0 %p p0.cfg.size %zu\n", &p0, p0.cfg.size ());
+
 
    t = & m.add_trans (p0, 0, 1); // p0 has one transition (WR), write on var 3
    t->type = ir::Trans::WR;
@@ -273,10 +276,16 @@ void test7 ()
    t = & m.add_trans (p1, 0, 1); // p1 has one trans
    t = & m.add_trans (p2, 0, 1); // p2 has only one trans
 
-   ir::State * s = nullptr;
-   *s = m.init_state;//= new ....;
+   //const ir::State & s (m.init_state);
 
    pes::Unfolding u (m);
+   /*
+   u.evt=0;
+   Config C(u); // C contains bottom event
+   std::vector <Event *> D, A;
+   u.explore(C, D, A);
+   */
 
    u.explore_rnd_config ();
+
 }

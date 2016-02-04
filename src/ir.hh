@@ -24,7 +24,7 @@ class State
 public:
    Machine & m;
 
-   uint32_t & operator [] (unsigned); // return element at a specific position in tab
+   uint32_t & operator [] (unsigned) const; // return element at a specific position in tab
    State (Machine & m);
    State (const State &);
    State & operator = (const State & s);
@@ -53,8 +53,8 @@ public:
 
    void sanity_check ();
    const State & init_state;
-   std::vector<Trans> * getTrans();
-   std::vector<Process> * getProcs();
+   std::vector<Trans> & getTrans();
+   std::vector<Process> & getProcs();
    std::vector<Trans*>  getTrans1();
 
 

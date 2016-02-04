@@ -7,6 +7,8 @@
 namespace pes
 {
 class Config;
+class Unfolding;
+
 
 class Event
 {
@@ -28,7 +30,6 @@ public:
    std::vector<int>     localvals; //???
 
    ir::Trans *          trans;
-   std::vector<Event *> cfl; // set of events in conflict
    Event ();
    Event (ir::Trans * t);
 
@@ -42,6 +43,7 @@ public:
    bool check_cfl(Event & e);
 
 }; // end of class Event
+
 
 /*
  *  class to represent a configuration in unfolding
@@ -60,11 +62,10 @@ public:
    std::vector<Event*>              latest_local_wr; // size=number of variables
    std::vector<Event*>              en;
    std::vector<Event*>              cex;
-   Unfolding                        unf;
+   Unfolding  &                     unf;
 
 
    Config(Unfolding & u); // creates an empty configuration
-   Config(const ir::State & s);
    Config(Config & c);
    ir::State * getState() {return gstate;}
    void add(Event & e); // update the cut and the new event
@@ -74,24 +75,22 @@ public:
 private:
    void __update_encex ();//???
 
-};
+}; // end of class Config
 
 class Unfolding
 {
 public:
    std::vector<Event>    evt; // events actually in the unfolding
-   std::vector <Event *> U;  // Universe of events
    ir::Machine &         m;
+
+   // std::vector <Event *> U;  // Universe of events
 
    Unfolding (ir::Machine & ma);
 
    //methods
-   void compute_en(Config & c);
-   void compute_cex(Config & c);
    void explore(Config & C, std::vector<Event *> D, std::vector<Event *> A);
-
    void explore_rnd_config ();
-};
+}; // end of class Unfolding
 
 
 } // namespace pes

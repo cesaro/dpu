@@ -18,9 +18,9 @@ Machine::Machine (unsigned memsize, unsigned numprocs, unsigned numtrans)
          this, numprocs, numtrans, memsize);
    
    assert (memsize >= numprocs);
-   procs.reserve (numprocs);
+   procs.reserve (2 * numprocs);
    procs.shrink_to_fit ();
-   trans.reserve (numtrans);
+   trans.reserve (2 * numtrans);
    trans.shrink_to_fit ();
 }
 
@@ -31,10 +31,11 @@ bool Machine::operator == (const Machine & m) const
 
 Process & Machine::add_process (unsigned numlocations)
 {
-   if (procs.size () == procs.capacity ())
+   if (procs.size () > procs.capacity ())
       throw std::logic_error (
             "Tried to allocated more processes than the maximum permitted");
    procs.emplace_back (*this, numlocations);
+   printf ("Machine.add_process procs.back.cfg.size %zu\n", procs.back().cfg.size ());
    return procs.back ();
 }
 
@@ -42,13 +43,15 @@ Trans & Machine::add_trans (Process & p, unsigned src, unsigned dst)
 {
    Trans * t;
 
+   printf ("Machine.add_trans: p %p src %u dst %u p.cfg.size %zu\n", &p, src, dst, p.cfg.size ());
+
    // p is a process of this machine
    assert (&p.m == this);
    // src and dst make sense in that process
    assert (src < p.cfg.size ());
    assert (dst < p.cfg.size ());
 
-   if (trans.size () == trans.capacity ())
+   if (trans.size () > trans.capacity ())
       throw std::logic_error (
             "Tried to allocated more transitions than the maximum permitted");
 
@@ -59,26 +62,14 @@ Trans & Machine::add_trans (Process & p, unsigned src, unsigned dst)
    return *t;
 }
 
-std::vector<Trans *> Machine::getTrans1()
+std::vector<Trans> & Machine::getTrans()
 {
-   std::vector<Trans *> temp;
-   Trans * p;
-   for (auto i:trans)
-	  p = new Trans(i);
-      temp.push_back(p);
-   return *temp;
-   //return (std::vector<Trans *>) malloc(t.size());
-
+   return trans;
 }
 
-std::vector<Trans> * Machine::getTrans()
+std::vector<Process> & Machine::getProcs()
 {
-   return &trans;
-}
-
-std::vector<Process> * Machine::getProcs()
-{
-	return &procs;
+	return procs;
 
 }
 
@@ -91,9 +82,10 @@ Process::Process (Machine & m, unsigned numlocations)
 
 {
    cfg.shrink_to_fit ();
+   printf ("Process.ctor: this %p cfg.size %zd\n", this, cfg.size ());
 }
+//===methods for class Trans=========
 
-//methods for class Trans
 Trans::Trans (Process & p, unsigned src, unsigned dst)
    : src (src)
    , dst (dst)
@@ -106,7 +98,17 @@ Trans::Trans (Process & p, unsigned src, unsigned dst)
    assert (std::find (p.trans.begin(), p.trans.end(), this) != p.trans.end());
 }
 
-// methods for class State
+bool Trans::enabled (const State &)
+{
+	return false;
+}
+State * Trans:: fire (const State &s)
+{
+	return new State (s);
+}
+
+//===methods for class State==========
+
 State::State (Machine & m)
    : m (m)
    , tab (new uint32_t[m.memsize])
@@ -138,7 +140,7 @@ State::~State ()
    delete[] tab;
 }
 
-uint32_t & State::operator [] (unsigned i)
+uint32_t & State::operator [] (unsigned i) const
 {
    return tab[i];
 }
@@ -150,7 +152,7 @@ int State::getNumProcs()
 
 std::vector<Process> & State::getSProcs()
 {
-	return *(m.getProcs());
+	return m.getProcs();
 }
 
 } // namespace ir

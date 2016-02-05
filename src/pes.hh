@@ -39,6 +39,7 @@ public:
    ir::Trans & getTrans() {return *trans;}
    ir::Process & getProc() {return trans->proc;}
    void update (Config & c);
+   void update_parent();
    void compute_cfl(Event & e);
    bool check_cfl(Event & e);
 
@@ -57,9 +58,9 @@ public:
 
    std::vector<Event*>              latest_global_wr; //size of vector = number of variable
 
-   std::vector<std::vector<Event*>> latest_global_rdwr; //size =ProcessxVariable
+   std::vector<std::vector<Event*>> latest_global_rdwr; //size = Process x Variable
 
-   std::vector<Event*>              latest_local_wr; // size=number of variables
+   std::vector<Event*>              latest_local_wr; // size = number of local variables
    std::vector<Event*>              en;
    std::vector<Event*>              cex;
    Unfolding  &                     unf;

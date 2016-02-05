@@ -52,6 +52,37 @@ void Event::update(Config & c)
   }
 }
 
+void Event::update_parent()
+{
+   Event & prt; //parent
+   if (this->trans->type == ir::Trans::LOC)
+      prt = *(this->pre_proc);
+   else
+	  prt = *(this->pre_mem);
+
+   switch (prt.trans->type)
+   case ir::Trans::WR:
+      prt.post_proc[this->trans->proc.id] = this;
+	  prt.post_wr[this->trans->addr].push_back(this);
+	  break;
+   case ir::Trans::LOC:
+	  prt.post_proc = *this;
+      break;
+   case ir::Trans::RD:
+      break;
+   case ir::Trans::SYN:
+	  break;
+
+
+      prt.post_mem[this->trans->proc.id].push_back(this);
+      if (this->trans->type == ir::Trans::WR)
+      {
+
+      }
+   }
+
+}
+
 bool Event:: operator == (const Event & e) const
 {
    return this == &e;
@@ -200,6 +231,7 @@ void Config::add(Event & e)
    std::vector<Process> & procs = unf.m.getProcs();
 
    e.update(*this); //update the event
+   e.update_parent(*this); // update parent of the event
 
    /*
     * update the configuration
@@ -235,7 +267,8 @@ void Config::add(Event & e)
          break;
    }
 
-   __update_encex();
+   __update_encex(e);
+
 
 }
 #if 0
@@ -260,7 +293,7 @@ void Config::compute_en()
 
 void Config::__update_encex ()
 {
-   Event * p;
+   Event e;
    ir::State & gs = *gstate;
    std::vector<ir::Trans> & trans = gs.m.getTrans(); // all trans of the machine
    std::vector <ir::Process> & procs = gs.m.getProcs(); // all procs of the machine
@@ -268,18 +301,16 @@ void Config::__update_encex ()
    assert(procs.size()==0);
 
    for (auto & t: trans)
-      for (auto & e: unf.evt)
-      {
-         if (t.enabled(gs) && (e.trans == &t))
-         {
-            p = &e;
-            for (auto ep: en)
-               if (e.check_cfl(*ep) == true)
-                  cex.push_back(p);
-               else
-                  en.push_back(p);
-         }
-      }
+     if (t.enabled(gs))
+     {
+        e = new Event(&t);
+        unf.evt.push_back(e);
+        for (auto ep: en)
+           if (e.check_cfl(*ep) == true)
+              cex.push_back(&e);
+           else
+              en.push_back(&e);
+     }
 }
 
 
@@ -333,7 +364,7 @@ void Unfolding::explore_rnd_config ()
    Event * e;
    while (c.en.empty() == false)
    {
-	   e = *(c.en.begin());
+	   e = c.en.pop_back();
 	   c.add(*e);
    }
 }

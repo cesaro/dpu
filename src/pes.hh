@@ -24,23 +24,23 @@ public:
    std::vector <std::vector <Event *>> post_wr; //write children of a write trans
 
    //only for RD and SYN events
-   std::vector <Event *> post_rdsyn; // for RD and SYN events
+   std::vector <Event *> post_rdsyn; // for RD and SYN events, size = number of variables
 
    int                  val; //??? value for global variable?
    std::vector<int>     localvals; //???
 
    ir::Trans *          trans;
    Event ();
-   Event (ir::Trans * t);
+   Event (ir::Trans & t);
 
 
    bool        operator ==   (const Event &) const;
    Event & 	   operator =    (const Event &);
    ir::Trans & getTrans() {return *trans;}
    ir::Process & getProc() {return trans->proc;}
+
    void update (Config & c);
-   void update_parent();
-   void compute_cfl(Event & e);
+   void update_parents();
    bool check_cfl(Event & e);
 
 }; // end of class Event
@@ -70,11 +70,10 @@ public:
    Config(Config & c);
    ir::State * getState() {return gstate;}
    void add(Event & e); // update the cut and the new event
-   void compute_en();
-
 
 private:
-   void __update_encex ();//???
+   void __update_encex (Event & e);
+   void remove (Event & e);
 
 }; // end of class Config
 

@@ -18,6 +18,14 @@ namespace pes{
 /*
  * Methods for class Event
  */
+Event::Event()
+{
+}
+
+Event::Event(Trans & t)
+{
+  this->trans = &t;
+}
 
 void Event::update(Config & c)
 {
@@ -25,59 +33,60 @@ void Event::update(Config & c)
   ir::Process & p = this->getProc();
   std::vector<Process> & procs = c.gstate->getSProcs();
   pre_proc = c.latest_proc[p.id];//e's parent is the latest event of the process
-  post_proc.clear(); // e has no child
-
   switch (t.type)
   {
      case ir::Trans::RD:
         pre_mem  = c.latest_global_rdwr[p.id][t.addr];
-        post_rdsyn[t.addr] = __null;
-      	break;
+        break;
 
      case ir::Trans::WR:
         pre_mem  = c.latest_global_wr[t.addr];
-        for (auto & it: post_mem)
-           for (auto & i: it)
-              i = nullptr;
+        for(auto i: procs)
+           pre_readers[i.id] = c.latest_global_rdwr[i.id][t.addr]; // the latest global event of the process
+        //for (auto & it: post_mem)
+        //   for (auto & i: it)
+        //      i = nullptr;
   	    // set pre-readers = set of latest events which use the variable copies of all processes.
   	    //size of pre-readers is numbers of copies of the variable = number of processes
-      	for(auto i: procs)
-            pre_readers[i.id] = c.latest_global_rdwr[i.id][t.addr]; // the latest global event of the process
+
 
         break;
      case ir::Trans::SYN:
-   	    break;
+    	pre_mem  = c.latest_global_rdwr[p.id][t.addr];
+    	break;
      case ir::Trans::LOC:
+    	pre_proc  = c.latest_proc[p.id];
+    	//post_proc = nullptr;
    	    break;
   }
+  update_parents(); // update parent of the event
 }
 
-void Event::update_parent()
+void Event::update_parents()
 {
-   Event & prt; //parent
-   if (this->trans->type == ir::Trans::LOC)
-      prt = *(this->pre_proc);
-   else
-	  prt = *(this->pre_mem);
+   Event * prt; //parent
+   Process & p = this->trans->proc;
+   Trans & tr  = *(this->trans);
+   prt = this->pre_proc;
+   prt->post_proc[p.id] = this;
 
-   switch (prt.trans->type)
-   case ir::Trans::WR:
-      prt.post_proc[this->trans->proc.id] = this;
-	  prt.post_wr[this->trans->addr].push_back(this);
-	  break;
-   case ir::Trans::LOC:
-	  prt.post_proc = *this;
-      break;
-   case ir::Trans::RD:
-      break;
-   case ir::Trans::SYN:
-	  break;
-
-
-      prt.post_mem[this->trans->proc.id].push_back(this);
-      if (this->trans->type == ir::Trans::WR)
+   if (tr.type != ir::Trans::LOC)
+   {
+      prt = this->pre_mem;
+      switch (prt->trans->type)
       {
-
+      case ir::Trans::WR:
+		 prt->post_mem[p.id].push_back(this);
+		 if (tr.type == ir::Trans::WR)
+	        prt->post_wr[p.id].push_back(this);
+	     break;
+      case ir::Trans::RD:
+    	 prt->post_rdsyn.push_back(this);
+         break;
+      case ir::Trans::SYN:
+         prt->post_rdsyn[p.id] = this;
+	     break;
+      default: break;
       }
    }
 
@@ -125,47 +134,10 @@ Event & Event:: operator  = (const Event & e)
    return *this;
 }
 
-# if 0
-void Event::compute_cfl(Event & e)
-{
-   Event & parent = *(e.pre_mem);
-   ir::Trans & trans = parent.getTrans();
-   switch (trans.type)
-   {
-      case ir::Trans::RD:
-    	  // a read can access more than one global variable, for example l=x+y
-    	  // divide into 2 different transition: l=x; l=l+y;
-         for (auto const& it : parent.post_rdsyn)
-        	 if ( find(parent.post_rdsyn.begin(), parent.post_rdsyn.end(), &e) != parent.post_rdsyn.end() )
-        	    e.cfl.push_back(it);
-         break;
-      case ir::Trans::WR: // only access one variable
-         for (auto const& i : parent.post_mem)
-            if (find(i.begin(), i.end(), &e) != i.end())
-               for (auto it : i)
-                  if (i != &e)
-                     e.cfl.push_back(it);
-         break;
-      case ir::Trans::SYN:
-    	 for (auto const& it : parent.post_rdsyn)
-    	   if (it != &e)
-    	      e.cfl.push_back(it);
-    	 break;
-      case ir::Trans::LOC:
-    	 Event & parent_loc = *(e.pre_proc);
-    	 for (auto const& it : parent_loc.post_proc)
-    	    if (it != &e)
-    	       e.cfl.push_back(it);
-    	 break;
-   }
-}
-#endif
-
 bool Event::check_cfl(Event & e)
 {
    Event & parent = *(e.pre_mem);
    ir::Trans & trans = parent.getTrans();
-  // std::vector<Event *>::iterator it;
 
    switch (trans.type)
    {
@@ -206,7 +178,10 @@ Config::Config(Unfolding & u)
 : unf(u)
 {
 	*gstate = u.m.init_state;
-	__update_encex();
+	Event & e = new Event();
+	e.trans =
+	__update_encex(e);
+
 }
 
 Config:: Config(Config & c)
@@ -231,16 +206,10 @@ void Config::add(Event & e)
    std::vector<Process> & procs = unf.m.getProcs();
 
    e.update(*this); //update the event
-   e.update_parent(*this); // update parent of the event
 
-   /*
-    * update the configuration
-    */
-
+   // update the configuration
    gstate = tran.fire(gs); //update new global states
-
    latest_proc[p.id] = &e; //update latest event of the process
-
 
    //update local variables in trans
    for (auto i: tran.localaddr)
@@ -264,36 +233,16 @@ void Config::add(Event & e)
        	 break;
 
       case ir::Trans::LOC:
+    	 latest_proc[p.id] = &e;
          break;
    }
 
    __update_encex(e);
-
-
 }
-#if 0
-void Config::compute_en()
-{
-   ir::State & gs = *gstate;
-   std::vector<ir::Trans> & trans = *(gs.m.getTrans());
-   std::vector <ir::Process> & procs = *(gs.m.getProcs());
-   assert(trans.size()==0);
-   assert(procs.size()==0);
 
-   for (auto & i: trans)
-   {
-      if (i.enabled(gs))
-      {
-         e.update(*this);
-		 en.push_back(e);
-      }
-   }
-}
-#endif
-
-void Config::__update_encex ()
+void Config::__update_encex (Event & e)
 {
-   Event e;
+   remove(e);
    ir::State & gs = *gstate;
    std::vector<ir::Trans> & trans = gs.m.getTrans(); // all trans of the machine
    std::vector <ir::Process> & procs = gs.m.getProcs(); // all procs of the machine
@@ -303,16 +252,20 @@ void Config::__update_encex ()
    for (auto & t: trans)
      if (t.enabled(gs))
      {
-        e = new Event(&t);
-        unf.evt.push_back(e);
-        for (auto ep: en)
-           if (e.check_cfl(*ep) == true)
-              cex.push_back(&e);
-           else
-              en.push_back(&e);
+        unf.evt.emplace_back(t);
+        en.push_back(&unf.evt.back());
      }
 }
 
+void Config::remove(Event & e)
+{
+   for (auto ep = en.begin(); ep != en.end(); ep++)
+      if (e.check_cfl(**ep) == true)
+      {
+	     cex.push_back(*ep);
+         en.erase(ep);
+      }
+}
 
 /*
  * Methods for class Unfolding
@@ -350,21 +303,14 @@ void Unfolding:: explore(Config & C, std::vector<Event*> D, std::vector<Event*> 
  */
 void Unfolding::explore_rnd_config ()
 {
-	// create an empty configuration conf;
-
-	// in a loop:
-	//choose randomly one event e enabled at conf;
-	// conf.add (e); --> trigger construction of enabled events at the new
-	//                   configuration, and addition of them to this->evt
-	// reapeat until there is no event enabled
-
+   Event * e;
    printf ("Unfolding.explore_rnd_config\n");
    assert (evt.size () == 0);
    Config c(*this);
-   Event * e;
    while (c.en.empty() == false)
    {
-	   e = c.en.pop_back();
+	   e = c.en.back();
+	   c.en.pop_back();
 	   c.add(*e);
    }
 }

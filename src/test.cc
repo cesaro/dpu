@@ -260,22 +260,25 @@ void test7 ()
    // load the program -> new machine
    ir::Machine m (3, 3, 3); // 3 vars, 3 procs, 3 trans
    ir::Process & p0 = m.add_process (2); // 2 locations
-   ir::Process & p1 = m.add_process (2);
    ir::Process & p2 = m.add_process (2);
+   ir::Process & p1 = m.add_process (2);
+
 
    ir::Trans * t;
 
    printf ("p0 %p p0.cfg.size %zu\n", &p0, p0.cfg.size ());
+   printf ("p1 %p p1.cfg.size %zu\n", &p1, p1.cfg.size ());
+   printf ("p2 %p p2.cfg.size %zu\n", &p2, p2.cfg.size ());
 
-
-   t = & m.add_trans (p0, 0, 1); // p0 has one transition (WR), write on var 3
+/*
+   t = & m.add_trans (p2, 0, 1); // p0 has one transition (WR), write on var 3
    t->type = ir::Trans::WR;
    t->addr = 3;
    t->offset = 0;
 
    t = & m.add_trans (p1, 0, 1); // p1 has one trans
    t = & m.add_trans (p2, 0, 1); // p2 has only one trans
-
+*/
    //const ir::State & s (m.init_state);
 
    pes::Unfolding u (m);

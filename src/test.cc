@@ -257,28 +257,34 @@ void test6 ()
 
 void test7 ()
 {
+   ir::Trans * t;
    // load the program -> new machine
    ir::Machine m (3, 3, 3); // 3 vars, 3 procs, 3 trans
-   ir::Process & p0 = m.add_process (2); // 2 locations
-   ir::Process & p2 = m.add_process (2);
-   ir::Process & p1 = m.add_process (2);
 
+   ir::Process & p0 = m.add_process (2,0); // 2 locations
+   t = & m.add_trans (p0, 0, 1); // p0 has one transition (WR), write on var 3
+      t->type   = ir::Trans::WR;
+      t->addr   = 3;
+      t->offset = 0;
 
-   ir::Trans * t;
+   ir::Process & p1 = m.add_process (2,1);
+   t = & m.add_trans (p1, 0, 1); // p1 has one transition
+      t->type   = ir::Trans::RD;
+      t->addr   = 3;
+      t->offset = 0;
 
-   printf ("p0 %p p0.cfg.size %zu\n", &p0, p0.cfg.size ());
-   printf ("p1 %p p1.cfg.size %zu\n", &p1, p1.cfg.size ());
-   printf ("p2 %p p2.cfg.size %zu\n", &p2, p2.cfg.size ());
-
-/*
-   t = & m.add_trans (p2, 0, 1); // p0 has one transition (WR), write on var 3
-   t->type = ir::Trans::WR;
-   t->addr = 3;
-   t->offset = 0;
-
-   t = & m.add_trans (p1, 0, 1); // p1 has one trans
+   ir::Process & p2 = m.add_process (2,2);
    t = & m.add_trans (p2, 0, 1); // p2 has only one trans
-*/
+      t->type   = ir::Trans::RD;
+      t->addr   = 3;
+      t->offset = 0;
+
+   printf ("trans.size %zu\n", m.trans.size());
+   printf ("procs.size %zu\n", m.procs.size());
+
+   for (auto &t : m.trans)
+      printf(" in test: t.src: %d and t.dest: %d, t.proc.id: %d \n", t.src, t.dst, t.proc.id);
+
    //const ir::State & s (m.init_state);
 
    pes::Unfolding u (m);

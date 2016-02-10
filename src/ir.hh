@@ -15,7 +15,6 @@ namespace ir
 class Trans;
 class Process;
 class Machine;
-//class State;
 
 //=============================
 class State
@@ -48,7 +47,9 @@ public:
    Machine (unsigned memsize, unsigned numprocs, unsigned numtrans = 0);
 
    bool        operator ==   (const Machine &) const;
-   Process &   add_process   (unsigned numlocations);
+  // Machine &   operator =    (const Machine & m);
+
+   Process &   add_process   (unsigned numlocations, int id);
    Trans   &   add_trans     (Process & p, unsigned src, unsigned dst);
 
    void sanity_check ();
@@ -75,7 +76,7 @@ public:
    std::vector<Trans*>               trans;
    std::vector<std::vector<Trans *>> cfg;
 
-   Process (Machine & m, unsigned numlocations);
+   Process (Machine & m, unsigned numlocations, int id);
 };
 
 //================================

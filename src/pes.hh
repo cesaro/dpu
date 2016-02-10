@@ -73,7 +73,7 @@ public:
 
 private:
    void __update_encex (Event & e);
-   void remove (Event & e);
+   void remove_cfl (Event & e);
 
 }; // end of class Config
 

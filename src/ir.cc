@@ -43,6 +43,7 @@ Machine &  Machine:: operator =    (const Machine & m)
 }
 #endif
 
+#if 0
 Process & Machine::add_process (unsigned numlocations, int id)
 {
    if (procs.size () > procs.capacity ())
@@ -75,6 +76,41 @@ Trans & Machine::add_trans (Process & p, unsigned src, unsigned dst)
    printf("in add trans: t.src: %d and t.dest: %d, t.proc.id: %d \n", t->src, t->dst, t->proc.id);
    return *t;
 }
+
+#endif
+
+void Machine::add_process (unsigned numlocations, int id)
+{
+   if (procs.size () > procs.capacity ())
+      throw std::logic_error (
+            "Tried to allocated more processes than the maximum permitted");
+   procs.emplace_back (*this, numlocations, id);
+}
+
+void Machine::add_trans (Process & p, unsigned src, unsigned dst)
+{
+   Trans * t;
+
+  // printf ("Machine.add_trans: p %p src %u dst %u p.cfg.size %zu\n", &p, src, dst, p.cfg.size ());
+
+   // p is a process of this machine
+   assert (&p.m == this);
+   // src and dst make sense in that process
+   assert (src < p.cfg.size ());
+   assert (dst < p.cfg.size ());
+
+   if (trans.size () > trans.capacity ())
+      throw std::logic_error (
+            "Tried to allocated more transitions than the maximum permitted");
+
+   trans.emplace_back (p, src, dst);
+   t = & trans.back ();
+   p.trans.push_back (t);
+   p.cfg[src].push_back (t);
+   printf("in add trans: t.src: %d and t.dest: %d, t.proc.id: %d \n", t->src, t->dst, t->proc.id);
+
+}
+
 
 std::vector<Trans> & Machine::getTrans()
 {

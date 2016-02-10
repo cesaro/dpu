@@ -49,8 +49,10 @@ public:
    bool        operator ==   (const Machine &) const;
   // Machine &   operator =    (const Machine & m);
 
-   Process &   add_process   (unsigned numlocations, int id);
-   Trans   &   add_trans     (Process & p, unsigned src, unsigned dst);
+   //Process &   add_process   (unsigned numlocations, int id);
+  // Trans   &   add_trans     (Process & p, unsigned src, unsigned dst);
+   void     add_process   (unsigned numlocations, int id);
+   void     add_trans     (Process & p, unsigned src, unsigned dst);
 
    void sanity_check ();
    const State & init_state;

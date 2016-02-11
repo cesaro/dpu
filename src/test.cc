@@ -8,6 +8,7 @@
 #include "test.hh"
 #include "ir.hh"
 #include "pes.hh"
+#include "statement.hh"
 
 class Stack
 {
@@ -297,4 +298,87 @@ void test7 ()
 
    u.explore_rnd_config ();
 
+}
+
+void test8 ()
+{
+   // testing ctors and assignemnt ops for the Var class
+
+   {
+      printf ("======= v0\n");
+      ir::Var v;
+      printf ("v.var %u\n", v.var);
+      printf ("v.idx %p\n", v.idx);
+      printf ("v.type %u\n", v.type ());
+      printf ("v.str '%s'\n", v.str().c_str());
+   }
+
+   {
+      printf ("======= v12\n");
+      ir::Var v (12);
+      printf ("v.var %u\n", v.var);
+      printf ("v.idx %p\n", v.idx);
+      printf ("v.type %u\n", v.type ());
+      printf ("v.str '%s'\n", v.str().c_str());
+   }
+
+   {
+      printf ("======= v12[0]\n");
+      ir::Expr e;
+      ir::Var v (12, e);
+      printf ("v.var %u\n", v.var);
+      printf ("v.idx %p\n", v.idx);
+      printf ("v.type %u\n", v.type ());
+      printf ("v.str '%s'\n", v.str().c_str());
+
+      printf ("======= copy ctor of Var\n");
+      ir::Var v1 (v);
+      printf ("v1.var  %u\n",   v1.var);
+      printf ("v1.idx  %p\n",   v1.idx);
+      printf ("v1.type %u\n",   v1.type ());
+      printf ("v1.str  '%s'\n", v1.str().c_str());
+   }
+
+   {
+      printf ("======= v1 with move ctor\n");
+      ir::Expr imm33 (33);
+      ir::Var v (1, imm33);
+      printf ("v.var %u\n", v.var);
+      printf ("v.idx %p\n", v.idx);
+      printf ("v.type %u\n", v.type ());
+      printf ("v.str '%s'\n", v.str().c_str());
+      ir::Var v1 (std::move (v)); // declares v as r-value
+      printf ("v.var %u\n", v.var);
+      printf ("v.idx %p\n", v.idx);
+      printf ("v.type %u\n", v.type ());
+      printf ("v.str '%s'\n", v.str().c_str());
+      printf ("v1.var %u\n", v1.var);
+      printf ("v1.idx %p\n", v1.idx);
+      printf ("v1.type %u\n", v1.type ());
+      printf ("v1.str '%s'\n", v1.str().c_str());
+   }
+
+   {
+      printf ("======= v1 with move assignment\n");
+      ir::Expr imm33 (33);
+      ir::Var v (1, imm33);
+      printf ("v.var %u\n", v.var);
+      printf ("v.idx %p\n", v.idx);
+      printf ("v.type %u\n", v.type ());
+      printf ("v.str '%s'\n", v.str().c_str());
+      v = ir::Var (123);
+      printf ("v.var %u\n", v.var);
+      printf ("v.idx %p\n", v.idx);
+      printf ("v.type %u\n", v.type ());
+      printf ("v.str '%s'\n", v.str().c_str());
+   }
+
+}
+
+void test9 ()
+{
+   // v0 = 1
+   // v3[12] = 2
+   // v4[v1 * 2] = 3 + v1
+   // assume (v0 + 1)
 }

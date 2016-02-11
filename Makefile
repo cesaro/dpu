@@ -19,7 +19,7 @@ include defs.mk
 
 all: $(TARGETS) tags
 
-run: all
+r run: all
 	./src/main
 
 $(TARGETS) : % : %.o $(OBJS)

@@ -22,7 +22,9 @@ Event::Event()
 {
 	trans = nullptr;
 	val =0;
-	for (auto it = localvals.begin(); it != localvals.end(); ++it) *it = 0;
+	val = 0;
+	for (auto & i: localvals)
+	   i = 0;
 	pre_proc = nullptr;
 	pre_mem  = nullptr;
 	pre_readers.clear();
@@ -36,7 +38,8 @@ Event::Event(Trans & t)
 {
   this->trans = &t;
   val      = 0;
-	for (auto it = localvals.begin(); it != localvals.end(); ++it) *it = 0;
+  for (auto & i: localvals)
+  	 i = 0;
   pre_proc = nullptr;
   pre_mem  = nullptr;
   pre_readers.clear();
@@ -199,6 +202,23 @@ Config::Config(Unfolding & u)
 {
    printf("start creating config\n");
    gstate = new State(u.m.init_state);
+
+   for (unsigned int i = 0; i < unf.m.procs.size(); i++)
+   {
+	  latest_proc.push_back(& unf.evt.front());
+      latest_global_wr.push_back(& u.evt.front());
+      latest_local_wr.push_back(& u.evt.front());
+   }
+
+   for (unsigned int i = 0; i < unf.m.procs.size(); i++)
+   {
+      std::vector<Event *> v;
+	  for (unsigned int j = 0; j < unf.m.memsize; j++)
+		  v.push_back(& u.evt.front());
+
+	  latest_global_rdwr.push_back(v);
+   }
+
    __update_encex(unf.evt.back());
 }
 
@@ -229,9 +249,12 @@ void Config::add(Event & e)
 
    // update the configuration
    gstate = tran.fire(gs); //update new global states
-#if 0
+
    latest_proc[p.id] = &e; //update latest event of the process
 
+   printf("latest event of the proc %d is: %p \n", p.id, latest_proc[p.id]);
+
+#if 0
    //update local variables in trans
    for (auto i: tran.localaddr)
        latest_local_wr[i] = &e;
@@ -258,6 +281,7 @@ void Config::add(Event & e)
          break;
    }
 #endif
+
    __update_encex(e);
 
 }
@@ -271,8 +295,7 @@ void Config::__update_encex (Event & e)
    ir::State & gs = *gstate;
    //std::vector<ir::Trans> & trans = gs.m.getTrans(); // all trans of the machine
    std::vector<ir::Trans> & trans = gs.m.trans; // all trans of the machine
-
-   std::vector <ir::Process> & procs = gs.m.getProcs(); // all procs of the machine
+   std::vector <ir::Process> & procs = gs.m.procs; // all procs of the machine
    assert(trans.size() > 0);
    assert(procs.size() > 0);
 
@@ -288,6 +311,7 @@ void Config::__update_encex (Event & e)
     	en.push_back(&unf.evt.back());
      }
    }
+   printf("en.size: %zu\n", en.size());
 }
 
 void Config::remove_cfl(Event & e)

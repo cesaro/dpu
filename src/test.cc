@@ -262,20 +262,26 @@ void test7 ()
    // load the program -> new machine
    ir::Machine m (3, 3, 3); // 3 vars, 3 procs, 3 trans
 
-   ir::Process & p0 = m.add_process (2,0); // 2 locations
-   t = & m.add_trans (p0, 0, 1); // p0 has one transition (WR), write on var 3
+   //ir::Process & p0 = m.add_process (2,0); // 2 locations
+   m.add_process (2,0); // 2 locations
+   m.add_process (2,1);
+   m.add_process (2,2);
+
+   m.add_trans (m.procs[0], 0, 1); // p0 has one transition (WR), write on var 3
+   t = & m.trans.back();
       t->type   = ir::Trans::WR;
       t->addr   = 3;
       t->offset = 0;
 
-   ir::Process & p1 = m.add_process (2,1);
-   t = & m.add_trans (p1, 0, 1); // p1 has one transition
+
+   m.add_trans (m.procs[1], 0, 1); // p1 has one transition
+   t = & m.trans.back();
       t->type   = ir::Trans::RD;
       t->addr   = 3;
       t->offset = 0;
 
-   ir::Process & p2 = m.add_process (2,2);
-   t = & m.add_trans (p2, 0, 1); // p2 has only one trans
+   m.add_trans (m.procs[2], 0, 1); // p2 has only one trans
+   t = & m.trans.back();
       t->type   = ir::Trans::RD;
       t->addr   = 3;
       t->offset = 0;
@@ -284,7 +290,7 @@ void test7 ()
    printf ("procs.size %zu\n", m.procs.size());
 
    for (auto &t : m.trans)
-      printf(" in test: t.src: %d and t.dest: %d, t.proc.id: %d \n", t.src, t.dst, t.proc.id);
+      printf(" in test: t.src: %d and t.dest: %d, t.proc.id: %d, t.type %d \n", t.src, t.dst, t.proc.id, t.type);
 
    //const ir::State & s (m.init_state);
 
@@ -297,6 +303,7 @@ void test7 ()
    */
 
    u.explore_rnd_config ();
+   printf("the end");
 
 }
 

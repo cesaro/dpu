@@ -260,7 +260,7 @@ void test7 ()
 {
    ir::Trans * t;
    // load the program -> new machine
-   ir::Machine m (3, 3, 3); // 3 vars, 3 procs, 3 trans
+   ir::Machine m (6, 3, 3); // 3 vars, 3 procs, 3 trans
 
    //ir::Process & p0 = m.add_process (2,0); // 2 locations
    m.add_process (2,0); // 2 locations

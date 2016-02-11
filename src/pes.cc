@@ -20,98 +20,95 @@ namespace pes{
  */
 Event::Event()
 {
-	trans = nullptr;
-	val = 0;
-	for (auto & i: localvals)
-	   i = 0;
-	pre_proc = nullptr;
-	pre_mem  = nullptr;
-	pre_readers.clear();
-	post_mem.clear();
-	post_proc.clear();
-	post_rdsyn.clear();
-	post_wr.clear();
+   trans = nullptr;
+   val = 0;
+   for (auto & lval: localvals)
+     lval = 0;
+   pre_proc = nullptr;
+   pre_mem  = nullptr;
+   pre_readers.clear();
+   post_mem.clear();
+   post_proc.clear();
+   post_rws.clear();
+   post_wr.clear();
 }
 
 Event::Event(Trans & t)
 {
-  this->trans = &t;
-  val      = 0;
-  for (auto & i: localvals)
-  	 i = 0;
-  pre_proc = nullptr;
-  pre_mem  = nullptr;
-  pre_readers.clear();
-  post_mem.clear();
-  post_proc.clear();
-  post_rdsyn.clear();
-  post_wr.clear();
+   this->trans = &t;
+   val      = 0;
+   for (auto & lval: localvals)
+  	 lval = 0;
+   pre_proc = nullptr;
+   pre_mem  = nullptr;
+   pre_readers.clear();
+   post_mem.clear();
+   post_proc.clear();
+   post_rws.clear();
+   post_wr.clear();
 }
-
-void Event::update(Config & c)
+//set up 3 attributes: pre_proc, pre_mem and pre_readers
+void Event::mk_history(Config & c)
 {
-  ir::Trans & t   = this->getTrans();
-  ir::Process & p = this->getProc();
-  std::vector<Process> & procs = c.gstate->getSProcs();
-  pre_proc = c.latest_proc[p.id];//e's parent is the latest event of the process
-  printf("it is ok here");
-  switch (t.type)
-  {
-     case ir::Trans::RD:
-        pre_mem  = c.latest_global_rdwr[p.id][t.addr];
-        break;
 
-     case ir::Trans::WR:
-        pre_mem  = c.latest_global_wr[t.addr];
-        for(auto i: procs)
-           pre_readers[i.id] = c.latest_global_rdwr[i.id][t.addr]; // the latest global event of the process
-        //for (auto & it: post_mem)
-        //   for (auto & i: it)
-        //      i = nullptr;
-  	    // set pre-readers = set of latest events which use the variable copies of all processes.
-  	    //size of pre-readers is numbers of copies of the variable = number of processes
+   ir::Trans & t   = this->getTrans();
+   ir::Process & p = this->getProc();
+   std::vector<Process> & procs = c.gstate->getSProcs();
 
+   //e's parent is the latest event of the process
+   pre_proc = c.latest_proc[p.id];
 
-        break;
-     case ir::Trans::SYN:
-    	pre_mem  = c.latest_global_rdwr[p.id][t.addr];
-    	break;
-     case ir::Trans::LOC:
-    	pre_proc  = c.latest_proc[p.id];
-    	//post_proc = nullptr;
-   	    break;
-  }
-  update_parents(); // update parent of the event
+   printf("it is ok here");
+
+   switch (t.type)
+   {
+      case ir::Trans::RD:
+         pre_mem  = c.latest_global_rdwr[p.id][t.addr];
+         for(unsigned int i = 0; i< procs.size(); i++)
+            pre_readers.push_back(nullptr);
+         break;
+
+      case ir::Trans::WR:
+         pre_mem  = c.latest_global_wr[t.addr];
+        // set pre-readers = set of latest events which use the variable copies of all processes.
+          	    //size of pre-readers is numbers of copies of the variable = number of processes
+         for(auto pr : procs)
+            pre_readers.push_back(c.latest_global_rdwr[pr.id][t.addr]);
+         break;
+
+      case ir::Trans::SYN:
+    	 pre_mem  = c.latest_global_rdwr[p.id][t.addr];
+    	 break;
+      case ir::Trans::LOC:
+    	 pre_proc  = c.latest_proc[p.id];
+    	 pre_mem   = nullptr;
+    	 break;
+   }
 }
 
 void Event::update_parents()
 {
-   Event * prt; //parent
-   Process & p = this->trans->proc;
-   Trans & tr  = *(this->trans);
-   prt = this->pre_proc;
-   prt->post_proc[p.id] = this;
+   Event & prt2 = *pre_mem;
+   Process & p  = trans->proc;
 
-   if (tr.type != ir::Trans::LOC)
+   pre_proc->post_proc.push_back(this)  ;
+
+   switch (prt2.trans->type)
    {
-      prt = this->pre_mem;
-      switch (prt->trans->type)
-      {
       case ir::Trans::WR:
-		 prt->post_mem[p.id].push_back(this);
-		 if (tr.type == ir::Trans::WR)
-	        prt->post_wr[p.id].push_back(this);
+		 prt2.post_mem[p.id].push_back(this); // add a child to vector corresponding to process p
+		 if (trans->type == ir::Trans::WR)  //if the event itsefl is a WR, add it to parentś post_wr
+	        prt2.post_wr[p.id].push_back(this);
 	     break;
       case ir::Trans::RD:
-    	 prt->post_rdsyn.push_back(this);
+    	 prt2.post_rws.push_back(this);
          break;
       case ir::Trans::SYN:
-         prt->post_rdsyn[p.id] = this;
+         prt2.post_rws.push_back(this);
 	     break;
-      default: break;
-      }
+      case ir::Trans::LOC:
+         break;
    }
-
 }
 
 bool Event:: operator == (const Event & e) const
@@ -141,8 +138,8 @@ Event & Event:: operator  = (const Event & e)
    for (auto& i :e.post_wr)
       it = i;
 
-   for (auto& it:post_rdsyn)
-   for (auto& i :e.post_rdsyn)
+   for (auto& it:post_rws)
+   for (auto& i :e.post_rws)
       it = i;
 
    val = e.val;
@@ -158,13 +155,14 @@ Event & Event:: operator  = (const Event & e)
 
 bool Event::check_cfl(Event & e)
 {
+   printf("start check conflict");
    Event & parent = *(e.pre_mem);
    ir::Trans & trans = parent.getTrans();
 
    switch (trans.type)
    {
       case ir::Trans::RD:
-    	 for (auto const it: parent.post_rdsyn)
+    	 for (auto const it: parent.post_rws)
     	    if (*it == e)
 	           return true;
     	 break;
@@ -177,7 +175,7 @@ bool Event::check_cfl(Event & e)
 	     break;
 
 	  case ir::Trans::SYN:
-		  for (auto const i: post_rdsyn )
+		  for (auto const i: post_rws )
 		  if (*i == e)
 		     return true;
 		  break;
@@ -189,9 +187,9 @@ bool Event::check_cfl(Event & e)
 	     	return true;
 	     break;
    }
+
    return false;
 }
-
 /*
  * Methods of class Config
  */
@@ -201,13 +199,15 @@ Config::Config(Unfolding & u)
 {
    printf("start creating config\n");
    gstate = new State(u.m.init_state);
-
+   // INITIALIZE ALL ATTRIBUTES FOR AN EMPTY CONFIG
    for (unsigned int i = 0; i < unf.m.procs.size(); i++)
-   {
+   	  // set the latest events of all processes are bottom event: unf.evt.front
 	  latest_proc.push_back(& unf.evt.front());
+    //???? set the latest write event on local variable is ???
+      latest_local_wr.push_back(nullptr);
+
+   for (unsigned int j = 0; j < unf.m.memsize; j++)
       latest_global_wr.push_back(& u.evt.front());
-      latest_local_wr.push_back(& u.evt.front());
-   }
 
    for (unsigned int i = 0; i < unf.m.procs.size(); i++)
    {
@@ -244,7 +244,8 @@ void Config::add(Event & e)
    ir::Process & p              = e.getProc();
    std::vector<Process> & procs = unf.m.getProcs();
    printf(" tran.proc.id %d \n", tran.proc.id);
-  // e.update(*this); //update the event
+  // e.update(*this); //dont need to update the history of e because it is set up at the time of creation.
+  // e.update_parents();
 
    // update the configuration
    gstate = tran.fire(gs); //update new global states
@@ -289,8 +290,8 @@ void Config::__update_encex (Event & e)
 {
    printf("start update_encex\n");
 
-   //if (en.size() > 0)
-     // remove_cfl(e);
+   if (en.size() > 0)
+      remove_cfl(e);
    ir::State & gs = *gstate;
    //std::vector<ir::Trans> & trans = gs.m.getTrans(); // all trans of the machine
    std::vector<ir::Trans> & trans = gs.m.trans; // all trans of the machine
@@ -303,10 +304,8 @@ void Config::__update_encex (Event & e)
 	   printf("t.src: %d and t.dest: %d, t.proc.id: %d \n", t.src, t.dst, t.proc.id);
      if (t.enabled(gs) == true)
      {
-    	printf("size of evt: %zu \n", unf.evt.size());
     	unf.evt.emplace_back(t);
-    	printf("size of evt: %zu \n", unf.evt.size());
-
+        unf.evt.back().mk_history(*this); // create an history for new event
     	en.push_back(&unf.evt.back());
      }
    }
@@ -315,15 +314,20 @@ void Config::__update_encex (Event & e)
 
 void Config::remove_cfl(Event & e)
 {
-   printf("start remove cfl\n");
-   for (auto ep = en.begin(); ep != en.end(); ep++)
-      if (e.check_cfl(**ep) == true)
+   printf("start remove conflict events \n");
+   unsigned int i = 0;
+   while (i < en.size())
+   {
+      printf("Lan thu i %d \n", i);
+	  if (e.check_cfl(*en[i]) == true)
       {
-	     cex.push_back(*ep);
-         en.erase(ep);
+	     cex.push_back(en[i]);
+         en.erase(en.begin() + i);
       }
-   printf("finish remove cfl, en.size %zu \n", en.size());
-
+      else
+    	 i++;
+   }
+   printf("\nfinish remove cfl, en.size %zu \n", en.size());
 }
 
 /*
@@ -371,13 +375,13 @@ void Unfolding::explore_rnd_config ()
    printf("Creat an empty config:\n");
    Config c(*this);
    printf(" en.size %zu \n", c.en.size());
-   int dem = 1;
+   int count = 1;
    while (c.en.empty() == false)
    {
 
 	   e = c.en.back();
-	   printf("The event number %d, with trans is %d \n", dem, e->trans->proc.id);
-	   dem ++;
+	   printf("The event number %d, with trans is %d \n", count, e->trans->proc.id);
+	   count ++;
 	   c.add(*e);
 	   c.en.pop_back();
    }

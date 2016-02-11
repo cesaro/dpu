@@ -24,7 +24,7 @@ public:
    std::vector <std::vector <Event *>> post_wr; //write children of a write trans
 
    //only for RD and SYN events
-   std::vector <Event *> post_rdsyn; // for RD and SYN events, size = number of variables
+   std::vector <Event *> post_rws; // for RD and SYN events, size = number of variables
 
    int                  val; //??? value for global variable?
    std::vector<int>     localvals; //???
@@ -39,7 +39,7 @@ public:
    ir::Trans & getTrans() {return *trans;}
    ir::Process & getProc() {return trans->proc;}
 
-   void update (Config & c);
+   void mk_history (Config & c);
    void update_parents();
    bool check_cfl(Event & e);
 

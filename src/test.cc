@@ -302,6 +302,14 @@ void test7 ()
    */
 
    u.explore_rnd_config ();
-   printf("the end");
+   printf("\n The end, unf has %zu events", u.evt.size());
 
+}
+
+void test8 ()
+{
+
+   std::vector<int> v {1, 2, 3, 4, 5};
+   v.back()++;
+   printf ("back is %d \n", v.back());
 }

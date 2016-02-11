@@ -22,8 +22,7 @@ Event::Event()
 {
 	trans = nullptr;
 	val =0;
-	for (auto i: localvals)
-	   i = 0;
+	for (auto it = localvals.begin(); it != localvals.end(); ++it) *it = 0;
 	pre_proc = nullptr;
 	pre_mem  = nullptr;
 	pre_readers.clear();
@@ -37,8 +36,7 @@ Event::Event(Trans & t)
 {
   this->trans = &t;
   val      = 0;
-  for (auto i: localvals)
-  	 i = 0;
+	for (auto it = localvals.begin(); it != localvals.end(); ++it) *it = 0;
   pre_proc = nullptr;
   pre_mem  = nullptr;
   pre_readers.clear();

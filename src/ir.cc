@@ -157,7 +157,7 @@ bool Trans::enabled (const State & s)
    return false;
 }
 
-State * Trans:: fire (const State &s)
+State * Trans::fire (const State &s)
 {
 	printf("fire \n");
 	State s1(s);

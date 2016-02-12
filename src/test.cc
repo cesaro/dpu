@@ -384,6 +384,12 @@ void test8 ()
 
 void test9 ()
 {
+   std::vector<int> v { 1, 2, 3, 4 };
+   printf ("%d %d\n", v[0], v[1]);
+
+   for (auto & i : v) i = 123;
+   printf ("%d %d\n", v[0], v[1]);
+
    // v0 = 1
    // v3[12] = 2
    // v4[v1 * 2] = 3 + v1

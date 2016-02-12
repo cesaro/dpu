@@ -253,7 +253,6 @@ void Config::add(Event & e)
 
    printf("latest event of the proc %d is: %p \n", p.id, latest_proc[p.id]);
 
-#if 0
    //update local variables in trans
    for (auto i: tran.localaddr)
        latest_local_wr[i] = &e;
@@ -279,7 +278,7 @@ void Config::add(Event & e)
     	 latest_proc[p.id] = &e;
          break;
    }
-#endif
+
 
    __update_encex(e);
 

@@ -134,7 +134,7 @@ Process::Process (Machine & m, unsigned numlocations, int id)
    cfg.shrink_to_fit ();
  //  printf ("Process.ctor: this %p cfg.size %zd\n", this, cfg.size ());
 }
-//===methods for class Trans=========
+//methods for class Trans
 
 Trans::Trans (Process & p, unsigned src, unsigned dst)
    : src (src)
@@ -157,7 +157,7 @@ bool Trans::enabled (const State & s)
    return false;
 }
 
-State * Trans:: fire (const State &s)
+State * Trans::fire (const State &s)
 {
 	printf("fire \n");
 	State s1(s);

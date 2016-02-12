@@ -60,8 +60,6 @@ public:
    std::vector<Process> & getProcs();
    std::vector<Trans*>  getTrans1();
 
-
-
 private :
    ir::State _init_state;
 };

@@ -91,7 +91,7 @@ Expr * Expr::make (int32_t imm)
    Expr * e = new Expr ();
    e->type = IMM;
    e->imm = imm;
-   DEBUG ("Expr.make: this %p IMM %d", e, imm);
+   DEBUG ("Expr.ctor: this %p IMM %d", e, imm);
    return e;
 }
 
@@ -100,7 +100,7 @@ Expr * Expr::make (Var * v)
    Expr * e = new Expr ();
    e->type = VAR;
    e->v = v;
-   DEBUG ("Expr.make: this %p VAR %p '%s'",
+   DEBUG ("Expr.ctor: this %p VAR %p '%s'",
          e, e->v, e->v->str().c_str());
    return e;
 }
@@ -112,7 +112,7 @@ Expr * Expr::make (op_t o, Expr * e1)
    e->op = o;
    e->expr1 = e1;
    e->expr2 = 0;
-   DEBUG ("Expr.make: this %p op %s e1 %p '%s'",
+   DEBUG ("Expr.ctor: this %p op '%s' e1 %p '%s'",
          e, e->op_str (), e1, e1->str().c_str());
    ASSERT (e->op_arity () == 1);
    return e;
@@ -125,7 +125,7 @@ Expr * Expr::make (op_t o, Expr * e1, Expr * e2)
    e->op = o;
    e->expr1 = e1;
    e->expr2 = e2;
-   DEBUG ("Expr.make: this %p op %s e1 %p '%s' e2 %p '%s'",
+   DEBUG ("Expr.ctor: this %p op '%s' e1 %p '%s' e2 %p '%s'",
          e, e->op_str (),
          e1, e1->str().c_str(),
          e2, e2->str().c_str());
@@ -142,7 +142,7 @@ Expr::Expr ()
    : type (IMM)
    , imm (0)
 {
-   DEBUG ("Expr.ctor: this %p", this);
+   //DEBUG ("Expr.ctor: this %p", this);
 }
 
 Expr::Expr (const Expr & other)
@@ -304,10 +304,119 @@ std::string Expr::str () const
       return fmt ("%s (%s)", op_str(), expr1->str().c_str());
    case OP2 :
       return fmt ("(%s) %s (%s)",
-            op_str(), expr1->str().c_str(), expr2->str().c_str());
+            expr1->str().c_str(), op_str(), expr2->str().c_str());
    }
    ASSERT (0);
 }
 
+Stm::Stm (type_t t, Expr * e)
+   : type (t)
+   , lhs (0)
+   , expr (e)
+{
+   DEBUG ("Stm.ctor: this %p type %s lhs (null) '' expr %p '%s'",
+         this, type_str (), e, e ? e->str().c_str() : "");
+   ASSERT (t != ASGN and t != LOCK and t != UNLOCK);
+}
+
+Stm::Stm (type_t t, Var * v, Expr * e)
+   : type (t)
+   , lhs (v)
+   , expr (e)
+{
+   ASSERT (v);
+   DEBUG ("Stm.ctor: this %p type %s lhs %p '%s' expr %p '%s'",
+         this, type_str (),
+         v, v->str().c_str(),
+         e, e ? e->str().c_str() : "");
+#ifdef CONFIG_DEBUG
+   if (e) ASSERT (t == ASGN)
+   else ASSERT (t == LOCK or t == UNLOCK);
+#endif
+}
+
+Stm::Stm (const Stm & other)
+   : type (other.type)
+   , lhs (other.lhs->clone ())
+   , expr (other.expr->clone ())
+{
+   DEBUG ("Stm.ctor: this %p other %p '%s' (copy)",
+         this, &other, other.str().c_str());
+}
+
+Stm::Stm (Stm && other)
+   : type (other.type)
+   , lhs (other.lhs)
+   , expr (other.expr)
+{
+   DEBUG ("Stm.ctor: this %p other %p '%s' (move)",
+         this, &other, other.str().c_str());
+
+   other.type = EXIT;
+   other.lhs = 0;
+   other.expr = 0;
+}
+
+Stm & Stm::operator = (const Stm & other)
+{
+   Stm tmp (other);
+   steal (tmp);
+   return *this;
+}
+
+Stm & Stm::operator = (Stm && other)
+{
+   steal (other);
+   return *this;
+}
+
+Stm::~Stm ()
+{
+   delete lhs;
+   delete expr;
+}
+
+std::string Stm::str () const
+{
+   switch (type)
+   {
+   case ASGN   : return fmt ("%s = %s", lhs->str().c_str(), expr->str().c_str());
+   case ASSUME : return fmt ("assume (%s)", expr->str().c_str());
+   case LOCK   : return fmt ("lock (%s)", lhs->str().c_str());
+   case UNLOCK : return fmt ("unlock (%s)", lhs->str().c_str());
+   case EXIT   : return std::string ("exit");
+   }
+   return 0;
+}
+
+const char * Stm::type_str () const
+{
+   switch (type)
+   {
+   case ASGN   : return "ASGN";
+   case ASSUME : return "ASSUME";
+   case LOCK   : return "LOCK";
+   case UNLOCK : return "UNLOCK";
+   case EXIT   : return "EXIT";
+   }
+   return 0;
+}
+
+void Stm::steal (Stm & from)
+{
+   // clear
+   delete lhs;
+   delete expr;
+
+   // steal
+   type = from.type;
+   lhs = from.lhs;
+   expr = from.expr;
+
+   // erase traces on the other side
+   from.type = EXIT;
+   from.lhs = 0;
+   from.expr = 0;
+}
 
 } // namespace ir

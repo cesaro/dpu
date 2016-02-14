@@ -393,6 +393,67 @@ void test8 ()
 
 void test9 ()
 {
+   // testing ctors and assignemnt ops for the Expr class
+
+   printf ("======= '-13'\n");
+   ir::Expr * e13 = ir::Expr::make (-13);
+   //printf ("e->v    '%s'\n", e->str().c_str());
+   printf ("e->imm  %d\n",   e13->imm);
+   printf ("e->type '%s'\n", e13->type_str ());
+   printf ("e->str  '%s'\n", e13->str().c_str());
+   //delete e13;
+
+   printf ("======= 'v10'\n");
+   ir::Expr * v10 = ir::Expr::make (ir::Var::make (10));
+   printf ("e->v    '%s'\n", v10->str().c_str());
+   printf ("e->type '%s'\n", v10->type_str ());
+   printf ("e->str  '%s'\n", v10->str().c_str());
+   // delete v10; // should delete the expression and the variable (OK)
+
+   printf ("======= 'not v10'\n");
+   ir::Expr * not_v10 = ir::Expr::make (ir::Expr::NOT, v10);
+   printf ("e->type '%s'\n", not_v10->type_str ());
+   printf ("e->str  '%s'\n", not_v10->str().c_str());
+   //delete not_v10;
+
+   printf ("======= '(not v10) + (-13)'\n");
+   ir::Expr * plus = ir::Expr::make (ir::Expr::ADD, not_v10, e13);
+   printf ("e->type '%s'\n", plus->type_str ());
+   printf ("e->str  '%s'\n", plus->str().c_str());
+   //delete plus;
+
+   printf ("======= '((not v10) + (-13)) == v10'\n");
+   ir::Expr * v10dup = v10->clone ();
+   ir::Expr * eq = ir::Expr::make (ir::Expr::EQ, plus, v10dup);
+   printf ("e->type '%s'\n", eq->type_str ());
+   printf ("e->str  '%s'\n", eq->str().c_str());
+   delete eq;
+}
+
+void test10 ()
+{
+   printf ("======= v0 = 1\n");
+   ir::Var  * v0   = ir::Var::make (0);
+   ir::Expr * int1 = ir::Expr::make (1);
+   ir::Stm stm_v0 (ir::Stm::ASGN, v0, int1);
+   printf ("s->str  '%s'\n", stm_v0.str().c_str());
+
+   printf ("======= assume (v0)\n");
+   ir::Expr * v0_1 = ir::Expr::make (v0->clone ());
+   ir::Stm assume (ir::Stm::ASSUME, v0_1);
+   printf ("s->str  '%s'\n", assume.str().c_str());
+
+   printf ("======= lock (v1)\n");
+   ir::Stm lck (ir::Stm::LOCK, ir::Var::make (1));
+   printf ("s->str  '%s'\n", lck.str().c_str());
+
+   printf ("======= exit\n");
+   ir::Stm ex (ir::Stm::EXIT);
+   printf ("s->str  '%s'\n", ex.str().c_str());
+}
+
+void test11 ()
+{
    std::vector<int> v { 1, 2, 3, 4 };
    printf ("%d %d\n", v[0], v[1]);
 

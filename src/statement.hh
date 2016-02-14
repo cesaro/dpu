@@ -65,6 +65,9 @@ public:
    ~Expr ();
 
    std::string str () const;
+   int op_arity () const;
+   const char * op_str () const;
+   const char * type_str () const;
 
 private:
 
@@ -73,18 +76,29 @@ private:
    Expr (const Expr & other);
    //Expr (Expr && other);
 
-   int op_arity () const;
-   const char * op_str () const;
-   const char * type_str () const;
    void steal (Expr & from);
 };
 
-class Statement
+class Stm
 {
 public:
-   enum {ASGN, ASSUME, LOCK, UNLOCK, EXIT} type;
+   enum type_t {ASGN, ASSUME, LOCK, UNLOCK, EXIT} type;
    Var * lhs;
    Expr * expr;
+
+   Stm (type_t t = EXIT, Expr * e = 0);
+   Stm (type_t t, Var * v, Expr * e = 0);
+   Stm (const Stm & other);
+   Stm (Stm && other);
+   Stm & operator = (const Stm & other);
+   Stm & operator = (Stm && other);
+   ~Stm ();
+
+   std::string str () const;
+   const char * type_str () const;
+
+private :
+   void steal (Stm & from);
 };
 
 } // namespace ir

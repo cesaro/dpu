@@ -14,7 +14,7 @@ public:
    ~Codeblock ();
 
 private:
-   Statement stm;
+   Stm stm;
 };
 
 }

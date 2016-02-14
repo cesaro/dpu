@@ -68,12 +68,12 @@ void breakme (void);
 #define BREAK(expr) if (expr) breakme ()
 #ifdef CONFIG_DEBUG
 #define ASSERT(expr) \
-	if (! (expr)) { \
+	{if (! (expr)) { \
 		PRINT (__FILE__ ":%d: %s: Assertion `" #expr "' failed.\n", \
 				__LINE__, __func__); \
 		breakme (); \
 		exit (1); \
-	}
+	}}
 #else
 #define ASSERT(expr)
 #endif

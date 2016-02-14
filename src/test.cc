@@ -3,6 +3,7 @@
 #include <cstdlib>
 #include <vector>
 #include <array>
+#include <memory>
 #include <algorithm>
 
 #include "test.hh"
@@ -313,73 +314,81 @@ void test8 ()
 
    {
       printf ("======= v0\n");
-      ir::Var v;
-      printf ("v.var %u\n", v.var);
-      printf ("v.idx %p\n", v.idx);
-      printf ("v.type %u\n", v.type ());
-      printf ("v.str '%s'\n", v.str().c_str());
+      ir::Var * v = ir::Var::make ();
+      printf ("v.var %u\n", v->var);
+      printf ("v.idx %p\n", v->idx);
+      printf ("v.type %u\n", v->type ());
+      printf ("v.str '%s'\n", v->str().c_str());
+      delete v;
    }
 
    {
       printf ("======= v12\n");
-      ir::Var v (12);
-      printf ("v.var %u\n", v.var);
-      printf ("v.idx %p\n", v.idx);
-      printf ("v.type %u\n", v.type ());
-      printf ("v.str '%s'\n", v.str().c_str());
+      std::unique_ptr<ir::Var> v (ir::Var::make (12));
+      printf ("v.var %u\n", v->var);
+      printf ("v.idx %p\n", v->idx);
+      printf ("v.type %u\n", v->type ());
+      printf ("v.str '%s'\n", v->str().c_str());
    }
 
    {
       printf ("======= v12[0]\n");
-      ir::Expr e;
-      ir::Var v (12, e);
-      printf ("v.var %u\n", v.var);
-      printf ("v.idx %p\n", v.idx);
-      printf ("v.type %u\n", v.type ());
-      printf ("v.str '%s'\n", v.str().c_str());
+      ir::Expr * e = ir::Expr::make (0);
+      std::unique_ptr<ir::Var> v (ir::Var::make (12, e));
+      printf ("v.var %u\n", v->var);
+      printf ("v.idx %p\n", v->idx);
+      printf ("v.type %u\n", v->type ());
+      printf ("v.str '%s'\n", v->str().c_str());
 
       printf ("======= copy ctor of Var\n");
-      ir::Var v1 (v);
-      printf ("v1.var  %u\n",   v1.var);
-      printf ("v1.idx  %p\n",   v1.idx);
-      printf ("v1.type %u\n",   v1.type ());
-      printf ("v1.str  '%s'\n", v1.str().c_str());
+      std::unique_ptr<ir::Var> v1 (v->clone ());
+      printf ("v1.var  %u\n",   v1->var);
+      printf ("v1.idx  %p\n",   v1->idx);
+      printf ("v1.type %u\n",   v1->type ());
+      printf ("v1.str  '%s'\n", v1->str().c_str());
    }
 
+#if 0
    {
       printf ("======= v1 with move ctor\n");
       ir::Expr imm33 (33);
       ir::Var v (1, imm33);
-      printf ("v.var %u\n", v.var);
-      printf ("v.idx %p\n", v.idx);
-      printf ("v.type %u\n", v.type ());
-      printf ("v.str '%s'\n", v.str().c_str());
+      printf ("v.var %u\n",  v->var);
+      printf ("v.idx %p\n",  v->idx);
+      printf ("v.type %u\n", v->type ());
+      printf ("v.str '%s'\n",v->str().c_str());
       ir::Var v1 (std::move (v)); // declares v as r-value
-      printf ("v.var %u\n", v.var);
-      printf ("v.idx %p\n", v.idx);
-      printf ("v.type %u\n", v.type ());
-      printf ("v.str '%s'\n", v.str().c_str());
-      printf ("v1.var %u\n", v1.var);
-      printf ("v1.idx %p\n", v1.idx);
-      printf ("v1.type %u\n", v1.type ());
-      printf ("v1.str '%s'\n", v1.str().c_str());
+      printf ("v.var %u\n",  v->var);
+      printf ("v.idx %p\n",  v->idx);
+      printf ("v.type %u\n", v->type ());
+      printf ("v.str '%s'\n",v->str().c_str());
+      printf ("v1.var %u\n",v1->var);
+      printf ("v1.idx %p\n",v1->idx);
+      printf ("v1.type %u\n", v1->type ());
+      printf ("v1.str '%s'\n",v1->str().c_str());
    }
+#endif
 
    {
       printf ("======= v1 with move assignment\n");
-      ir::Expr imm33 (33);
-      ir::Var v (1, imm33);
-      printf ("v.var %u\n", v.var);
-      printf ("v.idx %p\n", v.idx);
-      printf ("v.type %u\n", v.type ());
-      printf ("v.str '%s'\n", v.str().c_str());
-      v = ir::Var (123);
-      printf ("v.var %u\n", v.var);
-      printf ("v.idx %p\n", v.idx);
-      printf ("v.type %u\n", v.type ());
-      printf ("v.str '%s'\n", v.str().c_str());
-   }
+      ir::Expr * imm33 = ir::Expr::make (33);
+      ir::Var * v = ir::Var::make (1, imm33);
+      printf ("v.var %u\n",  v->var);
+      printf ("v.idx %p\n",  v->idx);
+      printf ("v.type %u\n", v->type ());
+      printf ("v.str '%s'\n",v->str().c_str());
 
+      // move assignment
+      ir::Var * v123 = ir::Var::make (123);
+      *v = std::move (* v123);
+      printf ("v.var %u\n",  v->var);
+      printf ("v.idx %p\n",  v->idx);
+      printf ("v.type %u\n", v->type ());
+      printf ("v.str '%s'\n",v->str().c_str());
+      delete v;
+      printf ("deleting v123:\n");
+      delete v123;
+   }
 }
 
 void test9 ()

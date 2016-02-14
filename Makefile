@@ -15,11 +15,13 @@
 
 include defs.mk
 
-.PHONY: fake all g test clean distclean prof dist
+.PHONY: fake all g test clean distclean prof dist compile
 
-all: $(TARGETS) tags
+all : compile
 
-r run: all
+compile: $(TARGETS) tags
+
+r run: compile
 	./src/main
 
 $(TARGETS) : % : %.o $(OBJS)

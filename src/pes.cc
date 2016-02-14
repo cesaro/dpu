@@ -242,7 +242,7 @@ void Config::add(Event & e)
    ir::State & gs               = *gstate;
    ir::Trans & tran             = e.getTrans();
    ir::Process & p              = e.getProc();
-   std::vector<Process> & procs = unf.m.getProcs();
+   //std::vector<Process> & procs = unf.m.getProcs();
    printf(" tran.proc.id %d \n", tran.proc.id);
   // e.update(*this); //dont need to update the history of e because it is set up at the time of creation.
   // e.update_parents();

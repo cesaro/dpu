@@ -8,29 +8,34 @@
 namespace ir
 {
 
-Var::Var (unsigned v)
-   : var (v)
-   , idx (0)
+Var * Var::make (unsigned tab, Expr * idx)
 {
-   DEBUG ("Var.ctor: this %p VAR var %d", this, v);
+   return new Var (tab, idx);
 }
 
-Var::Var (unsigned tab, Expr & idx)
-   : var (tab)
-   , idx (new Expr (idx))
+Var * Var::clone () const
 {
-   DEBUG ("Var.ctor: this %p ARRAY var %d idx %p '%s'",
-         this, var, this->idx, this->idx->str().c_str());
+   return new Var (*this);
+}
+
+Var::Var (unsigned tab, Expr * idx)
+   : var (tab)
+   , idx (idx)
+{
+   DEBUG ("Var.ctor: this %p %s var %d idx %p '%s'",
+         this, type () == VAR ? "VAR" : "ARRAY",
+         var, idx, idx ? idx->str().c_str() : "");
 }
 
 Var::Var (const Var & other)
    : var (other.var)
-   , idx (other.idx ? new Expr (*other.idx) : 0)
+   , idx (other.idx ? other.idx->clone () : 0)
 {
    DEBUG ("Var.ctor: this %p other %p '%s' (copy)",
          this, &other, other.str().c_str());
 }
 
+#if 0
 Var::Var (Var && other)
    : var (other.var)
    , idx (other.idx) // steal the pointer !
@@ -39,6 +44,7 @@ Var::Var (Var && other)
          this, &other, other.str().c_str());
    other.idx = 0;
 }
+#endif
 
 Var & Var::operator = (const Var & other)
 {
@@ -80,43 +86,63 @@ void Var::steal (Var & from)
    from.idx = 0;
 }
 
-Expr::Expr (int32_t imm)
+Expr * Expr::make (int32_t imm)
+{
+   Expr * e = new Expr ();
+   e->type = IMM;
+   e->imm = imm;
+   DEBUG ("Expr.make: this %p IMM %d", e, imm);
+   return e;
+}
+
+Expr * Expr::make (Var * v)
+{
+   Expr * e = new Expr ();
+   e->type = VAR;
+   e->v = v;
+   DEBUG ("Expr.make: this %p VAR %p '%s'",
+         e, e->v, e->v->str().c_str());
+   return e;
+}
+
+Expr * Expr::make (op_t o, Expr * e1)
+{
+   Expr * e = new Expr ();
+   e->type = OP1;
+   e->op = o;
+   e->expr1 = e1;
+   e->expr2 = 0;
+   DEBUG ("Expr.make: this %p op %s e1 %p '%s'",
+         e, e->op_str (), e1, e1->str().c_str());
+   ASSERT (e->op_arity () == 1);
+   return e;
+}
+
+Expr * Expr::make (op_t o, Expr * e1, Expr * e2)
+{
+   Expr * e = new Expr ();
+   e->type = OP2;
+   e->op = o;
+   e->expr1 = e1;
+   e->expr2 = e2;
+   DEBUG ("Expr.make: this %p op %s e1 %p '%s' e2 %p '%s'",
+         e, e->op_str (),
+         e1, e1->str().c_str(),
+         e2, e2->str().c_str());
+   ASSERT (e->op_arity () == 2);
+   return e;
+}
+
+Expr * Expr::clone () const
+{
+   return new Expr (*this);
+}
+
+Expr::Expr ()
    : type (IMM)
-   , imm (imm)
+   , imm (0)
 {
-   DEBUG ("Expr.ctor: this %p IMM %d", this, imm);
-}
-
-Expr::Expr (Var & v)
-   : type (VAR)
-   , v (new Var (v))
-{
-   DEBUG ("Expr.ctor: this %p VAR %p '%s'",
-         this, this->v, this->v->str().c_str());
-}
-
-Expr::Expr (op_t o, Expr & e1)
-   : type (OP1)
-   , op (o)
-   , expr1 (new Expr (e1))
-   , expr2 (0)
-{
-   DEBUG ("Expr.ctor: this %p op %s e1 '%s'",
-         this, op_str (), e1.str().c_str());
-
-   ASSERT (op_arity () == 1);
-}
-
-Expr::Expr (op_t o, Expr & e1, Expr & e2)
-   : type (OP2)
-   , op (o)
-   , expr1 (new Expr (e1))
-   , expr2 (new Expr (e2))
-{
-   DEBUG ("Expr.ctor: this %p op %s e1 '%s' e2 '%s'",
-         this, op_str (), e1.str().c_str(), e2.str().c_str());
-
-   ASSERT (op_arity () == 2);
+   DEBUG ("Expr.ctor: this %p", this);
 }
 
 Expr::Expr (const Expr & other)
@@ -127,26 +153,25 @@ Expr::Expr (const Expr & other)
    switch (type)
    {
    case VAR :
-      v = new Var (*other.v);
+      v = other.v->clone ();
       break;
    case IMM :
       imm = other.imm;
       break;
    case OP1 :
       op = other.op;
-      expr1 = new Expr (*other.expr1);
+      expr1 = other.expr1->clone ();
       expr2 = 0;
       break;
    case OP2 :
       op = other.op;
-      expr1 = new Expr (*other.expr1);
-      expr2 = new Expr (*other.expr2);
+      expr1 = other.expr1->clone ();
+      expr2 = other.expr2->clone ();
       break;
-   default :
-      ASSERT (0);
    }
 }
 
+#if 0
 Expr::Expr (Expr && other)
    : type (other.type)
 {
@@ -154,12 +179,14 @@ Expr::Expr (Expr && other)
          this, &other, other.str().c_str());
    steal (other);
 }
+#endif
 
-Expr & Expr::operator = (Expr other)
+Expr & Expr::operator = (const Expr & other)
 {
    DEBUG ("Expr.op= this %p other %p '%s' (copy)",
          this, &other, other.str().c_str());
-   steal (other);
+   Expr temp (other);
+   steal (temp);
    return *this;
 }
 
@@ -208,13 +235,16 @@ void Expr::steal (Expr & from)
    {
    case VAR :
       v = from.v;
+      break;
    case IMM :
       imm = from.imm;
+      break;
    case OP1 :
    case OP2 :
       op = from.op;
       expr1 = from.expr1;
       expr2 = from.expr2;
+      break;
    }
 
    // prevents from deleting the 'moved' pointers

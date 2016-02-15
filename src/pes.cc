@@ -8,7 +8,10 @@
 #include <cstdint>
 #include <cassert>
 #include <iostream>
+
 #include "pes.hh"
+#include "misc.hh"
+#include "verbosity.h"
 
 using std::vector;
 using namespace ir;
@@ -60,22 +63,22 @@ void Event::mk_history(Config & c)
    switch (t.type)
    {
       case ir::Trans::RD:
-         pre_mem  = c.latest_global_rdwr[p.id][t.addr];
+         pre_mem  = c.latest_op[p.id][t.addr];
 
          for(unsigned int i = 0; i< procs.size(); i++)
             pre_readers.push_back(nullptr);
          break;
 
       case ir::Trans::WR:
-         pre_mem  = c.latest_global_wr[t.addr];
+         pre_mem  = c.latest_wr[t.addr];
         // set pre-readers = set of latest events which use the variable copies of all processes.
           	    //size of pre-readers is numbers of copies of the variable = number of processes
          for(auto pr : procs)
-            pre_readers.push_back(c.latest_global_rdwr[pr.id][t.addr]);
+            pre_readers.push_back(c.latest_op[pr.id][t.addr]);
          break;
 
       case ir::Trans::SYN:
-    	 pre_mem  = c.latest_global_rdwr[p.id][t.addr];
+    	 pre_mem  = c.latest_op[p.id][t.addr];
     	 break;
 
       case ir::Trans::LOC:
@@ -194,50 +197,60 @@ bool Event::check_cfl(Event & e)
 
    return false;
 }
+
+
+std::string Event::str () const
+{
+   const char * code = trans ? trans->code.str().c_str() : "";
+   return fmt ("%p trans %p '%s' pre %p %p",
+         this, trans, code, pre_proc, pre_mem);
+}
+
 /*
  * Methods of class Config
  */
 
-Config::Config(Unfolding & u)
-: unf(u)
+Config::Config (Unfolding & u)
+   : gstate (u.m.init_state)
+   , latest_proc (u.m.procs.size (), u.bottom)
+   , latest_wr (u.m.memsize, u.bottom)
+   , latest_op (u.m.procs.size (), std::vector<Event*> (u.m.memsize, u.bottom))
+   , unf (u)
 {
-   printf("start creating config, the bottom event at %p \n", &unf.evt.front());
-   gstate = new State(u.m.init_state);
-   // INITIALIZE ALL ATTRIBUTES FOR AN EMPTY CONFIG
+   DEBUG ("%p: Config.ctor: u %p", this, u);
 
-   // set the latest events of all processes are bottom event: unf.evt.front
-   for (unsigned int i = 0; i < unf.m.procs.size(); i++)
-   {
-   	  latest_proc.push_back(& unf.evt.front());
-      latest_local_wr.push_back(nullptr);
-   }
+   print_debug ();
 
-   for (unsigned int j = 0; j < unf.m.memsize; j++)
-      latest_global_wr.push_back(& u.evt.front());
-
-   std::vector<Event *> v;
-   for (unsigned int i = 0; i < (unf.m.memsize - unf.m.procs.size()); i++)
-   {
-      v.clear();
-      // create a vector of latest gl rw for a proc
-	  for (unsigned int j = 0; j < unf.m.procs.size(); j++)
-	     v.push_back(& u.evt.front());
-      // add a vector for a variable to latest_global_wr
-	  latest_global_rdwr.push_back(v);
-   }
-
+   // initialize all attributes for an empty config
    __update_encex(unf.evt.back());
 }
 
-Config:: Config(Config & c)
-: latest_proc (c.latest_proc)
-, latest_global_wr (c.latest_global_wr)
-, latest_global_rdwr (c.latest_global_rdwr)
-, latest_local_wr (c.latest_local_wr)
-, unf(c.unf)
+void Config::print_debug ()
+{
+   
+   DEBUG ("%p: latest_proc:", this);
+   for (auto & e : latest_proc) DEBUG (" %s", e->str().c_str());
+   DEBUG ("%p: latest_wr:", this);
+   for (auto & e : latest_wr) DEBUG (" %s", e->str().c_str());
+   DEBUG ("%p: latest_op:", this);
+   for (size_t pid = 0; pid < latest_op.size(); ++pid)
+   {
+      DEBUG (" Process %zu", pid);
+      for (auto & e : latest_op[pid]) DEBUG ("  %s", e->str().c_str());
+   }
+}
+
+#if 0
+Config:: Config (const Config & c)
+   : latest_proc (c.latest_proc)
+   , latest_wr (c.latest_wr)
+   , latest_op (c.latest_op)
+   , latest_local_wr (c.latest_local_wr)
+   , unf(c.unf)
 {
    gstate = c.gstate;
 }
+#endif
 
 /*
  * Add an event to a configuration
@@ -254,7 +267,7 @@ void Config::add(Event & e)
    // e.update_parents();
 
    // update the configuration
-   tran.fire (*gstate); //update new global states
+   tran.fire (gstate); //update new global states
 
    latest_proc[p.id] = &e; //update latest event of the process
 
@@ -262,23 +275,23 @@ void Config::add(Event & e)
 
    //update local variables in trans
    for (auto i: tran.localaddr)
-       latest_local_wr[i] = &e;
+       latest_wr[i] = &e;
 
    //update particular attributes according to type of transition.
    switch (tran.type)
    {
       case ir::Trans::RD:
-    	latest_global_rdwr[p.id][tran.addr] = &e;
+    	latest_op[p.id][tran.addr] = &e;
         break;
 
       case ir::Trans::WR:
-    	 latest_global_wr[tran.addr] = &e; // update latest wr event for the variable s.addr
+    	 latest_wr[tran.addr] = &e; // update latest wr event for the variable s.addr
     	 for (auto & p: procs)
-    	    latest_global_rdwr[p.id][tran.addr] = &e;
+    	    latest_op[p.id][tran.addr] = &e;
     	 break;
 
       case ir::Trans::SYN:
-       	 latest_global_wr[tran.addr]=&e;
+       	 latest_wr[tran.addr]=&e;
        	 break;
 
       case ir::Trans::LOC:
@@ -295,7 +308,7 @@ void Config::__update_encex (Event &)
 
    //if (en.size() > 0)
       //remove_cfl(e);
-   ir::State & gs = *gstate;
+   ir::State & gs = gstate;
    //std::vector<ir::Trans> & trans = gs.m.getTrans(); // all trans of the machine
    std::vector<ir::Trans> & trans = gs.m.trans; // all trans of the machine
    std::vector <ir::Process> & procs = gs.m.procs; // all procs of the machine
@@ -338,13 +351,32 @@ void Config::remove_cfl(Event & e)
 /*
  * Methods for class Unfolding
  */
-Unfolding::Unfolding (ir::Machine & ma): m(ma)
+Unfolding::Unfolding (ir::Machine & ma)
+   : m (ma)
 {
-	evt.emplace_back(); // create an "bottom" event with all empty
-	evt.back().pre_mem  = &evt.back(); // bottom event point to itself
-	evt.back().pre_proc  = &evt.back(); // bottom event point to itself
+   DEBUG ("%p: Unfolding.ctor: m %p", this, &m);
+   __create_botom ();
 }
 
+void Unfolding::__create_botom ()
+{
+   Event * e;
+
+   // create an "bottom" event with all empty
+	evt.emplace_back();
+   e = & evt[0];
+
+   e->pre_proc = e;
+   e->pre_mem = e;
+
+   bottom = e; 
+   DEBUG ("%p: Unfolding.__create_bottom: bottom %p", this, e);
+}
+
+bool Unfolding::is_bottom (Event * e)
+{
+   return e->pre_proc == e;
+}
 
 void Unfolding:: explore(Config & C, std::vector<Event*> D, std::vector<Event*> A)
 {
@@ -379,6 +411,9 @@ void Unfolding::explore_rnd_config ()
   // assert (evt.size () == 0);
    printf("Creat an empty config:\n");
    Config c(*this);
+
+   return;
+
    printf(" en.size %zu \n", c.en.size());
    int count = 1;
    while (c.en.empty() == false)

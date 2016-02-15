@@ -653,3 +653,8 @@ void test12 ()
    }
 }
 
+void test13 ()
+{
+   std::vector<int> v (15, 5);
+}
+

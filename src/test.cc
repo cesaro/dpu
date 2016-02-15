@@ -13,6 +13,10 @@
 #include "statement.hh"
 #include "verbosity.h"
 
+std::unique_ptr<ir::Machine> build_concur15_example ();
+std::unique_ptr<ir::Machine> build_mul_example ();
+
+
 class Stack
 {
    int * tab;
@@ -259,46 +263,13 @@ void test6 ()
       printf ("find didn't find\n");
 }
 
-#if 0
 void test7 ()
 {
-   ir::Trans * t;
-   // load the program -> new machine
-   ir::Machine m (6, 3, 3); // 3 vars, 3 procs, 3 trans
+   auto m = build_concur15_example ();
 
-   //ir::Process & p0 = m.add_process (2,0); // 2 locations
-   m.add_process (2,0); // 2 locations
-   m.add_process (2,1);
-   m.add_process (2,2);
+   DEBUG ("\n%s", m->str().c_str());
 
-   m.add_trans (m.procs[0], 0, 1); // p0 has one transition (WR), write on var 3
-   t = & m.trans.back();
-      t->type   = ir::Trans::WR;
-      t->addr   = 3;
-      t->offset = 0;
-
-
-   m.add_trans (m.procs[1], 0, 1); // p1 has one transition
-   t = & m.trans.back();
-      t->type   = ir::Trans::RD;
-      t->addr   = 3;
-      t->offset = 0;
-
-   m.add_trans (m.procs[2], 0, 1); // p2 has only one trans
-   t = & m.trans.back();
-      t->type   = ir::Trans::RD;
-      t->addr   = 3;
-      t->offset = 0;
-
-   printf ("trans.size %zu\n", m.trans.size());
-   printf ("procs.size %zu\n", m.procs.size());
-
-   for (auto &t : m.trans)
-      printf(" in test: t.src: %d and t.dest: %d, t.proc.id: %d, t.type %d \n", t.src, t.dst, t.proc.id, t.type);
-
-   //const ir::State & s (m.init_state);
-
-   pes::Unfolding u (m);
+   pes::Unfolding u (*m.get ());
    /*
    u.evt=0;
    Config C(u); // C contains bottom event
@@ -310,7 +281,6 @@ void test7 ()
    printf("\n The end, unf has %zu events", u.evt.size());
 
 }
-#endif
 
 void test8 ()
 {

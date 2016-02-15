@@ -53,7 +53,7 @@ void Event::mk_history(Config & c)
 
    ir::Trans & t   = this->getTrans();
    ir::Process & p = this->getProc();
-   std::vector<Process> & procs = c.gstate->getSProcs();
+   std::vector<Process> & procs = c.unf.m.procs;
 
    //e's parent is the latest event of the process
    pre_proc = c.latest_proc[p.id];

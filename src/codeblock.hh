@@ -13,8 +13,10 @@ public:
    Codeblock ();
    ~Codeblock ();
 
-private:
+   std::string str () const;
+
    Stm stm;
+private:
 };
 
 }

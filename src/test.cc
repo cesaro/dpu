@@ -10,6 +10,7 @@
 #include "ir.hh"
 #include "pes.hh"
 #include "statement.hh"
+#include "verbosity.h"
 
 class Stack
 {
@@ -257,6 +258,7 @@ void test6 ()
       printf ("find didn't find\n");
 }
 
+#if 0
 void test7 ()
 {
    ir::Trans * t;
@@ -307,6 +309,7 @@ void test7 ()
    printf("\n The end, unf has %zu events", u.evt.size());
 
 }
+#endif
 
 void test8 ()
 {
@@ -459,9 +462,110 @@ void test11 ()
 
    for (auto & i : v) i = 123;
    printf ("%d %d\n", v[0], v[1]);
+}
 
-   // v0 = 1
-   // v3[12] = 2
-   // v4[v1 * 2] = 3 + v1
-   // assume (v0 + 1)
+std::unique_ptr<ir::Machine> build_mul_example ()
+{
+   /*
+    * One thread, multiplies v2 times v1 (the inputs) using a loop and checks
+    * that the result is the same as if using the instruction MUL.
+    * 
+    * memsize  = 5 = 4 vars + 1 pc (v0)
+    * numprocs = 1
+    * numtrans = 12
+    *
+    * src dst  what
+    *   0   1  v1 = 2
+    *   1   2  v2 = 10;
+    *   2   3  v3 = 0;
+    *   3   4  v4 = 0;
+    *   4   5  assume (v3 < v2)
+    *   5   6  v4 = v4 + v1
+    *   6   4  v3 = v3 + 1
+    *   4   7  assume (v3 >= v2)
+    *   7   8  assume (v4 != v1 * v2)
+    *   8   9  error
+    *   7  10  assume (v4 == v1 * v2)
+    *  10  11  exit
+    *
+    */
+
+   ir::Trans * t;
+   std::unique_ptr<ir::Machine> m (new ir::Machine (5, 1, 12)); // 5 vars, 1 thread, 12 transitions
+   ir::Process & p = m->add_process (12); // 12 locations in this thread
+
+   // variables v1 to v4
+   std::unique_ptr<ir::Var> v1 (ir::Var::make (1));
+   std::unique_ptr<ir::Var> v2 (ir::Var::make (2));
+   std::unique_ptr<ir::Var> v3 (ir::Var::make (3));
+   std::unique_ptr<ir::Var> v4 (ir::Var::make (4));
+
+   //  0 >  1 : v1 = 2
+   t = & p.add_trans (0, 1);
+   t->code.stm = ir::Stm (ir::Stm::ASGN, v1->clone (), ir::Expr::make (2));
+
+   //  1 >  2 : v2 = 10;
+   t = & p.add_trans (1, 2);
+   t->code.stm = ir::Stm (ir::Stm::ASGN, v2->clone (), ir::Expr::make (10));
+
+   //  2 >  3 : v3 = 0;
+   t = & p.add_trans (2, 3);
+   t->code.stm = ir::Stm (ir::Stm::ASGN, v3->clone (), ir::Expr::make (0));
+
+   //  3 >  4 : v4 = 0;
+   t = & p.add_trans (3, 4);
+   t->code.stm = ir::Stm (ir::Stm::ASGN, v4->clone (), ir::Expr::make (0));
+
+   //  4 >  5 : assume (v3 < v2)
+   t = & p.add_trans (4, 5);
+   t->code.stm = ir::Stm (ir::Stm::ASSUME,
+         ir::Expr::make (ir::Expr::LT, ir::Expr::make (v3->clone()), ir::Expr::make (v2->clone ())));
+
+   //  5 >  6 : v4 = v4 + v1
+   t = & p.add_trans (5, 6);
+   t->code.stm = ir::Stm (ir::Stm::ASGN,
+         v4->clone (),
+         ir::Expr::make (ir::Expr::ADD, ir::Expr::make (v4->clone()), ir::Expr::make (v1->clone ())));
+
+   //  6 >  4 : v3 = v3 + 1
+   t = & p.add_trans (6, 4);
+   t->code.stm = ir::Stm (ir::Stm::ASGN,
+         v3->clone (),
+         ir::Expr::make (ir::Expr::ADD, ir::Expr::make (v3->clone()), ir::Expr::make (1)));
+
+   //  4 >  7 : assume (v3 >= v2)
+   t = & p.add_trans (4, 7);
+   t->code.stm = ir::Stm (ir::Stm::ASSUME,
+         ir::Expr::make (ir::Expr::LE, ir::Expr::make (v2->clone()), ir::Expr::make (v3->clone ())));
+
+   //  7 >  8 : assume (v4 != v1 * v2)
+   t = & p.add_trans (7, 8);
+   t->code.stm = ir::Stm (ir::Stm::ASSUME,
+         ir::Expr::make (ir::Expr::NE,
+            ir::Expr::make (v4->clone ()),
+            ir::Expr::make (ir::Expr::MUL, ir::Expr::make (v1->clone()), ir::Expr::make (v2->clone ()))));
+
+   //  8 >  9 : error
+   t = & p.add_trans (8, 9);
+   t->code.stm = ir::Stm (ir::Stm::ERROR);
+
+   //  7 > 10 : assume (v4 == v1 * v2)
+   t = & p.add_trans (7, 10);
+   t->code.stm = ir::Stm (ir::Stm::ASSUME,
+         ir::Expr::make (ir::Expr::EQ,
+            ir::Expr::make (v4->clone ()),
+            ir::Expr::make (ir::Expr::MUL, ir::Expr::make (v1->clone()), ir::Expr::make (v2->clone ()))));
+
+   // 10 > 11 : exit
+   t = & p.add_trans (10, 11);
+   t->code.stm = ir::Stm (ir::Stm::EXIT);
+
+   return m;
+}
+
+void test12 ()
+{
+   auto m = build_mul_example ();
+
+   printf ("%s\n", m->str().c_str());
 }

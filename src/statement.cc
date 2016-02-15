@@ -22,7 +22,7 @@ Var::Var (unsigned tab, Expr * idx)
    : var (tab)
    , idx (idx)
 {
-   DEBUG ("Var.ctor: this %p %s var %d idx %p '%s'",
+   DEBUG ("%p: Var.ctor: type %s var %d idx %p '%s'",
          this, type () == VAR ? "VAR" : "ARRAY",
          var, idx, idx ? idx->str().c_str() : "");
 }
@@ -31,7 +31,7 @@ Var::Var (const Var & other)
    : var (other.var)
    , idx (other.idx ? other.idx->clone () : 0)
 {
-   DEBUG ("Var.ctor: this %p other %p '%s' (copy)",
+   DEBUG ("%p: Var.ctor: other %p '%s' (copy)",
          this, &other, other.str().c_str());
 }
 
@@ -48,7 +48,7 @@ Var::Var (Var && other)
 
 Var & Var::operator = (const Var & other)
 {
-   DEBUG ("Var.op= this %p other %p '%s' (copy)", this, &other, other.str().c_str());
+   DEBUG ("%p: Var.op= other %p '%s' (copy)", this, &other, other.str().c_str());
    Var temp (other);
    steal (temp);
    return *this;
@@ -56,14 +56,14 @@ Var & Var::operator = (const Var & other)
 
 Var & Var::operator = (Var && other)
 {
-   DEBUG ("Var.op= this %p other %p '%s' (move)", this, &other, other.str().c_str());
+   DEBUG ("%p: Var.op= other %p '%s' (move)", this, &other, other.str().c_str());
    steal (other);
    return *this;
 }
 
 Var::~Var ()
 {
-   DEBUG ("Var.dtor: this %p", this);
+   DEBUG ("%p: Var.dtor", this);
    delete idx;
 }
 
@@ -91,7 +91,7 @@ Expr * Expr::make (int32_t imm)
    Expr * e = new Expr ();
    e->type = IMM;
    e->imm = imm;
-   DEBUG ("Expr.ctor: this %p IMM %d", e, imm);
+   DEBUG ("%p: Expr.ctor: IMM %d", e, imm);
    return e;
 }
 
@@ -100,7 +100,7 @@ Expr * Expr::make (Var * v)
    Expr * e = new Expr ();
    e->type = VAR;
    e->v = v;
-   DEBUG ("Expr.ctor: this %p VAR %p '%s'",
+   DEBUG ("%p: Expr.ctor: VAR %p '%s'",
          e, e->v, e->v->str().c_str());
    return e;
 }
@@ -112,7 +112,7 @@ Expr * Expr::make (op_t o, Expr * e1)
    e->op = o;
    e->expr1 = e1;
    e->expr2 = 0;
-   DEBUG ("Expr.ctor: this %p op '%s' e1 %p '%s'",
+   DEBUG ("%p: Expr.ctor: op '%s' e1 %p '%s'",
          e, e->op_str (), e1, e1->str().c_str());
    ASSERT (e->op_arity () == 1);
    return e;
@@ -125,7 +125,7 @@ Expr * Expr::make (op_t o, Expr * e1, Expr * e2)
    e->op = o;
    e->expr1 = e1;
    e->expr2 = e2;
-   DEBUG ("Expr.ctor: this %p op '%s' e1 %p '%s' e2 %p '%s'",
+   DEBUG ("%p: Expr.ctor: op '%s' e1 %p '%s' e2 %p '%s'",
          e, e->op_str (),
          e1, e1->str().c_str(),
          e2, e2->str().c_str());
@@ -148,7 +148,7 @@ Expr::Expr ()
 Expr::Expr (const Expr & other)
    : type (other.type)
 {
-   DEBUG ("Expr.ctor: this %p other %p '%s' (copy)",
+   DEBUG ("%p: Expr.ctor: other %p '%s' (copy)",
          this, &other, other.str().c_str());
    switch (type)
    {
@@ -175,7 +175,7 @@ Expr::Expr (const Expr & other)
 Expr::Expr (Expr && other)
    : type (other.type)
 {
-   DEBUG ("Expr.ctor: this %p other %p '%s' (move)",
+   DEBUG ("%p: Expr.ctor: other %p '%s' (move)",
          this, &other, other.str().c_str());
    steal (other);
 }
@@ -183,7 +183,7 @@ Expr::Expr (Expr && other)
 
 Expr & Expr::operator = (const Expr & other)
 {
-   DEBUG ("Expr.op= this %p other %p '%s' (copy)",
+   DEBUG ("%p: Expr.op= other %p '%s' (copy)",
          this, &other, other.str().c_str());
    Expr temp (other);
    steal (temp);
@@ -192,7 +192,7 @@ Expr & Expr::operator = (const Expr & other)
 
 Expr & Expr::operator = (Expr && other)
 {
-   DEBUG ("Expr.op= this %p other %p '%s' (move)",
+   DEBUG ("%p: Expr.op= other %p '%s' (move)",
          this, &other, other.str().c_str());
    steal (other);
    return *this;
@@ -200,7 +200,7 @@ Expr & Expr::operator = (Expr && other)
 
 Expr::~Expr ()
 {
-   DEBUG ("Expr.dtor: this %p type %s", this, type_str ());
+   DEBUG ("%p: Expr.dtor: type %s", this, type_str ());
    switch (type)
    {
    case VAR :
@@ -281,8 +281,11 @@ const char * Expr::op_str () const
    {
    case ADD : return "+";
    case SUB : return "-";
+   case MUL : return "*";
    case DIV : return "/";
+   case MOD : return "%";
    case EQ  : return "==";
+   case NE  : return "!=";
    case LE  : return "<=";
    case LT  : return "<";
    case AND : return "and";
@@ -314,9 +317,23 @@ Stm::Stm (type_t t, Expr * e)
    , lhs (0)
    , expr (e)
 {
-   DEBUG ("Stm.ctor: this %p type %s lhs (null) '' expr %p '%s'",
+   DEBUG ("%p: Stm.ctor: type %s lhs (null) '' expr %p '%s'",
          this, type_str (), e, e ? e->str().c_str() : "");
-   ASSERT (t != ASGN and t != LOCK and t != UNLOCK);
+
+#ifdef CONFIG_DEBUG
+   switch (t)
+   {
+   case ASGN :
+   case LOCK :
+   case UNLOCK :
+      ASSERT (0); break;
+   case ASSUME :
+      ASSERT (e); break;
+   case ERROR :
+   case EXIT :
+      ASSERT (not e); break;
+   }
+#endif
 }
 
 Stm::Stm (type_t t, Var * v, Expr * e)
@@ -325,13 +342,24 @@ Stm::Stm (type_t t, Var * v, Expr * e)
    , expr (e)
 {
    ASSERT (v);
-   DEBUG ("Stm.ctor: this %p type %s lhs %p '%s' expr %p '%s'",
+   DEBUG ("%p: Stm.ctor: type %s lhs %p '%s' expr %p '%s'",
          this, type_str (),
          v, v->str().c_str(),
          e, e ? e->str().c_str() : "");
+
 #ifdef CONFIG_DEBUG
-   if (e) ASSERT (t == ASGN)
-   else ASSERT (t == LOCK or t == UNLOCK);
+   switch (t)
+   {
+   case ASGN :
+      ASSERT (e); break;
+   case ASSUME :
+   case ERROR :
+   case EXIT :
+      ASSERT (0); break;
+   case LOCK :
+   case UNLOCK :
+      ASSERT (not e); break;
+   }
 #endif
 }
 
@@ -340,7 +368,7 @@ Stm::Stm (const Stm & other)
    , lhs (other.lhs->clone ())
    , expr (other.expr->clone ())
 {
-   DEBUG ("Stm.ctor: this %p other %p '%s' (copy)",
+   DEBUG ("%p: Stm.ctor: other %p '%s' (copy)",
          this, &other, other.str().c_str());
 }
 
@@ -349,7 +377,7 @@ Stm::Stm (Stm && other)
    , lhs (other.lhs)
    , expr (other.expr)
 {
-   DEBUG ("Stm.ctor: this %p other %p '%s' (move)",
+   DEBUG ("%p: Stm.ctor: other %p '%s' (move)",
          this, &other, other.str().c_str());
 
    other.type = EXIT;
@@ -359,6 +387,8 @@ Stm::Stm (Stm && other)
 
 Stm & Stm::operator = (const Stm & other)
 {
+   DEBUG ("%p: Stm.op=: other %p '%s' (copy)",
+         this, &other, other.str().c_str());
    Stm tmp (other);
    steal (tmp);
    return *this;
@@ -366,6 +396,8 @@ Stm & Stm::operator = (const Stm & other)
 
 Stm & Stm::operator = (Stm && other)
 {
+   DEBUG ("%p: Stm.op=: other %p '%s' (move)",
+         this, &other, other.str().c_str());
    steal (other);
    return *this;
 }
@@ -384,6 +416,7 @@ std::string Stm::str () const
    case ASSUME : return fmt ("assume (%s)", expr->str().c_str());
    case LOCK   : return fmt ("lock (%s)", lhs->str().c_str());
    case UNLOCK : return fmt ("unlock (%s)", lhs->str().c_str());
+   case ERROR  : return std::string ("error");
    case EXIT   : return std::string ("exit");
    }
    return 0;
@@ -397,6 +430,7 @@ const char * Stm::type_str () const
    case ASSUME : return "ASSUME";
    case LOCK   : return "LOCK";
    case UNLOCK : return "UNLOCK";
+   case ERROR  : return "ERROR";
    case EXIT   : return "EXIT";
    }
    return 0;

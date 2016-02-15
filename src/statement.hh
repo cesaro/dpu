@@ -42,7 +42,7 @@ class Expr
 {
 public:
    enum type_t {VAR, IMM, OP1, OP2} type;
-   enum op_t { ADD, SUB, DIV, EQ, LE, LT, AND, OR, NOT };
+   enum op_t { ADD, SUB, MUL, DIV, MOD, EQ, NE, LE, LT, AND, OR, NOT };
    union {
       struct { Var * v; };
       struct { int32_t imm; };
@@ -82,7 +82,7 @@ private:
 class Stm
 {
 public:
-   enum type_t {ASGN, ASSUME, LOCK, UNLOCK, EXIT} type;
+   enum type_t {ASGN, ASSUME, LOCK, UNLOCK, ERROR, EXIT} type;
    Var * lhs;
    Expr * expr;
 

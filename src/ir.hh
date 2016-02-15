@@ -23,16 +23,17 @@ class State
 public:
    Machine & m;
 
-   uint32_t & operator [] (unsigned) const; // return element at a specific position in tab
    State (Machine & m);
-   State (const State &);
-   State & operator = (const State & s);
+   State (const State & other);
+   State (State && other);
+   State & operator = (const State & other);
+   State & operator = (State && other);
    ~State ();
-   int getNumProcs();
-   std::vector<Process> & getSProcs();
+
+   const uint32_t & operator [] (unsigned idx) const; // access the tab
+   uint32_t & operator [] (unsigned idx); // access the tab
 
 private:
-
    uint32_t * tab;  // as an array of uint32_t
 };
 //==============================
@@ -44,21 +45,20 @@ public:
    std::vector<Trans>   trans;
    unsigned             memsize; // number of variable
 
-   Machine (unsigned memsize, unsigned numprocs, unsigned numtrans = 0);
+   Machine  (unsigned memsize, unsigned numprocs, unsigned numtrans = 0);
+   Machine  (const Machine & other) = delete;
+   Machine  (Machine && other)      = delete;
+   ~Machine ();
 
    bool        operator ==   (const Machine &) const;
-  // Machine &   operator =    (const Machine & m);
+   Machine &   operator =    (const Machine & m) = delete;
+   Machine &   operator =    (Machine && m)      = delete;
 
-   //Process &   add_process   (unsigned numlocations, int id);
-  // Trans   &   add_trans     (Process & p, unsigned src, unsigned dst);
-   void     add_process   (unsigned numlocations, int id);
-   void     add_trans     (Process & p, unsigned src, unsigned dst);
+   Process &   add_process   (unsigned numlocations);
+   std::string str           () const;
+   void        sanity_check  ();
 
-   void sanity_check ();
    const State & init_state;
-   std::vector<Trans> & getTrans();
-   std::vector<Process> & getProcs();
-   std::vector<Trans*>  getTrans1();
 
 private :
    ir::State _init_state;
@@ -71,12 +71,17 @@ private :
 class Process
 {
 public:
-   int                               id;
+   const int                         id;
    Machine &                         m;
    std::vector<Trans*>               trans;
    std::vector<std::vector<Trans *>> cfg;
 
-   Process (Machine & m, unsigned numlocations, int id);
+   Process  (Machine & m, unsigned numlocations, int id);
+   ~Process ();
+
+   Trans &      add_trans     (unsigned src, unsigned dst);
+   std::string  str           () const;
+private :
 };
 
 //================================
@@ -93,10 +98,13 @@ public:
    std::vector<unsigned> localaddr;
    Codeblock             code;
 
-   bool    enabled (const State &);
-   State * fire    (const State &);
-
    Trans (Process & p, unsigned src, unsigned dst);
+   ~Trans ();
+
+   std::string  str      () const;
+   const char * type_str () const;
+   bool         enabled  (const State &);
+   State *      fire     (const State &);
 };
 
 } // namespace ir

@@ -200,9 +200,11 @@ Config::Config(Unfolding & u)
    printf("start creating config\n");
    gstate = new State(u.m.init_state);
    // INITIALIZE ALL ATTRIBUTES FOR AN EMPTY CONFIG
+
+   // set the latest events of all processes are bottom event: unf.evt.front
    for (unsigned int i = 0; i < unf.m.procs.size(); i++)
-   	  // set the latest events of all processes are bottom event: unf.evt.front
-	  latest_proc.push_back(& unf.evt.front());
+   	  latest_proc.push_back(& unf.evt.front());
+
     //???? set the latest write event on local variable is ???
       latest_local_wr.push_back(nullptr);
 
@@ -212,9 +214,10 @@ Config::Config(Unfolding & u)
    for (unsigned int i = 0; i < unf.m.procs.size(); i++)
    {
       std::vector<Event *> v;
+      // create a vector of variables for a proc
 	  for (unsigned int j = 0; j < unf.m.memsize; j++)
-		  v.push_back(& u.evt.front());
-
+	     v.push_back(& u.evt.front());
+      // add a vector of a proc to latest_global_wr
 	  latest_global_rdwr.push_back(v);
    }
 
@@ -241,7 +244,7 @@ void Config::add(Event & e)
 
    ir::Trans & tran             = e.getTrans();
    ir::Process & p              = e.getProc();
-   //std::vector<Process> & procs = unf.m.getProcs();
+   std::vector<Process> & procs = unf.m.procs;
    printf(" tran.proc.id %d \n", tran.proc.id);
   // e.update(*this); //dont need to update the history of e because it is set up at the time of creation.
   // e.update_parents();
@@ -253,7 +256,6 @@ void Config::add(Event & e)
 
    printf("latest event of the proc %d is: %p \n", p.id, latest_proc[p.id]);
 
-#if 0
    //update local variables in trans
    for (auto i: tran.localaddr)
        latest_local_wr[i] = &e;
@@ -267,7 +269,7 @@ void Config::add(Event & e)
 
       case ir::Trans::WR:
     	 latest_global_wr[tran.addr] = &e; // update latest wr event for the variable s.addr
-    	 for (auto p: procs)
+    	 for (auto & p: procs)
     	    latest_global_rdwr[p.id][tran.addr] = &e;
     	 break;
 
@@ -279,18 +281,16 @@ void Config::add(Event & e)
     	 latest_proc[p.id] = &e;
          break;
    }
-#endif
-
    __update_encex(e);
 
 }
 
-void Config::__update_encex (Event & e)
+void Config::__update_encex (Event &)
 {
    printf("start update_encex\n");
 
-   if (en.size() > 0)
-      remove_cfl(e);
+   //if (en.size() > 0)
+      //remove_cfl(e);
    ir::State & gs = *gstate;
    //std::vector<ir::Trans> & trans = gs.m.getTrans(); // all trans of the machine
    std::vector<ir::Trans> & trans = gs.m.trans; // all trans of the machine
@@ -369,7 +369,7 @@ void Unfolding:: explore(Config & C, std::vector<Event*> D, std::vector<Event*> 
 void Unfolding::explore_rnd_config ()
 {
    Event * e;
-   printf ("=======Start Unfolding.explore_rnd_config\n");
+   printf ("--------Start Unfolding.explore_rnd_config\n");
   // assert (evt.size () == 0);
    printf("Creat an empty config:\n");
    Config c(*this);
@@ -377,7 +377,6 @@ void Unfolding::explore_rnd_config ()
    int count = 1;
    while (c.en.empty() == false)
    {
-
 	   e = c.en.back();
 	   printf("The event number %d, with trans is %d \n", count, e->trans->proc.id);
 	   count ++;

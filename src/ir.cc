@@ -136,7 +136,7 @@ std::string Process::str () const
 }
 
 
-//===methods for class Trans=========
+// === methods for class Trans =========
 
 Trans::Trans (Process & p, unsigned src, unsigned dst)
    : src (src)

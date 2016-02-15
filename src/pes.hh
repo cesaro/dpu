@@ -60,7 +60,7 @@ public:
 
    std::vector<std::vector<Event*>> latest_global_rdwr; //size = Process x Variable
 
-   std::vector<Event*>              latest_local_wr; // size = number of local variables
+   std::vector<Event*>              latest_local_wr; // size = number of processes???
    std::vector<Event*>              en;
    std::vector<Event*>              cex;
    Unfolding  &                     unf;

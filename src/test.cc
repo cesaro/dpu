@@ -267,7 +267,7 @@ void test7 ()
 {
    auto m = build_concur15_example ();
 
-   DEBUG ("\n%s", m->str().c_str());
+  // DEBUG ("\n%s", m->str().c_str());
 
    pes::Unfolding u (*m.get ());
    /*

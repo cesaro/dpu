@@ -50,20 +50,18 @@ Event::Event(Trans & t)
 //set up 3 attributes: pre_proc, pre_mem and pre_readers
 void Event::mk_history(Config & c)
 {
-
    ir::Trans & t   = this->getTrans();
    ir::Process & p = this->getProc();
    std::vector<Process> & procs = c.unf.m.procs;
-
+   printf("\nmk_his: Id of process:%d, type of trans is %s \n", p.id, t.type_str());
    //e's parent is the latest event of the process
    pre_proc = c.latest_proc[p.id];
-
-   printf("it is ok here");
 
    switch (t.type)
    {
       case ir::Trans::RD:
          pre_mem  = c.latest_global_rdwr[p.id][t.addr];
+
          for(unsigned int i = 0; i< procs.size(); i++)
             pre_readers.push_back(nullptr);
          break;
@@ -79,11 +77,17 @@ void Event::mk_history(Config & c)
       case ir::Trans::SYN:
     	 pre_mem  = c.latest_global_rdwr[p.id][t.addr];
     	 break;
+
       case ir::Trans::LOC:
-    	 pre_proc  = c.latest_proc[p.id];
     	 pre_mem   = nullptr;
+    	 for(unsigned int i = 0; i< procs.size(); i++)
+    	    pre_readers.push_back(nullptr);
     	 break;
    }
+   printf("pre_proc: %p \n", pre_proc);
+   printf("pre_mem: %p \n", pre_mem);
+   for(unsigned int i = 0; i< procs.size(); i++)
+     printf("pre_readers: %p \n", pre_readers[i]);
 }
 
 void Event::update_parents()
@@ -197,27 +201,28 @@ bool Event::check_cfl(Event & e)
 Config::Config(Unfolding & u)
 : unf(u)
 {
-   printf("start creating config\n");
+   printf("start creating config, the bottom event at %p \n", &unf.evt.front());
    gstate = new State(u.m.init_state);
    // INITIALIZE ALL ATTRIBUTES FOR AN EMPTY CONFIG
 
    // set the latest events of all processes are bottom event: unf.evt.front
    for (unsigned int i = 0; i < unf.m.procs.size(); i++)
+   {
    	  latest_proc.push_back(& unf.evt.front());
-
-    //???? set the latest write event on local variable is ???
       latest_local_wr.push_back(nullptr);
+   }
 
    for (unsigned int j = 0; j < unf.m.memsize; j++)
       latest_global_wr.push_back(& u.evt.front());
 
-   for (unsigned int i = 0; i < unf.m.procs.size(); i++)
+   std::vector<Event *> v;
+   for (unsigned int i = 0; i < (unf.m.memsize - unf.m.procs.size()); i++)
    {
-      std::vector<Event *> v;
-      // create a vector of variables for a proc
-	  for (unsigned int j = 0; j < unf.m.memsize; j++)
+      v.clear();
+      // create a vector of latest gl rw for a proc
+	  for (unsigned int j = 0; j < unf.m.procs.size(); j++)
 	     v.push_back(& u.evt.front());
-      // add a vector of a proc to latest_global_wr
+      // add a vector for a variable to latest_global_wr
 	  latest_global_rdwr.push_back(v);
    }
 
@@ -246,8 +251,7 @@ void Config::add(Event & e)
    ir::Process & p              = e.getProc();
    std::vector<Process> & procs = unf.m.procs;
    printf(" tran.proc.id %d \n", tran.proc.id);
-  // e.update(*this); //dont need to update the history of e because it is set up at the time of creation.
-  // e.update_parents();
+   // e.update_parents();
 
    // update the configuration
    tran.fire (*gstate); //update new global states
@@ -303,7 +307,9 @@ void Config::__update_encex (Event &)
 	   printf("t.src: %d and t.dest: %d, t.proc.id: %d \n", t.src, t.dst, t.proc.id);
      if (t.enabled(gs) == true)
      {
+    	printf("t is enabled\n");
     	unf.evt.emplace_back(t);
+    	  printf("current event: %p",&unf.evt.back());
         unf.evt.back().mk_history(*this); // create an history for new event
     	en.push_back(&unf.evt.back());
      }

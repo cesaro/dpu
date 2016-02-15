@@ -26,16 +26,16 @@ public:
    //only for RD and SYN events
    std::vector <Event *> post_rws; // for RD and SYN events, size = number of variables
 
-   int                  val; //??? value for global variable?
-   std::vector<int>     localvals; //???
+   int                   val; //??? value for global variable?
+   std::vector<uint32_t> localvals; //???
 
-   ir::Trans *          trans;
+   ir::Trans *           trans;
    Event ();
    Event (ir::Trans & t);
 
-
-   bool        operator ==   (const Event &) const;
-   Event & 	   operator =    (const Event &);
+   bool         operator ==   (const Event &) const;
+   Event & 	    operator =    (const Event &);
+   std::string  str           () const;
    ir::Trans & getTrans() {return *trans;}
    ir::Process & getProc() {return trans->proc;}
 
@@ -52,28 +52,33 @@ public:
 class Config
 {
 public:
-   ir::State *                      gstate;
+   ir::State                        gstate;
 
-   std::vector <Event*>             latest_proc; //latest events of all processes
+   /*
+    * latest_proc : Processes -> Events
+    * latest_wr   : Variables -> Events
+    * latest_op   : (Processes x Variables) -> Events
+    *
+    * where Variables is ALL variables
+    */
+   std::vector <Event*>             latest_proc;
+   std::vector<Event*>              latest_wr;
+   std::vector<std::vector<Event*>> latest_op;
 
-   std::vector<Event*>              latest_global_wr; //size of vector = number of variable
-
-   std::vector<std::vector<Event*>> latest_global_rdwr; //size = Process x Variable
-
-   std::vector<Event*>              latest_local_wr; // size = number of processes???
    std::vector<Event*>              en;
    std::vector<Event*>              cex;
    Unfolding  &                     unf;
 
 
-   Config(Unfolding & u); // creates an empty configuration
-   Config(Config & c);
-   ir::State * getState() {return gstate;}
+   Config (Unfolding & u); // creates an empty configuration
+   Config (const Config & c);
    void add(Event & e); // update the cut and the new event
 
 private:
    void __update_encex (Event & e);
    void remove_cfl (Event & e);
+
+   void print_debug ();
 
 }; // end of class Config
 
@@ -82,6 +87,7 @@ class Unfolding
 public:
    std::vector<Event>    evt; // events actually in the unfolding
    ir::Machine &         m;
+   Event *               bottom;
 
    // std::vector <Event *> U;  // Universe of events
 
@@ -90,6 +96,11 @@ public:
    //methods
    void explore(Config & C, std::vector<Event *> D, std::vector<Event *> A);
    void explore_rnd_config ();
+
+private :
+   void __create_botom ();
+   bool is_bottom (Event * e);
+
 }; // end of class Unfolding
 
 

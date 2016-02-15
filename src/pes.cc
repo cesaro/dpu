@@ -8,7 +8,10 @@
 #include <cstdint>
 #include <cassert>
 #include <iostream>
+
 #include "pes.hh"
+#include "misc.hh"
+#include "verbosity.h"
 
 using std::vector;
 using namespace ir;
@@ -50,32 +53,32 @@ Event::Event(Trans & t)
 //set up 3 attributes: pre_proc, pre_mem and pre_readers
 void Event::mk_history(Config & c)
 {
-   ir::Trans & t   = this->getTrans();
-   ir::Process & p = this->getProc();
+   ir::Process & p = this->trans->proc;
    std::vector<Process> & procs = c.unf.m.procs;
-   printf("\nmk_his: Id of process:%d, type of trans is %s \n", p.id, t.type_str());
+
+   printf("\nmk_his: Id of process:%d, type of trans is %s \n", p.id, trans->type_str());
    //e's parent is the latest event of the process
    pre_proc = c.latest_proc[p.id];
 
-   switch (t.type)
+   switch (trans->type)
    {
       case ir::Trans::RD:
-         pre_mem  = c.latest_global_rdwr[p.id][t.addr];
+         pre_mem  = c.latest_op[p.id][trans->addr];
 
          for(unsigned int i = 0; i< procs.size(); i++)
             pre_readers.push_back(nullptr);
          break;
 
       case ir::Trans::WR:
-         pre_mem  = c.latest_global_wr[t.addr];
+         pre_mem  = c.latest_wr[trans->addr];
         // set pre-readers = set of latest events which use the variable copies of all processes.
           	    //size of pre-readers is numbers of copies of the variable = number of processes
          for(auto pr : procs)
-            pre_readers.push_back(c.latest_global_rdwr[pr.id][t.addr]);
+            pre_readers.push_back(c.latest_op[pr.id][trans->addr]);
          break;
 
       case ir::Trans::SYN:
-    	 pre_mem  = c.latest_global_rdwr[p.id][t.addr];
+    	 pre_mem  = c.latest_op[p.id][trans->addr];
     	 break;
 
       case ir::Trans::LOC:
@@ -95,7 +98,9 @@ void Event::update_parents()
    Event & prt2 = *pre_mem;
    Process & p  = trans->proc;
 
-   pre_proc->post_proc.push_back(this)  ;
+   pre_proc->post_proc.push_back(this)  ; // parent 1 = pre_proc
+
+   DEBUG ("Parent: %s \n", pre_proc->post_proc.back()->str().c_str());
 
    switch (prt2.trans->type)
    {
@@ -194,50 +199,60 @@ bool Event::check_cfl(Event & e)
 
    return false;
 }
+
+
+std::string Event::str () const
+{
+   const char * code = trans ? trans->code.str().c_str() : "";
+   return fmt ("%p trans %p '%s' pre %p %p",
+         this, trans, code, pre_proc, pre_mem);
+}
+
 /*
  * Methods of class Config
  */
 
-Config::Config(Unfolding & u)
-: unf(u)
+Config::Config (Unfolding & u)
+   : gstate (u.m.init_state)
+   , latest_proc (u.m.procs.size (), u.bottom)
+   , latest_wr (u.m.memsize, u.bottom)
+   , latest_op (u.m.procs.size (), std::vector<Event*> (u.m.memsize, u.bottom))
+   , unf (u)
 {
-   printf("start creating config, the bottom event at %p \n", &unf.evt.front());
-   gstate = new State(u.m.init_state);
-   // INITIALIZE ALL ATTRIBUTES FOR AN EMPTY CONFIG
+  // DEBUG ("%p: Config.ctor: u %p", this, unf);
 
-   // set the latest events of all processes are bottom event: unf.evt.front
-   for (unsigned int i = 0; i < unf.m.procs.size(); i++)
-   {
-   	  latest_proc.push_back(& unf.evt.front());
-      latest_local_wr.push_back(nullptr);
-   }
+   print_debug ();
 
-   for (unsigned int j = 0; j < unf.m.memsize; j++)
-      latest_global_wr.push_back(& u.evt.front());
-
-   std::vector<Event *> v;
-   for (unsigned int i = 0; i < (unf.m.memsize - unf.m.procs.size()); i++)
-   {
-      v.clear();
-      // create a vector of latest gl rw for a proc
-	  for (unsigned int j = 0; j < unf.m.procs.size(); j++)
-	     v.push_back(& u.evt.front());
-      // add a vector for a variable to latest_global_wr
-	  latest_global_rdwr.push_back(v);
-   }
-
+   // initialize all attributes for an empty config
    __update_encex(unf.evt.back());
 }
 
-Config:: Config(Config & c)
-: latest_proc (c.latest_proc)
-, latest_global_wr (c.latest_global_wr)
-, latest_global_rdwr (c.latest_global_rdwr)
-, latest_local_wr (c.latest_local_wr)
-, unf(c.unf)
+void Config::print_debug ()
+{
+   
+   DEBUG ("%p: latest_proc:", this);
+   for (auto & e : latest_proc) DEBUG (" %s", e->str().c_str());
+   DEBUG ("%p: latest_wr:", this);
+   for (auto & e : latest_wr) DEBUG (" %s", e->str().c_str());
+   DEBUG ("%p: latest_op:", this);
+   for (size_t pid = 0; pid < latest_op.size(); ++pid)
+   {
+      DEBUG (" Process %zu", pid);
+      for (auto & e : latest_op[pid]) DEBUG ("  %s", e->str().c_str());
+   }
+}
+
+#if 0
+Config:: Config (const Config & c)
+   : latest_proc (c.latest_proc)
+   , latest_wr (c.latest_wr)
+   , latest_op (c.latest_op)
+   , latest_local_wr (c.latest_local_wr)
+   , unf(c.unf)
 {
    gstate = c.gstate;
 }
+#endif
 
 /*
  * Add an event to a configuration
@@ -245,71 +260,73 @@ Config:: Config(Config & c)
 
 void Config::add(Event & e)
 {
-   printf("start add event e");
-
-   ir::Trans & tran             = e.getTrans();
-   ir::Process & p              = e.getProc();
+   DEBUG (" %s", e.str().c_str());
+   ir::Process & p              = e.trans->proc;
    std::vector<Process> & procs = unf.m.procs;
-   printf(" tran.proc.id %d \n", tran.proc.id);
-   // e.update_parents();
-
+   //update e's parents
+   e.update_parents();
+#if 0
    // update the configuration
-   tran.fire (*gstate); //update new global states
+   e.trans->fire (gstate); //update new global states
 
    latest_proc[p.id] = &e; //update latest event of the process
 
    printf("latest event of the proc %d is: %p \n", p.id, latest_proc[p.id]);
 
    //update local variables in trans
-   for (auto i: tran.localaddr)
-       latest_local_wr[i] = &e;
+   for (auto i: e.trans->localaddr)
+       latest_wr[i] = &e;
 
    //update particular attributes according to type of transition.
-   switch (tran.type)
+   switch (e.trans->type)
    {
       case ir::Trans::RD:
-    	latest_global_rdwr[p.id][tran.addr] = &e;
+    	latest_op[p.id][e.trans->addr] = &e;
         break;
 
       case ir::Trans::WR:
-    	 latest_global_wr[tran.addr] = &e; // update latest wr event for the variable s.addr
+    	 latest_wr[e.trans->addr] = &e; // update latest wr event for the variable s.addr
     	 for (auto & p: procs)
-    	    latest_global_rdwr[p.id][tran.addr] = &e;
+    	    latest_op[p.id][e.trans->addr] = &e;
     	 break;
 
       case ir::Trans::SYN:
-       	 latest_global_wr[tran.addr]=&e;
+       	 latest_wr[e.trans->addr]=&e;
        	 break;
 
       case ir::Trans::LOC:
     	 latest_proc[p.id] = &e;
          break;
    }
+   en.pop_back(); // remove the event added to the config
+   printf("enable set now size is: %zu \n",en.size());
    __update_encex(e);
-
+#endif
 }
 
-void Config::__update_encex (Event &)
+void Config::__update_encex (Event & e)
 {
    printf("start update_encex\n");
+#if 0
+   if (en.size() > 0)
+      remove_cfl(e);
+   else
+	   printf("Oh la la \n");
+#endif
 
-   //if (en.size() > 0)
-      //remove_cfl(e);
-   ir::State & gs = *gstate;
-   //std::vector<ir::Trans> & trans = gs.m.getTrans(); // all trans of the machine
-   std::vector<ir::Trans> & trans = gs.m.trans; // all trans of the machine
-   std::vector <ir::Process> & procs = gs.m.procs; // all procs of the machine
+   std::vector<ir::Trans> & trans = unf.m.trans;
+   std::vector <ir::Process> & procs = unf.m.procs;
    assert(trans.size() > 0);
    assert(procs.size() > 0);
 
    for (auto & t: trans)
    {
 	   printf("t.src: %d and t.dest: %d, t.proc.id: %d \n", t.src, t.dst, t.proc.id);
-     if (t.enabled(gs) == true)
+     if (t.enabled(gstate) == true)
      {
     	printf("t is enabled\n");
     	unf.evt.emplace_back(t);
-    	  printf("current event: %p",&unf.evt.back());
+        printf("current event: %p",&unf.evt.back());
         unf.evt.back().mk_history(*this); // create an history for new event
     	en.push_back(&unf.evt.back());
      }
@@ -338,13 +355,32 @@ void Config::remove_cfl(Event & e)
 /*
  * Methods for class Unfolding
  */
-Unfolding::Unfolding (ir::Machine & ma): m(ma)
+Unfolding::Unfolding (ir::Machine & ma)
+   : m (ma)
 {
-	evt.emplace_back(); // create an "bottom" event with all empty
-	evt.back().pre_mem  = &evt.back(); // bottom event point to itself
-	evt.back().pre_proc  = &evt.back(); // bottom event point to itself
+   DEBUG ("%p: Unfolding.ctor: m %p", this, &m);
+   __create_botom ();
 }
 
+void Unfolding::__create_botom ()
+{
+   Event * e;
+
+   // create an "bottom" event with all empty
+	evt.emplace_back();
+   e = & evt[0];
+
+   e->pre_proc = e;
+   e->pre_mem = e;
+
+   bottom = e; 
+   DEBUG ("%p: Unfolding.__create_bottom: bottom %p", this, e);
+}
+
+bool Unfolding::is_bottom (Event * e)
+{
+   return e->pre_proc == e;
+}
 
 void Unfolding:: explore(Config & C, std::vector<Event*> D, std::vector<Event*> A)
 {
@@ -379,15 +415,12 @@ void Unfolding::explore_rnd_config ()
   // assert (evt.size () == 0);
    printf("Creat an empty config:\n");
    Config c(*this);
-   printf(" en.size %zu \n", c.en.size());
-   int count = 1;
+   int count=0;
    while (c.en.empty() == false)
    {
+	   printf(" \n\nthis is the %d \n ", count++);
 	   e = c.en.back();
-	   printf("The event number %d, with trans is %d \n", count, e->trans->proc.id);
-	   count ++;
 	   c.add(*e);
-	   c.en.pop_back();
    }
    printf("no more enabled");
 

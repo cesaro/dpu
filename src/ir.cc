@@ -2,6 +2,7 @@
 #include <cstring>
 #include <cassert>
 #include <algorithm>
+#include <stdexcept>
 
 #include "ir.hh"
 #include "misc.hh"
@@ -67,8 +68,9 @@ void Machine::sanity_check ()
    // Trans.{offset,addr,localaddr} fit in memory
    // - the process id corresponds to the offset in Machine.procs
    // - Trans.{src,dst} are valid node numbers in the cfg
-   // - match between Trans.code and infos in Trans.{addr,offset,localaddr}
+   // - match between Trans.code and infos in Trans.{type,addr,offset,localaddr}
    // - transitions of one thread do not overwrite its pc
+   // - the program is deterministic
 }
 
 // methods of class Process
@@ -157,20 +159,16 @@ Trans::~Trans ()
 
 bool Trans::enabled (const State & s)
 {
-	// for temporarily compute enable set
-   if (src == s[proc.id])
-      return true;
-   return false;
+   if (src != s[proc.id]) return false;
+   return s.enabled (code);
 }
 
-State * Trans::fire (const State &s)
+void Trans::fire (State & s)
 {
-	DEBUG("fire");
-	State s1(s);
-	s1[this->proc.id] ++;
-	return new State (s1);
+   ASSERT (enabled (s));
+	s[proc.id] = dst;
+   s.execute (code);
 }
-
 
 std::string Trans::str () const
 {
@@ -242,6 +240,155 @@ const uint32_t & State::operator [] (unsigned i) const
 uint32_t & State::operator [] (unsigned i)
 {
    return tab[i];
+}
+
+uint32_t & State::operator [] (const Var * v)
+{
+   return eval (v);
+}
+
+void State::enabled (std::vector<Trans*> & list) const
+{
+   list.clear ();
+
+   // we assume that the program is data-deterministic
+   for (unsigned pid = 0; pid < m.procs.size(); ++pid)
+   {
+      // the current pc for thread pid is a valid location of the CFG
+      ASSERT (tab[pid] < m.procs[pid].cfg.size());
+
+      // for each transition of process pid whose src field is tab[pid]
+      for (auto t : m.procs[pid].cfg[tab[pid]])
+      {
+         if (t->enabled (*this)) list.push_back (t);
+      }
+   }
+}
+
+
+bool State::enabled (const Codeblock & code) const
+{
+   return enabled (code.stm);
+}
+
+bool State::enabled (const Stm & stm) const
+{
+   switch (stm.type)
+   {
+   case Stm::ASGN :
+   case Stm::ERROR :
+   case Stm::EXIT :
+      return true;
+   case Stm::LOCK :
+      // a lock statement is enabled if the lock is not taken (evaluates to 0)
+      return not eval (stm.lhs);
+   case Stm::UNLOCK :
+      // similarly, unlock enabled iff the lock is released (evaluates to != 0)
+      return eval (stm.lhs);
+   case Stm::ASSUME :
+      // assume enabled if expression evaluates to non-zero value
+      return eval (stm.expr);
+   }
+   return false; // unreachable code
+}
+
+void State::execute (const Codeblock & code)
+{
+   execute (code.stm);
+}
+
+void State::execute (const Stm & stm)
+{
+   ASSERT (enabled (stm));
+   switch (stm.type)
+   {
+   case Stm::ASGN :
+      // evaluate the expression and assign it to the left-hand-side variable
+      eval (stm.lhs) = eval (stm.expr);
+      break;
+   case Stm::LOCK :
+      // the lock should not be taken; set it to 1 (taken)
+      eval (stm.lhs) = 1;
+      break;
+   case Stm::UNLOCK :
+      // the lock should be taken (different than zero); set lock to 0 (not taken)
+      eval (stm.lhs) = 0;
+      break;
+   case Stm::ASSUME :
+   case Stm::ERROR :
+   case Stm::EXIT :
+      // nothing to do for ASSUME, ERROR, or EXIT
+      break;
+   }
+}
+
+uint32_t State::eval (const Expr * e) const
+{
+   switch (e->type)
+   {
+   case Expr::VAR : return eval (e->v);
+   case Expr::IMM : return (uint32_t) e->imm;
+   case Expr::OP1 :
+   case Expr::OP2 :
+      switch (e->op)
+      {
+      case Expr::ADD : return eval (e->expr1) + eval (e->expr2);
+      case Expr::SUB : return eval (e->expr1) - eval (e->expr2);
+      case Expr::MUL : return eval (e->expr1) * eval (e->expr2);
+      case Expr::DIV : return eval (e->expr1) / eval (e->expr2);
+      case Expr::MOD : return eval (e->expr1) % eval (e->expr2);
+      case Expr::EQ :  return eval (e->expr1) == eval (e->expr2);
+      case Expr::NE :  return eval (e->expr1) != eval (e->expr2);
+      case Expr::LE :  return eval (e->expr1) <= eval (e->expr2);
+      case Expr::LT :  return eval (e->expr1) < eval (e->expr2);
+      case Expr::AND : return eval (e->expr1) and eval (e->expr2);
+      case Expr::OR :  return eval (e->expr1) or eval (e->expr2);
+      case Expr::NOT : return not eval (e->expr1);
+      }
+   }
+   return 0; // unreachable code, just to avoid copmiler warning
+}
+
+uint32_t & State::eval (const Var * v) const
+{
+   switch (v->type ())
+   {
+   case Var::VAR :
+      ASSERT (v->var < m.memsize);
+      return tab[v->var];
+   case Var::ARRAY :
+      unsigned idx = v->var + eval (v->idx);
+      if (idx >= m.memsize)
+      {
+         throw std::range_error (fmt
+               ("Out of bounds: expression '%s' tries to access address %u",
+               v->str().c_str(), idx));
+      }
+      return tab[idx];
+   }
+   return tab[0]; // unreachable code, just to avoid compiler warning
+}
+
+std::string State::str () const
+{
+   std::string s;
+   unsigned i = 0;
+
+   for ( ; i < m.procs.size (); ++i) s += fmt ("%-3u ", tab[i]);
+   s += "  ";
+   for ( ; i < m.memsize; ++i) s += fmt ("%04u ", tab[i]);
+   return s;
+}
+
+std::string State::str_header () const
+{
+   std::string s;
+   unsigned i = 0;
+
+   for ( ; i < m.procs.size (); ++i) s += fmt ("p%-2u ", i);
+   s += "  ";
+   for ( ; i < m.memsize; ++i) s += fmt ("v%-3u ", i);
+   return s;
 }
 
 } // namespace ir

@@ -1,6 +1,7 @@
 
 #include <cstdio>
 #include <cstdlib>
+#include <ctime>
 #include <vector>
 #include <array>
 #include <memory>
@@ -476,9 +477,9 @@ std::unique_ptr<ir::Machine> build_mul_example ()
     *
     * src dst  what
     *   0   1  v1 = 2
-    *   1   2  v2 = 10;
-    *   2   3  v3 = 0;
-    *   3   4  v4 = 0;
+    *   1   2  v2 = 5
+    *   2   3  v3 = 0
+    *   3   4  v4 = 0
     *   4   5  assume (v3 < v2)
     *   5   6  v4 = v4 + v1
     *   6   4  v3 = v3 + 1
@@ -504,15 +505,15 @@ std::unique_ptr<ir::Machine> build_mul_example ()
    t = & p.add_trans (0, 1);
    t->code.stm = ir::Stm (ir::Stm::ASGN, v1->clone (), ir::Expr::make (2));
 
-   //  1 >  2 : v2 = 10;
+   //  1 >  2 : v2 = 5
    t = & p.add_trans (1, 2);
-   t->code.stm = ir::Stm (ir::Stm::ASGN, v2->clone (), ir::Expr::make (10));
+   t->code.stm = ir::Stm (ir::Stm::ASGN, v2->clone (), ir::Expr::make (5));
 
-   //  2 >  3 : v3 = 0;
+   //  2 >  3 : v3 = 0
    t = & p.add_trans (2, 3);
    t->code.stm = ir::Stm (ir::Stm::ASGN, v3->clone (), ir::Expr::make (0));
 
-   //  3 >  4 : v4 = 0;
+   //  3 >  4 : v4 = 0
    t = & p.add_trans (3, 4);
    t->code.stm = ir::Stm (ir::Stm::ASGN, v4->clone (), ir::Expr::make (0));
 
@@ -563,9 +564,122 @@ std::unique_ptr<ir::Machine> build_mul_example ()
    return m;
 }
 
+std::unique_ptr<ir::Machine> build_concur15_example ()
+{
+   /*
+    * Three threads, as in the CONCUR'15 paper with x=v3, y=v4, z=v5
+    * 
+    * memsize  = 6 = 3 vars + 3 pcs
+    * numprocs = 3
+    * numtrans = 6
+    *
+    * Thread 0
+    * ========
+    * src dst  what           type  addr  localaddr
+    *   0   1  v3 = 123       WR    3     {}
+    *   1   2  exit           LOC   na    {}
+    *
+    * Thread 1
+    * ========
+    * src dst  what           type  addr  localaddr
+    *   0   1  v4 = v3 + 1    RD    3     {4}
+    *   1   2  exit           LOC   na    {}
+    *
+    * Thread 2
+    * ========
+    * src dst  what           type  addr  localaddr
+    *   0   1  v5 = v3 + 2;   RD    3     {5}
+    *   1   2  exit           LOC   na    {}
+    *
+    */
+
+   ir::Trans * t;
+   std::unique_ptr<ir::Machine> m (new ir::Machine (6, 3, 6)); // 6 vars, 3 thread, 6 transitions
+   ir::Process & p0 = m->add_process (3); // 3 locations per thread
+   ir::Process & p1 = m->add_process (3);
+   ir::Process & p2 = m->add_process (3);
+
+   // variables v1 to v4
+   std::unique_ptr<ir::Var> v3 (ir::Var::make (3));
+   std::unique_ptr<ir::Var> v4 (ir::Var::make (4));
+   std::unique_ptr<ir::Var> v5 (ir::Var::make (5));
+
+   //   0   1  v3 = 123
+   t = & p0.add_trans (0, 1);
+   t->code.stm = ir::Stm (ir::Stm::ASGN, v3->clone (), ir::Expr::make (123));
+   t->type = ir::Trans::WR;
+   t->addr = 3;
+   t->offset = 0;
+   t->localaddr.clear ();
+
+   //   1   2  exit
+   t = & p0.add_trans (1, 2);
+   t->code.stm = ir::Stm (ir::Stm::EXIT);
+   t->type = ir::Trans::LOC;
+   t->localaddr.clear ();
+
+   //   0   1  v4 = v3 + 1
+   t = & p1.add_trans (0, 1);
+   t->code.stm = ir::Stm (ir::Stm::ASGN, v4->clone (),
+         ir::Expr::make (ir::Expr::ADD, ir::Expr::make (v3->clone()), ir::Expr::make (1)));
+   t->type = ir::Trans::RD;
+   t->addr = 3;
+   t->offset = 0;
+   t->localaddr.push_back (4);
+
+   //   1   2  exit
+   t = & p1.add_trans (1, 2);
+   t->code.stm = ir::Stm (ir::Stm::EXIT);
+   t->type = ir::Trans::LOC;
+   t->localaddr.clear ();
+
+   //   0   1  v5 = v3 + 2;
+   t = & p2.add_trans (0, 1);
+   t->code.stm = ir::Stm (ir::Stm::ASGN, v5->clone (),
+         ir::Expr::make (ir::Expr::ADD, ir::Expr::make (v3->clone()), ir::Expr::make (2)));
+   t->type = ir::Trans::RD;
+   t->addr = 3;
+   t->offset = 0;
+   t->localaddr.push_back (5);
+
+   //   1   2  exit
+   t = & p2.add_trans (1, 2);
+   t->code.stm = ir::Stm (ir::Stm::EXIT);
+   t->type = ir::Trans::LOC;
+   t->localaddr.clear ();
+
+   return m;
+}
+
 void test12 ()
 {
-   auto m = build_mul_example ();
+   //auto m = build_mul_example ();
+   auto m = build_concur15_example ();
 
-   printf ("%s\n", m->str().c_str());
+   DEBUG ("%s", m->str().c_str());
+
+   ir::State s (m->init_state);
+   std::vector<ir::Trans*> ena;
+   unsigned seed, i;
+
+   seed = std::time (0); // use current time as seed for random
+   //seed = 1234;
+   DEBUG ("Using seed %u", seed);
+   std::srand (seed);
+
+   while (true)
+   {
+      DEBUG ("========================================");
+      DEBUG ("%s", s.str_header().c_str());
+      DEBUG ("%s", s.str().c_str());
+      s.enabled (ena);
+      DEBUG ("enables %d transitions:", ena.size ());
+      for (auto t : ena) DEBUG (" %s", t->str().c_str());
+      if (ena.size () == 0) break;
+
+      i = std::rand() % ena.size ();
+      DEBUG ("firing nr %u", i);
+      ena[i]->fire (s);
+   }
 }
+

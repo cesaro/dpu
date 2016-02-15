@@ -239,7 +239,6 @@ void Config::add(Event & e)
 {
    printf("start add event e");
 
-   ir::State & gs               = *gstate;
    ir::Trans & tran             = e.getTrans();
    ir::Process & p              = e.getProc();
    //std::vector<Process> & procs = unf.m.getProcs();
@@ -248,7 +247,7 @@ void Config::add(Event & e)
   // e.update_parents();
 
    // update the configuration
-   gstate = tran.fire(gs); //update new global states
+   tran.fire (*gstate); //update new global states
 
    latest_proc[p.id] = &e; //update latest event of the process
 

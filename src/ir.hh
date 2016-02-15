@@ -26,12 +26,23 @@ public:
    State (Machine & m);
    State (const State & other);
    State (State && other);
-   State & operator = (const State & other);
-   State & operator = (State && other);
    ~State ();
 
-   const uint32_t & operator [] (unsigned idx) const; // access the tab
-   uint32_t & operator [] (unsigned idx); // access the tab
+   State &          operator =  (const State & other);
+   State &          operator =  (State && other);
+   const uint32_t & operator [] (unsigned idx) const;
+   uint32_t &       operator [] (unsigned idx);
+   uint32_t &       operator [] (const Var *v);
+   void             enabled     (std::vector<Trans*> & list) const;
+   bool             enabled     (const Codeblock & code) const;
+   bool             enabled     (const Stm & stm) const;
+   void             execute     (const Codeblock & code);
+   void             execute     (const Stm & stm);
+   uint32_t         eval        (const Expr * e) const;
+   uint32_t &       eval        (const Var * v) const;
+   std::string      str         () const;
+   std::string      str_header  () const;
+
 
 private:
    uint32_t * tab;  // as an array of uint32_t
@@ -103,8 +114,8 @@ public:
 
    std::string  str      () const;
    const char * type_str () const;
-   bool         enabled  (const State &);
-   State *      fire     (const State &);
+   bool         enabled  (const State & s);
+   void         fire     (State & s);
 };
 
 } // namespace ir

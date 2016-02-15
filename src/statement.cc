@@ -260,19 +260,27 @@ const char * Expr::type_str () const
    case OP1 : return "OP1";
    case OP2 : return "OP2";
    }
-   return 0;
+   return 0; // unreachable code
 }
 
 int Expr::op_arity () const
 {
-   switch (type)
+   switch (op)
    {
-   case VAR :
-   case IMM : return 0;
-   case OP1 : return 1;
-   case OP2 : return 2;
+   case ADD :
+   case SUB :
+   case MUL :
+   case DIV :
+   case MOD :
+   case EQ  :
+   case NE  :
+   case LE  :
+   case LT  :
+   case AND :
+   case OR  : return 2;
+   case NOT : return 1;
    }
-   return 0;
+   return -1; // unreachable code
 }
 
 const char * Expr::op_str () const
@@ -292,7 +300,7 @@ const char * Expr::op_str () const
    case OR  : return "or";
    case NOT : return "not";
    }
-   return 0;
+   return 0; // unreachable code
 }
 
 std::string Expr::str () const

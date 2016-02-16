@@ -22,21 +22,20 @@ namespace pes{
  * Methods for class Event
  */
 Event::Event()
-   : trans(nullptr)
+   : pre_proc(nullptr)
+   , pre_mem(nullptr)
    , val(0)
    , localvals(0)
-   , pre_proc(nullptr)
-   , pre_mem(nullptr)
-
+   , trans(nullptr)
 {
 }
 
 Event::Event(Trans & t)
-   : trans(&t)
+   : pre_proc(nullptr)
+   , pre_mem(nullptr)
    , val(0)
    , localvals(0)
-   , pre_proc(nullptr)
-   , pre_mem(nullptr)
+   , trans(&t)
 
 {
 }
@@ -45,6 +44,7 @@ bool Event::is_bottom ()
 {
    return this->pre_proc == this;
 }
+
 //set up 3 attributes: pre_proc, pre_mem and pre_readers and update event's parents
 void Event::mk_history(Config & c)
 {
@@ -85,7 +85,8 @@ void Event::mk_history(Config & c)
    printf("pre_proc: %p, pre_mem: %p  \n", pre_proc,pre_mem);
    for(unsigned int i = 0; i< procs.size(); i++)
      printf("pre_readers: %p \n", pre_readers[i]);
-   update_parents();
+
+  // update_parents();
 }
 
 void Event::update_parents()
@@ -93,8 +94,7 @@ void Event::update_parents()
 	if (this->is_bottom())
 		return;
 
-	printf("Dien a\n");
-	//Process & p  = trans->proc;
+	Process & p  = trans->proc;
 
     pre_proc->post_proc.push_back(this)  ; // parent 1 = pre_proc
 
@@ -102,8 +102,8 @@ void Event::update_parents()
 
    //parent 2 = pre_mem
   // DEBUG("%s \n", (*pre_mem).trans->type_str());
+
    printf("Dien a\n");
-#if 0
    switch (pre_mem->trans->type)
    {
       case ir::Trans::WR:
@@ -120,9 +120,10 @@ void Event::update_parents()
          pre_mem->post_rws.push_back(this);
 	     break;
       case ir::Trans::LOC:
+    	  return;
          break;
    }
-#endif
+
 
 }
 
@@ -270,8 +271,8 @@ void Config::add(Event & e)
    ir::Process & p              = e.trans->proc;
    std::vector<Process> & procs = unf.m.procs;
    //update e's parents
-   //e.update_parents();
-#if 0
+   //e.update_parents(); // moved to mk_history
+
    // update the configuration
    e.trans->fire (gstate); //update new global states
 
@@ -307,7 +308,7 @@ void Config::add(Event & e)
    en.pop_back(); // remove the event added to the config
    printf("enable set now size is: %zu \n",en.size());
    __update_encex(e);
-#endif
+
 }
 
 void Config::__update_encex (Event & e)

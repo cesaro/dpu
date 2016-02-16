@@ -95,29 +95,37 @@ void Event::mk_history(Config & c)
 
 void Event::update_parents()
 {
-   Event & prt2 = *pre_mem;
-   Process & p  = trans->proc;
+	printf("Dien a\n");
+	//Process & p  = trans->proc;
 
-   pre_proc->post_proc.push_back(this)  ; // parent 1 = pre_proc
+    pre_proc->post_proc.push_back(this)  ; // parent 1 = pre_proc
 
-   DEBUG ("Parent: %s \n", pre_proc->post_proc.back()->str().c_str());
+    //DEBUG ("%s \n", pre_proc->str().c_str());
 
-   switch (prt2.trans->type)
+   //parent 2 = pre_mem
+   DEBUG("%s \n", (*pre_mem).trans->type_str());
+   printf("Dien a\n");
+#if 0
+   switch (pre_mem->trans->type)
    {
       case ir::Trans::WR:
-		 prt2.post_mem[p.id].push_back(this); // add a child to vector corresponding to process p
+    	 printf("this is a WR");
+		 pre_mem->post_mem[p.id].push_back(this); // add a child to vector corresponding to process p
 		 if (trans->type == ir::Trans::WR)  //if the event itsefl is a WR, add it to parentś post_wr
-	        prt2.post_wr[p.id].push_back(this);
+	        pre_mem->post_wr[p.id].push_back(this);
 	     break;
       case ir::Trans::RD:
-    	 prt2.post_rws.push_back(this);
+    	 printf("this is a RD");
+    	 pre_mem->post_rws.push_back(this);
          break;
       case ir::Trans::SYN:
-         prt2.post_rws.push_back(this);
+         pre_mem->post_rws.push_back(this);
 	     break;
       case ir::Trans::LOC:
          break;
    }
+#endif
+
 }
 
 bool Event:: operator == (const Event & e) const
@@ -260,7 +268,7 @@ Config:: Config (const Config & c)
 
 void Config::add(Event & e)
 {
-   DEBUG (" %s", e.str().c_str());
+   DEBUG (" Event e: %s \n", e.str().c_str());
    ir::Process & p              = e.trans->proc;
    std::vector<Process> & procs = unf.m.procs;
    //update e's parents
@@ -416,6 +424,7 @@ void Unfolding::explore_rnd_config ()
    printf("Creat an empty config:\n");
    Config c(*this);
    int count=0;
+#if 0
    while (c.en.empty() == false)
    {
 	   printf(" \n\nthis is the %d \n ", count++);
@@ -423,7 +432,14 @@ void Unfolding::explore_rnd_config ()
 	   c.add(*e);
    }
    printf("no more enabled");
-
+#endif
+   if (c.en.empty() == false)
+      {
+   	   printf(" \n\nthis is the %d \n ", ++count);
+   	   e = c.en.back();
+   	   c.add(*e);
+      }
+      printf("no more enabled");
 }
 
 } // end of namespace

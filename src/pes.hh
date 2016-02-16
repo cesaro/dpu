@@ -42,6 +42,8 @@ public:
    void mk_history (Config & c);
    void update_parents();
    bool check_cfl(Event & e);
+   bool is_bottom ();
+
 
 }; // end of class Event
 
@@ -99,7 +101,6 @@ public:
 
 private :
    void __create_botom ();
-   bool is_bottom (Event * e);
 
 }; // end of class Unfolding
 

@@ -22,35 +22,30 @@ namespace pes{
  * Methods for class Event
  */
 Event::Event()
+   : trans(nullptr)
+   , val(0)
+   , localvals(0)
+   , pre_proc(nullptr)
+   , pre_mem(nullptr)
+
 {
-   trans = nullptr;
-   val = 0;
-   for (auto & lval: localvals)
-     lval = 0;
-   pre_proc = nullptr;
-   pre_mem  = nullptr;
-   pre_readers.clear();
-   post_mem.clear();
-   post_proc.clear();
-   post_rws.clear();
-   post_wr.clear();
 }
 
 Event::Event(Trans & t)
+   : trans(&t)
+   , val(0)
+   , localvals(0)
+   , pre_proc(nullptr)
+   , pre_mem(nullptr)
+
 {
-   this->trans = &t;
-   val      = 0;
-   for (auto & lval: localvals)
-  	 lval = 0;
-   pre_proc = nullptr;
-   pre_mem  = nullptr;
-   pre_readers.clear();
-   post_mem.clear();
-   post_proc.clear();
-   post_rws.clear();
-   post_wr.clear();
 }
-//set up 3 attributes: pre_proc, pre_mem and pre_readers
+
+bool Event::is_bottom ()
+{
+   return this->pre_proc == this;
+}
+//set up 3 attributes: pre_proc, pre_mem and pre_readers and update event's parents
 void Event::mk_history(Config & c)
 {
    ir::Process & p = this->trans->proc;
@@ -87,14 +82,17 @@ void Event::mk_history(Config & c)
     	    pre_readers.push_back(nullptr);
     	 break;
    }
-   printf("pre_proc: %p \n", pre_proc);
-   printf("pre_mem: %p \n", pre_mem);
+   printf("pre_proc: %p, pre_mem: %p  \n", pre_proc,pre_mem);
    for(unsigned int i = 0; i< procs.size(); i++)
      printf("pre_readers: %p \n", pre_readers[i]);
+   update_parents();
 }
 
 void Event::update_parents()
 {
+	if (this->is_bottom())
+		return;
+
 	printf("Dien a\n");
 	//Process & p  = trans->proc;
 
@@ -103,7 +101,7 @@ void Event::update_parents()
     //DEBUG ("%s \n", pre_proc->str().c_str());
 
    //parent 2 = pre_mem
-   DEBUG("%s \n", (*pre_mem).trans->type_str());
+  // DEBUG("%s \n", (*pre_mem).trans->type_str());
    printf("Dien a\n");
 #if 0
    switch (pre_mem->trans->type)
@@ -272,7 +270,7 @@ void Config::add(Event & e)
    ir::Process & p              = e.trans->proc;
    std::vector<Process> & procs = unf.m.procs;
    //update e's parents
-   e.update_parents();
+   //e.update_parents();
 #if 0
    // update the configuration
    e.trans->fire (gstate); //update new global states
@@ -383,11 +381,6 @@ void Unfolding::__create_botom ()
 
    bottom = e; 
    DEBUG ("%p: Unfolding.__create_bottom: bottom %p", this, e);
-}
-
-bool Unfolding::is_bottom (Event * e)
-{
-   return e->pre_proc == e;
 }
 
 void Unfolding:: explore(Config & C, std::vector<Event*> D, std::vector<Event*> A)

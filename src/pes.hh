@@ -36,8 +36,6 @@ public:
    bool         operator ==   (const Event &) const;
    Event & 	    operator =    (const Event &);
    std::string  str           () const;
-   ir::Trans & getTrans() {return *trans;}
-   ir::Process & getProc() {return trans->proc;}
 
    void mk_history (Config & c);
    void update_parents();

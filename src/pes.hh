@@ -24,7 +24,7 @@ public:
    std::vector <std::vector <Event *>> post_wr; //write children of a write trans
 
    //only for RD and SYN events
-   std::vector <Event *> post_rws; // for RD and SYN events, size = number of variables
+   std::vector <Event *> post_rws; // for RD, WR, and SYN events, size = number of variables
 
    int                   val; //??? value for global variable?
    std::vector<uint32_t> localvals; //???
@@ -72,13 +72,16 @@ public:
 
    Config (Unfolding & u); // creates an empty configuration
    Config (const Config & c);
-   void add(Event & e); // update the cut and the new event
+   
+   void add (Event & e); // update the cut and the new event
+   void add (unsigned idx); // update the cut and the new event
+   void add_any ();
 
+   void print_debug ();
 private:
    void __update_encex (Event & e);
    void remove_cfl (Event & e);
 
-   void print_debug ();
 
 }; // end of class Config
 

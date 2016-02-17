@@ -104,9 +104,9 @@ public:
    unsigned              src;
    unsigned              dst;
    Process &             proc;
-   unsigned              addr;
+   unsigned              var;
    unsigned              offset;
-   std::vector<unsigned> localaddr;
+   std::vector<unsigned> localvars;
    Codeblock             code;
 
    Trans (Process & p, unsigned src, unsigned dst);

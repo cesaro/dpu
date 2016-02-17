@@ -28,6 +28,7 @@ Event::Event()
    , localvals(0)
    , trans(nullptr)
 {
+   DEBUG ("%p: Event.ctor:", this);
 }
 
 Event::Event(Trans & t)
@@ -38,6 +39,7 @@ Event::Event(Trans & t)
    , trans(&t)
 
 {
+   DEBUG ("%p: Event.ctor: t %p '%s'", this, &t, t.str().c_str());
 }
 
 bool Event::is_bottom ()
@@ -48,39 +50,56 @@ bool Event::is_bottom ()
 //set up 3 attributes: pre_proc, pre_mem and pre_readers and update event's parents
 void Event::mk_history(Config & c)
 {
+   /*
+    * For all events:
+    * - pre_proc    is the latest event of the same process in c
+    * - post_proc, post_mem, and post_rws
+    *               remain empty
+    *
+    * For RD
+    * - pre_mem     is the lastest operation on the same process inside of c
+    * - pre_readers remains empty
+    *
+    * For WR
+    * - pre_mem     is the lastest WR in c
+    * - pre_readers is the lastest OP of ALL processes in c
+    *
+    * For LOC
+    * - pre_mem     is NULL
+    * - pre_readers remains empty
+    */
    ir::Process & p = this->trans->proc;
    std::vector<Process> & procs = c.unf.m.procs;
 
    printf("\nmk_his: Id of process:%d, type of trans is %s \n", p.id, trans->type_str());
    //e's parent is the latest event of the process
+
+   // for all events, initialize pre_proc
    pre_proc = c.latest_proc[p.id];
 
    switch (trans->type)
    {
       case ir::Trans::RD:
-         pre_mem  = c.latest_op[p.id][trans->addr];
+         pre_mem  = c.latest_op[p.id][trans->var];
 
-         for(unsigned int i = 0; i< procs.size(); i++)
-            pre_readers.push_back(nullptr);
+         // pre_readers stays empty for RD events
          break;
 
       case ir::Trans::WR:
-         pre_mem  = c.latest_wr[trans->addr];
+         pre_mem  = c.latest_wr[trans->var];
         // set pre-readers = set of latest events which use the variable copies of all processes.
           	    //size of pre-readers is numbers of copies of the variable = number of processes
-         for(auto pr : procs)
-            pre_readers.push_back(c.latest_op[pr.id][trans->addr]);
+         for (auto & pr : procs)
+            pre_readers.push_back(c.latest_op[pr.id][trans->var]);
          break;
 
       case ir::Trans::SYN:
-    	 pre_mem  = c.latest_op[p.id][trans->addr];
-    	 break;
+    	   pre_mem  = c.latest_wr[trans->var];
+    	   break;
 
       case ir::Trans::LOC:
-    	 pre_mem   = nullptr;
-    	 for(unsigned int i = 0; i< procs.size(); i++)
-    	    pre_readers.push_back(nullptr);
-    	 break;
+    	   pre_mem   = nullptr;
+    	   break;
    }
    printf("pre_proc: %p, pre_mem: %p  \n", pre_proc,pre_mem);
    for(unsigned int i = 0; i< procs.size(); i++)
@@ -231,7 +250,7 @@ Config::Config (Unfolding & u)
    print_debug ();
 
    // initialize all attributes for an empty config
-   __update_encex(unf.evt.back());
+   __update_encex (*unf.bottom);
 }
 
 void Config::print_debug ()
@@ -281,24 +300,24 @@ void Config::add(Event & e)
    printf("latest event of the proc %d is: %p \n", p.id, latest_proc[p.id]);
 
    //update local variables in trans
-   for (auto i: e.trans->localaddr)
+   for (auto i: e.trans->localvars)
        latest_wr[i] = &e;
 
    //update particular attributes according to type of transition.
    switch (e.trans->type)
    {
       case ir::Trans::RD:
-    	latest_op[p.id][e.trans->addr] = &e;
+    	latest_op[p.id][e.trans->var] = &e;
         break;
 
       case ir::Trans::WR:
-    	 latest_wr[e.trans->addr] = &e; // update latest wr event for the variable s.addr
+    	 latest_wr[e.trans->var] = &e; // update latest wr event for the variable s.var
     	 for (auto & p: procs)
-    	    latest_op[p.id][e.trans->addr] = &e;
+    	    latest_op[p.id][e.trans->var] = &e;
     	 break;
 
       case ir::Trans::SYN:
-       	 latest_wr[e.trans->addr]=&e;
+       	 latest_wr[e.trans->var]=&e;
        	 break;
 
       case ir::Trans::LOC:
@@ -311,7 +330,7 @@ void Config::add(Event & e)
 
 }
 
-void Config::__update_encex (Event & e)
+void Config::__update_encex (Event &  )
 {
    printf("start update_encex\n");
 #if 0
@@ -326,13 +345,23 @@ void Config::__update_encex (Event & e)
    assert(trans.size() > 0);
    assert(procs.size() > 0);
 
+   std::vector<Trans*> enabled;
+
+   // FIXME !! Modify here !!
+   gstate.enabled (enabled);
+   for (auto t : enabled)
+   {
+      DEBUG ("%p is enabled", t);
+   }
+
+   // create one event for each transition enabled at unf.gstate
    for (auto & t: trans)
    {
-	   printf("t.src: %d and t.dest: %d, t.proc.id: %d \n", t.src, t.dst, t.proc.id);
+	  DEBUG("t.src: %d and t.dest: %d, t.proc.id: %d", t.src, t.dst, t.proc.id);
      if (t.enabled(gstate) == true)
      {
     	printf("t is enabled\n");
-    	unf.evt.emplace_back(t);
+    	unf.evt.emplace_back (t);
         printf("current event: %p",&unf.evt.back());
         unf.evt.back().mk_history(*this); // create an history for new event
     	en.push_back(&unf.evt.back());
@@ -418,6 +447,8 @@ void Unfolding::explore_rnd_config ()
    printf("Creat an empty config:\n");
    Config c(*this);
    int count=0;
+
+   return;
 #if 0
    while (c.en.empty() == false)
    {

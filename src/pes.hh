@@ -24,7 +24,7 @@ public:
    std::vector <std::vector <Event *>> post_wr; //write children of a write trans
 
    //only for RD and SYN events
-   std::vector <Event *> post_rws; // for RD and SYN events, size = number of variables
+   std::vector <Event *> post_rws; // for RD, WR, and SYN events, size = number of variables
 
    int                   val; //??? value for global variable?
    std::vector<uint32_t> localvals; //???

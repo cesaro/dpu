@@ -36,8 +36,6 @@ public:
    bool         operator ==   (const Event &) const;
    Event & 	    operator =    (const Event &);
    std::string  str           () const;
-   ir::Trans & getTrans() {return *trans;}
-   ir::Process & getProc() {return trans->proc;}
 
    void mk_history (Config & c);
    void update_parents();
@@ -74,13 +72,16 @@ public:
 
    Config (Unfolding & u); // creates an empty configuration
    Config (const Config & c);
-   void add(Event & e); // update the cut and the new event
+   
+   void add (Event & e); // update the cut and the new event
+   void add (unsigned idx); // update the cut and the new event
+   void add_any ();
 
+   void print_debug ();
 private:
    void __update_encex (Event & e);
    void remove_cfl (Event & e);
 
-   void print_debug ();
 
 }; // end of class Config
 

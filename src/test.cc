@@ -279,7 +279,6 @@ void test7 ()
 
    u.explore_rnd_config ();
    printf("\n The end, unf has %zu events", u.evt.size());
-
 }
 
 void test8 ()

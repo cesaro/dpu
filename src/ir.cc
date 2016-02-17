@@ -172,7 +172,7 @@ void Trans::fire (State & s)
 
 std::string Trans::str () const
 {
-   return fmt ("%p proc.id %d src %u dst %u type '%s' code '%s'",
+   return fmt ("%p:  proc.id %d src %u dst %u type '%s' code '%s'",
             this, this->proc.id, this->src, this->dst,
             this->type_str(), this->code.str().c_str());
 }

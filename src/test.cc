@@ -221,7 +221,7 @@ void test5 ()
    
    t = & m.add_trans (p0, 0, 1);
    t->type = ir::Trans::WR;
-   t->addr = 3;
+   t->var = 3;
    t->offset = 0;
 
    t = & m.add_trans (p1, 0, 1);
@@ -267,7 +267,7 @@ void test7 ()
 {
    auto m = build_concur15_example ();
 
-  // DEBUG ("\n%s", m->str().c_str());
+   DEBUG ("\n%s", m->str().c_str());
 
    pes::Unfolding u (*m.get ());
    /*
@@ -279,7 +279,6 @@ void test7 ()
 
    u.explore_rnd_config ();
    printf("\n The end, unf has %zu events", u.evt.size());
-
 }
 
 void test8 ()
@@ -545,19 +544,19 @@ std::unique_ptr<ir::Machine> build_concur15_example ()
     *
     * Thread 0
     * ========
-    * src dst  what           type  addr  localaddr
+    * src dst  what           type  var  localvars
     *   0   1  v3 = 123       WR    3     {}
     *   1   2  exit           LOC   na    {}
     *
     * Thread 1
     * ========
-    * src dst  what           type  addr  localaddr
+    * src dst  what           type  var  localvars
     *   0   1  v4 = v3 + 1    RD    3     {4}
     *   1   2  exit           LOC   na    {}
     *
     * Thread 2
     * ========
-    * src dst  what           type  addr  localaddr
+    * src dst  what           type  var  localvars
     *   0   1  v5 = v3 + 2;   RD    3     {5}
     *   1   2  exit           LOC   na    {}
     *
@@ -578,45 +577,45 @@ std::unique_ptr<ir::Machine> build_concur15_example ()
    t = & p0.add_trans (0, 1);
    t->code.stm = ir::Stm (ir::Stm::ASGN, v3->clone (), ir::Expr::make (123));
    t->type = ir::Trans::WR;
-   t->addr = 3;
+   t->var = 3;
    t->offset = 0;
-   t->localaddr.clear ();
+   t->localvars.clear ();
 
    //   1   2  exit
    t = & p0.add_trans (1, 2);
    t->code.stm = ir::Stm (ir::Stm::EXIT);
    t->type = ir::Trans::LOC;
-   t->localaddr.clear ();
+   t->localvars.clear ();
 
    //   0   1  v4 = v3 + 1
    t = & p1.add_trans (0, 1);
    t->code.stm = ir::Stm (ir::Stm::ASGN, v4->clone (),
          ir::Expr::make (ir::Expr::ADD, ir::Expr::make (v3->clone()), ir::Expr::make (1)));
    t->type = ir::Trans::RD;
-   t->addr = 3;
+   t->var = 3;
    t->offset = 0;
-   t->localaddr.push_back (4);
+   t->localvars.push_back (4);
 
    //   1   2  exit
    t = & p1.add_trans (1, 2);
    t->code.stm = ir::Stm (ir::Stm::EXIT);
    t->type = ir::Trans::LOC;
-   t->localaddr.clear ();
+   t->localvars.clear ();
 
    //   0   1  v5 = v3 + 2;
    t = & p2.add_trans (0, 1);
    t->code.stm = ir::Stm (ir::Stm::ASGN, v5->clone (),
          ir::Expr::make (ir::Expr::ADD, ir::Expr::make (v3->clone()), ir::Expr::make (2)));
    t->type = ir::Trans::RD;
-   t->addr = 3;
+   t->var = 3;
    t->offset = 0;
-   t->localaddr.push_back (5);
+   t->localvars.push_back (5);
 
    //   1   2  exit
    t = & p2.add_trans (1, 2);
    t->code.stm = ir::Stm (ir::Stm::EXIT);
    t->type = ir::Trans::LOC;
-   t->localaddr.clear ();
+   t->localvars.clear ();
 
    return m;
 }

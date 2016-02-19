@@ -114,8 +114,8 @@ public:
 
    std::string  str      () const;
    const char * type_str () const;
-   bool         enabled  (const State & s);
-   void         fire     (State & s);
+   bool         enabled  (const State & s) const;
+   void         fire     (State & s) const;
 };
 
 } // namespace ir

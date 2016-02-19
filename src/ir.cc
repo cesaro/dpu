@@ -157,13 +157,13 @@ Trans::~Trans ()
    DEBUG ("%p: Trans.dtor", this);
 }
 
-bool Trans::enabled (const State & s)
+bool Trans::enabled (const State & s) const
 {
    if (src != s[proc.id]) return false;
    return s.enabled (code);
 }
 
-void Trans::fire (State & s)
+void Trans::fire (State & s) const
 {
    ASSERT (enabled (s));
 	s[proc.id] = dst;

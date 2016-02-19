@@ -13,35 +13,35 @@ class Unfolding;
 class Event
 {
 public:
-   Event *              pre_proc;    // for all events, predecessor in the same process
-   std::vector<Event *> post_proc;  // set of successors in the same process
+   Event *               pre_proc;    // for all events, predecessor in the same process
+   std::vector<Event *>  post_proc;  // set of successors in the same process
 
-   Event *              pre_mem;     // parent of the event, for all events except LOCAL,
+   Event *               pre_mem;     // parent of the event, for all events except LOCAL,
 
    // only for WR events
-   std::vector<std::vector <Event *>> post_mem; // each vector of children events for a process
-   std::vector<Event *> pre_readers; // only for WR events
-   std::vector<std::vector <Event *>> post_wr; //write children of a write trans
+   std::vector<std::vector <Event *> >   post_mem; // each vector of children events for a process
+   std::vector< Event * >                pre_readers; // only for WR events
+   std::vector<std::vector < Event * > > post_wr; //write children of a write trans
 
    //only for RD and SYN events
-   std::vector <Event *> post_rws; // for RD, WR, and SYN events, size = number of variables
+   std::vector <Event *>                 post_rws; // for RD, WR, and SYN events, size = number of variables
 
    int                   val; //??? value for global variable?
    std::vector<uint32_t> localvals; //???
+   const ir::Trans *     trans;
 
-   ir::Trans *           trans;
    Event ();
-   Event (ir::Trans & t);
+   Event (const ir::Trans & t);
 
    bool         operator ==   (const Event &) const;
    Event & 	    operator =    (const Event &);
    std::string  str           () const;
 
-   void mk_history (Config & c);
+   void mk_history (const Config & c);
    void update_parents();
-   bool check_cfl(Event & e);
+   bool check_cfl(const Event & e) const;
    bool is_bottom ();
-   void eprint_debug();
+   void eprint_debug()const;
 
 
 }; // end of class Event
@@ -74,15 +74,16 @@ public:
    Config (Unfolding & u); // creates an empty configuration
    Config (const Config & c);
    
-   void add (Event & e); // update the cut and the new event
+   void add (const Event & e); // update the cut and the new event
    void add (unsigned idx); // update the cut and the new event
    void add_any ();
 
-   void print_debug ();
+   void print_debug () const;
+
 private:
-   void __update_encex (Event & e);
-   void __print_en();
-   void remove_cfl (Event & e);
+   void __update_encex (const Event & e);
+   void __print_en() const;
+   void remove_cfl (const Event & e);
 
 
 }; // end of class Config
@@ -94,8 +95,6 @@ public:
    ir::Machine &         m;
    Event *               bottom;
 
-   // std::vector <Event *> U;  // Universe of events
-
    Unfolding (ir::Machine & ma);
 
    //methods
@@ -103,11 +102,11 @@ public:
    void explore_rnd_config ();
 
 private :
-   void __create_botom ();
+   void __create_bottom ();
 
 }; // end of class Unfolding
 
 
 } // namespace pes
 
-#endif 
+#endif

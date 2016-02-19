@@ -21,7 +21,7 @@ public:
    // only for WR events
    std::vector<std::vector <Event *>> post_mem; // each vector of children events for a process
    std::vector<Event *> pre_readers; // only for WR events
-   std::vector <std::vector <Event *>> post_wr; //write children of a write trans
+   std::vector<std::vector <Event *>> post_wr; //write children of a write trans
 
    //only for RD and SYN events
    std::vector <Event *> post_rws; // for RD, WR, and SYN events, size = number of variables
@@ -62,7 +62,7 @@ public:
     *
     * where Variables is ALL variables
     */
-   std::vector <Event*>             latest_proc;
+   std::vector<Event*>              latest_proc;
    std::vector<Event*>              latest_wr;
    std::vector<std::vector<Event*>> latest_op;
 

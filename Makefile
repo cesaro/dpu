@@ -38,8 +38,8 @@ prof : $(TARGETS)
 tags : $(SRCS)
 	ctags -R src
 
-g : $(TARGETS)
-	gdb ./src/cunf/cunf
+g gdb : $(TARGETS)
+	gdb ./src/main
 
 vars :
 	@echo CC $(CC)

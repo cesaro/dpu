@@ -239,14 +239,13 @@ void Event::eprint_debug()
 {
 	DEBUG ("Event: %s", this->str().c_str());
 	if (pre_readers.size() != 0)
-	   {
-	      DEBUG(" Pre_readers:");
-	      for (unsigned int i = 0; i < pre_readers.size(); i++)
-	         DEBUG("  Process %d: %p",i, pre_readers[i]);
-	   }
+	{
+		DEBUG(" Pre_readers:");
+		for (unsigned int i = 0; i < pre_readers.size(); i++)
+			DEBUG("  Process %d: %p",i, pre_readers[i]);
+	}
 	else
 	   DEBUG(" No pre_readers");
-
 }
 /*
  * Methods of class Config
@@ -259,6 +258,7 @@ Config::Config (Unfolding & u)
    , latest_op (u.m.procs.size (), std::vector<Event*> (u.m.memsize, u.bottom))
    , unf (u)
 {
+   DEBUG ("%p: Config.ctor", this);
    print_debug ();
    // initialize all attributes for an empty config
    // compute enable set for a configuration with the only event "bottom"
@@ -349,10 +349,10 @@ void Config::add (unsigned idx)
  */
 void Config::__update_encex (Event & e )
 {
+   DEBUG ("%p: Config.__update_encex: e %p", this, &e);
    if (en.size() > 0)
       remove_cfl(e);
 
-   DEBUG ("Start computing enable set\n");
    std::vector<ir::Trans> & trans = unf.m.trans; // set of transitions in the model
    std::vector <ir::Process> & procs = unf.m.procs; // set of processes in the model
    assert(trans.size() > 0);
@@ -360,11 +360,10 @@ void Config::__update_encex (Event & e )
 
    std::vector<Trans*> enable;
 
-   // FIXME !! Modify here !!
    gstate.enabled (enable);
    for (auto & t : enable)
    {
-      DEBUG ("\n%p is enabled", t);
+      DEBUG ("\n Transition %s is enabled", t->str().c_str());
       //create new event with transition t and add it to evt of the unf
       unf.evt.emplace_back(*t);
       // create an history for new event
@@ -377,7 +376,7 @@ void Config::__update_encex (Event & e )
 
 void Config::remove_cfl(Event & e)
 {
-   printf("Start remove conflict events \n");
+   DEBUG ("%p: Config.remove_cfl: e %p", this, &e);
    unsigned int i = 0;
    while (i < en.size())
    {
@@ -396,7 +395,6 @@ void Config::remove_cfl(Event & e)
  */
 void Config::print_debug ()
 {
-
    DEBUG ("%p: latest_proc:", this);
    for (auto & e : latest_proc) DEBUG (" %s", e->str().c_str());
    DEBUG ("%p: latest_wr:", this);
@@ -434,6 +432,8 @@ Unfolding::Unfolding (ir::Machine & ma)
 void Unfolding::__create_botom ()
 {
    Event * e;
+
+	assert (evt.size () == 0);
 
    // create an "bottom" event with all empty
    evt.emplace_back();
@@ -476,7 +476,7 @@ void Unfolding::explore_rnd_config ()
 {
    printf ("--------Start Unfolding.explore_rnd_config----------\n");
    assert (evt.size () > 0);
-   printf("Creat an empty config:\n");
+   DEBUG ("Create an empty config");
    Config c(*this);
   // c.print_debug (); // whenever print c, we got segmentation fault, only for WR event
    while (c.en.empty() == false)

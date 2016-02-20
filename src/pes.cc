@@ -21,18 +21,22 @@ namespace pes{
 /*
  * Methods for class Event
  */
-Event::Event()
+Event::Event (unsigned numprocs, unsigned mem)
    : pre_proc(nullptr)
    , pre_mem(nullptr)
    , val(0)
    , localvals(0)
    , trans(nullptr)
 {
-   pre_readers.clear();
+   pre_readers.reserve(numprocs);
+   post_mem.reserve(numprocs*mem);
+   post_proc.reserve(numprocs);
+   post_rws.reserve(mem);
+   post_wr.reserve(numprocs*mem);
    DEBUG ("%p: Event.ctor:", this);
 }
 
-Event::Event(const Trans & t)
+Event::Event (const Trans & t, unsigned numprocs, unsigned mem)
    : pre_proc(nullptr)
    , pre_mem(nullptr)
    , val(0)
@@ -40,8 +44,28 @@ Event::Event(const Trans & t)
    , trans(&t)
 
 {
-   pre_readers.clear();
+   pre_readers.reserve(numprocs);
+   post_mem.reserve(numprocs*mem);
+   post_proc.reserve(numprocs);
+   post_rws.reserve(mem);
+   post_wr.reserve(numprocs*mem);
+
    // DEBUG ("Event %p: Event.ctor: t %p: '%s'", this, &t, t.str().c_str());
+}
+
+Event::Event (const Event & e)
+   : pre_proc(e.pre_proc)
+   , post_proc(e.post_proc)
+   , pre_mem(e.pre_mem)
+   , post_mem(e.post_mem)
+   , pre_readers(e.pre_readers)
+   , post_wr(e.post_wr)
+   , post_rws(e.post_rws)
+   , val(e.val)
+   , localvals(e.localvals)
+   , trans(e.trans)
+
+{
 }
 
 bool Event::is_bottom ()
@@ -322,7 +346,10 @@ void Config::add (unsigned idx)
 
    //update local variables in trans
    for (auto & i: e.trans->localvars)
+   {
        latest_wr[i] = &e;
+       latest_op[p.id][i] = &e;
+   }
 
    //update other attributes according to the type of transition.
    switch (e.trans->type)
@@ -364,8 +391,9 @@ void Config::__update_encex (const Event & e )
    //if (en.size() > 0)
      // remove_cfl(e);
 
-   std::vector<ir::Trans> & trans = unf.m.trans; // set of transitions in the model
+   std::vector<ir::Trans> & trans    = unf.m.trans; // set of transitions in the model
    std::vector <ir::Process> & procs = unf.m.procs; // set of processes in the model
+   unsigned int            memsize   = unf.m.memsize;
    assert(trans.size() > 0);
    assert(procs.size() > 0);
 
@@ -375,17 +403,22 @@ void Config::__update_encex (const Event & e )
 
    for (auto t : enable)
    {
+	  unf.uprint_debug();
       DEBUG ("\n Transition %s is enabled", t->str().c_str());
       //create new event with transition t and add it to evt of the unf
-      unf.evt.emplace_back(*t);
-      // create an history for new event
+      // have to check evt capacity before adding to prevent the reallocation.
+      if (unf.evt.size () == unf.evt.capacity ())
+      	 throw std::logic_error (
+      	    "Tried to allocated more processes than the maximum permitted");
+      unf.evt.emplace_back(*t, procs.size(), memsize);
+     // create an history for new event
       unf.evt.back().mk_history(*this);
-      printf("Before: ");
-      __print_en();
+     // printf("En Before: ");
+     // __print_en();
       // add new event (pointer) into the enabled set
       en.push_back(&unf.evt.back()); // this copies the event and changes its prereaders. Why????
-      printf("After: ");
-      __print_en();
+     // printf("En After: ");
+     // __print_en();
    }
 
 }
@@ -444,7 +477,8 @@ void Config::__print_en() const
 Unfolding::Unfolding (ir::Machine & ma)
    : m (ma)
 {
-   DEBUG ("%p: Unfolding.ctor: m %p", this, &m);
+	evt.reserve(1000);
+	DEBUG ("%p: Unfolding.ctor: m %p", this, &m);
    __create_bottom ();
 }
 
@@ -453,7 +487,7 @@ void Unfolding::__create_bottom ()
    Event * e;
    assert (evt.size () == 0);
    // create an "bottom" event with all empty
-   evt.emplace_back();
+   evt.emplace_back(m.procs.size(), m.memsize);
    e = & evt[0];
 
    e->pre_proc = e;
@@ -463,6 +497,13 @@ void Unfolding::__create_bottom ()
    bottom = e; 
    DEBUG ("%p: Unfolding.__create_bottom: bottom %p", this, e);
    bottom->eprint_debug();
+}
+
+void Unfolding:: uprint_debug()
+{
+   DEBUG("Unfolding:\n");
+   for (auto & e : evt)
+      e.eprint_debug();
 }
 
 void Unfolding:: explore(Config & C, std::vector<Event*> D, std::vector<Event*> A)

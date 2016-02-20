@@ -30,8 +30,9 @@ public:
    std::vector<uint32_t> localvals; //???
    const ir::Trans *     trans;
 
-   Event ();
-   Event (const ir::Trans & t);
+   Event (unsigned, unsigned);
+   Event (const ir::Trans & t, unsigned numprocs, unsigned memsize);
+   Event (const Event & e);
 
    bool         operator ==   (const Event &) const;
    Event & 	    operator =    (const Event &);
@@ -57,6 +58,7 @@ public:
 
    /*
     * latest_proc : Processes -> Events
+    * initialzed by memsize but actually it uses only the last (memsize - numprocs) elements
     * latest_wr   : Variables -> Events
     * latest_op   : (Processes x Variables) -> Events
     *
@@ -100,6 +102,7 @@ public:
    //methods
    void explore(Config & C, std::vector<Event *> D, std::vector<Event *> A);
    void explore_rnd_config ();
+   void uprint_debug();
 
 private :
    void __create_bottom ();

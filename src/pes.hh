@@ -19,9 +19,12 @@ public:
    Event *               pre_mem;     // parent of the event, for all events except LOCAL,
 
    // only for WR events
-   std::vector<std::vector <Event *> >   post_mem; // each vector of children events for a process
+   //each vector of children events for a process
+   std::vector<std::vector <Event *> >   post_mem; // size = numprocs x numprocs
    std::vector< Event * >                pre_readers; // only for WR events
-   std::vector<std::vector < Event * > > post_wr; //write children of a write trans
+
+   //write children of a write trans
+   std::vector<std::vector < Event * > > post_wr; // sizze = numprocs x numprocs
 
    //only for RD and SYN events
    std::vector <Event *>                 post_rws; // for RD, WR, and SYN events, size = number of variables
@@ -41,8 +44,8 @@ public:
    void mk_history (const Config & c);
    void update_parents();
    bool check_cfl(const Event & e) const;
-   bool is_bottom ();
-   void eprint_debug()const;
+   bool is_bottom () const;
+   void eprint_debug() const;
 
 
 }; // end of class Event

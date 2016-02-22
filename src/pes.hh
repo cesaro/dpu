@@ -3,6 +3,18 @@
 #define __PES_HH_
 
 #include "ir.hh"
+/*
+ * Event:
+ * - take unf and trans as arguments
+ * - constructror: private
+ * -
+ * Unfolding:
+ * - class friend with Event
+ * - call unf.addevent();
+ * - add method: dot_print for config and unf
+ * -
+ *
+ */
 
 namespace pes
 {
@@ -13,6 +25,7 @@ class Unfolding;
 class Event
 {
 public:
+   unsigned int          idx;
    Event *               pre_proc;    // for all events, predecessor in the same process
    std::vector<Event *>  post_proc;  // set of successors in the same process
 
@@ -33,10 +46,6 @@ public:
    std::vector<uint32_t> localvals; //???
    const ir::Trans *     trans;
 
-   Event (unsigned, unsigned);
-   Event (const ir::Trans & t, unsigned numprocs, unsigned memsize);
-   Event (const Event & e);
-
    bool         operator ==   (const Event &) const;
    Event & 	    operator =    (const Event &);
    std::string  str           () const;
@@ -46,7 +55,12 @@ public:
    bool check_cfl(const Event & e) const;
    bool is_bottom () const;
    void eprint_debug() const;
+   Event (const Event & e);
+   friend Unfolding;
 
+private:
+   Event (Unfolding & u);
+   Event (const ir::Trans & t, Unfolding & u);
 
 }; // end of class Event
 
@@ -96,6 +110,7 @@ private:
 class Unfolding
 {
 public:
+   static unsigned count; // count number of events.
    std::vector<Event>    evt; // events actually in the unfolding
    ir::Machine &         m;
    Event *               bottom;
@@ -106,13 +121,16 @@ public:
    void explore(Config & C, std::vector<Event *> D, std::vector<Event *> A);
    void explore_rnd_config ();
    void uprint_debug();
+   void create_event(ir::Trans & t);
+   friend Event;
 
 private :
    void __create_bottom ();
 
 }; // end of class Unfolding
 
-
 } // namespace pes
 
 #endif
+
+

@@ -21,13 +21,16 @@ namespace pes{
 /*
  * Methods for class Event
  */
-Event::Event (unsigned numprocs, unsigned mem)
-   : pre_proc(nullptr)
+Event::Event (Unfolding & u)
+   : idx(u.count)
+   , pre_proc(nullptr)
    , pre_mem(nullptr)
    , val(0)
    , localvals(0)
    , trans(nullptr)
 {
+   unsigned numprocs = u.m.procs.size();
+   unsigned mem = u.m.memsize;
    pre_readers.reserve(numprocs);
    post_mem.reserve(numprocs*numprocs);
    post_proc.reserve(numprocs);
@@ -36,14 +39,17 @@ Event::Event (unsigned numprocs, unsigned mem)
    DEBUG ("%p: Event.ctor:", this);
 }
 
-Event::Event (const Trans & t, unsigned numprocs, unsigned mem)
-   : pre_proc(nullptr)
+Event::Event (const Trans & t, Unfolding & u)
+   : idx(u.count)
+   , pre_proc(nullptr)
    , pre_mem(nullptr)
    , val(0)
    , localvals(0)
    , trans(&t)
 
 {
+   unsigned numprocs = u.m.procs.size();
+   unsigned mem = u.m.memsize;
    pre_readers.reserve(numprocs);
    post_mem.reserve(numprocs*numprocs);
    post_proc.reserve(10);
@@ -53,7 +59,8 @@ Event::Event (const Trans & t, unsigned numprocs, unsigned mem)
 }
 
 Event::Event (const Event & e)
-   : pre_proc(e.pre_proc)
+   : idx(e.idx)
+   , pre_proc(e.pre_proc)
    , post_proc(e.post_proc)
    , pre_mem(e.pre_mem)
    , post_mem(e.post_mem)
@@ -141,7 +148,7 @@ void Event::mk_history(const Config & c)
    }
    //this->eprint_debug();
    // update the previous events (called parents) of the current
-   update_parents();
+   //update_parents();
 }
 
 void Event::update_parents()
@@ -483,7 +490,7 @@ void Config::__update_encex (const Event & e )
 
    std::vector<ir::Trans> & trans    = unf.m.trans; // set of transitions in the model
    std::vector <ir::Process> & procs = unf.m.procs; // set of processes in the model
-   unsigned int            memsize   = unf.m.memsize;
+
    assert(trans.size() > 0);
    assert(procs.size() > 0);
 
@@ -501,7 +508,8 @@ void Config::__update_encex (const Event & e )
       if (unf.evt.size () == unf.evt.capacity ())
       	 throw std::logic_error (
       	    "Tried to allocated more processes than the maximum permitted");
-      unf.evt.emplace_back(*t, procs.size(), memsize);
+      //unf.evt.emplace_back(*t, unf);
+      unf.create_event(*t);
      // create an history for new event
       unf.evt.back().mk_history(*this);
      // printf("En Before: ");
@@ -576,6 +584,8 @@ void Config::__print_en() const
 /*
  * Methods for class Unfolding
  */
+unsigned Unfolding::count = 0;
+
 Unfolding::Unfolding (ir::Machine & ma)
    : m (ma)
 {
@@ -584,12 +594,21 @@ Unfolding::Unfolding (ir::Machine & ma)
    __create_bottom ();
 }
 
+void Unfolding::create_event(ir::Trans & t)
+{
+   Event *e = new Event(t,*this);
+   evt.push_back(*e);
+   count++;
+}
+
 void Unfolding::__create_bottom ()
 {
    Event * e;
    assert (evt.size () == 0);
    // create an "bottom" event with all empty
-   evt.emplace_back(m.procs.size(), m.memsize);
+   e = new Event(*this);
+   evt.push_back(*e);
+   count++;
    e = & evt[0];
 
    e->pre_proc = e;

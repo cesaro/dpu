@@ -22,7 +22,7 @@ all : compile
 compile: $(TARGETS) tags
 
 r run: compile
-	./src/main
+	./src/main | tee out
 
 $(TARGETS) : % : %.o $(OBJS)
 	@echo "LD  $@"

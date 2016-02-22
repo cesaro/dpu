@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <cassert>
 #include <iostream>
+#include <algorithm>
 
 #include "pes.hh"
 #include "misc.hh"
@@ -65,6 +66,7 @@ Event::Event (const Event & e)
    , trans(e.trans)
 {
 }
+   //DEBUG ("%p: Event.ctor: other %p (copy)", this, &e);
 
 bool Event::is_bottom () const
 {
@@ -92,8 +94,7 @@ void Event::mk_history(const Config & c)
     * - pre_mem     is NULL
     * - pre_readers remains empty
     */
-   if (this->is_bottom() == true)
-      return;
+   if (this->is_bottom()) return;
 
    ir::Process & p = this->trans->proc;
    std::vector<Process> & procs = c.unf.m.procs;
@@ -378,9 +379,12 @@ Config::Config (Unfolding & u)
 {
    DEBUG ("%p: Config.ctor", this);
    print_debug ();
+
    // capacity of en and cex is square root of number of trans.
+	// FIXME is this necessary ? -- Cesar
    en.reserve(u.m.trans.size()*u.m.trans.size());
    cex.reserve(u.m.trans.size()*u.m.trans.size());
+
    // initialize all attributes for an empty config
    // compute enable set for a configuration with the only event "bottom"
    __update_encex (*unf.bottom);
@@ -493,8 +497,8 @@ void Config::__update_encex (const Event & e )
 
    for (auto t : enable)
    {
-	  unf.uprint_debug();
-	  printf("========================");
+	   unf.uprint_debug();
+	   printf("========================");
       DEBUG ("\n Transition %s is enabled", t->str().c_str());
       //create new event with transition t and add it to evt of the unf
       // have to check evt capacity before adding to prevent the reallocation.
@@ -502,14 +506,15 @@ void Config::__update_encex (const Event & e )
       	 throw std::logic_error (
       	    "Tried to allocated more processes than the maximum permitted");
       unf.evt.emplace_back(*t, procs.size(), memsize);
-     // create an history for new event
+      // create an history for new event
       unf.evt.back().mk_history(*this);
-     // printf("En Before: ");
-     // __print_en();
+	   break;
+      // printf("En Before: ");
+      // __print_en();
       // add new event (pointer) into the enabled set
       en.push_back(&unf.evt.back()); // this copies the event and changes its prereaders. Why????
-     // printf("En After: ");
-     // __print_en();
+      // printf("En After: ");
+      // __print_en();
    }
 
 }

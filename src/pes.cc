@@ -8,12 +8,16 @@
 #include <cstdint>
 #include <cassert>
 #include <iostream>
+#include <fstream>
+#include <string>
 
 #include "pes.hh"
 #include "misc.hh"
 #include "verbosity.h"
 
 using std::vector;
+using std::fstream;
+using std::string;
 using namespace ir;
 
 namespace pes{
@@ -332,11 +336,11 @@ std::string Event::str () const
    const char * code = trans ? trans->code.str().c_str() : "";
    int proc = trans ? trans->proc.id : -1;
    if (pre_mem != nullptr)
-      return fmt ("%p: trans %p code: '%s' proc %d pre_proc %p pre_mem %p",
-         this, trans, code, proc, pre_proc, pre_mem);
+      return fmt ("index: %d, %p: trans %p code: '%s' proc %d pre_proc %p pre_mem %p",
+         idx, this, trans, code, proc, pre_proc, pre_mem);
    else
-	  return fmt ("%p: trans %p code: '%s' proc %d pre_proc %p pre_mem(null) %p",
-	            this, trans, code, proc, pre_proc, pre_mem);
+	  return fmt ("index: %d, %p: trans %p code: '%s' proc %d pre_proc %p pre_mem(null) %p",
+	            idx, this, trans, code, proc, pre_proc, pre_mem);
 }
 
 void Event::eprint_debug() const
@@ -384,7 +388,7 @@ Config::Config (Unfolding & u)
    , unf (u)
 {
    DEBUG ("%p: Config.ctor", this);
-   print_debug ();
+   cprint_debug ();
    // capacity of en and cex is square root of number of trans.
    en.reserve(u.m.trans.size()*u.m.trans.size());
    cex.reserve(u.m.trans.size()*u.m.trans.size());
@@ -470,7 +474,7 @@ void Config::add (unsigned idx)
    }
 
    printf("Print new config: \n");
-   this->print_debug(); // print all latests.
+   this->cprint_debug(); // print all latests.
    //printf("\nBottom event:");
   // this->unf.bottom->eprint_debug();
    // update en and cex set with e being added to c (before removing it from en)
@@ -479,6 +483,72 @@ void Config::add (unsigned idx)
    en[idx] = en.back();
    en.pop_back();
 }
+/*
+ * add an event to config, store the event info to dot print in string st
+ */
+void Config::add (unsigned idx, std::string & st)
+{
+   assert(idx < en.size());
+   Event & e = *en[idx];
+   DEBUG("Start adding an event:");
+   e.eprint_debug();
+  // DEBUG (" Event to add: %s \n", e.str().c_str());
+   ir::Process & p              = e.trans->proc; // process of the transition of the event
+   std::vector<Process> & procs = unf.m.procs; // all processes in the machine
+
+   /*
+    * Update the configuration:
+    * - fire the transition to next state
+    * - update latest_proc, latest_wr, latest_op to e (regarding e's process and variable).
+    */
+   e.trans->fire (gstate); //move to next state
+   /*
+    * Mount new event to its pre_mem???
+    */
+   st += "->"+ std::to_string(e.idx); // for the edge with previous event
+   //st += std::to_string(e.idx) + " -> "; // for new edge with the next event
+   latest_proc[p.id] = &e; //update latest event of the process containing e.trans
+
+   //update local variables in trans
+   for (auto & i: e.trans->localvars)
+   {
+       latest_wr[i] = &e;
+       latest_op[p.id][i] = &e;
+   }
+
+   //update other attributes according to the type of transition.
+   switch (e.trans->type)
+   {
+   case ir::Trans::RD:
+      latest_op[p.id][e.trans->var] = &e; // update only latest_op
+      break;
+
+   case ir::Trans::WR:
+      latest_wr[e.trans->var] = &e; // update latest wr event for the variable var
+      for (unsigned int i = 0; i < procs.size(); i++)
+         latest_op[i][e.trans->var] = &e;
+      break;
+
+   case ir::Trans::SYN:
+      latest_wr[e.trans->var]=&e;
+      break;
+
+   case ir::Trans::LOC:
+      //nothing to do with LOC
+      break;
+   }
+
+   printf("Print new config: \n");
+   this->cprint_debug(); // print all latests.
+   //printf("\nBottom event:");
+  // this->unf.bottom->eprint_debug();
+   // update en and cex set with e being added to c (before removing it from en)
+   __update_encex(e);
+   // remove the event en[idx] from the enabled set
+   en[idx] = en.back();
+   en.pop_back();
+}
+
 /*
  * Update enabled set whenever an event e is added to c
  */
@@ -510,14 +580,15 @@ void Config::__update_encex (const Event & e )
       	    "Tried to allocated more processes than the maximum permitted");
       //unf.evt.emplace_back(*t, unf);
       unf.create_event(*t);
-     // create an history for new event
+      // create an history for new event
       unf.evt.back().mk_history(*this);
-     // printf("En Before: ");
-     // __print_en();
+      // printf("En Before: ");
+      // __print_en();
       // add new event (pointer) into the enabled set
       en.push_back(&unf.evt.back()); // this copies the event and changes its prereaders. Why????
-     // printf("En After: ");
-     // __print_en();
+      // printf("En After: ");
+      // __print_en();
+      //unf.uprint_dot("../output/unf1.dot");
    }
 
 }
@@ -552,7 +623,7 @@ void Config::remove_cfl(const Event & e)
 /*
  * Print all the latest events of config to console
  */
-void Config::print_debug () const
+void Config::cprint_debug () const
 {
    DEBUG ("%p: latest_proc:", this);
    for (auto & e : latest_proc)
@@ -568,6 +639,19 @@ void Config::print_debug () const
       for (auto & e : latest_op[pid])
     	 DEBUG ("  %s", e->str().c_str());
    }
+}
+/*
+ * All dot script stored in st, accumulated by adding an event to the config
+ */
+void Config::cprint_dot(std::string &, std::string & st)
+{
+   //std::ofstream fs(file, std::fstream::out);
+   std::ofstream fs("../output/conf.dot", std::fstream::out);
+   fs << "Digraph RGraph {\n";
+   fs << " 0"; // 0 for bottom event
+   fs << st;
+   fs << "}";
+   fs.close();
 }
 
 /*
@@ -629,6 +713,38 @@ void Unfolding:: uprint_debug()
       e.eprint_debug();
 }
 
+void Unfolding:: uprint_dot(std::string ofile)
+{
+   std::ofstream fs(ofile, std::fstream::out);
+
+   fs << "Digraph RGraph {\n";
+   for(auto const & e : evt)
+   {
+      //std::string s = e.idx.str();
+      fs <<  e.idx << "-->";
+
+   }
+      fs<< "}";
+      fs.close();
+}
+
+void Unfolding:: uprint_dot()
+{
+   std::ofstream fs("../output/unf.dot", std::fstream::out);
+   fs << "Digraph RGraph {\n";
+   for(auto const & e : evt)
+   {
+      fs << e.idx <<"[label = " << e.idx << "] \n";
+   }
+   for(auto const & e : evt)
+   {
+      fs << e.pre_proc->idx << "->" << e.idx << "\n";
+   }
+
+   fs << "}";
+   fs.close();
+}
+
 void Unfolding:: explore(Config & C, std::vector<Event*> D, std::vector<Event*> A)
 {
    Event * pe;
@@ -660,10 +776,19 @@ void Unfolding::explore_rnd_config ()
    printf ("--------Start Unfolding.explore_rnd_config----------\n");
    assert (evt.size () > 0);
    DEBUG ("Create an empty config");
+   std::string printstr;
+   std::string file = "conf1.dot";
    Config c(*this);
+
   // c.print_debug (); // whenever print c, we got segmentation fault, only for WR event
+
    while (c.en.empty() == false)
-      c.add(0); // take the first event in enable set.
+   {
+      c.add(0, printstr); // take the first event in enable set.
+     // c.cprint_dot(file, printstr);
+   }
+   // std::string & filename = "unf.dot";
+
 
    printf("The End. No more enabled");
 }

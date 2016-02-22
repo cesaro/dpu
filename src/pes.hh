@@ -37,7 +37,7 @@ public:
    std::vector< Event * >                pre_readers; // only for WR events
 
    //write children of a write trans
-   std::vector<std::vector < Event * > > post_wr; // sizze = numprocs x numprocs
+   std::vector<std::vector < Event * > > post_wr; // size = numprocs
 
    //only for RD and SYN events
    std::vector <Event *>                 post_rws; // for RD, WR, and SYN events, size = number of variables
@@ -95,9 +95,11 @@ public:
    
    void add (const Event & e); // update the cut and the new event
    void add (unsigned idx); // update the cut and the new event
+   void add (unsigned idx, std::string &);
    void add_any ();
 
-   void print_debug () const;
+   void cprint_debug () const;
+   void cprint_dot(std::string &, std::string &);
 
 private:
    void __update_encex (const Event & e);
@@ -116,12 +118,12 @@ public:
    Event *               bottom;
 
    Unfolding (ir::Machine & ma);
-
-   //methods
+   void create_event(ir::Trans & t);
+   void uprint_debug();
+   void uprint_dot(std::string);
+   void uprint_dot();
    void explore(Config & C, std::vector<Event *> D, std::vector<Event *> A);
    void explore_rnd_config ();
-   void uprint_debug();
-   void create_event(ir::Trans & t);
    friend Event;
 
 private :

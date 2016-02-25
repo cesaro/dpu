@@ -37,10 +37,13 @@ Event::Event (Unfolding & u)
    unsigned numprocs = u.m.procs.size();
    unsigned mem = u.m.memsize;
    pre_readers.reserve(numprocs);
-   post_mem.reserve(numprocs*numprocs);
+   post_mem.reserve(numprocs);
    post_proc.reserve(numprocs);
    post_rws.reserve(mem);
-   post_wr.reserve(numprocs*mem);
+   post_wr.reserve(numprocs);
+
+   // create numprocs vectors for storing event pointers
+   post_mem.resize(numprocs);
    DEBUG ("%p: Event.ctor:", this);
 }
 
@@ -56,10 +59,13 @@ Event::Event (const Trans & t, Unfolding & u)
    unsigned numprocs = u.m.procs.size();
    unsigned mem = u.m.memsize;
    pre_readers.reserve(numprocs);
-   post_mem.reserve(numprocs*numprocs);
+   post_mem.reserve(numprocs);
    post_proc.reserve(10);
    post_rws.reserve(mem);
-   post_wr.reserve(numprocs*mem);
+   post_wr.reserve(numprocs);
+   // create numprocs vectors for storing event pointers
+   post_mem.resize(numprocs);
+
    // DEBUG ("Event %p: Event.ctor: t %p: '%s'", this, &t, t.str().c_str());
 }
 
@@ -78,12 +84,15 @@ Event::Event (const Event & e)
 {
 }
 
+
 bool Event::is_bottom () const
 {
-   return this->pre_proc == this;
+   return this->pre_mem == this;
 }
 
-//set up 3 attributes: pre_proc, pre_mem and pre_readers and update event's parents
+/*
+ * set up its history, including 3 attributes: pre_proc, pre_mem and pre_readers
+ */
 void Event::mk_history(const Config & c)
 {
    /*
@@ -155,7 +164,9 @@ void Event::mk_history(const Config & c)
    // update the previous events (called parents) of the current
    //update_parents();
 }
-
+/*
+ * Update all events precede current event, including pre_proc, pre_mem and all pre_readers
+ */
 void Event::update_parents()
 {
    if (this->is_bottom())
@@ -164,24 +175,26 @@ void Event::update_parents()
    Process & p  = trans->proc;
    // current event is one of children of its previous in the same process
    pre_proc->post_proc.push_back(this)  ; // every event (in all types) has its pre_proc
-   printf("Pre_proc event: \n");
-   pre_proc->eprint_debug();
 
    // LOC event has no pre_mem => exit the function
    if (this->trans->type == ir::Trans::LOC)
 	   return;
-   // update pre_mem for RD, WR and SYN event
-   // previous event accessing the same variable, a RD, SYN or WR
-   DEBUG("Pre_mem  event is %p \n", pre_mem);
+
+   /*
+    * update pre_mem for RD, WR and SYN event
+    * previous event accessing the same variable, a RD, SYN or WR
+    */
    // Special case for bottom event, as a WR
    if (pre_mem->is_bottom())
    {
-	  printf("This is for bottom only. Pre_mem: \n");
-      pre_mem->post_wr[p.id].push_back(this);
-	  for (unsigned i = 0; i < pre_mem->post_mem.size(); i++)
-	     pre_mem->post_mem[i].push_back(this);
-	  pre_mem->eprint_debug();
-	  return;
+      printf("This is for bottom only, bottom: %p \n", pre_mem);
+      pre_mem->post_wr.push_back(this);
+      for (unsigned i = 0; i < pre_mem->post_mem.size(); i++)
+         pre_mem->post_mem[i].push_back(this); // any process has the same children
+	   pre_mem->post_rws.push_back(this);
+
+	   pre_mem->eprint_debug();
+	   return;
    }
 
    switch (pre_mem->trans->type)
@@ -189,28 +202,35 @@ void Event::update_parents()
       case ir::Trans::WR:
     	 // pre_meme is a WR, add this event to vector for corresponding process
          printf("Pre_mem is a write; oops");
+         post_rws.push_back(this);
+
          if (trans->type == ir::Trans::WR)  //if the event itsefl is a WR, add it to parentś post_wr
          {
-            pre_mem->post_wr[p.id].push_back(this);
+            pre_mem->post_wr.push_back(this);
             for (unsigned i = 0; i < pre_mem->post_mem.size(); i++)
                pre_mem->post_mem[i].push_back(this);
          }
          else
             pre_mem->post_mem[p.id].push_back(this);
+
          break;
 
       case ir::Trans::RD:
          pre_mem->post_rws.push_back(this);
+         pre_mem->post_mem[p.id].push_back(this); // update vecotr of children for process p
          break;
 
       case ir::Trans::SYN:
          pre_mem->post_rws.push_back(this);
+         pre_mem->post_mem[p.id].push_back(this);
          break;
 
       case ir::Trans::LOC:
          // ?????
          break;
    }
+
+
    printf("Parent after update:\n");
    pre_mem->eprint_debug();
    return ;
@@ -220,42 +240,48 @@ bool Event:: operator == (const Event & e) const
 {
    return this == &e;
 }
+/*
+ *  check if two event is same:
+ *  - same transition
+ *  - same history: pre_proc, pre_mem, pre_readers
+ */
+bool Event:: is_same(const Event & e) const
+{
+   if ( (trans == e.trans) && (pre_proc == e.pre_proc)
+      && (pre_mem == e.pre_mem) && (pre_readers == e.pre_readers))
+      return true;
 
+   return false;
+}
+// Overlap = operator
 Event & Event:: operator  = (const Event & e)
 {
    pre_proc = e.pre_proc;
-
-   for (auto & it:post_proc)
-   for (auto & i:e.post_proc)
-      it = i;
-
    pre_mem = e.pre_mem;
-
-   for (auto & it:post_mem)
-   for (auto & i:e.post_mem)
-      it = i;
-
-   for (auto & it:pre_readers)
-   for (auto & i :e.pre_readers)
-      it = i;
-
-   for (auto & it:post_wr)
-   for (auto & i :e.post_wr)
-      it = i;
-
-   for (auto & it:post_rws)
-   for (auto & i :e.post_rws)
-      it = i;
-
    val = e.val;
-
-  // for (auto & it:localvals)
-  // for (auto & i :e.localvals)
-     // it = i;
-
    trans = e.trans;
 
-   return *this;
+   for (unsigned i = 0; i < e.pre_readers.size(); i++)
+         pre_readers.push_back(e.pre_readers[i]);
+
+   for (unsigned i = 0; i < e.post_mem.size(); i++)
+   {
+      for (unsigned j = 0; j < e.post_mem[i].size(); j++)
+         post_mem[i].push_back(e.post_mem[i][j]);
+
+      post_mem.push_back(post_mem[i]);
+   }
+
+   for (unsigned i = 0; i < e.post_proc.size(); i++)
+      post_proc.push_back(e.post_proc[i]);
+
+   for (unsigned i = 0; i < e.post_wr.size(); i++)
+         post_wr.push_back(e.post_wr[i]);
+
+   for (unsigned i = 0; i < e.post_rws.size(); i++)
+         post_rws.push_back(e.post_rws[i]);
+
+  return *this;
 }
 /*
  * Twon events are in conflict if they both appear in a vector of post_mem
@@ -355,19 +381,22 @@ void Event::eprint_debug() const
 	}
 	else
 	   DEBUG(" No pre_readers");
-
+//print post_mem
 	if (post_mem.size() != 0)
 		{
 			DEBUG(" Post_mem:");
 			for (unsigned int i = 0; i < post_mem.size(); i++)
 			{
-			   DEBUG("  Process %d:", i);
+			   printf("  Process %d:", i);
 			   for (unsigned j = 0; j < post_mem[i].size(); j++)
-			      DEBUG(" Event %p",i, post_mem[i][j]);			}
+			      printf(" %p   ",post_mem[i][j]);
+			   printf("\n");
 			}
+		}
 	else
 		   DEBUG(" No post_mem");
 
+// print post_proc
    if (post_proc.size() != 0)
    {
        DEBUG(" Post_proc:");
@@ -376,6 +405,16 @@ void Event::eprint_debug() const
    }
    else
       DEBUG(" No post proc");
+
+// print post_rws
+   if (post_rws.size() != 0)
+      {
+          DEBUG(" Post_rws:");
+         for (unsigned int i = 0; i < post_rws.size(); i++)
+            DEBUG("  Process %d: %p",i, post_rws[i]);
+      }
+      else
+         DEBUG(" No post rws");
 }
 // store all information for dot print in a string
 void Event::eprint_dot(std::string & st)
@@ -506,8 +545,9 @@ void Config::add (unsigned idx)
    // update en and cex set with e being added to c (before removing it from en)
    __update_encex(e);
    // remove the event en[idx] from the enabled set
-   en[idx] = en.back();
-   en.pop_back();
+   // en[idx] = en.back();
+   // en.pop_back();
+   en.erase(en.begin() + idx);
 }
 /*
  * add an event to config, store the event info to dot print in string st
@@ -571,9 +611,11 @@ void Config::add (unsigned idx, std::string & st)
    // update en and cex set with e being added to c (before removing it from en)
    __update_encex(e);
    // remove the event en[idx] from the enabled set
-   en[idx] = en.back();
-   en.pop_back();
+   //en[idx] = en.back();
+   //en.pop_back();
+   en.erase(en.begin() + idx);
 }
+
 
 /*
  * Update enabled set whenever an event e is added to c
@@ -596,25 +638,23 @@ void Config::__update_encex (const Event & e )
 
    for (auto t : enable)
    {
-	  unf.uprint_debug();
-	  printf("========================");
       DEBUG ("\n Transition %s is enabled", t->str().c_str());
       //create new event with transition t and add it to evt of the unf
       // have to check evt capacity before adding to prevent the reallocation.
       if (unf.evt.size () == unf.evt.capacity ())
       	 throw std::logic_error (
-      	    "Tried to allocated more processes than the maximum permitted");
+      	    "Tried to allocate more events than the maximum permitted");
       //unf.evt.emplace_back(*t, unf);
-      unf.create_event(*t);
-      // create an history for new event
-      unf.evt.back().mk_history(*this);
+      unf.create_event(*t, *this);
       // printf("En Before: ");
       // __print_en();
       // add new event (pointer) into the enabled set
       en.push_back(&unf.evt.back()); // this copies the event and changes its prereaders. Why????
-      // printf("En After: ");
-      // __print_en();
+      //printf("En After: ");
+      //__print_en();
       //unf.uprint_dot("../output/unf1.dot");
+      unf.uprint_debug();
+
    }
 
 }
@@ -704,39 +744,54 @@ Unfolding::Unfolding (ir::Machine & ma)
    __create_bottom ();
 }
 
-void Unfolding::create_event(ir::Trans & t)
-{
-   Event *e = new Event(t,*this);
-   evt.push_back(*e);
-   count++;
-}
-
 void Unfolding::__create_bottom ()
 {
    Event * e;
    assert (evt.size () == 0);
    // create an "bottom" event with all empty
    e = new Event(*this);
+   /*
+   e->pre_readers.clear();
+   e->post_proc.clear();
+   e->post_rws.clear();
+   e->post_wr.clear();
+   */
    evt.push_back(*e);
    count++;
-   e = & evt[0];
+  // evt.back().pre_proc = &evt.back();
+  // evt.back().pre_mem  = &evt.back();
 
-   e->pre_proc = e;
-   e->pre_mem = e;
-   e->pre_readers.clear();
-   // Bottom is considered a WR event
-   // e->trans->type = ir::Trans::WR; // no trans for bottom
+   bottom = &evt.back(); // using = operator
+   bottom->pre_mem = bottom;
+   bottom->pre_proc = bottom;
 
-   bottom = e; 
    DEBUG ("%p: Unfolding.__create_bottom: bottom %p", this, e);
    bottom->eprint_debug();
+}
+/*
+ * create an event with enabled transition and config.
+ */
+void Unfolding::create_event(ir::Trans & t, Config & c)
+{
+   Event * e = new Event(t,*this);
+   // create an history for new event
+   e->mk_history(c);
+
+   for (auto & ee : evt)
+      if ( e->is_same(ee) == true )
+         return;
+
+   evt.push_back(*e);
+   evt.back().update_parents();
+   count++;
 }
 
 void Unfolding:: uprint_debug()
 {
-   DEBUG("Unfolding:======================\n");
+   DEBUG("===========Start of Unfolding===========\n");
    for (auto & e : evt)
       e.eprint_debug();
+   DEBUG("===========End of unfolding=============");
 }
 
 void Unfolding:: uprint_dot(std::string ofile)

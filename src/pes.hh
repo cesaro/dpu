@@ -33,11 +33,11 @@ public:
 
    // only for WR events
    //each vector of children events for a process
-   std::vector<std::vector <Event *> >   post_mem; // size = numprocs x numprocs
+   std::vector< std::vector<Event *> >   post_mem; // size = numprocs x mem
    std::vector< Event * >                pre_readers; // only for WR events
 
    //write children of a write trans
-   std::vector<std::vector < Event * > > post_wr; // size = numprocs
+   std::vector<Event * > post_wr; // size = numprocs
 
    //only for RD and SYN events
    std::vector <Event *>                 post_rws; // for RD, WR, and SYN events, size = number of variables
@@ -50,13 +50,15 @@ public:
    Event & 	    operator =    (const Event &);
    std::string  str           () const;
 
+   Event (const Event & e);
    void mk_history (const Config & c);
    void update_parents();
    bool check_cfl(const Event & e) const;
-   bool is_bottom () const;
    void eprint_debug() const;
    void eprint_dot(std::string & st);
-   Event (const Event & e);
+   bool is_bottom () const;
+   bool is_same(const Event & e) const;
+
    friend Unfolding;
 
 private:
@@ -119,7 +121,7 @@ public:
    Event *               bottom;
 
    Unfolding (ir::Machine & ma);
-   void create_event(ir::Trans & t);
+   void create_event(ir::Trans & t, Config &);
    void uprint_debug();
    void uprint_dot(std::string);
    void uprint_dot();

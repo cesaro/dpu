@@ -10,6 +10,7 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <algorithm>
 
 #include "pes.hh"
 #include "misc.hh"
@@ -376,6 +377,31 @@ void Event::eprint_debug() const
    else
       DEBUG(" No post proc");
 }
+// store all information for dot print in a string
+void Event::eprint_dot(std::string & st)
+{
+   st += std::to_string(idx) + "[shape=rectangle label=";
+   switch (trans->type)
+   {
+   case ir::Trans::WR:
+      st += "WR]";
+      for (int unsigned i = 0; i < pre_readers.size(); i++)
+         st += std::to_string(pre_readers[i]->idx) + "->" + std::to_string(idx) ;
+      break;
+   case ir::Trans::RD:
+      st += "RD]";
+         break;
+   case ir::Trans::SYN:
+         st += "SYN]";
+         break;
+   case ir::Trans::LOC:
+         st += "LOC]";
+         break;
+   }
+   st += std::to_string(pre_proc->idx) + "->" + std::to_string(idx) ;
+   st += std::to_string(pre_mem->idx) + "->" + std::to_string(idx) ;
+
+}
 /*
  *========= Methods of class Config===========
  */
@@ -732,13 +758,15 @@ void Unfolding:: uprint_dot()
 {
    std::ofstream fs("../output/unf.dot", std::fstream::out);
    fs << "Digraph RGraph {\n";
+   fs << "node[shape = rectangle]";
    for(auto const & e : evt)
    {
       fs << e.idx <<"[label = " << e.idx << "] \n";
-   }
-   for(auto const & e : evt)
-   {
       fs << e.pre_proc->idx << "->" << e.idx << "\n";
+      fs << e.pre_mem->idx << "->" << e.idx << "\n";
+      if (e.trans->type == ir::Trans::WR)
+         for (auto const & pre : e.pre_readers)
+            fs << pre->idx << "->" << e.idx << "\n";
    }
 
    fs << "}";

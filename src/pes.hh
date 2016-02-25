@@ -55,6 +55,7 @@ public:
    bool check_cfl(const Event & e) const;
    bool is_bottom () const;
    void eprint_debug() const;
+   void eprint_dot(std::string & st);
    Event (const Event & e);
    friend Unfolding;
 

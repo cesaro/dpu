@@ -188,7 +188,14 @@ const char * Trans::type_str () const
    }
    return 0;
 }
-
+#if 0
+bool Trans::operator == (const Trans & t) const
+{
+   if (proc.id == t.proc.id) && (code == t.code) && (src  == t.src) && (dst  == t.dst)
+         && (var  == t.var) && (localvars == t.localvars) && (type == t.type) && (offset == t.offset)
+   return true;
+}
+#endif
 //===methods for class State==========
 
 State::State (Machine & m)

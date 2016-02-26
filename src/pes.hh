@@ -57,7 +57,6 @@ public:
    void eprint_debug() const;
    void eprint_dot(std::string & st);
    bool is_bottom () const;
-   bool is_same(const Event & e) const;
 
    friend Unfolding;
 

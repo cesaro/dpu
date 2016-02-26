@@ -278,8 +278,8 @@ void test7 ()
    */
 
    u.explore_rnd_config ();
-   //u.uprint_dot("../output/unf1.dot");
-   //u.uprint_dot();
+   //u.uprint_dot("output/unf.dot");
+   u.uprint_dot();
    printf("\n The end, unf has %zu events\n", u.evt.size());
 }
 

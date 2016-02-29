@@ -6,10 +6,12 @@
  */
 
 #include <cstdint>
+#include <cstdio>
 #include <cassert>
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <algorithm>
 
 #include "pes.hh"
 #include "misc.hh"
@@ -281,10 +283,10 @@ bool Event::check_cfl( const Event & e ) const
 	   printf("Parent is bottom");
 	   for (unsigned i = 0; i< parent.post_mem.size(); i++)
 	   {
-		  this_idx = std::find(parent.post_mem[i].begin(), parent.post_mem[i].end(),this);
-		  e_idx    = std::find(parent.post_mem[i].begin(), parent.post_mem[i].end(),&e);
-          if ( (this_idx != parent.post_mem[i].end()) && (e_idx != parent.post_mem[i].end()) )
-             return true;
+		   this_idx = std::find(parent.post_mem[i].begin(), parent.post_mem[i].end(),this);
+		   e_idx    = std::find(parent.post_mem[i].begin(), parent.post_mem[i].end(),&e);
+         if ( (this_idx != parent.post_mem[i].end()) && (e_idx != parent.post_mem[i].end()) )
+            return true;
   	   }
 	   return false;
    }
@@ -593,6 +595,49 @@ void Config::__update_encex (const Event & e )
 
 }
 
+void Config::__update_encex (const Event & e, std::string & st )
+{
+   DEBUG ("%p: Config.__update_encex: e %p", this, &e);
+  // if (en.size() > 0)
+  //    remove_cfl(e);
+
+   std::vector<ir::Trans> & trans    = unf.m.trans; // set of transitions in the model
+   std::vector <ir::Process> & procs = unf.m.procs; // set of processes in the model
+
+   assert(trans.size() > 0);
+   assert(procs.size() > 0);
+
+   std::vector<Trans*> enable;
+
+   gstate.enabled (enable);
+
+   std::string & rank;
+   rank += "rank {";
+
+   for (auto t : enable)
+   {
+     unf.uprint_debug();
+     printf("========================");
+      DEBUG ("\n Transition %s is enabled", t->str().c_str());
+      //create new event with transition t and add it to evt of the unf
+      // have to check evt capacity before adding to prevent the reallocation.
+      if (unf.evt.size () == unf.evt.capacity ())
+          throw std::logic_error (
+             "Tried to allocated more processes than the maximum permitted");
+      unf.create_event(*t);
+      st += "->"+ std::to_string(e.idx);
+      // create an history for new event
+      unf.evt.back().mk_history(*this);
+      // add new event (pointer) into the enabled set
+      en.push_back(&unf.evt.back()); // this copies the event and changes its prereaders. Why????
+      // printf("En After: ");
+      // __print_en();
+      //unf.uprint_dot("../output/unf1.dot");
+   }
+
+}
+
+
 void Config::remove_cfl(const Event & e)
 {
    DEBUG ("%p: Config.remove_cfl: e %p", this, &e);
@@ -646,6 +691,14 @@ void Config::cprint_debug () const
 void Config::cprint_dot(std::string &, std::string & st)
 {
    //std::ofstream fs(file, std::fstream::out);
+   //boost::filesystem::path dir ("../output");
+
+  /*
+   if(boost::filesystem::create_directory(dir))
+   {
+      printf ("Directory Created: ");
+   }
+   */
    std::ofstream fs("../output/conf.dot", std::fstream::out);
    fs << "Digraph RGraph {\n";
    fs << " 0"; // 0 for bottom event
@@ -713,17 +766,18 @@ void Unfolding:: uprint_debug()
       e.eprint_debug();
 }
 
-void Unfolding:: uprint_dot(std::string ofile)
+void Unfolding:: uprint_dot(std::string ofile, std::string & st)
 {
    std::ofstream fs(ofile, std::fstream::out);
 
    fs << "Digraph RGraph {\n";
-   for(auto const & e : evt)
+   fs << st;
+  /* for(auto const & e : evt)
    {
       //std::string s = e.idx.str();
       fs <<  e.idx << "-->";
 
-   }
+   }*/
       fs<< "}";
       fs.close();
 }

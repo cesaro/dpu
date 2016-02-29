@@ -103,6 +103,7 @@ public:
 
 private:
    void __update_encex (const Event & e);
+   void __update_encex (const Event & e, std::string &);
    void __print_en() const;
    void remove_cfl (const Event & e);
 
@@ -120,7 +121,7 @@ public:
    Unfolding (ir::Machine & ma);
    void create_event(ir::Trans & t);
    void uprint_debug();
-   void uprint_dot(std::string);
+   void uprint_dot(std::string, std::string &);
    void uprint_dot();
    void explore(Config & C, std::vector<Event *> D, std::vector<Event *> A);
    void explore_rnd_config ();

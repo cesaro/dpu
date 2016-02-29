@@ -33,11 +33,11 @@ public:
 
    // only for WR events
    //each vector of children events for a process
-   std::vector<std::vector <Event *> >   post_mem; // size = numprocs x numprocs
+   std::vector< std::vector<Event *> >   post_mem; // size = numprocs x mem
    std::vector< Event * >                pre_readers; // only for WR events
 
    //write children of a write trans
-   std::vector<std::vector < Event * > > post_wr; // size = numprocs
+   std::vector<Event * > post_wr; // size = numprocs
 
    //only for RD and SYN events
    std::vector <Event *>                 post_rws; // for RD, WR, and SYN events, size = number of variables
@@ -45,17 +45,20 @@ public:
    int                   val; //??? value for global variable?
    std::vector<uint32_t> localvals; //???
    const ir::Trans *     trans;
+   std::vector<Event *>  dicfl;  // set of direct conflicting events
 
    bool         operator ==   (const Event &) const;
    Event & 	    operator =    (const Event &);
    std::string  str           () const;
 
+   Event (const Event & e);
    void mk_history (const Config & c);
    void update_parents();
    bool check_cfl(const Event & e) const;
-   bool is_bottom () const;
    void eprint_debug() const;
-   Event (const Event & e);
+   void eprint_dot(std::string & st);
+   bool is_bottom () const;
+
    friend Unfolding;
 
 private:
@@ -100,12 +103,14 @@ public:
 
    void cprint_debug () const;
    void cprint_dot(std::string &, std::string &);
+   void cprint_dot(std::string & st);
 
 private:
-   void __update_encex (const Event & e);
-   void __update_encex (const Event & e, std::string &);
+   void __update_encex (Event & e);
+   void __update_encex (Event & e, std::string &);
    void __print_en() const;
-   void remove_cfl (const Event & e);
+   void remove_cfl (Event & e); // modify e.dicfl
+   void remove_cfl (Event & e, std::string &); // st is string for print_dot
 
 
 }; // end of class Config
@@ -119,7 +124,7 @@ public:
    Event *               bottom;
 
    Unfolding (ir::Machine & ma);
-   void create_event(ir::Trans & t);
+   void create_event(ir::Trans & t, Config &);
    void uprint_debug();
    void uprint_dot(std::string, std::string &);
    void uprint_dot();

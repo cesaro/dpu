@@ -116,6 +116,8 @@ public:
    const char * type_str () const;
    bool         enabled  (const State & s) const;
    void         fire     (State & s) const;
+   // bool        operator ==   (const Trans &) const;
+
 };
 
 } // namespace ir

@@ -34,6 +34,7 @@ Event::Event (Unfolding & u)
    , val(0)
    , localvals(0)
    , trans(nullptr)
+   , color(0)
 {
    unsigned numprocs = u.m.procs.size();
    unsigned mem = u.m.memsize;
@@ -56,6 +57,7 @@ Event::Event (const Trans & t, Unfolding & u)
    , val(0)
    , localvals(0)
    , trans(&t)
+   , color(0)
 
 {
    unsigned numprocs = u.m.procs.size();
@@ -84,6 +86,7 @@ Event::Event (const Event & e)
    , val(e.val)
    , localvals(e.localvals)
    , trans(e.trans)
+   , color(e.color)
 {
 }
 
@@ -531,7 +534,6 @@ void Config::add (unsigned idx)
    /* update en and cex set with e being added to c (before removing it from en) */
    __update_encex(e);
    /* remove the event en[idx] from the enabled set */
-
 }
 
 /*
@@ -798,17 +800,28 @@ void Config::cprint_dot(std::string &, std::string & st)
 /*
  * cprint_dot with a fixed file
  */
-void Config::cprint_dot(std::string & st)
+void Config::cprint_dot()
 {
    std::ofstream fs("output/conf.dot", std::fstream::out);
    if (fs.is_open() != true)
       printf("Cannot open the file\n");
-   fs << "Digraph RGraph {\n node [shape=circle]";
-   fs << st;
+   fs << "Digraph RGraph {\n node [shape=rectangle, style=filled]";
+
+   for (auto e : latest_proc)
+   {
+      while ((e->is_bottom() != true) && (e->color != 1))
+      {
+         fs << e->pre_mem->idx << "->" << e->idx;
+         e->color = 1;
+         e = e->pre_mem;
+      }
+   }
+
    fs << "}";
    fs.close();
    printf("Print_dot done\n");
 }
+
 /*
  *  Print the size of curent enable set
  */
@@ -826,6 +839,7 @@ unsigned Unfolding::count = 0;
 
 Unfolding::Unfolding (ir::Machine & ma)
    : m (ma)
+   , colorflag(0)
 {
    evt.reserve(1000); // maximum number of events????
    DEBUG ("%p: Unfolding.ctor: m %p", this, &m);
@@ -939,13 +953,14 @@ void Unfolding:: uprint_dot()
 {
    std::ofstream fs("output/unf.dot", std::fstream::out);
    fs << "Digraph RGraph {\n";
+   fs << "node [shape=rectangle, fontsize=10, style=filled, align=right]";
    fs << "forcelabels=true; \n ";
 
    for(auto const & e : evt)
    {
       if (e.is_bottom())
       {
-         fs << e.idx << "\n";
+         fs << e.idx << "[label=\"bottom\"]\n";
          continue;
       }
 
@@ -954,16 +969,16 @@ void Unfolding:: uprint_dot()
       switch (e.trans->type)
       {
          case ir::Trans::LOC:
-            fs << e.idx << " [label=" << e.idx <<" color=yellow, style=filled] \n";
+            fs << e.idx << " [label= \"ID:  " << e.idx <<",  Proc: " << e.trans->proc.id <<"\nsrc: " <<e.trans->src << ",  dest: " << e.trans->dst <<"\ncode: "<< e.trans->code.str() << " \" color=yellow] \n";
             fs << e.pre_proc->idx << "->" << e.idx << "\n";
             break;
          case ir::Trans::WR:
-            fs << e.idx << " [color=red, style=filled]\n";
+            fs << e.idx << " [label= \"ID:  " << e.idx <<",  Proc: " << e.trans->proc.id <<"\nsrc: " <<e.trans->src << ",  dest: " << e.trans->dst <<"\ncode: "<< e.trans->code.str() << " \" color=red] \n";
             for (auto const & pre : e.pre_readers)
                fs << pre->idx << " -> " << e.idx << "\n";
             break;
          default:
-            fs << e.idx << " [fillcolor=lightblue, style=filled]\n";
+            fs << e.idx << " [label= \"ID:  " << e.idx <<",  Proc: " << e.trans->proc.id <<"\nsrc: " <<e.trans->src << ",  dest: " << e.trans->dst <<"\ncode: "<< e.trans->code.str() << " \" color=lightblue] \n";
             fs << e.pre_mem->idx << "->" << e.idx << "\n";
             break;
       }
@@ -1030,10 +1045,10 @@ void Unfolding::explore_rnd_config ()
 
    while (c.en.empty() == false)
    {
-      c.add(0, cprintstr);
+      c.add(1, cprintstr);
    }
 
-   c.cprint_dot(cprintstr);
+  // c.cprint_dot();
 
    //uprint_dot("output/unf.dot", uprintstr); // problems: nothing modifies uprintstr
    this->uprint_debug();

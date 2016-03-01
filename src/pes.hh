@@ -45,6 +45,7 @@ public:
    int                   val; //??? value for global variable?
    std::vector<uint32_t> localvals; //???
    const ir::Trans *     trans;
+   int                   color;
    std::vector<Event *>  dicfl;  // set of direct conflicting events
 
    bool         operator ==   (const Event &) const;
@@ -103,7 +104,7 @@ public:
 
    void cprint_debug () const;
    void cprint_dot(std::string &, std::string &);
-   void cprint_dot(std::string & st);
+   void cprint_dot();
 
 private:
    void __update_encex (Event & e);
@@ -122,6 +123,7 @@ public:
    std::vector<Event>    evt; // events actually in the unfolding
    ir::Machine &         m;
    Event *               bottom;
+   int                   colorflag;
 
    Unfolding (ir::Machine & ma);
    void create_event(ir::Trans & t, Config &);

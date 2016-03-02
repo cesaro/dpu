@@ -69,7 +69,7 @@ void Machine::sanity_check ()
    // - the process id corresponds to the offset in Machine.procs
    // - Trans.{src,dst} are valid node numbers in the cfg
    // - match between Trans.code and infos in Trans.{type,addr,offset,localaddr}
-   // - transitions of one thread do not overwrite its pc
+   // - transitions of one thread do not overwrite the pcs
    // - the program is deterministic
 }
 

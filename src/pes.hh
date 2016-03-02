@@ -3,6 +3,18 @@
 #define __PES_HH_
 
 #include "ir.hh"
+/*
+ * Event:
+ * - take unf and trans as arguments
+ * - constructror: private
+ * -
+ * Unfolding:
+ * - class friend with Event
+ * - call unf.addevent();
+ * - add method: dot_print for config and unf
+ * -
+ *
+ */
 
 namespace pes
 {
@@ -13,6 +25,7 @@ class Unfolding;
 class Event
 {
 public:
+   unsigned int          idx;
    Event *               pre_proc;    // for all events, predecessor in the same process
    std::vector<Event *>  post_proc;  // set of successors in the same process
 
@@ -20,11 +33,11 @@ public:
 
    // only for WR events
    //each vector of children events for a process
-   std::vector<std::vector <Event *> >   post_mem; // size = numprocs x numprocs
+   std::vector< std::vector<Event *> >   post_mem; // size = numprocs x mem
    std::vector< Event * >                pre_readers; // only for WR events
 
    //write children of a write trans
-   std::vector<std::vector < Event * > > post_wr; // sizze = numprocs x numprocs
+   std::vector<Event * > post_wr; // size = numprocs
 
    //only for RD and SYN events
    std::vector <Event *>                 post_rws; // for RD, WR, and SYN events, size = number of variables
@@ -32,21 +45,26 @@ public:
    uint32_t              val; //??? value for global variable?
    std::vector<uint32_t> localvals; //???
    const ir::Trans *     trans;
-
-   Event (unsigned, unsigned);
-   Event (const ir::Trans & t, unsigned numprocs, unsigned memsize);
-   Event (const Event & e);
+   int                   color;
+   std::vector<Event *>  dicfl;  // set of direct conflicting events
 
    bool         operator ==   (const Event &) const;
    Event & 	    operator =    (const Event &);
    std::string  str           () const;
 
+   Event (const Event & e);
    void mk_history (const Config & c);
    void update_parents();
    bool check_cfl(const Event & e) const;
-   bool is_bottom () const;
    void eprint_debug() const;
+   void eprint_dot(std::string & st);
+   bool is_bottom () const;
 
+   friend Unfolding;
+
+private:
+   Event (Unfolding & u);
+   Event (const ir::Trans & t, Unfolding & u);
 
 }; // end of class Event
 
@@ -81,14 +99,19 @@ public:
    
    void add (const Event & e); // update the cut and the new event
    void add (unsigned idx); // update the cut and the new event
+   void add (unsigned idx, std::string &);
    void add_any ();
 
-   void print_debug () const;
+   void cprint_debug () const;
+   void cprint_dot(std::string &, std::string &);
+   void cprint_dot();
 
 private:
-   void __update_encex (const Event & e);
+   void __update_encex (Event & e);
+   void __update_encex (Event & e, std::string &);
    void __print_en() const;
-   void remove_cfl (const Event & e);
+   void remove_cfl (Event & e); // modify e.dicfl
+   void remove_cfl (Event & e, std::string &); // st is string for print_dot
 
 
 }; // end of class Config
@@ -96,23 +119,28 @@ private:
 class Unfolding
 {
 public:
+   static unsigned count; // count number of events.
    std::vector<Event>    evt; // events actually in the unfolding
    ir::Machine &         m;
    Event *               bottom;
+   int                   colorflag;
 
    Unfolding (ir::Machine & ma);
-
-   //methods
+   void create_event(ir::Trans & t, Config &);
+   void uprint_debug();
+   void uprint_dot(std::string, std::string &);
+   void uprint_dot();
    void explore(Config & C, std::vector<Event *> D, std::vector<Event *> A);
    void explore_rnd_config ();
-   void uprint_debug();
+   friend Event;
 
 private :
    void __create_bottom ();
 
 }; // end of class Unfolding
 
-
 } // namespace pes
 
 #endif
+
+

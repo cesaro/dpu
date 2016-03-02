@@ -278,7 +278,8 @@ void test7 ()
    */
 
    u.explore_rnd_config ();
-   printf("\n The end, unf has %zu events", u.evt.size());
+
+   printf("\n The end, unf has %zu events\n", u.evt.size());
 }
 
 void test8 ()
@@ -655,5 +656,18 @@ void test12 ()
 void test13 ()
 {
    std::vector<int> v (15, 5);
+}
+
+void test14()
+{
+   auto m = build_concur15_example ();
+
+   DEBUG ("\n%s", m->str().c_str());
+
+   pes::Unfolding u (*m.get ());
+   pes::Config c(u);
+   printf("Update parent for the last event: %p \n", &u.evt.back());
+   u.evt.back().update_parents();
+   //u.evt.back().eprint_debug();
 }
 

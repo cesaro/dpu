@@ -89,6 +89,7 @@ Event::Event (const Event & e)
    , color(e.color)
 {
 }
+   //DEBUG ("%p: Event.ctor: other %p (copy)", this, &e);
 
 
 bool Event::is_bottom () const
@@ -119,8 +120,7 @@ void Event::mk_history(const Config & c)
     * - pre_mem     is NULL
     * - pre_readers remains empty
     */
-   if (this->is_bottom() == true)
-      return;
+   if (this->is_bottom()) return;
 
    ir::Process & p = this->trans->proc;
    std::vector<Process> & procs = c.unf.m.procs;
@@ -456,6 +456,7 @@ Config::Config (Unfolding & u)
    DEBUG ("Initialize a config: \n");
    DEBUG ("%p: Config.ctor", this);
    // reserve the capacity of en and cex is square root of number of trans.
+	// FIXME is this necessary ? -- Cesar
    en.reserve(u.m.trans.size()*10);
    cex.reserve(u.m.trans.size()*10);
 

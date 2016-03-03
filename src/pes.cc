@@ -146,13 +146,13 @@ void Event::mk_history(const Config & c)
          */
          for (unsigned int i = 0; i < procs.size(); i++)
          {
-        	 Event * temp = c.latest_op[i][trans->var];
-        	 pre_readers.push_back(temp);
+            Event * temp = c.latest_op[i][trans->var];
+            pre_readers.push_back(temp);
          }
          break;
 
       case ir::Trans::SYN:
-         pre_mem  = c.latest_wr[trans->var];
+         pre_mem  = c.latest_op[p.id][trans->var]; // pre_mem can be latest SYN from another process (same variable)
          break;
 
       case ir::Trans::LOC:
@@ -163,7 +163,7 @@ void Event::mk_history(const Config & c)
     	  * If LOC is a EXIT, no variable touched, no pre_mem
     	  * How to solve: v4 = v3 + 1; a RD for v3 but a WR for v4 (local variable)
     	  */
-    	 pre_mem   = nullptr;
+         pre_mem   = nullptr;
          break;
    }
 
@@ -283,9 +283,6 @@ bool Event::check_cfl( const Event & e ) const
 {
    if (this->is_bottom() || e.is_bottom() || (*this == e) )
       return false;
-
-   if (this->trans == e.trans)
-      return true;
 
    // a LOC event has no conflict with any other transition. Leave 2 LOC trans sharing a localvar later.
    if ((this->trans->type == ir::Trans::LOC)  || (e.trans->type == ir::Trans::LOC))
@@ -665,7 +662,7 @@ void Config::__update_encex (Event & e )
       unf.create_event(*t, *this);
       //printf("After create an event:\n");
       //unf.uprint_debug();
-      en.push_back(&unf.evt.back()); // this copies the event and changes its prereaders. Why????
+       // this copies the event and changes its prereaders. Why????
    }
 }
 
@@ -745,6 +742,9 @@ void Config::cprint_dot()
    if (fs.is_open() != true)
       printf("Cannot open the file\n");
    fs << "Digraph RGraph {\n node [shape=rectangle, style=filled]";
+   /*
+    * Compute maximal events: = union of latest_proc and
+    */
 
    for (auto e : latest_proc)
    {
@@ -823,6 +823,7 @@ void Unfolding::create_event(ir::Trans & t, Config & c)
    DEBUG("  New event: id: %d, %s ", evt.back().idx, evt.back().str().c_str());
    evt.back().update_parents();
    count++;
+   c.en.push_back(&evt.back());
 }
 
 void Unfolding:: uprint_debug()
@@ -992,17 +993,15 @@ void Unfolding::explore_rnd_config ()
    while (c.en.empty() == false)
    {
       if (c.en.size() > 2)
-         c.add(1);
+         c.add(0);
       else
          /* if there is only one element, take the last one */
          c.add(c.en.size() - 1);
 
       c.cprint_debug();
    }
-
+   DEBUG("Print dot file:\n");
    c.cprint_dot();
-
-   //uprint_dot("output/unf.dot", uprintstr); // problems: nothing modifies uprintstr
    this->uprint_debug();
    uprint_dot();
    return;

@@ -270,16 +270,8 @@ void test7 ()
    DEBUG ("\n%s", m->str().c_str());
 
    pes::Unfolding u (*m.get ());
-   /*
-   u.evt=0;
-   Config C(u); // C contains bottom event
-   std::vector <Event *> D, A;
-   u.explore(C, D, A);
-   */
-
+   /* Explore a random configuration */
    u.explore_rnd_config ();
-
-   printf("\n The end, unf has %zu events\n", u.evt.size());
 }
 
 void test8 ()

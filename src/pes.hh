@@ -42,7 +42,7 @@ public:
    //only for RD and SYN events
    std::vector <Event *>                 post_rws; // for RD, WR, and SYN events, size = number of variables
 
-   int                   val; //??? value for global variable?
+   uint32_t              val; //??? value for global variable?
    std::vector<uint32_t> localvals; //???
    const ir::Trans *     trans;
    int                   color;
@@ -59,6 +59,8 @@ public:
    void eprint_debug() const;
    void eprint_dot(std::string & st);
    bool is_bottom () const;
+   bool is_same(Event &);
+
 
    friend Unfolding;
 

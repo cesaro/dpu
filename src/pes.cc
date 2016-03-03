@@ -809,7 +809,7 @@ void Config::cprint_dot()
 
    for (auto e : latest_proc)
    {
-      while ((e->is_bottom() != true) && (e->color != 1))
+     // while ((e->is_bottom() != true) && (e->color != 1))
       {
          fs << e->pre_mem->idx << "->" << e->idx;
          e->color = 1;
@@ -1048,7 +1048,7 @@ void Unfolding::explore_rnd_config ()
       c.add(1, cprintstr);
    }
 
-  // c.cprint_dot();
+   c.cprint_dot();
 
    //uprint_dot("output/unf.dot", uprintstr); // problems: nothing modifies uprintstr
    this->uprint_debug();

@@ -345,9 +345,9 @@ bool Event::check_cfl( const Event & e ) const
 
    return false;
 }
-#if 0
+
 /* check if 2 events are the same or not */
-bool Event:: is_same(const Event & e) const
+bool Event:: is_same(Event & e)
 {
    if ( (trans == e.trans) && (pre_proc == e.pre_proc)
          && (pre_mem == e.pre_mem) && (pre_readers == e.pre_readers))
@@ -355,7 +355,7 @@ bool Event:: is_same(const Event & e) const
 
    return false;
 }
-#endif
+
 /* Express an event in a string */
 std::string Event::str () const
 {
@@ -500,7 +500,7 @@ void Config::add (unsigned idx)
 {
    assert(idx < en.size());
    Event & e = *en[idx];
-   DEBUG ("\n%p: Config.add: %p\n", this, e.str().c_str());
+   DEBUG ("\n%p: Config.add: %s\n", this, e.str().c_str());
 
    /* move the element en[idx] out of enable set */
    en[idx] = en.back();
@@ -545,8 +545,16 @@ void Config::add (unsigned idx)
             latest_op[p.id][i] = &e;
          }
 
+   /* remove conflicting events with event which has just been added */
+   if (en.size() > 0)
+      remove_cfl(e);
+
+   __print_en();
+
    /* update en and cex set with e being added to c (before removing it from en) */
    __update_encex(e);
+
+   __print_en();
 }
 
 #if 0
@@ -631,10 +639,6 @@ void Config::__update_encex (Event & e )
   //Event * pe;
    DEBUG ("%p: Config.__update_encex with last event e: id = %d, mem = %p", this, e.idx, &e);
 
-   if (en.size() > 0)
-      /* remove all events in EN conflicting with e*/
-         remove_cfl(e);
-
    std::vector<ir::Trans> & trans    = unf.m.trans; // set of transitions in the model
    std::vector <ir::Process> & procs = unf.m.procs; // set of processes in the model
 
@@ -649,7 +653,7 @@ void Config::__update_encex (Event & e )
    if (enable.empty() == true )
       return;
 
-   DEBUG ("\n Add events:");
+   DEBUG ("New events:");
 
    for (auto t : enable)
    {
@@ -657,92 +661,14 @@ void Config::__update_encex (Event & e )
        *  create new event with transition t and add it to evt of the unf
        *  have to check evt capacity before adding to prevent the reallocation.
        */
-#if 0
-      if (unf.evt.size () == unf.evt.capacity ())
-      	 throw std::logic_error (
-      	    "Tried to allocate more events than the maximum permitted");
 
-
-      pe = new Event(t,*this);
-      //create an history for new event
-      pe->mk_history(*this);
-      /*
-         for (auto & ee : evt)
-            if ( e->is_same(ee) == true )
-               return;
-      */
-      DEBUG("  New event: id: %d, %s ", pe->idx, pe->str().c_str());
-      unf.evt.push_back(*pe);
-      unf.evt.back().update_parents();
-      unf.count++;
-#endif
       unf.create_event(*t, *this);
+      //printf("After create an event:\n");
+      //unf.uprint_debug();
       en.push_back(&unf.evt.back()); // this copies the event and changes its prereaders. Why????
    }
 }
 
-#if 0
-/*
- * string st for dot printing
- */
-void Config::__update_encex (Event & e, std::string & st )
-{
-   //DEBUG ("%p: Config.__update_encex with
-
-   if (en.size() > 0)
-      /* remove all events in EN conflicting with e*/
-         remove_cfl(e,st);
-
-   std::vector<ir::Trans> & trans    = unf.m.trans; // set of transitions in the model
-   std::vector <ir::Process> & procs = unf.m.procs; // set of processes in the model
-
-   assert(trans.size() > 0);
-   assert(procs.size() > 0);
-
-   std::vector<Trans*> enable;
-
-   /* get set of events enabled at the state gstate    */
-   gstate.enabled (enable);
-
-   if (enable.empty() == true )
-      return;
-
-   for (auto t : enable)
-   {
-      //DEBUG ("\n Transition %s is enabled", t->str().c_str());
-      /*
-       *  create new event with transition t and add it to evt of the unf
-       *  have to check evt capacity before adding to prevent the reallocation.
-       */
-      if (unf.evt.size () == unf.evt.capacity ())
-          throw std::logic_error (
-             "Tried to allocate more events than the maximum permitted");
-
-      unf.create_event(*t, *this);
-      en.push_back(&unf.evt.back()); // this copies the event and changes its prereaders. Why????
-      /*
-       * add to string for dot printing
-       */
-      Event & e = unf.evt.back();
-      switch (e.trans->type)
-           {
-              case ir::Trans::LOC:
-                 st += std::to_string(e.idx) + "[fillcolor=green]";
-                 st += std::to_string(e.pre_proc->idx) + "->" + std::to_string(e.idx) + "\n";
-                 break;
-              case ir::Trans::WR:
-                 st += std::to_string(e.idx) + "[fillcolor=red]";
-                 for (auto const & pre : e.pre_readers)
-                    st += std::to_string(pre->idx) + "->" + std::to_string(e.idx) + "\n";
-                 break;
-              default:
-                 st += std::to_string(e.idx) + "[fillcolor=blue]";
-                 st += std::to_string(e.pre_mem->idx) + "->" + std::to_string(e.idx) + "\n";
-           }
-      st += std::to_string(e.pre_mem->idx) + "->" + std::to_string(e.idx);
-   }
-}
-#endif
 
 void Config::remove_cfl(Event & e)
 {
@@ -764,26 +690,6 @@ void Config::remove_cfl(Event & e)
    }
 }
 
-#if 0
-void Config::remove_cfl(Event & e, std::string & st)
-{
-   // DEBUG ("%p: Config.remove_cfl: e %p", this, &e);
-   unsigned int i = 0;
-
-   while (i < en.size())
-   {
-      if (e.check_cfl(*en[i]) == true)
-      {
-         st += "edge[color=red]" + std::to_string(e.idx) + "-" + std::to_string(en[i]->idx) + "\n";
-         cex.push_back(en[i]);
-         //en.erase(en.begin() + i);
-         en[i] = en.back();
-         en.pop_back();
-      }
-      else   i++;
-   }
-}
-#endif
 
 /*
  * Print all the latest events of config to console
@@ -903,14 +809,18 @@ void Unfolding::create_event(ir::Trans & t, Config & c)
 
    // create an history for new event
    e->mk_history(c);
-   /*
-   for (auto & ee : evt)
-      if ( e->is_same(ee) == true )
+
+   /* Need to check the event's history before adding it to the unf
+    * Only add events that are really enabled at the current state of config.
+    * Don't add events already in the unf (enalbed at the previous state)
+    */
+
+   for (auto ee :c.en)
+      if ( e->is_same(*ee) == true )
          return;
-   */
-   DEBUG("  New event: id: %d, %s ", e->idx, e->str().c_str());
 
    evt.push_back(*e);
+   DEBUG("  New event: id: %d, %s ", evt.back().idx, evt.back().str().c_str());
    evt.back().update_parents();
    count++;
 }
@@ -1086,6 +996,7 @@ void Unfolding::explore_rnd_config ()
       else
          /* if there is only one element, take the last one */
          c.add(c.en.size() - 1);
+
       c.cprint_debug();
    }
 

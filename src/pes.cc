@@ -743,8 +743,9 @@ void Config::cprint_dot()
       printf("Cannot open the file\n");
    fs << "Digraph RGraph {\n node [shape=rectangle, style=filled]";
    /*
-    * Compute maximal events: = union of latest_proc and
+    * Compute maximal events: = union of latest_proc and latest_op
     */
+   std::vector <Event *> maxset;
 
    for (auto e : latest_proc)
    {
@@ -989,11 +990,12 @@ void Unfolding::explore_rnd_config ()
    std::string uprintstr;
    /* Initialize the configuration */
    Config c(*this);
+   unsigned int i = 0;
 
    while (c.en.empty() == false)
    {
-      if (c.en.size() > 2)
-         c.add(0);
+      if (c.en.size() > (i +1))
+         c.add(i);
       else
          /* if there is only one element, take the last one */
          c.add(c.en.size() - 1);

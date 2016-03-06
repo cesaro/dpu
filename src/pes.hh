@@ -51,6 +51,7 @@ public:
    bool         operator ==   (const Event &) const;
    Event & 	    operator =    (const Event &);
    std::string  str           () const;
+   std::string dotstr         () const;
 
    Event (const Event & e);
    void mk_history (const Config & c);

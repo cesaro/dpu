@@ -301,8 +301,8 @@ bool Event::check_cfl( const Event & e ) const
 
 		  this_idx = std::find(parent->post_mem[i].begin(), parent->post_mem[i].end(),this);
 		  e_idx    = std::find(parent->post_mem[i].begin(), parent->post_mem[i].end(),&e);
-          if ( (this_idx != parent->post_mem[i].end()) && (e_idx != parent->post_mem[i].end()) )
-             return true;
+        if ( (this_idx != parent->post_mem[i].end()) && (e_idx != parent->post_mem[i].end()) )
+           return true;
   	   }
 	   return false;
    }
@@ -366,6 +366,15 @@ std::string Event::str () const
 	            idx, this, trans, code, proc, pre_proc, pre_mem);
 }
 
+std::string Event::dotstr () const
+{
+   const char * code = trans ? trans->code.str().c_str() : "";
+   int proc = trans ? trans->proc.id : -1;
+
+      return fmt ("id: %d, code: '%s' \n proc %d , src %d , dest %d",
+         idx, code, proc, trans->src, trans->dst);
+}
+
 /* Print all information for an event */
 void Event::eprint_debug() const
 {
@@ -377,7 +386,7 @@ void Event::eprint_debug() const
 			DEBUG("  Process %d: %p",i, pre_readers[i]);
 	}
 	else
-	   DEBUG(" No pre_readers");
+	   DEBUG("\n No pre_readers");
 //print post_mem
 	if (post_mem.size() != 0)
 		{
@@ -390,7 +399,7 @@ void Event::eprint_debug() const
 			}
 		}
 	else
-		   DEBUG(" No post_mem");
+		   DEBUG("\n No post_mem\n");
 
 // print post_proc
    if (post_proc.size() != 0)
@@ -400,7 +409,7 @@ void Event::eprint_debug() const
 	      printf("%p   ", post_proc[i]);
    }
    else
-      DEBUG(" No post proc");
+      DEBUG("\n No post proc");
 
 // print post_rws
    if (post_rws.size() != 0)
@@ -410,7 +419,7 @@ void Event::eprint_debug() const
             DEBUG("  Process %d: %p",i, post_rws[i]);
       }
       else
-         DEBUG(" No post rws");
+         DEBUG("\n No post rws");
 }
 
 // store all information for dot print in a string
@@ -707,7 +716,7 @@ void Config::cprint_debug () const
     	 DEBUG ("  %s", e->str().c_str());
    }
 }
-
+#if 0
 /*
  * All dot script stored in st, accumulated by adding an event to the config
  */
@@ -732,6 +741,7 @@ void Config::cprint_dot(std::string &, std::string & st)
    fs.close();
    printf("Print_dot done\n");
 }
+#endif
 
 /*
  * cprint_dot with a fixed file
@@ -741,19 +751,32 @@ void Config::cprint_dot()
    std::ofstream fs("output/conf.dot", std::fstream::out);
    if (fs.is_open() != true)
       printf("Cannot open the file\n");
-   fs << "Digraph RGraph {\n node [shape=rectangle, style=filled]";
+   DEBUG("Print dot file:\n");
+   fs << "Digraph RGraph {\n node [shape = rectangle, style = filled]";
    /*
-    * Compute maximal events: = union of latest_proc and latest_op
+    * Maximal events: = subset of latest_proc (latest events having no child)
     */
-   std::vector <Event *> maxset;
-
+   Event * p;
    for (auto e : latest_proc)
    {
-     // while ((e->is_bottom() != true) && (e->color != 1))
+      if ( (e->post_proc.empty() == true) && (e->post_rws.empty() == true) )
       {
-         fs << e->pre_mem->idx << "->" << e->idx;
-         e->color = 1;
-         e = e->pre_mem;
+         p = e;
+         while ( (p->is_bottom() != true) && (p->color == 0) )
+         {
+            p->color = 1;
+            fs << p->idx << "[id="<< p->idx << ", label=\" " << p->dotstr() << " \"];\n";
+            if (p->pre_mem == nullptr)
+            {
+               fs << p->pre_proc->idx << "->"<< p->idx << ";\n";
+               p = p->pre_proc;
+            }
+            else
+            {
+               fs << p->pre_mem->idx << "->"<< p->idx << ";\n";
+               p = p->pre_mem;
+            }
+         }
       }
    }
 
@@ -912,44 +935,35 @@ void Unfolding:: uprint_dot()
          continue;
       }
 
-      // fs << e.idx <<" [xlabel=\" " << e.trans->code.str() << " \"]\n";
-
       switch (e.trans->type)
       {
          case ir::Trans::LOC:
-            fs << e.idx << " [label= \"ID:  " << e.idx <<",  Proc: " << e.trans->proc.id <<"\nsrc: " <<e.trans->src << ",  dest: " << e.trans->dst <<"\ncode: "<< e.trans->code.str() << " \" color=yellow] \n";
+            fs << e.idx << "[id="<< e.idx << ", label=\" " << e.dotstr() << " \" color=yellow];\n";
             fs << e.pre_proc->idx << "->" << e.idx << "\n";
             break;
          case ir::Trans::WR:
-            fs << e.idx << " [label= \"ID:  " << e.idx <<",  Proc: " << e.trans->proc.id <<"\nsrc: " <<e.trans->src << ",  dest: " << e.trans->dst <<"\ncode: "<< e.trans->code.str() << " \" color=red] \n";
+            fs << e.idx << "[id="<< e.idx << ", label=\" " << e.dotstr() << " \" color=red];\n";
             for (auto const & pre : e.pre_readers)
                fs << pre->idx << " -> " << e.idx << "\n";
             break;
          default:
-            fs << e.idx << " [label= \"ID:  " << e.idx <<",  Proc: " << e.trans->proc.id <<"\nsrc: " <<e.trans->src << ",  dest: " << e.trans->dst <<"\ncode: "<< e.trans->code.str() << " \" color=lightblue] \n";
+            fs << e.idx << "[id="<< e.idx << ", label=\" " << e.dotstr() << " \" color=palegreen];\n";
             fs << e.pre_mem->idx << "->" << e.idx << "\n";
             break;
       }
       /* print conflicting edge */
-      for (unsigned i = 0; i < e.dicfl.size(); i++)
-         fs << e.idx << "->" << e.dicfl[i]->idx << "[dir=none, color=red, style=dashed]\n";
+      //for (unsigned i = 0; i < e.dicfl.size(); i++)
+         //fs << e.idx << "->" << e.dicfl[i]->idx << "[dir=none, color=red, style=dashed]\n";
    }
 
-#if 0
-   /* use post_rws to print but there are problems with LOC events */
-   for (auto & e : evt)
-   {
-      fs << e.idx << " -> { ";
-      for (auto child: e.post_rws)
-         fs << child->idx << " ";
-      fs << " };\n";
-
-      if (e.trans->type == ir::Trans::LOC)
-         fs << e.pre_proc->idx << "->" << e.idx << ";\n";
-
-   }
-#endif
-
+   for (unsigned i = 0; i < evt.size()-1; i++) // except bottom event
+      {
+         for (unsigned j = i + 1; j < evt.size(); j++)
+         {
+            if (evt[j].check_cfl(evt[i]) == true)
+               fs << evt[i].idx << "->" << evt[j].idx <<"[dir=none, color=red, style=dashed]\n";
+         }
+      }
 
    fs << "}";
    fs.close();
@@ -990,21 +1004,20 @@ void Unfolding::explore_rnd_config ()
    std::string uprintstr;
    /* Initialize the configuration */
    Config c(*this);
-   unsigned int i = 0;
+   unsigned int i = 2;
 
    while (c.en.empty() == false)
    {
-      if (c.en.size() > (i +1))
+      if (c.en.size() > (i + 1))
          c.add(i);
       else
          /* if there is only one element, take the last one */
          c.add(c.en.size() - 1);
 
-      c.cprint_debug();
+     // c.cprint_debug();
    }
-   DEBUG("Print dot file:\n");
    c.cprint_dot();
-   this->uprint_debug();
+   //this->uprint_debug();
    uprint_dot();
    return;
 }

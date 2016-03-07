@@ -37,7 +37,7 @@ Event::Event (Unfolding & u)
    , color(0)
 {
    unsigned numprocs = u.m.procs.size();
-   unsigned mem = u.m.memsize;
+   unsigned mem = u.m.memsize - numprocs;
    pre_readers.reserve(numprocs);
    post_mem.reserve(numprocs);
    post_proc.reserve(numprocs);
@@ -61,7 +61,7 @@ Event::Event (const Trans & t, Unfolding & u)
 
 {
    unsigned numprocs = u.m.procs.size();
-   unsigned mem = u.m.memsize;
+   unsigned mem = u.m.memsize - numprocs;
    pre_readers.reserve(numprocs);
    post_mem.reserve(numprocs);
    post_proc.reserve(10);
@@ -124,6 +124,7 @@ void Event::mk_history(const Config & c)
 
    ir::Process & p = this->trans->proc;
    std::vector<Process> & procs = c.unf.m.procs;
+   int varaddr = trans->var - procs.size();
 
    /*
     * e's parent is the latest event of the process
@@ -134,25 +135,25 @@ void Event::mk_history(const Config & c)
    switch (trans->type)
    {
       case ir::Trans::RD:
-    	 pre_mem  = c.latest_op[p.id][trans->var];
+         pre_mem  = c.latest_op[p.id][varaddr];
          // pre_readers stays empty for RD events
          break;
 
       case ir::Trans::WR:
-    	 pre_mem  = c.latest_wr[trans->var];
+         pre_mem  = c.latest_wr[varaddr];
         /*
          * set pre-readers = set of latest events which use the variable copies of all processes
          * size of pre-readers is numbers of copies of the variable = number of processes
          */
          for (unsigned int i = 0; i < procs.size(); i++)
          {
-            Event * temp = c.latest_op[i][trans->var];
+            Event * temp = c.latest_op[i][varaddr];
             pre_readers.push_back(temp);
          }
          break;
 
       case ir::Trans::SYN:
-         pre_mem  = c.latest_op[p.id][trans->var]; // pre_mem can be latest SYN from another process (same variable)
+         pre_mem  = c.latest_op[p.id][varaddr]; // pre_mem can be latest SYN from another process (same variable)
          break;
 
       case ir::Trans::LOC:
@@ -189,11 +190,12 @@ void Event::update_parents()
     * previous event accessing the same variable, a RD, SYN or WR
     */
    // Special case for bottom event, as a WR
-   if (pre_mem->is_bottom())
+   if (pre_mem->is_bottom() == true)
    {
-      pre_mem->post_wr.push_back(this);
       if (this->trans->type == ir::Trans::WR)
       {
+         pre_mem->post_wr.push_back(this);
+
          for (unsigned i = 0; i < pre_mem->post_mem.size(); i++)
             pre_mem->post_mem[i].push_back(this); // any process has the same children
 
@@ -205,10 +207,43 @@ void Event::update_parents()
 	   return;
    }
 
+   switch (this->trans->type)
+   {
+      case ir::Trans::WR:
+         for (auto pr : pre_readers)
+         {
+            if ( (pr->trans->type == ir::Trans::WR) || (pr->is_bottom() == true))
+            {
+               pr->post_wr.push_back(this);
+               pr->post_mem[p.id].push_back(this); // add to vector of corresponding process in pre_reader
+            }
+            else
+               pr->post_rws.push_back(this);
+         }
+         break;
+
+      case ir::Trans::RD:
+         if ( (pre_mem->trans->type == ir::Trans::WR) || (pre_mem->is_bottom() == true) )
+            pre_mem->post_mem[p.id].push_back(this); // add to vector of corresponding process in pre_reader
+         else
+            pre_mem->post_rws.push_back(this);
+         break;
+
+      case ir::Trans::SYN:
+         if ( (pre_mem->trans->type == ir::Trans::WR) || (pre_mem->is_bottom() == true) )
+            pre_mem->post_mem[p.id].push_back(this); // add to vector of corresponding process in pre_reader
+         else
+            pre_mem->post_rws.push_back(this);
+         break;
+
+      case ir::Trans::LOC:
+         break;
+   }
+/*
    switch (pre_mem->trans->type)
    {
       case ir::Trans::WR:
-    	 // pre_meme is a WR, add this event to vector for corresponding process
+    	 // pre_mem is a WR, add current event to vector of corresponding process
           pre_mem->post_rws.push_back(this);
 
          if (trans->type == ir::Trans::WR)  //if the event itsefl is a WR, add it to parentś post_wr
@@ -236,6 +271,7 @@ void Event::update_parents()
          // nothing to do
          break;
    }
+ */
 
    return ;
 }
@@ -371,7 +407,7 @@ std::string Event::dotstr () const
    const char * code = trans ? trans->code.str().c_str() : "";
    int proc = trans ? trans->proc.id : -1;
 
-      return fmt ("id: %d, code: '%s' \n proc %d , src %d , dest %d",
+      return fmt ("id: %d, code: '%s' \n proc: %d , src: %d , dest: %d",
          idx, code, proc, trans->src, trans->dst);
 }
 
@@ -383,11 +419,11 @@ void Event::eprint_debug() const
 	{
 		DEBUG(" Pre_readers:");
 		for (unsigned int i = 0; i < pre_readers.size(); i++)
-			DEBUG("  Process %d: %p",i, pre_readers[i]);
+			DEBUG("  Process %d: %d",i, pre_readers[i]->idx);
 	}
 	else
 	   DEBUG("\n No pre_readers");
-//print post_mem
+	//print post_mem
 	if (post_mem.size() != 0)
 		{
 			printf(" Post_mem:");
@@ -395,31 +431,42 @@ void Event::eprint_debug() const
 			{
 			   printf("\n  Process %d:", i);
 			   for (unsigned j = 0; j < post_mem[i].size(); j++)
-			      printf(" %p   ",post_mem[i][j]);
+			      printf(" %d   ",post_mem[i][j]->idx);
 			}
 		}
 	else
 		   DEBUG("\n No post_mem\n");
 
-// print post_proc
+	// print post_proc
    if (post_proc.size() != 0)
    {
       printf("\n Post_proc:");
 	   for (unsigned int i = 0; i < post_proc.size(); i++)
-	      printf("%p   ", post_proc[i]);
+	      printf("%d   ", post_proc[i]->idx);
    }
    else
       DEBUG("\n No post proc");
 
-// print post_rws
+   // print post_rws
    if (post_rws.size() != 0)
       {
           DEBUG("\n Post_rws:");
          for (unsigned int i = 0; i < post_rws.size(); i++)
-            DEBUG("  Process %d: %p",i, post_rws[i]);
+            DEBUG("  Process %d: %d",i, post_rws[i]->idx);
       }
       else
          DEBUG("\n No post rws");
+
+   // conflict
+   if (dicfl.size() != 0)
+         {
+             printf("\n Direct conflict:");
+            for (unsigned int i = 0; i < dicfl.size(); i++)
+               printf("  %d", dicfl[i]->idx);
+            printf("\n");
+         }
+         else
+            DEBUG("\n No conflict");
 }
 
 // store all information for dot print in a string
@@ -454,8 +501,8 @@ void Event::eprint_dot(std::string & st)
 Config::Config (Unfolding & u)
    : gstate (u.m.init_state)
    , latest_proc (u.m.procs.size (), u.bottom)
-   , latest_wr (u.m.memsize, u.bottom)
-   , latest_op (u.m.procs.size (), std::vector<Event*> (u.m.memsize, u.bottom))
+   , latest_wr (u.m.memsize - u.m.procs.size(), u.bottom)
+   , latest_op (u.m.procs.size (), std::vector<Event*> (u.m.memsize - u.m.procs.size(), u.bottom))
    , unf (u)
 {
    /* with the unf containing only bottom event */
@@ -506,6 +553,7 @@ void Config::add (unsigned idx)
 {
    assert(idx < en.size());
    Event & e = *en[idx];
+
    DEBUG ("\n%p: Config.add: %s\n", this, e.str().c_str());
 
    /* move the element en[idx] out of enable set */
@@ -515,6 +563,7 @@ void Config::add (unsigned idx)
 
    ir::Process & p              = e.trans->proc; // process of the transition of the event
    std::vector<Process> & procs = unf.m.procs; // all processes in the machine
+   int varaddr = e.trans->var - procs.size();
 
    // update the configuration
    e.trans->fire (gstate); //move to next state
@@ -525,17 +574,17 @@ void Config::add (unsigned idx)
    switch (e.trans->type)
    {
    case ir::Trans::RD:
-      latest_op[p.id][e.trans->var] = &e; // update only latest_op
+      latest_op[p.id][varaddr] = &e; // update only latest_op
       break;
 
    case ir::Trans::WR:
-      latest_wr[e.trans->var] = &e; // update latest wr event for the variable var
+      latest_wr[varaddr] = &e; // update latest wr event for the variable var
       for (unsigned int i = 0; i < procs.size(); i++)
-         latest_op[i][e.trans->var] = &e;
+         latest_op[i][varaddr] = &e;
       break;
 
    case ir::Trans::SYN:
-      latest_wr[e.trans->var]=&e;
+      latest_wr[varaddr]=&e;
       break;
 
    case ir::Trans::LOC:
@@ -547,8 +596,8 @@ void Config::add (unsigned idx)
       if (e.trans->localvars.empty() != true)
          for (auto & i: e.trans->localvars)
          {
-            latest_wr[i] = &e;
-            latest_op[p.id][i] = &e;
+            latest_wr[i - procs.size()] = &e;
+            latest_op[p.id][i - procs.size()] = &e;
          }
 
    /* remove conflicting events with event which has just been added */
@@ -687,8 +736,8 @@ void Config::remove_cfl(Event & e)
       {
          DEBUG (" Event removed: %p ", en[i]);
          e.dicfl.push_back(en[i]); // add en[i] to direct conflicting set of e
+         en[i]->dicfl.push_back(&e); // add e to direct conflict set of en[i]
          cex.push_back(en[i]);
-         //en.erase(en.begin() + i); // bad allocation
          en[i] = en.back();
          en.pop_back();
       }
@@ -758,7 +807,7 @@ void Config::cprint_dot()
     */
    Event * p;
    for (auto e : latest_proc)
-   {
+   {  /* if e is maximal event: no child event */
       if ( (e->post_proc.empty() == true) && (e->post_rws.empty() == true) )
       {
          p = e;
@@ -766,15 +815,28 @@ void Config::cprint_dot()
          {
             p->color = 1;
             fs << p->idx << "[id="<< p->idx << ", label=\" " << p->dotstr() << " \"];\n";
-            if (p->pre_mem == nullptr)
+            switch (p->trans->type)
             {
-               fs << p->pre_proc->idx << "->"<< p->idx << ";\n";
-               p = p->pre_proc;
-            }
-            else
-            {
-               fs << p->pre_mem->idx << "->"<< p->idx << ";\n";
-               p = p->pre_mem;
+               case ir::Trans::LOC:
+                  fs << p->pre_proc->idx << "->"<< p->idx << ";\n";
+                  p = p->pre_proc;
+                  break;
+               case ir::Trans::RD:
+                  fs << p->pre_mem->idx << "->"<< p->idx << ";\n";
+                  p = p->pre_mem;
+                  break;
+               case ir::Trans::SYN:
+                  fs << p->pre_mem->idx << "->"<< p->idx << ";\n";
+                  p = p->pre_mem;
+                  break;
+
+               case ir::Trans::WR:
+                  for (auto pr : p->pre_readers)
+                  {
+                     fs << pr->idx << "->"<< p->idx << ";\n";
+                  }
+                  p = p->pre_readers[0];
+                  break;
             }
          }
       }
@@ -952,10 +1014,12 @@ void Unfolding:: uprint_dot()
             break;
       }
       /* print conflicting edge */
-      //for (unsigned i = 0; i < e.dicfl.size(); i++)
-         //fs << e.idx << "->" << e.dicfl[i]->idx << "[dir=none, color=red, style=dashed]\n";
+     // for (unsigned i = 0; i < e.dicfl.size(); i++)
+       //  fs << e.idx << "->" << e.dicfl[i]->idx << "[dir=none, color=red, style=dashed]\n";
    }
 
+
+   /* don't use set of conflict in Event class */
    for (unsigned i = 0; i < evt.size()-1; i++) // except bottom event
       {
          for (unsigned j = i + 1; j < evt.size(); j++)
@@ -964,6 +1028,7 @@ void Unfolding:: uprint_dot()
                fs << evt[i].idx << "->" << evt[j].idx <<"[dir=none, color=red, style=dashed]\n";
          }
       }
+
 
    fs << "}";
    fs.close();
@@ -1004,7 +1069,7 @@ void Unfolding::explore_rnd_config ()
    std::string uprintstr;
    /* Initialize the configuration */
    Config c(*this);
-   unsigned int i = 2;
+   unsigned int i = 4;
 
    while (c.en.empty() == false)
    {
@@ -1016,8 +1081,9 @@ void Unfolding::explore_rnd_config ()
 
      // c.cprint_debug();
    }
+   c.cprint_debug();
    c.cprint_dot();
-   //this->uprint_debug();
+   this->uprint_debug();
    uprint_dot();
    return;
 }

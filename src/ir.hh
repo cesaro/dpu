@@ -54,7 +54,7 @@ class Machine
 public:
    std::vector<Process> procs;
    std::vector<Trans>   trans;
-   unsigned             memsize; // number of variable
+   unsigned             memsize; // number of variable + number of procs
 
    Machine  (unsigned memsize, unsigned numprocs, unsigned numtrans = 0);
    Machine  (const Machine & other) = delete;

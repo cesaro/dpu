@@ -32,11 +32,11 @@ public:
    Event *               pre_mem;     // parent of the event, for all events except LOCAL,
 
    // only for WR events
-   //each vector of children events for a process
+   // each vector of children events for a process
    std::vector< std::vector<Event *> >   post_mem; // size = numprocs x mem
    std::vector< Event * >                pre_readers; // only for WR events
 
-   //write children of a write trans
+   // WR children of a WR trans
    std::vector<Event * > post_wr; // size = numprocs
 
    //only for RD and SYN events

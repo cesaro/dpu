@@ -47,7 +47,7 @@ Event::Event (Unfolding & u)
 
    // create numprocs vectors for storing event pointers
    post_mem.resize(numprocs);
-   // DEBUG ("%p: Event.ctor:", this);
+   DEBUG ("  %p: Event.ctor:", this);
 }
 
 Event::Event (const Trans & t, Unfolding & u)
@@ -71,7 +71,7 @@ Event::Event (const Trans & t, Unfolding & u)
    post_mem.resize(numprocs);
    dicfl.reserve(u.m.trans.size());
 
-   // DEBUG ("Event %p: Event.ctor: t %p: '%s'", this, &t, t.str().c_str());
+   DEBUG ("  Event %p: Event.ctor: t %p: '%s'", this, &t, t.str().c_str());
 }
 
 Event::Event (const Event & e)
@@ -120,6 +120,7 @@ void Event::mk_history(const Config & c)
     * - pre_mem     is NULL
     * - pre_readers remains empty
     */
+
    if (this->is_bottom()) return;
 
    ir::Process & p = this->trans->proc;
@@ -136,7 +137,7 @@ void Event::mk_history(const Config & c)
    {
       case ir::Trans::RD:
          pre_mem  = c.latest_op[p.id][varaddr];
-         // pre_readers stays empty for RD events
+         /* pre_readers stays empty for RD events */
          break;
 
       case ir::Trans::WR:
@@ -167,13 +168,14 @@ void Event::mk_history(const Config & c)
          pre_mem   = nullptr;
          break;
    }
-
+   DEBUG("  Make history: %s ",this->str().c_str());
 }
 /*
  * Update all events precede current event, including pre_proc, pre_mem and all pre_readers
  */
 void Event::update_parents()
 {
+   DEBUG("  Update_parents:  ");
    if (this->is_bottom())
       return;
 
@@ -189,6 +191,7 @@ void Event::update_parents()
     * update pre_mem for RD, WR and SYN event
     * previous event accessing the same variable, a RD, SYN or WR
     */
+
    // Special case for bottom event, as a WR
    if (pre_mem->is_bottom() == true)
    {
@@ -210,15 +213,19 @@ void Event::update_parents()
    switch (this->trans->type)
    {
       case ir::Trans::WR:
-         for (auto pr : pre_readers)
+         for (unsigned i = 0; i < pre_readers.size(); i++)
          {
-            if ( (pr->trans->type == ir::Trans::WR) || (pr->is_bottom() == true))
+            if ( (pre_readers[i]->trans->type == ir::Trans::WR) || (pre_readers[i]->is_bottom() == true))
             {
-               pr->post_wr.push_back(this);
-               pr->post_mem[p.id].push_back(this); // add to vector of corresponding process in pre_reader
+               printf("Pre_readers is : %d \n ", pre_readers[i]->idx);
+               pre_readers[i]->post_wr.push_back(this);
+               pre_readers[i]->post_mem[i].push_back(this); // add to vector of corresponding process in pre_reader
             }
             else
-               pr->post_rws.push_back(this);
+            {
+               printf("Pre_readers is : %d \n ", pre_readers[i]->idx);
+               pre_readers[i]->post_rws.push_back(this);
+            }
          }
          break;
 
@@ -239,39 +246,6 @@ void Event::update_parents()
       case ir::Trans::LOC:
          break;
    }
-/*
-   switch (pre_mem->trans->type)
-   {
-      case ir::Trans::WR:
-    	 // pre_mem is a WR, add current event to vector of corresponding process
-          pre_mem->post_rws.push_back(this);
-
-         if (trans->type == ir::Trans::WR)  //if the event itsefl is a WR, add it to parentś post_wr
-         {
-            pre_mem->post_wr.push_back(this);
-            for (unsigned i = 0; i < pre_mem->post_mem.size(); i++)
-               pre_mem->post_mem[i].push_back(this);
-         }
-         else
-            pre_mem->post_mem[p.id].push_back(this);
-
-         break;
-
-      case ir::Trans::RD:
-         pre_mem->post_rws.push_back(this);
-         pre_mem->post_mem[p.id].push_back(this); // update vecotr of children for process p
-         break;
-
-      case ir::Trans::SYN:
-         pre_mem->post_rws.push_back(this);
-         pre_mem->post_mem[p.id].push_back(this);
-         break;
-
-      case ir::Trans::LOC:
-         // nothing to do
-         break;
-   }
- */
 
    return ;
 }
@@ -394,11 +368,13 @@ std::string Event::str () const
 {
    const char * code = trans ? trans->code.str().c_str() : "";
    int proc = trans ? trans->proc.id : -1;
+   std::string pr;
+
    if (pre_mem != nullptr)
-      return fmt ("index: %d, %p: trans %p code: '%s' proc %d pre_proc %p pre_mem %p",
+      return fmt ("index: %d, %p: trans %p code: '%s' proc: %d pre_proc: %p pre_mem: %p  ",
          idx, this, trans, code, proc, pre_proc, pre_mem);
    else
-	  return fmt ("index: %d, %p: trans %p code: '%s' proc %d pre_proc %p pre_mem(null) %p",
+	  return fmt ("index: %d, %p: trans %p code: '%s' proc: %d pre_proc: %p pre_mem(null): %p ",
 	            idx, this, trans, code, proc, pre_proc, pre_mem);
 }
 
@@ -456,44 +432,8 @@ void Event::eprint_debug() const
       }
       else
          DEBUG("\n No post rws");
-
-   // conflict
-   if (dicfl.size() != 0)
-         {
-             printf("\n Direct conflict:");
-            for (unsigned int i = 0; i < dicfl.size(); i++)
-               printf("  %d", dicfl[i]->idx);
-            printf("\n");
-         }
-         else
-            DEBUG("\n No conflict");
 }
 
-// store all information for dot print in a string
-void Event::eprint_dot(std::string & st)
-{
-   st += std::to_string(idx) + "[shape=rectangle label=";
-   switch (trans->type)
-   {
-   case ir::Trans::WR:
-      st += "WR]";
-      for (int unsigned i = 0; i < pre_readers.size(); i++)
-         st += std::to_string(pre_readers[i]->idx) + "->" + std::to_string(idx) ;
-      break;
-   case ir::Trans::RD:
-      st += "RD]";
-         break;
-   case ir::Trans::SYN:
-         st += "SYN]";
-         break;
-   case ir::Trans::LOC:
-         st += "LOC]";
-         break;
-   }
-   st += std::to_string(pre_proc->idx) + "->" + std::to_string(idx) ;
-   st += std::to_string(pre_mem->idx) + "->" + std::to_string(idx) ;
-
-}
 /*
  *========= Methods of class Config===========
  */
@@ -559,7 +499,6 @@ void Config::add (unsigned idx)
    /* move the element en[idx] out of enable set */
    en[idx] = en.back();
    en.pop_back();
-   // e.eprint_debug();
 
    ir::Process & p              = e.trans->proc; // process of the transition of the event
    std::vector<Process> & procs = unf.m.procs; // all processes in the machine
@@ -604,87 +543,9 @@ void Config::add (unsigned idx)
    if (en.size() > 0)
       remove_cfl(e);
 
-   __print_en();
-
-   /* update en and cex set with e being added to c (before removing it from en) */
+     /* update en and cex set with e being added to c (before removing it from en) */
    __update_encex(e);
-
-   __print_en();
 }
-
-#if 0
-/*
- * add an event to config, store the event info to dot print in string st
- */
-void Config::add (unsigned idx, std::string & st)
-{
-   assert(idx < en.size());
-   Event & e = *en[idx];
-
-   ir::Process & p              = e.trans->proc; // process of the transition of the event
-   std::vector<Process> & procs = unf.m.procs; // all processes in the machine
-
-   /*
-    * Update the configuration:
-    * - fire the transition to next state
-    * - update latest_proc, latest_wr, latest_op to e (regarding e's process and variable).
-    */
-   e.trans->fire (gstate);
-
-   /* stor print_dot infos in st
-    * Mount new event to its pre_mem???
-    */
-   if (e.trans->type == ir::Trans::LOC)
-   {
-      //st += std::to_string(e.idx) + "[label=" + e.trans->code.str() + "]\n";
-      st += std::to_string(e.pre_proc->idx) + "->"+ std::to_string(e.idx) + "\n"; // for the edge with previous event in process
-   }
-
-   else
-   {
-      // st += std::to_string(e.idx) + "[label=\" " + e.trans->code.str() + "\" ]\n";
-      st += std::to_string(e.pre_mem->idx) + "->"+ std::to_string(e.idx) + "\n"; // for the edge with previous event
-   }
-
-   latest_proc[p.id] = &e; //update latest event of the process containing e.trans
-
-   //update local variables in trans
-   for (auto & i: e.trans->localvars)
-   {
-       latest_wr[i] = &e;
-       latest_op[p.id][i] = &e;
-   }
-
-   //update other attributes according to the type of transition.
-   switch (e.trans->type)
-   {
-   case ir::Trans::RD:
-      latest_op[p.id][e.trans->var] = &e; // update only latest_op
-      break;
-
-   case ir::Trans::WR:
-      latest_wr[e.trans->var] = &e; // update latest wr event for the variable var
-      for (unsigned int i = 0; i < procs.size(); i++)
-         latest_op[i][e.trans->var] = &e;
-      break;
-
-   case ir::Trans::SYN:
-      latest_wr[e.trans->var]=&e;
-      break;
-
-   case ir::Trans::LOC:
-      //nothing to do with LOC
-      break;
-   }
-
-   en[idx] = en.back();
-   en.pop_back();
-
-   /* update en and cex set with e being added to c (before removing it from en)*/
-   __update_encex(e);
-   // __print_en();
-}
-#endif
 
 /*
  * Update enabled set whenever an event e is added to c
@@ -692,7 +553,7 @@ void Config::add (unsigned idx, std::string & st)
 void Config::__update_encex (Event & e )
 {
   //Event * pe;
-   DEBUG ("%p: Config.__update_encex with last event e: id = %d, mem = %p", this, e.idx, &e);
+   DEBUG (" %p: Config.__update_encex with last event e: id = %d, mem = %p", this, e.idx, &e);
 
    std::vector<ir::Trans> & trans    = unf.m.trans; // set of transitions in the model
    std::vector <ir::Process> & procs = unf.m.procs; // set of processes in the model
@@ -708,7 +569,7 @@ void Config::__update_encex (Event & e )
    if (enable.empty() == true )
       return;
 
-   DEBUG ("New events:");
+   DEBUG (" New events:");
 
    for (auto t : enable)
    {
@@ -721,20 +582,23 @@ void Config::__update_encex (Event & e )
       //printf("After create an event:\n");
       //unf.uprint_debug();
        // this copies the event and changes its prereaders. Why????
+      DEBUG("  Unf.evt.back: id: %s \n ", unf.evt.back().str().c_str());
    }
 }
 
-
+/*
+ *  Remove all event in enable set that are in conflict with added event to the configuration
+ */
 void Config::remove_cfl(Event & e)
 {
-   DEBUG ("%p: Config.remove_cfl: with e %p", this, &e);
+   printf (" %p: Config.remove_cfl(%p): ", this, &e);
    unsigned int i = 0;
 
    while (i < en.size())
    {
       if (e.check_cfl(*en[i]) == true)
       {
-         DEBUG (" Event removed: %p ", en[i]);
+         printf ("  %p ", en[i]);
          e.dicfl.push_back(en[i]); // add en[i] to direct conflicting set of e
          en[i]->dicfl.push_back(&e); // add e to direct conflict set of en[i]
          cex.push_back(en[i]);
@@ -743,6 +607,7 @@ void Config::remove_cfl(Event & e)
       }
       else   i++;
    }
+   printf("\n");
 }
 
 
@@ -765,32 +630,6 @@ void Config::cprint_debug () const
     	 DEBUG ("  %s", e->str().c_str());
    }
 }
-#if 0
-/*
- * All dot script stored in st, accumulated by adding an event to the config
- */
-void Config::cprint_dot(std::string &, std::string & st)
-{
-   //std::ofstream fs(file, std::fstream::out);
-   //boost::filesystem::path dir ("../output");
-
-  /*
-   if(boost::filesystem::create_directory(dir))
-   {
-      printf ("Directory Created: ");
-   }
-   */
-   std::ofstream fs("output/conf.dot", std::fstream::out);
-   if (fs.is_open() != true)
-      printf("Cannot open the file\n");
-   fs << "Digraph RGraph {\n node [shape=circle]";
-
-   fs << st;
-   fs << "}";
-   fs.close();
-   printf("Print_dot done\n");
-}
-#endif
 
 /*
  * cprint_dot with a fixed file
@@ -892,6 +731,7 @@ void Unfolding::__create_bottom ()
 void Unfolding::create_event(ir::Trans & t, Config & c)
 {
    Event * e = new Event(t,*this);
+   DEBUG("  Create new event: %s ", e->str().c_str());
 
    // create an history for new event
    e->mk_history(c);
@@ -903,10 +743,12 @@ void Unfolding::create_event(ir::Trans & t, Config & c)
 
    for (auto ee :c.en)
       if ( e->is_same(*ee) == true )
+      {
+         DEBUG("  ==> It is already in the unf.");
          return;
+      }
 
    evt.push_back(*e);
-   DEBUG("  New event: id: %d, %s ", evt.back().idx, evt.back().str().c_str());
    evt.back().update_parents();
    count++;
    c.en.push_back(&evt.back());
@@ -933,54 +775,6 @@ void Unfolding:: uprint_dot(std::string ofile, std::string & st)
    fs<< "}";
    fs.close();
 }
-
-#if 0
-void Unfolding:: uprint_dot()
-{
-   std::ofstream fs("output/unf.dot", std::fstream::out);
-   fs << "Digraph RGraph {\n";
-  // fs << "node[shape = rectangle]\n";
-
-   for(unsigned i = 0; i < evt.size(); i++)
-   {
-      if (evt[i].is_bottom())
-      {
-         fs << evt[i].idx << "\n";
-         continue;
-      }
-
-      fs << evt[i].idx <<"[label =\" " << evt[i].idx << "\"] \n";
-      fs << "edge [color=black]";
-      switch (evt[i].trans->type)
-      {
-         case ir::Trans::LOC:
-            fs << evt[i].idx << "[fillcolor=green]";
-            fs << evt[i].pre_proc->idx << "->" << evt[i].idx << "\n";
-            break;
-         case ir::Trans::WR:
-            fs << evt[i].idx << "[fillcolor=red]";
-            for (auto const & pre : evt[i].pre_readers)
-               fs << pre->idx << "->" << evt[i].idx << "\n";
-            break;
-         default:
-            fs << evt[i].idx << "[fillcolor=blue]";
-            fs << evt[i].pre_mem->idx << "->" << evt[i].idx << "\n";
-      }
-
-      /* draw conflicting edge*/
-      fs << "edge [dir=none, color=red] \n";
-      for (unsigned j = i; j < evt.size(); j++)
-         if (evt[j].check_cfl(evt[i]) == true)
-            fs << evt[i].idx << "->" << evt[j].idx <<"\n";
-      /*
-       * Cannot scope with indirect conflict.
-       */
-   }
-
-   fs << "}";
-   fs.close();
-}
-#endif
 
 void Unfolding:: uprint_dot()
 {
@@ -1013,12 +807,14 @@ void Unfolding:: uprint_dot()
             fs << e.pre_mem->idx << "->" << e.idx << "\n";
             break;
       }
+
       /* print conflicting edge */
-     // for (unsigned i = 0; i < e.dicfl.size(); i++)
-       //  fs << e.idx << "->" << e.dicfl[i]->idx << "[dir=none, color=red, style=dashed]\n";
+      for (unsigned i = 0; i < e.dicfl.size(); i++)
+         if (e.dicfl[i]->idx > e.idx ) // don't repeat the relation
+            fs << e.idx << "->" << e.dicfl[i]->idx << "[dir=none, color=red, style=dashed]\n";
    }
 
-
+#if 0
    /* don't use set of conflict in Event class */
    for (unsigned i = 0; i < evt.size()-1; i++) // except bottom event
       {
@@ -1028,7 +824,7 @@ void Unfolding:: uprint_dot()
                fs << evt[i].idx << "->" << evt[j].idx <<"[dir=none, color=red, style=dashed]\n";
          }
       }
-
+#endif
 
    fs << "}";
    fs.close();
@@ -1069,7 +865,7 @@ void Unfolding::explore_rnd_config ()
    std::string uprintstr;
    /* Initialize the configuration */
    Config c(*this);
-   unsigned int i = 4;
+   unsigned int i = 0;
 
    while (c.en.empty() == false)
    {

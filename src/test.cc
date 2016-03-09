@@ -466,40 +466,72 @@ std::unique_ptr<ir::Machine> build_mul_example ()
    //  0 >  1 : v1 = 2
    t = & p.add_trans (0, 1);
    t->code.stm = ir::Stm (ir::Stm::ASGN, v1->clone (), ir::Expr::make (2));
+   t->type = ir::Trans::WR;
+   t->var = 1;
+   t->offset = 0;
+   t->localvars.clear ();
 
    //  1 >  2 : v2 = 5
    t = & p.add_trans (1, 2);
    t->code.stm = ir::Stm (ir::Stm::ASGN, v2->clone (), ir::Expr::make (5));
+   t->type = ir::Trans::WR;
+   t->var = 2;
+   t->offset = 0;
+   t->localvars.clear ();
 
    //  2 >  3 : v3 = 0
    t = & p.add_trans (2, 3);
    t->code.stm = ir::Stm (ir::Stm::ASGN, v3->clone (), ir::Expr::make (0));
+   t->type = ir::Trans::LOC;
+   t->offset = 0;
+   t->localvars.push_back(3);
 
    //  3 >  4 : v4 = 0
    t = & p.add_trans (3, 4);
    t->code.stm = ir::Stm (ir::Stm::ASGN, v4->clone (), ir::Expr::make (0));
+   t->code.stm = ir::Stm (ir::Stm::ASGN, v3->clone (), ir::Expr::make (0));
+   t->type = ir::Trans::LOC;
+   t->offset = 0;
+   t->localvars.push_back(4);
 
    //  4 >  5 : assume (v3 < v2)
    t = & p.add_trans (4, 5);
    t->code.stm = ir::Stm (ir::Stm::ASSUME,
          ir::Expr::make (ir::Expr::LT, ir::Expr::make (v3->clone()), ir::Expr::make (v2->clone ())));
+   t->code.stm = ir::Stm (ir::Stm::ASGN, v3->clone (), ir::Expr::make (0));
+   t->type = ir::Trans::RD;
+   t->var = 2;
+   t->offset = 0;
+   t->localvars.push_back(3);
 
    //  5 >  6 : v4 = v4 + v1
    t = & p.add_trans (5, 6);
    t->code.stm = ir::Stm (ir::Stm::ASGN,
          v4->clone (),
          ir::Expr::make (ir::Expr::ADD, ir::Expr::make (v4->clone()), ir::Expr::make (v1->clone ())));
+   t->type = ir::Trans::LOC;
+   // t->var = 1; no var
+   t->offset = 0;
+   t->localvars.push_back(4);
 
    //  6 >  4 : v3 = v3 + 1
    t = & p.add_trans (6, 4);
    t->code.stm = ir::Stm (ir::Stm::ASGN,
          v3->clone (),
          ir::Expr::make (ir::Expr::ADD, ir::Expr::make (v3->clone()), ir::Expr::make (1)));
+   t->type = ir::Trans::LOC;
+   t->offset = 0;
+   t->localvars.push_back(3);
 
    //  4 >  7 : assume (v3 >= v2)
    t = & p.add_trans (4, 7);
    t->code.stm = ir::Stm (ir::Stm::ASSUME,
          ir::Expr::make (ir::Expr::LE, ir::Expr::make (v2->clone()), ir::Expr::make (v3->clone ())));
+   t->type = ir::Trans::RD;
+   t->var = 2;
+   t->offset = 0;
+   t->localvars={3};
+
 
    //  7 >  8 : assume (v4 != v1 * v2)
    t = & p.add_trans (7, 8);
@@ -507,10 +539,18 @@ std::unique_ptr<ir::Machine> build_mul_example ()
          ir::Expr::make (ir::Expr::NE,
             ir::Expr::make (v4->clone ()),
             ir::Expr::make (ir::Expr::MUL, ir::Expr::make (v1->clone()), ir::Expr::make (v2->clone ()))));
+   t->type = ir::Trans::LOC;
+   t->var = 1;
+   t->offset = 0;
+   t->localvars={4};
 
    //  8 >  9 : error
    t = & p.add_trans (8, 9);
    t->code.stm = ir::Stm (ir::Stm::ERROR);
+   t->type = ir::Trans::LOC;
+   //t->var = 1;
+   t->offset = 0;
+   t->localvars.clear();
 
    //  7 > 10 : assume (v4 == v1 * v2)
    t = & p.add_trans (7, 10);
@@ -518,10 +558,17 @@ std::unique_ptr<ir::Machine> build_mul_example ()
          ir::Expr::make (ir::Expr::EQ,
             ir::Expr::make (v4->clone ()),
             ir::Expr::make (ir::Expr::MUL, ir::Expr::make (v1->clone()), ir::Expr::make (v2->clone ()))));
+   t->type = ir::Trans::LOC;
+   t->var = 1;
+   t->offset = 0;
+   t->localvars={4};
 
    // 10 > 11 : exit
    t = & p.add_trans (10, 11);
    t->code.stm = ir::Stm (ir::Stm::EXIT);
+   t->type = ir::Trans::LOC;
+   t->offset = 0;
+   t->localvars.clear();
 
    return m;
 }
@@ -647,19 +694,18 @@ void test12 ()
 
 void test13 ()
 {
-   std::vector<int> v (15, 5);
+   unsigned int i;
+   srand(time(NULL));
+   i = rand() % 10;
+   printf("%d ", i);
 }
 
 void test14()
 {
-   auto m = build_concur15_example ();
-
+   auto m = build_mul_example ();
    DEBUG ("\n%s", m->str().c_str());
-
    pes::Unfolding u (*m.get ());
-   pes::Config c(u);
-   printf("Update parent for the last event: %p \n", &u.evt.back());
-   u.evt.back().update_parents();
-   //u.evt.back().eprint_debug();
+   /* Explore a random configuration */
+   u.explore_rnd_config ();
 }
 

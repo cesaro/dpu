@@ -60,11 +60,12 @@ Event::Event (const Trans & t, Unfolding & u)
    , color(0)
 
 {
+   assert(u.count < u.evt.capacity());
    unsigned numprocs = u.m.procs.size();
    unsigned mem = u.m.memsize - numprocs;
    pre_readers.reserve(numprocs);
    post_mem.reserve(numprocs);
-   post_proc.reserve(10);
+   post_proc.reserve(u.m.trans.size());
    post_rws.reserve(mem);
    post_wr.reserve(numprocs);
    // create numprocs vectors for storing event pointers
@@ -168,85 +169,64 @@ void Event::mk_history(const Config & c)
          pre_mem   = nullptr;
          break;
    }
-   DEBUG("  Make history: %s ",this->str().c_str());
+   DEBUG("   Make history: %s ",this->str().c_str());
 }
 /*
  * Update all events precede current event, including pre_proc, pre_mem and all pre_readers
  */
 void Event::update_parents()
 {
-   DEBUG("  Update_parents:  ");
+   DEBUG("   Update_parents:  ");
    if (this->is_bottom())
       return;
 
-   Process & p  = trans->proc;
-   // current event is one of children of its previous in the same process
-   pre_proc->post_proc.push_back(this); // every event (in all types) has its pre_proc
-
-   // LOC event has no pre_mem => exit the function
-   if (this->trans->type == ir::Trans::LOC)
-	   return;
-
-   /*
-    * update pre_mem for RD, WR and SYN event
-    * previous event accessing the same variable, a RD, SYN or WR
-    */
-
-   // Special case for bottom event, as a WR
-   if (pre_mem->is_bottom() == true)
-   {
-      if (this->trans->type == ir::Trans::WR)
-      {
-         pre_mem->post_wr.push_back(this);
-
-         for (unsigned i = 0; i < pre_mem->post_mem.size(); i++)
-            pre_mem->post_mem[i].push_back(this); // any process has the same children
-
-      }
-      else
-         pre_mem->post_mem[p.id].push_back(this);
-
-      pre_mem->post_rws.push_back(this);
-	   return;
-   }
+   Process & p  = this->trans->proc;
 
    switch (this->trans->type)
    {
       case ir::Trans::WR:
+         pre_proc->post_proc.push_back(this);
+         /* update pre_mem */
+         pre_mem->post_wr.push_back(this);
          for (unsigned i = 0; i < pre_readers.size(); i++)
          {
-            if ( (pre_readers[i]->trans->type == ir::Trans::WR) || (pre_readers[i]->is_bottom() == true))
+            if ( (pre_readers[i]->is_bottom() == true) || (pre_readers[i]->trans->type == ir::Trans::WR)  )
             {
-               printf("Pre_readers is : %d \n ", pre_readers[i]->idx);
-               pre_readers[i]->post_wr.push_back(this);
                pre_readers[i]->post_mem[i].push_back(this); // add to vector of corresponding process in pre_reader
             }
             else
             {
-               printf("Pre_readers is : %d \n ", pre_readers[i]->idx);
                pre_readers[i]->post_rws.push_back(this);
             }
          }
          break;
-
       case ir::Trans::RD:
-         if ( (pre_mem->trans->type == ir::Trans::WR) || (pre_mem->is_bottom() == true) )
-            pre_mem->post_mem[p.id].push_back(this); // add to vector of corresponding process in pre_reader
+         pre_proc->post_proc.push_back(this);
+         /* update pre_mem */
+         if ( (pre_mem->is_bottom() == true) || (pre_mem->trans->type == ir::Trans::WR)   )
+            pre_mem->post_mem[p.id].push_back(this);
          else
             pre_mem->post_rws.push_back(this);
+         /* no pre_readers -> nothing to do with pre_readers */
+
          break;
 
       case ir::Trans::SYN:
-         if ( (pre_mem->trans->type == ir::Trans::WR) || (pre_mem->is_bottom() == true) )
-            pre_mem->post_mem[p.id].push_back(this); // add to vector of corresponding process in pre_reader
+         pre_proc->post_proc.push_back(this);
+         /* update pre_mem */
+         if ( (pre_mem->is_bottom() == true) || (pre_mem->trans->type == ir::Trans::WR)   )
+            pre_mem->post_mem[p.id].push_back(this);
          else
             pre_mem->post_rws.push_back(this);
+         /* no pre_readers -> nothing to do with pre_readers */
          break;
 
       case ir::Trans::LOC:
+         pre_proc->post_proc.push_back(this);
+         /* update pre_mem */
+         /* no pre_readers -> nothing to do with pre_readers */
          break;
    }
-
    return ;
 }
 
@@ -390,10 +370,10 @@ std::string Event::dotstr () const
 /* Print all information for an event */
 void Event::eprint_debug() const
 {
-	DEBUG ("Event: %s", this->str().c_str());
+	printf ("Event: %s", this->str().c_str());
 	if (pre_readers.size() != 0)
 	{
-		DEBUG(" Pre_readers:");
+		DEBUG("\n Pre_readers: ");
 		for (unsigned int i = 0; i < pre_readers.size(); i++)
 			DEBUG("  Process %d: %d",i, pre_readers[i]->idx);
 	}
@@ -402,36 +382,38 @@ void Event::eprint_debug() const
 	//print post_mem
 	if (post_mem.size() != 0)
 		{
-			printf(" Post_mem:");
+			DEBUG(" Post_mem: ");
 			for (unsigned int i = 0; i < post_mem.size(); i++)
 			{
-			   printf("\n  Process %d:", i);
+			   printf("  Process %d:", i);
 			   for (unsigned j = 0; j < post_mem[i].size(); j++)
-			      printf(" %d   ",post_mem[i][j]->idx);
+			      printf(" %d  ",post_mem[i][j]->idx);
+			   printf("\n");
 			}
 		}
 	else
-		   DEBUG("\n No post_mem\n");
+		   DEBUG(" No post_mem");
 
 	// print post_proc
    if (post_proc.size() != 0)
    {
-      printf("\n Post_proc:");
+      printf(" Post_proc: ");
 	   for (unsigned int i = 0; i < post_proc.size(); i++)
 	      printf("%d   ", post_proc[i]->idx);
+	   printf("\n");
    }
    else
-      DEBUG("\n No post proc");
+      DEBUG(" No post proc");
 
    // print post_rws
    if (post_rws.size() != 0)
       {
-          DEBUG("\n Post_rws:");
+          DEBUG(" Post_rws: ");
          for (unsigned int i = 0; i < post_rws.size(); i++)
             DEBUG("  Process %d: %d",i, post_rws[i]->idx);
       }
       else
-         DEBUG("\n No post rws");
+         DEBUG(" No post rws");
 }
 
 /*
@@ -579,10 +561,7 @@ void Config::__update_encex (Event & e )
        */
 
       unf.create_event(*t, *this);
-      //printf("After create an event:\n");
-      //unf.uprint_debug();
-       // this copies the event and changes its prereaders. Why????
-      DEBUG("  Unf.evt.back: id: %s \n ", unf.evt.back().str().c_str());
+
    }
 }
 
@@ -616,6 +595,7 @@ void Config::remove_cfl(Event & e)
  */
 void Config::cprint_debug () const
 {
+   DEBUG("%p: Config.cprint_debug:", this);
    DEBUG ("%p: latest_proc:", this);
    for (auto & e : latest_proc)
       DEBUG (" %s", e->str().c_str());
@@ -639,7 +619,7 @@ void Config::cprint_dot()
    std::ofstream fs("output/conf.dot", std::fstream::out);
    if (fs.is_open() != true)
       printf("Cannot open the file\n");
-   DEBUG("Print dot file:\n");
+   printf("\n%p: configuration exported to dot file: \"dpu/output/conf.dot\"", this);
    fs << "Digraph RGraph {\n node [shape = rectangle, style = filled]";
    /*
     * Maximal events: = subset of latest_proc (latest events having no child)
@@ -683,7 +663,7 @@ void Config::cprint_dot()
 
    fs << "}";
    fs.close();
-   printf("Print_dot done\n");
+   printf(" successfully\n");
 }
 
 /*
@@ -705,7 +685,7 @@ Unfolding::Unfolding (ir::Machine & ma)
    : m (ma)
    , colorflag(0)
 {
-   evt.reserve(1000); // maximum number of events????
+   evt.reserve(50); // maximum number of events????
    DEBUG ("%p: Unfolding.ctor: m %p", this, &m);
    __create_bottom ();
 }
@@ -731,7 +711,7 @@ void Unfolding::__create_bottom ()
 void Unfolding::create_event(ir::Trans & t, Config & c)
 {
    Event * e = new Event(t,*this);
-   DEBUG("  Create new event: %s ", e->str().c_str());
+   //DEBUG("  Create new event: %s ", e->str().c_str());
 
    // create an history for new event
    e->mk_history(c);
@@ -744,7 +724,7 @@ void Unfolding::create_event(ir::Trans & t, Config & c)
    for (auto ee :c.en)
       if ( e->is_same(*ee) == true )
       {
-         DEBUG("  ==> It is already in the unf.");
+         DEBUG("   No addition.It is already in the unf.");
          return;
       }
 
@@ -752,33 +732,23 @@ void Unfolding::create_event(ir::Trans & t, Config & c)
    evt.back().update_parents();
    count++;
    c.en.push_back(&evt.back());
+   DEBUG("   Unf.evt.back: id: %s \n ", evt.back().str().c_str());
 }
 
 void Unfolding:: uprint_debug()
 {
-   DEBUG("\n=======All events in the unfolding===========\n");
+   DEBUG("\n%p Unf.evt: ", this);
    for (auto & e : evt)
       e.eprint_debug();
-   DEBUG("=======End of unfolding======================");
 }
 /*
- * Print the unfolding into dot file with a string as input.
+ * Print the unfolding into dot file.
  */
-void Unfolding:: uprint_dot(std::string ofile, std::string & st)
-{
-   std::ofstream fs(ofile, std::fstream::out);
-   if (fs.is_open() != true)
-      printf("Cannot open file for unf");
-
-   fs << "Digraph RGraph {\n";
-   fs << st;
-   fs<< "}";
-   fs.close();
-}
 
 void Unfolding:: uprint_dot()
 {
    std::ofstream fs("output/unf.dot", std::fstream::out);
+   printf("\n%p: unfolding exported to dot file: \"dpu/output/unf.dot\"", this);
    fs << "Digraph RGraph {\n";
    fs << "node [shape=rectangle, fontsize=10, style=filled, align=right]";
    fs << "forcelabels=true; \n ";
@@ -828,6 +798,7 @@ void Unfolding:: uprint_dot()
 
    fs << "}";
    fs.close();
+   printf(" successfully\n");
 }
 
 
@@ -865,21 +836,17 @@ void Unfolding::explore_rnd_config ()
    std::string uprintstr;
    /* Initialize the configuration */
    Config c(*this);
-   unsigned int i = 0;
+   unsigned int i;
 
    while (c.en.empty() == false)
    {
-      if (c.en.size() > (i + 1))
-         c.add(i);
-      else
-         /* if there is only one element, take the last one */
-         c.add(c.en.size() - 1);
-
-     // c.cprint_debug();
+      srand(time(NULL));
+      i = rand() % c.en.size();
+      c.add(i);
    }
    c.cprint_debug();
+   uprint_debug();
    c.cprint_dot();
-   this->uprint_debug();
    uprint_dot();
    return;
 }

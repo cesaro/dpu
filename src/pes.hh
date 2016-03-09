@@ -113,9 +113,6 @@ private:
    void __update_encex (Event & e, std::string &);
    void __print_en() const;
    void remove_cfl (Event & e); // modify e.dicfl
-   void remove_cfl (Event & e, std::string &); // st is string for print_dot
-
-
 }; // end of class Config
 
 class Unfolding

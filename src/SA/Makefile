@@ -2,37 +2,42 @@ CC = clang
 CPP = clang++
 LD = clang++
 
-INCLUDEDIR =  -I/usr/include/llvm-3.5 -I/usr/include/llvm-c-3.5
-MACROSDEF = -D__STDC_CONSTANT_MACROS -D__STDC_LIMIT_MACROS
-LIBDIR = -L/usr/lib/llvm-3.5/lib
-LDLINK = -lLLVM-3.5
+LLVMCXXFLAGS=$(shell llvm-config --cppflags)
+LLVMLDFLAGS=$(shell llvm-config --ldflags)
+LLVMLIBS=$(shell llvm-config --libs all)
+
+LIBDIR = $(LLVMLDFLAGS)
+#LDLINK = -lLLVM-3.5
+LDLINK = $(LLVMLIBS) -lpthread -ldl -lncurses
 STDDEF = -std=c++11
 CPPFLAGS =
 CLFAGS =
 
-SASRC = sa.cc
+SASRC = sa.cc sa_utils.cc
 SAOBJ = $(SASRC:.cc=.o)
 EXEC = sa
+
+TESTFILE = test_thread
 
 #all: $(EXEC)
 all: run
 
 $(EXEC): $(SAOBJ)
-	$(LD) $(LDFLAGS) -o $@ $< $(LIBDIR)  $(LDLINK)
+	$(LD) $(LDFLAGS) -o $@ $(SAOBJ) $(LIBDIR)  $(LDLINK)
 
 %.o: %.cc
-	$(CPP) $(CPPFLAGS) -c $< $(INCLUDEDIR) $(MACROSDEF) $(STDDEF) 
+	$(CPP) $(CPPFLAGS) -c $< $(LLVMCXXFLAGS) $(STDDEF) 
 
-test: test.c
+$(TESTFILE): $(TESTFILE).c
 	$(CC) -o $@ $<
 
-test.ll: test.c
+$(TESTFILE).ll: $(TESTFILE).c
 	$(CC) -S -emit-llvm $< -o $@
 
 .PHONY: run clean
 
-run: $(EXEC) test.ll
-	./$(EXEC) test.ll
+run: $(EXEC) $(TESTFILE).ll
+	./$(EXEC) $(TESTFILE).ll
 
 clean:
-	@rm -f test sa *.o
+	@rm -f test sa *.o *.ll

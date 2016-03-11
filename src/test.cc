@@ -6,12 +6,16 @@
 #include <array>
 #include <memory>
 #include <algorithm>
+#include <sys/stat.h>
 
 #include "test.hh"
 #include "ir.hh"
 #include "pes.hh"
 #include "statement.hh"
 #include "verbosity.h"
+
+//#include "boost/filesystem.hpp"
+//using namespace boost::filesystem;
 
 std::unique_ptr<ir::Machine> build_concur15_example ();
 std::unique_ptr<ir::Machine> build_mul_example ();
@@ -864,10 +868,19 @@ void test12 ()
 
 void test13 ()
 {
-   unsigned int i;
-   srand(time(NULL));
-   i = rand() % 10;
-   printf("%d ", i);
+#if 0
+   const char * st = "foo";
+   const int dir_err = mkdir(st, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+   if (-1 == dir_err)
+   {
+       printf("Error creating directory!n");
+       exit(1);
+   }
+#endif
+
+
+
+
 }
 
 void test14()

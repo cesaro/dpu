@@ -12,6 +12,7 @@
 #include <fstream>
 #include <string>
 #include <algorithm>
+#include <sys/stat.h>
 
 #include "pes.hh"
 #include "misc.hh"
@@ -615,10 +616,23 @@ void Config::cprint_debug () const
  */
 void Config::cprint_dot()
 {
+   /* Create a folder namely output in case it hasn't existed. Work only in Linux */
+   DEBUG("\n%p: Config.cprint_dot:", this);
+   const char * mydir = "output";
+   struct stat st;
+   if ((stat(mydir, &st) == 0) && (((st.st_mode) & S_IFMT) == S_IFDIR))
+      DEBUG(" Directory %s already exists", mydir);
+   else
+   {
+      const int dir_err = mkdir("output1", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+      if (-1 == dir_err)
+         DEBUG("Directory already exist!");
+   }
+   printf(" The configuration exported to dot file: \"dpu/output/conf.dot\"");
    std::ofstream fs("output/conf.dot", std::fstream::out);
    if (fs.is_open() != true)
       printf("Cannot open the file\n");
-   printf("\n%p: configuration exported to dot file: \"dpu/output/conf.dot\"", this);
+
    fs << "Digraph RGraph {\n node [shape = rectangle, style = filled]";
    fs << "label =\"A random configuratiton.\"";
    fs << "edge [style=filled]";
@@ -752,9 +766,22 @@ void Unfolding:: uprint_debug()
 
 void Unfolding:: uprint_dot()
 {
+   /* Create a folder namely output in case it hasn't existed. Work only in Linux */
+   DEBUG("\n%p: Unfolding.uprint_dot:", this);
+   const char * mydir = "output";
+   struct stat st;
+   if ((stat(mydir, &st) == 0) && (((st.st_mode) & S_IFMT) == S_IFDIR))
+      DEBUG(" Directory %s already exists", mydir);
+   else
+   {
+      const int dir_err = mkdir("output", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+      if (-1 == dir_err)
+         DEBUG("Directory already exist!");
+   }
+
    std::ofstream fs("output/unf.dot", std::fstream::out);
    std::string caption = "Building multiplier";
-   printf("\n%p: unfolding exported to dot file: \"dpu/output/unf.dot\"", this);
+   printf(" Unfolding exported to dot file: \"dpu/output/unf.dot\"");
    fs << "Digraph RGraph {\n";
    fs << "label = \"Unfolding: " << caption <<"\"";
    fs << "node [shape=rectangle, fontsize=10, style=filled, align=right]";
@@ -815,7 +842,7 @@ void Unfolding:: uprint_dot()
 
    fs << "}";
    fs.close();
-   printf(" successfully\n");
+   DEBUG(" successfully\n");
 }
 
 

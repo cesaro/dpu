@@ -6,7 +6,7 @@
 
 int main (int, char **)
 {
-   test14();
+   test7();
    return 0;
 }
 

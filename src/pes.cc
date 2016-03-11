@@ -517,7 +517,6 @@ void Config::add (unsigned idx)
       if (e.trans->localvars.empty() != true)
          for (auto & i: e.trans->localvars)
          {
-            latest_wr[i - procs.size()] = &e;
             latest_op[p.id][i - procs.size()] = &e;
          }
 
@@ -621,42 +620,47 @@ void Config::cprint_dot()
       printf("Cannot open the file\n");
    printf("\n%p: configuration exported to dot file: \"dpu/output/conf.dot\"", this);
    fs << "Digraph RGraph {\n node [shape = rectangle, style = filled]";
+   fs << "label =\"A random configuratiton.\"";
+   fs << "edge [style=filled]";
    /*
     * Maximal events: = subset of latest_proc (latest events having no child)
     */
    Event * p;
    for (auto e : latest_proc)
-   {  /* if e is maximal event: no child event */
-      if ( (e->post_proc.empty() == true) && (e->post_rws.empty() == true) )
+   {
+      if ( (e->post_proc.empty() == true) && (e->post_rws.empty() == true) ) // if e is maximal event: no child event
       {
          p = e;
          while ( (p->is_bottom() != true) && (p->color == 0) )
          {
             p->color = 1;
-            fs << p->idx << "[id="<< p->idx << ", label=\" " << p->dotstr() << " \"];\n";
             switch (p->trans->type)
             {
                case ir::Trans::LOC:
-                  fs << p->pre_proc->idx << "->"<< p->idx << ";\n";
-                  p = p->pre_proc;
+                  fs << p->idx << "[id="<< p->idx << ", label=\" " << p->dotstr() << " \" color=yellow];\n";
+                  fs << p->pre_proc->idx << "->"<< p->idx << "[color=brown];\n";
                   break;
                case ir::Trans::RD:
+                  fs << p->idx << "[id="<< p->idx << ", label=\" " << p->dotstr() << " \" color=palegreen];\n";
                   fs << p->pre_mem->idx << "->"<< p->idx << ";\n";
-                  p = p->pre_mem;
+                  fs << p->pre_proc->idx << "->"<< p->idx << "[color=brown];\n";
                   break;
                case ir::Trans::SYN:
+                  fs << p->idx << "[id="<< p->idx << ", label=\" " << p->dotstr() << " \" color=lightblue];\n";
                   fs << p->pre_mem->idx << "->"<< p->idx << ";\n";
-                  p = p->pre_mem;
+                  fs << p->pre_proc->idx << "->"<< p->idx << "[color=brown];\n";
                   break;
 
                case ir::Trans::WR:
+                  fs << p->idx << "[id="<< p->idx << ", label=\" " << p->dotstr() << " \" color=red];\n";
+                  fs << p->pre_proc->idx << "->"<< p->idx << "[color=brown];\n";
                   for (auto pr : p->pre_readers)
                   {
                      fs << pr->idx << "->"<< p->idx << ";\n";
                   }
-                  p = p->pre_readers[0];
                   break;
             }
+            p = p->pre_proc;
          }
       }
    }
@@ -724,7 +728,7 @@ void Unfolding::create_event(ir::Trans & t, Config & c)
    for (auto ee :c.en)
       if ( e->is_same(*ee) == true )
       {
-         DEBUG("   No addition.It is already in the unf.");
+         DEBUG("   No addition. It is already in the unf.");
          return;
       }
 
@@ -734,6 +738,7 @@ void Unfolding::create_event(ir::Trans & t, Config & c)
    c.en.push_back(&evt.back());
    DEBUG("   Unf.evt.back: id: %s \n ", evt.back().str().c_str());
 }
+
 
 void Unfolding:: uprint_debug()
 {
@@ -748,9 +753,12 @@ void Unfolding:: uprint_debug()
 void Unfolding:: uprint_dot()
 {
    std::ofstream fs("output/unf.dot", std::fstream::out);
+   std::string caption = "Building multiplier";
    printf("\n%p: unfolding exported to dot file: \"dpu/output/unf.dot\"", this);
    fs << "Digraph RGraph {\n";
+   fs << "label = \"Unfolding: " << caption <<"\"";
    fs << "node [shape=rectangle, fontsize=10, style=filled, align=right]";
+   fs << "edge [style=filled]";
    fs << "forcelabels=true; \n ";
 
    for(auto const & e : evt)
@@ -765,16 +773,25 @@ void Unfolding:: uprint_dot()
       {
          case ir::Trans::LOC:
             fs << e.idx << "[id="<< e.idx << ", label=\" " << e.dotstr() << " \" color=yellow];\n";
-            fs << e.pre_proc->idx << "->" << e.idx << "\n";
+            fs << e.pre_proc->idx << "->" << e.idx << "[color=brown]\n";
             break;
          case ir::Trans::WR:
             fs << e.idx << "[id="<< e.idx << ", label=\" " << e.dotstr() << " \" color=red];\n";
+            fs << e.pre_proc->idx << "->" << e.idx << "[color=brown]\n";
             for (auto const & pre : e.pre_readers)
                fs << pre->idx << " -> " << e.idx << "\n";
             break;
-         default:
+         case ir::Trans::RD:
             fs << e.idx << "[id="<< e.idx << ", label=\" " << e.dotstr() << " \" color=palegreen];\n";
+            fs << e.pre_proc->idx << "->" << e.idx << "[color=brown]\n";
             fs << e.pre_mem->idx << "->" << e.idx << "\n";
+
+            break;
+         case ir::Trans::SYN:
+            fs << e.idx << "[id="<< e.idx << ", label=\" " << e.dotstr() << " \" color=lightblue];\n";
+            fs << e.pre_proc->idx << "->" << e.idx << "[color=brown]\n";
+            fs << e.pre_mem->idx << "->" << e.idx << "\n";
+
             break;
       }
 

@@ -261,7 +261,7 @@ void State::enabled (std::vector<Trans*> & list) const
    // we assume that the program is data-deterministic
    for (unsigned pid = 0; pid < m.procs.size(); ++pid)
    {
-      // the current pc for thread pid is a valid location of the CFG
+      //the current pc for thread pid is a valid location of the CFG
       ASSERT (tab[pid] < m.procs[pid].cfg.size());
 
       // for each transition of process pid whose src field is tab[pid]

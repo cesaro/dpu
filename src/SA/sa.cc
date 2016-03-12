@@ -7,6 +7,8 @@
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/raw_ostream.h"
 
+#include "llvm/IR/Instructions.h"
+
 #include "sa_utils.h"
 
 /** 
@@ -43,10 +45,10 @@ int numberOfThreads( llvm::Module* mod ) {
  * and the associated thread id
 */
 
-std::map<llvm::Value*, llvm::Value*> functionThreadCreation(  llvm::Module* mod ) {
-    std::map<llvm::Value*, llvm::Value*> creation;
+std::map<llvm::Value*, llvm::Function*> functionThreadCreation(  llvm::Module* mod ) {
+    std::map<llvm::Value*, llvm::Function*> creation;
     llvm::Value* key;
-    llvm::Value* value;
+    llvm::Function* value;
 
     llvm::StringRef n( PTHREADCREATE );
     llvm::Function* func = mod->getFunction( n );
@@ -59,10 +61,16 @@ std::map<llvm::Value*, llvm::Value*> functionThreadCreation(  llvm::Module* mod 
         /* arg 0 -> thread name
            arg 2 -> function name */
         key = v->getOperand( 0 );
-        value = v->getOperand( 2 );
-        creation[key] = value;
-    }
+        /* For arg2 we get a Value which is a pointer to the Function:
+           dereference the pointer and get the Function, 
+           which is a subclass of Value, therefore we can cast it */
+      llvm::Value* tmpval = v->getOperand( 2 );
+      llvm::GetElementPtrInst* ptr = static_cast<llvm::GetElementPtrInst*>( tmpval );
+      llvm::Value* ptrOp = ptr->getPointerOperand();
+      value = static_cast<llvm::Function*>( ptrOp );
 
+       creation[key] = value;
+    }
     return creation;
 }
 
@@ -117,14 +125,20 @@ int readIR( llvm::Module* mod ) {
     std::cout << nbThreads << " thread creations" << std::endl;
 
     /* Which are the functions called when threads are created? */
-    std::map<llvm::Value*, llvm::Value*> threadCreations = functionThreadCreation( mod );
+    std::map<llvm::Value*, llvm::Function*> threadCreations = functionThreadCreation( mod );
 
     /* Analyze every function individually, until pthread_join is called */
     for( auto ti = threadCreations.begin() ; ti != threadCreations.end() ; ti++ ) {
-        ti->first->dump();
-        ti->second->dump();
-        
+        llvm::Value* tid = ti->first;
+        llvm::Function* function = ti->second;
+        tid->dump();
+        function->dump();
+        std::cout << " = - = - = - =" << std::endl;
+        /* parse the blocks and get the trace */
+
     }
+
+
 
     
     return 0;

@@ -26,9 +26,6 @@ using namespace llvm;
 /* Returns the number of threads created in a module 
 */
 
-#include "llvm/IR/CallSite.h"
-
-
 int numberOfThreads( llvm::Module* mod ) {
     // TODO: support thread creation in loops
     int cnt = 0;
@@ -46,31 +43,26 @@ int numberOfThreads( llvm::Module* mod ) {
  * and the associated thread id
 */
 
-std::map<llvm::Argument*, llvm::Argument*> functionThreadCreation(  llvm::Module* mod ) {
-    std::map<llvm::Argument*, llvm::Argument*> creation;
-    llvm::Argument* key;
-    llvm::Argument* value;
+std::map<llvm::Value*, llvm::Value*> functionThreadCreation(  llvm::Module* mod ) {
+    std::map<llvm::Value*, llvm::Value*> creation;
+    llvm::Value* key;
+    llvm::Value* value;
 
-    for( auto fi = mod->getFunctionList().begin() ;
-         fi != mod->getFunctionList().end() ;
-         fi++ ) {
-        if( 0 == safeCompareFname(  PTHREADCREATE, fi->getName().str() ) ){
-            /* Okay, this is a thread creation -- parse the arguments */
-            for( auto arg = fi->getArgumentList().begin();
-                 arg != fi->getArgumentList().end();
-                 arg++ ) {
-                /* arg 0 -> thread name
-                   arg 2 -> function name */
-                if( 0 == arg->getArgNo() ) {
-                    key = arg;
-                }
-                if( 2 == arg->getArgNo() ) {
-                    value = arg;
-                }
-            } /* end for arg */
-            creation[key] = value;
-        } /* end if */
-    } /* end for fi */
+    llvm::StringRef n( PTHREADCREATE );
+    llvm::Function* func = mod->getFunction( n );
+
+    /* Get the uses of this function */
+    for( auto ui = func->use_begin(); ui != func->use_end(); ui++ ) {
+        /* Get the operands, which are actually the arguments passed 
+           to the function */
+        llvm::User* v = ui->getUser();
+        /* arg 0 -> thread name
+           arg 2 -> function name */
+        key = v->getOperand( 0 );
+        value = v->getOperand( 2 );
+        creation[key] = value;
+    }
+
     return creation;
 }
 
@@ -125,13 +117,12 @@ int readIR( llvm::Module* mod ) {
     std::cout << nbThreads << " thread creations" << std::endl;
 
     /* Which are the functions called when threads are created? */
-    std::map<llvm::Argument*, llvm::Argument*> threadCreations = functionThreadCreation( mod );
+    std::map<llvm::Value*, llvm::Value*> threadCreations = functionThreadCreation( mod );
 
     /* Analyze every function individually, until pthread_join is called */
     for( auto ti = threadCreations.begin() ; ti != threadCreations.end() ; ti++ ) {
         ti->first->dump();
         ti->second->dump();
-        std::cout << ti->first->getName().str() << "Calling " << ti->second->getName().str() << std::endl;
         
     }
 

@@ -5,7 +5,12 @@
 int b;
 
 static void* helloworld( ) {
-    printf("hello\n" );
+    if( 3 > b ) {
+        printf("hello\n" );
+    } else {
+        printf( "ola\n" );
+    }
+    return 0;
 }
 
 int main( int argc, char** argv ) {
@@ -13,6 +18,7 @@ int main( int argc, char** argv ) {
     void* ret;
     pthread_t t1, t2;
     static int a;
+    b = 2;
     i = pthread_create( &t1, NULL, &helloworld, NULL );
     j = pthread_create( &t2, NULL, &helloworld, NULL );
 

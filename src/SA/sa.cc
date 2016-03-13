@@ -97,6 +97,9 @@ bool isGlobal( llvm::Module* mod, const char* name ){
     return (var == NULL ) ? false:true;
 }
 
+/* Parse a block and its successors (recursive)
+*/
+
 void parseBasicBlock( llvm::BasicBlock* block ) {
     /* Okay, what is inside this block? */
     for( auto i = block->begin() ; i != block->end() ; i++ ) {
@@ -104,15 +107,24 @@ void parseBasicBlock( llvm::BasicBlock* block ) {
         i->print( errs() );
         std::cerr << std::endl;
     }
+
+    TerminatorInst *term = block->getTerminator();
+    int numsucc = term->getNumSuccessors();
+    std::cerr << "Terminator:" << std::endl;
+    std::cerr << "\tI have " << numsucc << " successors" << std::endl;
+    for( int i = 0 ; i < numsucc ; i++ ) { // wtf no list here?!?!
+        std::cerr << "\tSuccessor " << i << std::endl;
+        parseBasicBlock( term-> getSuccessor( i ) );
+    }
 }
 
+/* Parse the blocks used by a function, starting from its entry point
+*/
+
 void parseFunction( llvm::Function* func ) {
-    /* Iterate over the blocks of a function */
-    for( auto i = func->begin() ; i != func->end(); i++ ) {
-   errs() << "Basic block (name=" << i->getName() << ") has "
-             << i->size() << " instructions.\n";
-       parseBasicBlock( i );
-    }
+    llvm::BasicBlock* entryBlock = func->begin();
+    std::cerr << "Entry block is " << std::endl;
+    parseBasicBlock( entryBlock );
 }
 
 int readIR( llvm::Module* mod ) {
@@ -131,11 +143,9 @@ int readIR( llvm::Module* mod ) {
     for( auto ti = threadCreations.begin() ; ti != threadCreations.end() ; ti++ ) {
         llvm::Value* tid = ti->first;
         llvm::Function* function = ti->second;
-        tid->dump();
-        function->dump();
-        std::cout << " = - = - = - =" << std::endl;
-        /* parse the blocks and get the trace */
-
+        /* parse the blocks used by this function and get the trace */
+        parseFunction( function );
+        std::cerr << "------" << std::endl;
     }
 
 

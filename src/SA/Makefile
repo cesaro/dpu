@@ -19,8 +19,8 @@ EXEC = sa
 
 TESTFILE = test_thread2
 
-#all: $(EXEC)
-all: run
+all: $(EXEC)
+#all: run
 
 $(EXEC): $(SAOBJ)
 	@$(LD) $(LDFLAGS) -o $@ $(SAOBJ) $(LIBDIR)  $(LDLINK)

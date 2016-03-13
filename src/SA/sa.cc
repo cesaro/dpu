@@ -150,35 +150,6 @@ int readIR( llvm::Module* mod ) {
 
 
 
-    
-    return 0;
-
-    //    llvm::Module::FunctionListType functions = mod->getFunctionList ();
-    for( llvm::Module::iterator fi = mod->getFunctionList().begin() ;
-         fi != mod->getFunctionList().end() ;
-         fi++ ) {
-        std::cout << fi->getName().str() << std::endl;
-    }
-
-    std::cout << " === " << std::endl;
-    
-    llvm::Function *EntryFn = mod->getFunction( "main" );
-
-    
-    for (Module::iterator I = mod->begin() ; I != mod->end(); I++) {
-       Function *Fn = &*I;
-       if( Fn == EntryFn ) 
-           std::cout << "entry fn" << std::endl;
-       parseFunction( I );
-   }
-
-    
-    std::cout << " === " << std::endl;
-
-    std::cout << numberOfThreads( mod ) << " thread creations" << std::endl;
-    
-    std::cout << " === " << std::endl;
-
     return 0;
 }
 
@@ -207,18 +178,3 @@ int main(int argc, char** argv) {
     
     return EXIT_SUCCESS;
 }
-
-
-
-/*     for( auto fi = mod->getFunctionList().begin() ;
-         fi != mod->getFunctionList().end() ;
-         fi++ ) {
-        std::cout << "Function " << fi->getName().str() << std::endl;
-        llvm::AttributeSet attr = fi->getAttributes ();
-        //    attr.dump();
-        auto acc = mod -> getSublistAccess( fi );
-        
-        //        for(  ValueMap::iterator
-        std::cout << "---" << std::endl;
-}
-*/

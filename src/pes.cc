@@ -73,7 +73,7 @@ Event::Event (const Trans & t, Unfolding & u)
    post_mem.resize(numprocs);
    dicfl.reserve(u.m.trans.size());
 
-   DEBUG ("  Event %p: Event.ctor: t %p: '%s'", this, &t, t.str().c_str());
+   DEBUG ("  %p: Event.ctor: t %p: '%s'", this, &t, t.str().c_str());
 }
 
 Event::Event (const Event & e)
@@ -274,10 +274,21 @@ bool Event::check_cfl( const Event & e ) const
 {
    if (this->is_bottom() || e.is_bottom() || (*this == e) )
       return false;
+#if 0
+   /* 2 LOC in the same process: consume the same PC (same source) or wirte and read the same localvar */
+      if ((this->trans->type == ir::Trans::LOC) && (e.trans->type == ir::Trans::LOC) && (this->trans->proc.id == e.trans->proc.id) && (this->trans->src == e.trans->src))
+         return true;
+      else
+         return false;
+#endif
+   /*
+    *  a LOC event has no conflict with any other transition.
+    * "2 LOC trans sharing a localvar" doesn't matter because it depends on the PC of process.
+    */
 
-   // a LOC event has no conflict with any other transition. Leave 2 LOC trans sharing a localvar later.
    if ((this->trans->type == ir::Trans::LOC)  || (e.trans->type == ir::Trans::LOC))
       return false;
+
 
    Event * parent = pre_mem;
 
@@ -429,7 +440,6 @@ Config::Config (Unfolding & u)
    , unf (u)
 {
    /* with the unf containing only bottom event */
-   DEBUG ("Initialize a config: \n");
    DEBUG ("%p: Config.ctor", this);
    // reserve the capacity of en and cex is square root of number of trans.
 	// FIXME is this necessary ? -- Cesar
@@ -535,7 +545,7 @@ void Config::add (unsigned idx)
 void Config::__update_encex (Event & e )
 {
   //Event * pe;
-   DEBUG (" %p: Config.__update_encex with last event e: id = %d, mem = %p", this, e.idx, &e);
+   DEBUG ("%p: Config.__update_encex(%p)", this, &e);
 
    std::vector<ir::Trans> & trans    = unf.m.trans; // set of transitions in the model
    std::vector <ir::Process> & procs = unf.m.procs; // set of processes in the model
@@ -550,6 +560,10 @@ void Config::__update_encex (Event & e )
 
    if (enable.empty() == true )
       return;
+
+   DEBUG(" Transitions enabled:");
+   for (auto t: enable)
+      DEBUG("  %s", t->str().c_str());
 
    DEBUG (" New events:");
 
@@ -618,16 +632,18 @@ void Config::cprint_dot()
 {
    /* Create a folder namely output in case it hasn't existed. Work only in Linux */
    DEBUG("\n%p: Config.cprint_dot:", this);
+
    const char * mydir = "output";
    struct stat st;
    if ((stat(mydir, &st) == 0) && (((st.st_mode) & S_IFMT) == S_IFDIR))
       DEBUG(" Directory %s already exists", mydir);
    else
    {
-      const int dir_err = mkdir("output1", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+      const int dir_err = mkdir("output", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
       if (-1 == dir_err)
-         DEBUG("Directory already exist!");
+         DEBUG("Directory \"output\" has just been created!");
    }
+
    printf(" The configuration exported to dot file: \"dpu/output/conf.dot\"");
    std::ofstream fs("output/conf.dot", std::fstream::out);
    if (fs.is_open() != true)
@@ -742,7 +758,7 @@ void Unfolding::create_event(ir::Trans & t, Config & c)
    for (auto ee :c.en)
       if ( e->is_same(*ee) == true )
       {
-         DEBUG("   No addition. It is already in the unf.");
+         DEBUG("   Already in the unf as %s", ee->str().c_str());
          return;
       }
 
@@ -776,10 +792,10 @@ void Unfolding:: uprint_dot()
    {
       const int dir_err = mkdir("output", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
       if (-1 == dir_err)
-         DEBUG("Directory already exist!");
+         DEBUG("Directory output has just been created!");
    }
 
-   std::ofstream fs("output/unf.dot", std::fstream::out);
+   std::ofstream fs("output/unffff.dot", std::fstream::out);
    std::string caption = "Building multiplier";
    printf(" Unfolding exported to dot file: \"dpu/output/unf.dot\"");
    fs << "Digraph RGraph {\n";
@@ -829,7 +845,12 @@ void Unfolding:: uprint_dot()
    }
 
 #if 0
-   /* don't use set of conflict in Event class */
+   /*
+    * don't use set of conflict in Event class
+    * browse all events in the unfolding and decide if it is in conflict with the rest -> impossible
+    * because of it depends on the order an event added to the folding.
+    */
+
    for (unsigned i = 0; i < evt.size()-1; i++) // except bottom event
       {
          for (unsigned j = i + 1; j < evt.size(); j++)
@@ -874,7 +895,7 @@ void Unfolding:: explore(Config & C, std::vector<Event*> D, std::vector<Event*> 
  */
 void Unfolding::explore_rnd_config ()
 {
-   printf ("--------Start Unfolding.explore_rnd_config----------\n");
+   DEBUG ("%p: Unfolding.explore_rnd_config()",this);
    assert (evt.size () > 0);
    std::string cprintstr;
    std::string uprintstr;

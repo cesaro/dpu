@@ -124,8 +124,19 @@ bool parseInstruction( llvm::Module* mod, llvm::Instruction* ins ) {
     /* Are we calling a function? -> look at the arguments passed */
     if( llvm::CallInst::classof( ins ) ) {
         /* TODO: we do not support this yet */
-        std::cerr << "Function call not supported (yet )" << std::endl;
-    } else {
+        Function *fun = static_cast<llvm::CallInst*>(ins)->getCalledFunction();
+
+        if(  0 == safeCompareFname( LOCK, fun->getName().str() ) ) {
+            llvm::Value* val = ins->getOperand( 0 );
+            errs() << "MUTEX" << " " << val->getName() ;
+            std::cerr << " is TAKEN by " << fun->getName().str() << std::endl;
+        }
+        if(  0 == safeCompareFname( UNLOCK, fun->getName().str() ) ) {
+            llvm::Value* val = ins->getOperand( 0 );
+            errs() << "MUTEX" << " " << val->getName() ;
+            std::cerr << " is RELEASED by " << fun->getName().str() << std::endl;
+        }
+   } else {
         if( llvm::StoreInst::classof( ins ) ){
             /* Store instruction: what do we store, and where? 
              * Syntax: store <value> <pointer>  */

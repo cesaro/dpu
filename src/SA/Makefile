@@ -17,13 +17,13 @@ SASRC = sa.cc sa_utils.cc
 SAOBJ = $(SASRC:.cc=.o)
 EXEC = sa
 
-TESTFILE = test_thread
+TESTFILE = test_thread2
 
-#all: $(EXEC)
-all: run
+all: $(EXEC)
+#all: run
 
 $(EXEC): $(SAOBJ)
-	$(LD) $(LDFLAGS) -o $@ $(SAOBJ) $(LIBDIR)  $(LDLINK)
+	@$(LD) $(LDFLAGS) -o $@ $(SAOBJ) $(LIBDIR)  $(LDLINK)
 
 %.o: %.cc
 	$(CPP) $(CPPFLAGS) -c $< $(LLVMCXXFLAGS) $(STDDEF) 

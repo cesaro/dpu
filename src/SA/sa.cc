@@ -130,11 +130,18 @@ bool parseInstruction( llvm::Module* mod, llvm::Instruction* ins ) {
             /* Store instruction: what do we store, and where? 
              * Syntax: store <value> <pointer>  */
             
-                llvm::Value* val = ins->getOperand( 1 );
-                if( isGlobal( mod, val->getName() ) ) {
-                    errs() << val << " " << val->getName() ;
-                    std::cerr << "is global" << std::endl;
-                }
+            llvm::Value* val = ins->getOperand( 1 );
+            if( isGlobal( mod, val->getName() ) ) {
+                errs() << val << " " << val->getName() ;
+                std::cerr << "is global" << std::endl;
+                std::cerr << "WRITE LOCAL VALUE INTO GLOBAL VAR" << std::endl;
+            }
+            val = ins->getOperand( 0 );
+            if( isGlobal( mod, val->getName() ) ) {
+                errs() << val << " " << val->getName() ;
+                std::cerr << "is global" << std::endl;
+                std::cerr << "READ VALUE FROM GLOBAL VAR AND WRITE INTO LOCAL VAR" << std::endl;
+            }
         } else {
             if( llvm::LoadInst::classof( ins ) ){ 
                 /* Load instruction: what do we load, from where?

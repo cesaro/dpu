@@ -91,21 +91,73 @@ std::vector<const llvm::GlobalVariable*> getVariables( llvm::Module* mod ) {
 /* Is this variable a global variable? 
  */
 
-bool isGlobal( llvm::Module* mod, const char* name ){
-    llvm::StringRef n( name );
-    GlobalVariable* var = mod->getGlobalVariable( n );
+/* TODO : support backward check to support uggly stuff like
+static int a;
+int foo( int t ){
+	int* p;
+	if( t > 3 ) {
+		p = &a;
+	} else {
+		p = &t;
+	}
+	return *p;
+}
+*/
+
+
+bool isGlobal( llvm::Module* mod, llvm::StringRef name ){
+    GlobalVariable* var = mod->getGlobalVariable( name );
     return (var == NULL ) ? false:true;
+}
+
+/* Does this instruction contain a global variable?
+ * TODO : pointeurs
+ */
+
+bool parseInstruction( llvm::Module* mod, llvm::Instruction* ins ) {
+    /* look at the operands of the instruction */
+    std::cerr << " ---- " << std::endl;
+    ins->print( errs() );
+    std::cerr << "\n";
+    std::cerr << "Op code : " << ins->getOpcode() << " (" << ins->getOpcodeName() << ")" << std::endl;
+
+    /* Are we calling a function? -> look at the arguments passed */
+    if( llvm::CallInst::classof( ins ) ) {
+        /* TODO: we do not support this yet */
+        std::cerr << "Function call not supported (yet )" << std::endl;
+    } else {
+        if( llvm::StoreInst::classof( ins ) ){
+            /* Store instruction: what do we store, and where? 
+             * Syntax: store <value> <pointer>  */
+            
+                llvm::Value* val = ins->getOperand( 1 );
+                if( isGlobal( mod, val->getName() ) ) {
+                    errs() << val << " " << val->getName() ;
+                    std::cerr << "is global" << std::endl;
+                }
+        } else {
+            if( llvm::LoadInst::classof( ins ) ){ 
+                /* Load instruction: what do we load, from where?
+                 Syntax: <result> = load <pointer> */
+                llvm::Value* val = ins->getOperand( 0 );
+                if( isGlobal( mod, val->getName() ) ) {
+                    errs() << val << " " << val->getName() ;
+                    std::cerr << "is global" << std::endl;
+                }
+            }   /* end if LoadInst::classof */
+        } /* end if StoreInst::classof */
+    } /* end if CallInst::classof */
+        
+    return false;
 }
 
 /* Parse a block and its successors (recursive)
 */
 
-void parseBasicBlock( llvm::BasicBlock* block ) {
+void parseBasicBlock(llvm::Module* mod, llvm::BasicBlock* block ) {
     /* Okay, what is inside this block? */
     for( auto i = block->begin() ; i != block->end() ; i++ ) {
-        //std::cout << "Instruction: " << i->str() << std::endl;
-        i->print( errs() );
-        std::cerr << std::endl;
+        bool rc = parseInstruction( mod, i );
     }
 
     TerminatorInst *term = block->getTerminator();
@@ -114,17 +166,17 @@ void parseBasicBlock( llvm::BasicBlock* block ) {
     std::cerr << "\tI have " << numsucc << " successors" << std::endl;
     for( int i = 0 ; i < numsucc ; i++ ) { // wtf no list here?!?!
         std::cerr << "\tSuccessor " << i << std::endl;
-        parseBasicBlock( term-> getSuccessor( i ) );
+        parseBasicBlock( mod, term-> getSuccessor( i ) );
     }
 }
 
 /* Parse the blocks used by a function, starting from its entry point
 */
 
-void parseFunction( llvm::Function* func ) {
+void parseFunction( llvm::Module* mod, llvm::Function* func ) {
     llvm::BasicBlock* entryBlock = func->begin();
     std::cerr << "Entry block is " << std::endl;
-    parseBasicBlock( entryBlock );
+    parseBasicBlock( mod, entryBlock );
 }
 
 int readIR( llvm::Module* mod ) {
@@ -144,7 +196,7 @@ int readIR( llvm::Module* mod ) {
         llvm::Value* tid = ti->first;
         llvm::Function* function = ti->second;
         /* parse the blocks used by this function and get the trace */
-        parseFunction( function );
+        parseFunction( mod, function );
         std::cerr << "------" << std::endl;
     }
 

@@ -130,6 +130,7 @@ public:
    void uprint_dot();
    void explore(Config & C, std::vector<Event *> D, std::vector<Event *> A);
    void explore_rnd_config ();
+   void explore_driven_config ();
    friend Event;
 
 private :

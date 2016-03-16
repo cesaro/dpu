@@ -890,7 +890,7 @@ void test14()
 
    pes::Unfolding u (*m.get ());
 
-   /* Explore a random configuration */
-   u.explore_rnd_config ();
+   /* Explore a driven configuration */
+   u.explore_driven_config ();
 }
 

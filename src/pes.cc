@@ -795,7 +795,7 @@ void Unfolding:: uprint_dot()
          DEBUG("Directory output has just been created!");
    }
 
-   std::ofstream fs("output/unffff.dot", std::fstream::out);
+   std::ofstream fs("output/unf.dot", std::fstream::out);
    std::string caption = "Building multiplier";
    printf(" Unfolding exported to dot file: \"dpu/output/unf.dot\"");
    fs << "Digraph RGraph {\n";
@@ -908,6 +908,38 @@ void Unfolding::explore_rnd_config ()
       srand(time(NULL));
       i = rand() % c.en.size();
       c.add(i);
+   }
+   c.cprint_debug();
+   uprint_debug();
+   c.cprint_dot();
+   uprint_dot();
+   return;
+}
+/*
+ * Explore a parameter driven configuration
+ */
+void Unfolding::explore_driven_config ()
+{
+   DEBUG ("%p: Unfolding.explore_driven_config()",this);
+   assert (evt.size () > 0);
+   std::string cprintstr;
+   std::string uprintstr;
+   /* Initialize the configuration */
+   Config c(*this);
+   unsigned int i, count;
+   count = 0;
+
+   while (c.en.empty() == false)
+   {
+      srand(time(NULL));
+      i = rand() % c.en.size();
+      while ( (c.en[i]->trans->proc.id == 1) && (count < 21)) // set up when we want to add event in proc 1 (e.g: after 21 events in proc 0)
+      {
+         srand(time(NULL));
+         i = rand() % c.en.size();
+      }
+      c.add(i);
+      count++;
    }
    c.cprint_debug();
    uprint_debug();

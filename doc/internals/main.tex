@@ -1,0 +1,372 @@
+\documentclass{llncs}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[noadjust,nosort]{cite}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+%\usepackage{MnSymbol}
+%\usepackage{thmtools}
+%\usepackage{thm-restate}
+\usepackage{booktabs}
+\usepackage{figlatex}
+\usepackage{xcolor}
+\usepackage{setspace}
+\usepackage{xspace}
+\usepackage[super]{nth}
+\usepackage{multicol}
+\usepackage{microtype}
+\usepackage{wrapfig}
+\usepackage[center,width=152mm,height=235mm]{crop}
+%\usepackage[pagewise,switch]{lineno} % switch, modulo, pagewise
+\usepackage{hyperref}
+%\usepackage[linesnumbered,lined,noend,ruled]{algorithm2e}
+\usepackage[lined,noend,ruled]{algorithm2e}
+\usepackage[capitalise,english,nameinlink]{cleveref} % load after algorithm2e and hyperref
+
+\hypersetup{
+  bookmarksdepth=2,
+  bookmarksnumbered=true,
+  bookmarksopen=true,
+  bookmarksopenlevel=2,
+  colorlinks=true,
+  linktocpage=true,
+  breaklinks=true,
+  pageanchor=true,
+  allcolors=[rgb]{0.6,0.0,0.0},
+  pdftitle={DPU's data structures and algorithms},
+  pdfauthor={Huyen N.T.T, César Rodríguez}
+}
+
+\input{defs}
+
+\title{DPU's Data Structures and Algorithms}
+%\author{Huyen Nguyen \and C\'esar Rodr\'{\i}guez}
+\author{TBD}
+\institute{Université Paris 13, Sorbonne Paris Cité, LIPN, CNRS, France}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+TBD
+\end{abstract}
+
+\section{Execution Model}
+
+Relevant classes:
+\verb!Machine!,
+\verb!Process!,
+\verb!Trans!,
+\verb!State!
+
+Transition types :
+\begin{itemize}
+\item
+  \verb!RD! Represents a transition that performs a certain amount of
+  local (independent) work plus a single read operation on some global variable.
+\item
+  \verb!WR! Represents a transition that performs a certain amount of
+  local (independent) work plus a single write operation on some global variable.
+\item
+  \verb!LOC! Represents a transition that only performs local (independent)
+  operations.
+\item
+  \verb!SYN! Represents a synchronization operation, intended to model a
+  lock or unlock operation on a mutex.
+\end{itemize}
+
+\subsection{Data Structure}
+
+FIXME
+
+\section{Unfolding}
+
+Relevant classes:
+\verb!Unfolding!.
+
+\subsection{Data Structure}
+
+A vector of \verb!Event!s, a pointer to the bottom event, and a reference
+to the \verb!Machine!.
+
+\section{Event}
+Relevant classes:
+\verb!Event!.
+
+Events represent the occurrence of transitions.
+They store pointers to all their immediate causal predecessors (ICPs), and some of
+the immediate causal successors (ICSs).
+The number of ICPs is determined by the type of the transition they
+represent:
+
+\begin{itemize}
+\item \verb!LOC! events: 1 predecessor (process)
+\item \verb!SYN! events: 2 predecessors (process, last \verb!SYN! on same variable)
+\item \verb!RD!  events: 2 predecessor (process + last \verb!RD! or
+	\verb!WR! operation on the same variable)
+\item \verb!WR!  events: 1 predecessor (process) + one predecessor per
+	process (last \verb!RD! or \verb!WR! operation on that process)
+\end{itemize}
+
+The immediate causal successors of one event are determined by those events
+for which the event is an immediate causal predecessor. Some of the causal
+successors are stored in the \verb!Event! class, but not all.
+
+FIXME -- some of these events are only causal predecessors or successors,
+not necessarily immediate predecessors or successors.
+
+\subsection{Data Structure}
+
+The members of the class \verb!Event! that are relevant on each instance of
+the class depend on the type of the transition represented by the event.
+
+All kinds of events store:
+\begin{itemize}
+\item
+  \verb!trans!: a pointer to the transition it represents.
+\item
+  \verb!localvars!: vector (\verb!std::vector!) of \verb!uint32_t! values
+  containing the value of the variables whose addresses are strored in
+  \verb!this->trans->localvars!.
+\item
+  \verb!pre_proc!: (ICP) a pointer to the last event in the same thread.
+\item
+  \verb!post_proc!: (ICSs) a vector (\verb!std::vector!) of pointers to
+  the next events in the same thread.
+\end{itemize}
+%
+For \verb!SYN! events :
+\begin{itemize}
+\item
+  \verb!pre_mem!: (ICP) pointer to the last \verb!SYN! event on the same
+  variable, possibly performed by the same thread or another thread.
+  Recall that \verb!SYN! operations on the same variable induce a tree when
+  regarded unfolding-wise, and a total order (a branch of that tree) when
+  the attention is reduced to an arbitrary configuration.
+  In this regard, \verb!pre_mem! is a pointer to the node's parent in that
+  tree.
+\item
+  \verb!post_mem!: (ICSs) vector (\verb!std::vector!) of pointers to
+  the immediate next \verb!SYN! operations on the same variable, in this or
+  another thread. These are the children of the aforementionned
+  unfolding-wise tree.
+\item
+  \verb!val!: the value written by this event to the variable \verb!trans->var!
+\end{itemize}
+%
+For \verb!RD! events :
+\begin{itemize}
+\item
+  \verb!pre_mem!: (ICP) pointer to the last \verb!RD! or \verb!WR! event of
+  the same thread. Observe that we do not store anything in the
+  \verb!post_mem! vector.
+\end{itemize}
+%
+Finally, for \verb!WR! events :
+\begin{itemize}
+\item
+  \verb!pre_mem!: (causal predecessor) pointer to the last event
+  representing a \verb!WR! operation performed on the same variable.
+  Recall that \verb!WR! operations on the same variable induce a tree when
+  regarded unfolding-wise, and a total order (a branch of that tree) when
+  the attention is reduced to an arbitrary configuration.
+  In this regard, \verb!pre_mem! is a pointer to the node's parent in that
+  tree.
+\item
+  \verb!post_mem!: (causal successsor) vector (\verb!std::vector!) of
+  pointers to the next \verb!WR! operations on the same variable, in this
+  or another thread. These are the children of the aforementionned
+  unfolding-wise tree.
+\item
+  \verb!pre_readers!: (immediate and not immediate causal predecessors)
+  vector (\verb!std::vector!) of pointers to events (one per thread).
+  The event pointed is the last \verb!RD! or \verb!WR! operation on the
+  same variable performed in that thread.
+\end{itemize}
+
+FIXME - incomplete; look at my notes and fix
+
+
+\subsection{Events in Conflict with an Event}
+
+TBD.
+
+\section{Configuration}
+Relevant classes:
+\verb!Config!.
+
+\subsection{Data Structure}
+
+\begin{itemize}
+\item
+  \verb!state!: the state reached by the configuration (type \verb!ir::State!).
+\item
+  \verb!latest_proc!:
+  a vector of pointers to events. The size of the vector is the number of
+  processes. Conceptually this represents a function from the set of processes
+  to the set of events, which gives, for every process, the (unique) causally
+  maximal event of that process in the configuration.
+
+\item
+  \verb!latest_wr!
+  a vector of pointers to events. Size: the number of variables of the system.
+  Conceptually this represents a function from the set of variables
+  to the set of events, which gives, for every variable, latest (causally
+  maximal) event that wrote to the variable (that event must correspond to a
+  \verb!SYN! or \verb!WR! transition).
+
+\item
+  \verb!latest_op!
+  a vector of pointers to events. Size: the number of variables times number of
+  processes.
+  Conceptually this represents a function $f \colon P \times V \to C$,
+  where $P$ is the set of processes, $V$ is the set of variables, and $C$ the
+  set of events in the configuration.
+  The event $f (p,v)$ is the latest (causally maximal) operation that process
+  $p$ performed on variable $v$ (it will correspond to a \verb!SYN!, \verb!WR!,
+  or \verb!RD! transition).
+\end{itemize}
+
+\subsection{Enabled Events}
+
+\begin{itemize}
+\item
+  Enumerate all transitions enabled at the \verb!state!
+\item
+  Using the members variables it is easy to construct new events.
+\end{itemize}
+
+\subsection{Conflicting Extensions}
+
+
+Let $M$ be the input program model.
+Let $\unf M \eqdef \tup{E,<,\cfl,h}$ be the unfolding of $M$.
+Let $t$ be a transition of $M$ and $C \subseteq E$ a configuration of $\unf M$.
+
+In the sequel we give an algorithm to compute the \emph{conflicting extensions}
+of~$C$, defined as
+$
+\cex C \eqdef
+\set{e \in \ex C \colon \exists e' \in C,\, e \icfl{} e'},
+$
+where the \emph{extensions} of~$C$, written $\ex C$,
+are all those events outside~$C$ whose causes are included in~$C$.
+Formally,
+$
+\ex C \eqdef
+\set{e \in E \colon e \notin C \land \causes e \subseteq C}
+$, where
+$\causes e \eqdef \set{e' \in E \colon e' < e}$.
+
+Assume we are given a configuration $C$.
+We want to compute all events in $\cex C$.
+Let \verb!t! be a transition of $M$.
+For each type of transition we give a different algorithm that computes all
+events $e \in E$ such that $h(e) = t$:
+\begin{itemize}
+\item Apply \cref{a:cex_rd} if $t$ is \verb!RD! transition.
+\item Apply \cref{a:cex_syn} if $t$ is \verb!SYN! transition.
+\item Apply \cref{a:cex_wr} if $t$ is \verb!WR! transition.
+\item If $t$ is a \verb!LOC! transition, then there is no conflicting extension
+$e \in \cex C$ such that $h(e) = t$.
+\end{itemize}
+
+Let $A$ be a set.
+A \emph{comb} over~$A$ of size $n \in \N$ is an $n$-tuple
+$c \eqdef \tup{s_1, \ldots, s_n}$ of sequences $s_i \in A^*$
+over~$A$.
+Each sequence $s_i$ of the $n$-tuple is called a \emph{spike}.
+Given a comb $c$ of size~$n$,
+a \emph{combination} of $c$ is any $n$-tuple $\tup{a_1, \ldots, a_n}$
+such that $a_i$ is one of the elements of the sequence $s_i \in A^*$, for
+$i \in \set{1, \ldots, n}$.
+
+\begin{algorithm}
+\noindent
+For each event $e \in C$ such that \verb!e->trans == t!, repeat the following:
+\begin{enumerate}
+\item Set \verb!ep = e->pre_proc!
+\item Set \verb!em = e->pre_mem!
+\item If $\verb!em! < \verb!ep!$, then goto End.
+\item If \verb!em! is \verb!RD! then set \verb!em = em->pre_mem!
+\item If not it must necessarily be \verb!WR!; then set \verb!em = em->pre_readers[t->proc]!
+\item (Warning: check for the bottom event in previous calculation)
+\item
+  Create (or retrieve) an event \verb!ex! such that
+  \begin{itemize}
+  \item \verb!ex->trans = t!,
+  \item \verb!ex->pre_proc = ep!,
+  \item \verb!ex->pre_mem = em!,
+  \end{itemize}
+\item Event \verb!ex! is in $\cex C$
+\item Goto 3.
+\item End.
+\end{enumerate}
+\caption{Conflicting extesions associated to \texttt{RD} transitions.}
+\label{a:cex_rd}
+\end{algorithm}
+
+\begin{algorithm}
+\noindent
+For each event $e \in C$ such that \verb!e->trans == t!, repeat the following:
+\begin{enumerate}
+\item Set \verb!ep = e->pre_proc!
+\item Set \verb!em = e->pre_mem!
+\item If $\verb!em! < \verb!ep!$, then goto End.
+\item Set \verb!em = em->pre_mem!
+\item (Warning: check for the bottom event in previous calculation)
+\item
+  Create (or retrieve) an event \verb!ex! such that
+  \begin{itemize}
+  \item \verb!ex->trans = t!,
+  \item \verb!ex->pre_proc = ep!,
+  \item \verb!ex->pre_mem = em!,
+  \end{itemize}
+\item Event \verb!ex! is in $\cex C$
+\item Goto 3.
+\item End.
+\end{enumerate}
+\caption{Conflicting extesions associated to \texttt{SYN} transitions.}
+\label{a:cex_syn}
+\end{algorithm}
+
+\begin{algorithm}
+\noindent
+UNFINISHED.
+\caption{Conflicting extesions associated to \texttt{WR} transitions.}
+\label{a:cex_wr}
+\end{algorithm}
+
+
+
+\section{LLVM Frontend}
+
+Hypothesis:
+
+\begin{itemize}
+\item
+  \verb!pthread_create! must be called directly from the main function and not
+  in a loop.
+\item
+  \verb!printf!,
+  \verb!pthread_{create,join,mutex_lock,mutex_unlock}! are the only function calls
+  allowed (\verb!create! only in main).
+\item
+  All \verb!alloca! must be found in the first \verb!BasicBlock! of the
+  function, and no block can jump into that block (not in a loop).
+\item
+  All variables in the C program are integers.
+\end{itemize}
+
+\section{FIXMEs}
+
+- do we need \verb!post_*! ?
+
+
+%\bibliographystyle{splncs}
+%\bibliography{refs}
+
+\end{document}
+

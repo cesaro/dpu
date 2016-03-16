@@ -1,5 +1,5 @@
 
-# Copyright (C) 2010--2016  Cesar Rodriguez <cesar.rodriguez@lipn>
+# Copyright (C) 2010--2016  Cesar Rodriguez <cesar.rodriguez@lipn.fr>
 #
 # This program is free software: you can redistribute it and/or modify it
 # under the terms of the GNU General Public License as published by the Free
@@ -101,103 +101,8 @@ YACC:=bison
 	@echo "DOT $<"
 	@dot -T jpg < $< > $@
 
-%.dot : %.ll_net
-	@echo "P2D $<"
-	@src/pep2dot $< > $@
-	@#tools/pep2dot.py < $< > $@
+%.ll : %.c
+	clang -S -emit-llvm $< -o $@
 
-%.ll_net : %.cuf
-	@echo "C2P $<"
-	@tools/cuf2pep.py < $< > $@
-
-%.pt : %.ll_net
-	@echo "P2PT $<"
-	@src/pep2pt $< > $@
-
-#%.ll_net : %.pt
-#	@echo "PT2P $<"
-#	@tools/pt2pep.py < $< > $@
-
-#%.ll_net : %.mp
-#	@echo "C2P $<"
-#	@tools/mp2pep.py < $< > $@
-
-%.unf.cuf : %.ll_net
-	@echo "UNF $<"
-	@src/cunf/cunf $< --save $@
-
-%.mp.mp : %.unf.cuf
-	@echo "MER $<"
-	@tools/cmerge.py < $< > $@
-
-%.unf.cuf.tr : %.ll_net
-	tools/trt.py timeout=5000 t=cunf net=$< > $@
-
-%.unf.mci : %.ll_net
-	@echo "MLE $<"
-	@mole $< -m $@
-
-%.unf.mci.tr : %.ll_net
-	tools/trt.py timeout=900 t=mole net=$< > $@
-
-%.dl.smod.tr : %.unf.mci.tr
-	tools/trt.py timeout=1200 t=dl.smod mci=$(<:%.tr=%) > $@
-
-%.dl.cnmc.tr : %.unf.cuf.tr
-	tools/trt.py timeout=900 reps=10 t=dl.cnmc cnf cuf=$(<:%.tr=%) > $@
-
-%.dl.cndc.tr : %.unf.cuf.tr
-	tools/trt.py timeout=900 reps=10 t=dl.cndc cuf=$(<:%.tr=%) > $@
-
-%.dl.clp.tr : %.unf.mci.tr
-	tools/trt.py timeout=900 reps=10 t=dl.clp mci=$(<:%.tr=%) > $@
-
-%.dl.lola.tr : %.ll_net
-	tools/trt.py timeout=600 t=dl.lola net=$< > $@
-
-%.dl.smv.tr : %.ll_net
-	tools/trt.py timeout=120 t=dl.smv net=$< > $@
-
-%.dl.mcm.tr : %.unf.mci.tr
-	tools/trt.py timeout=600 t=dl.mcm mci=$(<:%.tr=%) > $@
-
-%.ll_net : %.xml
-	@echo "X2P $<"
-	@tools/xml2pep.pl < $< > $@
-
-%.ll_net : %.pnml
-	@echo "P2P $<"
-	@tools/pnml2pep.py < $< > $@
-
-%.ll_net : %.grml
-	@echo "G2P $<"
-	@tools/grml2pep.py < $< > $@
-
-%.r : %.dot
-	@echo "RS  $<"
-	@tools/rs.pl $< > $@
-
-%.ll_net : %.g
-	@echo "X2P $<"
-	@petrify -ip < $< | tools/stg2pep.py > $@
-
-%.dot : %.mci
-	@echo "M2D $<"
-	@mci2dot $< > $@
-
-%.punf.r.c.txt : %.ll_net
-	-punf -r -c -n=200000 -N=1 -s -t -@4 '-#' $< > $@ 2>&1
-	echo >> $@
-	echo "mci2mp:" >> $@
-	mci2mp $(basename $<).mci >> $@
-	echo >> $@
-	echo "prcompress:" >> $@
-	./prcompress -v $(basename $<).mci >> $@
-	./tools/cmerge.py < $(basename $<).pr.cuf > /dev/null 2>> $@
-
-%.punf.c.txt : %.ll_net
-	-punf -c -n=200000 -N=1 -s -t -@4 '-#' $< > $@ 2>&1
-	echo >> $@
-	echo "mci2mp:" >> $@
-	mci2mp $(basename $<).mci >> $@
-
+%.ll : %.cc
+	clang++ -S -emit-llvm $< -o $@

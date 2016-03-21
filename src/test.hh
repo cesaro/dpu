@@ -15,5 +15,6 @@ void test11 ();
 void test12 ();
 void test13 ();
 void test14 ();
+void test15 ();
 
 #endif

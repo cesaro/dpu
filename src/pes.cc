@@ -12,6 +12,7 @@
 #include <fstream>
 #include <string>
 #include <algorithm>
+#include <sys/stat.h>
 
 #include "pes.hh"
 #include "misc.hh"
@@ -72,7 +73,7 @@ Event::Event (const Trans & t, Unfolding & u)
    post_mem.resize(numprocs);
    dicfl.reserve(u.m.trans.size());
 
-   DEBUG ("  Event %p: Event.ctor: t %p: '%s'", this, &t, t.str().c_str());
+   DEBUG ("  %p: Event.ctor: t %p: '%s'", this, &t, t.str().c_str());
 }
 
 Event::Event (const Event & e)
@@ -229,13 +230,87 @@ void Event::update_parents()
    }
    return ;
 }
+/*
+ *  compute conflict extension for a RD event
+ */
+void Event:: RD_cex(Config & c)
+{
+   DEBUG(" %p, id=%d : RD conflicting extension", this, this->idx);
+   Event * ep, * em, * temp;
+   const Trans & t = *trans;
+   ep = this->pre_proc;
+   em = this->pre_mem;
 
+   while ( (em->is_bottom() != true) && (em->trans->proc.id != ep->trans->proc.id) )
+  // while (em->is_bottom() != true) // browse all events preceding this in pre_mem chain.
+   {
+      temp = new Event(t, c.unf);
+      temp->pre_proc = ep;
+      temp->pre_readers.clear();
+
+      if (em->trans->type == ir::Trans::RD)
+      {
+         temp->pre_mem  = em;
+         em             = em->pre_mem;
+      }
+      else
+      {
+         temp->pre_mem  = em->pre_readers[this->trans->proc.id];
+         em             = em->pre_readers[this->trans->proc.id];
+      }
+
+      DEBUG("  Create new event: %s ", temp->str().c_str());
+      /* Need to check the event's history before adding it to the unf
+       * Don't add events already in the unf
+       */
+      bool in_unf = false, in_cex = false;
+      for (auto & ee :c.unf.evt)
+      {
+         if ( temp->is_same(ee) == true )
+         {
+            in_unf = true;
+            DEBUG("   Already in the unf as %s", ee.str().c_str());
+            // if it is in cex -> don't add
+            for (auto ce : c.cex1)
+               if (ee.idx == ce->idx)
+               {
+                  in_cex = true;
+                  DEBUG("Event already in the cex");
+                  break; // exit from for cex1??? need reconsider
+               }
+
+            if (in_cex == false)
+            {
+               c.cex1.push_back(&ee);
+               this->dicfl.push_back(&ee);
+            }
+
+            break;
+         }
+      }
+      if (in_unf == false)
+      {
+            DEBUG("Temp doesn't exist in evt");
+            c.unf.evt.push_back(*temp);
+            c.unf.evt.back().update_parents();
+            c.unf.count++;
+            c.cex1.push_back(&c.unf.evt.back());
+            this->dicfl.push_back(&c.unf.evt.back());
+            DEBUG("   Unf.evt.back: id: %s \n ", c.unf.evt.back().str().c_str());
+      }
+   }
+}
+/*
+ * Overlap == operator
+ */
 bool Event:: operator == (const Event & e) const
 {
    return this == &e;
 }
 
-// Overlap = operator
+/*
+ * Overlap = operator
+ */
 Event & Event:: operator  = (const Event & e)
 {
    pre_proc = e.pre_proc;
@@ -273,10 +348,21 @@ bool Event::check_cfl( const Event & e ) const
 {
    if (this->is_bottom() || e.is_bottom() || (*this == e) )
       return false;
+#if 0
+   /* 2 LOC in the same process: consume the same PC (same source) or wirte and read the same localvar */
+      if ((this->trans->type == ir::Trans::LOC) && (e.trans->type == ir::Trans::LOC) && (this->trans->proc.id == e.trans->proc.id) && (this->trans->src == e.trans->src))
+         return true;
+      else
+         return false;
+#endif
+   /*
+    *  a LOC event has no conflict with any other transition.
+    * "2 LOC trans sharing a localvar" doesn't matter because it depends on the PC of process.
+    */
 
-   // a LOC event has no conflict with any other transition. Leave 2 LOC trans sharing a localvar later.
    if ((this->trans->type == ir::Trans::LOC)  || (e.trans->type == ir::Trans::LOC))
       return false;
+
 
    Event * parent = pre_mem;
 
@@ -428,7 +514,6 @@ Config::Config (Unfolding & u)
    , unf (u)
 {
    /* with the unf containing only bottom event */
-   DEBUG ("Initialize a config: \n");
    DEBUG ("%p: Config.ctor", this);
    // reserve the capacity of en and cex is square root of number of trans.
 	// FIXME is this necessary ? -- Cesar
@@ -517,7 +602,6 @@ void Config::add (unsigned idx)
       if (e.trans->localvars.empty() != true)
          for (auto & i: e.trans->localvars)
          {
-            latest_wr[i - procs.size()] = &e;
             latest_op[p.id][i - procs.size()] = &e;
          }
 
@@ -535,7 +619,7 @@ void Config::add (unsigned idx)
 void Config::__update_encex (Event & e )
 {
   //Event * pe;
-   DEBUG (" %p: Config.__update_encex with last event e: id = %d, mem = %p", this, e.idx, &e);
+   DEBUG ("%p: Config.__update_encex(%p)", this, &e);
 
    std::vector<ir::Trans> & trans    = unf.m.trans; // set of transitions in the model
    std::vector <ir::Process> & procs = unf.m.procs; // set of processes in the model
@@ -550,6 +634,10 @@ void Config::__update_encex (Event & e )
 
    if (enable.empty() == true )
       return;
+
+   DEBUG(" Transitions enabled:");
+   for (auto t: enable)
+      DEBUG("  %s", t->str().c_str());
 
    DEBUG (" New events:");
 
@@ -589,6 +677,35 @@ void Config::remove_cfl(Event & e)
    printf("\n");
 }
 
+void Config::compute_cex ()
+{
+   DEBUG("%p: Config.compute_cex: ");
+   for (auto e : latest_proc)
+   {
+      Event * p = e;
+      while (p->is_bottom() != true)
+      {
+         switch (p->trans->type)
+         {
+            case ir::Trans::RD:
+               p->RD_cex(*this);
+               break;
+            case ir::Trans::SYN:
+               DEBUG(" %p, id:%d: This is a SYN", p, p->idx);
+               break;
+            case ir::Trans::WR:
+               DEBUG(" %p, id:%d: This is a WR", p, p->idx);
+               break;
+            case ir::Trans::LOC:
+               DEBUG(" %p, id:%d: This is a LOC", p, p->idx);
+               break;
+         }
+         p = p->pre_proc;
+      }
+   }
+
+   this->__print_cex();
+}
 
 /*
  * Print all the latest events of config to console
@@ -616,47 +733,67 @@ void Config::cprint_debug () const
  */
 void Config::cprint_dot()
 {
+   /* Create a folder namely output in case it hasn't existed. Work only in Linux */
+   DEBUG("\n%p: Config.cprint_dot:", this);
+
+   const char * mydir = "output";
+   struct stat st;
+   if ((stat(mydir, &st) == 0) && (((st.st_mode) & S_IFMT) == S_IFDIR))
+      DEBUG(" Directory %s already exists", mydir);
+   else
+   {
+      const int dir_err = mkdir("output", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+      if (-1 == dir_err)
+         DEBUG("Directory \"output\" has just been created!");
+   }
+
+   printf(" The configuration exported to dot file: \"dpu/output/conf.dot\"");
    std::ofstream fs("output/conf.dot", std::fstream::out);
    if (fs.is_open() != true)
       printf("Cannot open the file\n");
-   printf("\n%p: configuration exported to dot file: \"dpu/output/conf.dot\"", this);
+
    fs << "Digraph RGraph {\n node [shape = rectangle, style = filled]";
+   fs << "label =\"A random configuratiton.\"";
+   fs << "edge [style=filled]";
    /*
     * Maximal events: = subset of latest_proc (latest events having no child)
     */
    Event * p;
    for (auto e : latest_proc)
-   {  /* if e is maximal event: no child event */
-      if ( (e->post_proc.empty() == true) && (e->post_rws.empty() == true) )
+   {
+      if ( (e->post_proc.empty() == true) && (e->post_rws.empty() == true) ) // if e is maximal event: no child event
       {
          p = e;
          while ( (p->is_bottom() != true) && (p->color == 0) )
          {
             p->color = 1;
-            fs << p->idx << "[id="<< p->idx << ", label=\" " << p->dotstr() << " \"];\n";
             switch (p->trans->type)
             {
                case ir::Trans::LOC:
-                  fs << p->pre_proc->idx << "->"<< p->idx << ";\n";
-                  p = p->pre_proc;
+                  fs << p->idx << "[id="<< p->idx << ", label=\" " << p->dotstr() << " \" color=yellow];\n";
+                  fs << p->pre_proc->idx << "->"<< p->idx << "[color=brown];\n";
                   break;
                case ir::Trans::RD:
+                  fs << p->idx << "[id="<< p->idx << ", label=\" " << p->dotstr() << " \" color=palegreen];\n";
                   fs << p->pre_mem->idx << "->"<< p->idx << ";\n";
-                  p = p->pre_mem;
+                  fs << p->pre_proc->idx << "->"<< p->idx << "[color=brown];\n";
                   break;
                case ir::Trans::SYN:
+                  fs << p->idx << "[id="<< p->idx << ", label=\" " << p->dotstr() << " \" color=lightblue];\n";
                   fs << p->pre_mem->idx << "->"<< p->idx << ";\n";
-                  p = p->pre_mem;
+                  fs << p->pre_proc->idx << "->"<< p->idx << "[color=brown];\n";
                   break;
 
                case ir::Trans::WR:
+                  fs << p->idx << "[id="<< p->idx << ", label=\" " << p->dotstr() << " \" color=red];\n";
+                  fs << p->pre_proc->idx << "->"<< p->idx << "[color=brown];\n";
                   for (auto pr : p->pre_readers)
                   {
                      fs << pr->idx << "->"<< p->idx << ";\n";
                   }
-                  p = p->pre_readers[0];
                   break;
             }
+            p = p->pre_proc;
          }
       }
    }
@@ -674,6 +811,16 @@ void Config::__print_en() const
 	DEBUG ("Enable set of config %p: size: %zu", this, en.size());
 	   for (auto & e : en)
 		   e->eprint_debug();
+}
+
+/*
+ *  Print the set of conflicting extension
+ */
+void Config::__print_cex() const
+{
+   DEBUG ("Conflicting set of config %p: size: %zu", this, cex1.size());
+      for (auto & e : cex1)
+         e->eprint_debug();
 }
 
 /*
@@ -724,7 +871,7 @@ void Unfolding::create_event(ir::Trans & t, Config & c)
    for (auto ee :c.en)
       if ( e->is_same(*ee) == true )
       {
-         DEBUG("   No addition.It is already in the unf.");
+         DEBUG("   Already in the unf as %s", ee->str().c_str());
          return;
       }
 
@@ -734,6 +881,7 @@ void Unfolding::create_event(ir::Trans & t, Config & c)
    c.en.push_back(&evt.back());
    DEBUG("   Unf.evt.back: id: %s \n ", evt.back().str().c_str());
 }
+
 
 void Unfolding:: uprint_debug()
 {
@@ -747,10 +895,26 @@ void Unfolding:: uprint_debug()
 
 void Unfolding:: uprint_dot()
 {
+   /* Create a folder namely output in case it hasn't existed. Work only in Linux */
+   DEBUG("\n%p: Unfolding.uprint_dot:", this);
+   const char * mydir = "output";
+   struct stat st;
+   if ((stat(mydir, &st) == 0) && (((st.st_mode) & S_IFMT) == S_IFDIR))
+      DEBUG(" Directory %s already exists", mydir);
+   else
+   {
+      const int dir_err = mkdir("output", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+      if (-1 == dir_err)
+         DEBUG("Directory output has just been created!");
+   }
+
    std::ofstream fs("output/unf.dot", std::fstream::out);
-   printf("\n%p: unfolding exported to dot file: \"dpu/output/unf.dot\"", this);
+   std::string caption = "Building multiplier";
+   printf(" Unfolding exported to dot file: \"dpu/output/unf.dot\"");
    fs << "Digraph RGraph {\n";
+   fs << "label = \"Unfolding: " << caption <<"\"";
    fs << "node [shape=rectangle, fontsize=10, style=filled, align=right]";
+   fs << "edge [style=filled]";
    fs << "forcelabels=true; \n ";
 
    for(auto const & e : evt)
@@ -765,16 +929,25 @@ void Unfolding:: uprint_dot()
       {
          case ir::Trans::LOC:
             fs << e.idx << "[id="<< e.idx << ", label=\" " << e.dotstr() << " \" color=yellow];\n";
-            fs << e.pre_proc->idx << "->" << e.idx << "\n";
+            fs << e.pre_proc->idx << "->" << e.idx << "[color=brown]\n";
             break;
          case ir::Trans::WR:
             fs << e.idx << "[id="<< e.idx << ", label=\" " << e.dotstr() << " \" color=red];\n";
+            fs << e.pre_proc->idx << "->" << e.idx << "[color=brown]\n";
             for (auto const & pre : e.pre_readers)
                fs << pre->idx << " -> " << e.idx << "\n";
             break;
-         default:
+         case ir::Trans::RD:
             fs << e.idx << "[id="<< e.idx << ", label=\" " << e.dotstr() << " \" color=palegreen];\n";
+            fs << e.pre_proc->idx << "->" << e.idx << "[color=brown]\n";
             fs << e.pre_mem->idx << "->" << e.idx << "\n";
+
+            break;
+         case ir::Trans::SYN:
+            fs << e.idx << "[id="<< e.idx << ", label=\" " << e.dotstr() << " \" color=lightblue];\n";
+            fs << e.pre_proc->idx << "->" << e.idx << "[color=brown]\n";
+            fs << e.pre_mem->idx << "->" << e.idx << "\n";
+
             break;
       }
 
@@ -785,7 +958,12 @@ void Unfolding:: uprint_dot()
    }
 
 #if 0
-   /* don't use set of conflict in Event class */
+   /*
+    * don't use set of conflict in Event class
+    * browse all events in the unfolding and decide if it is in conflict with the rest -> impossible
+    * because of it depends on the order an event added to the folding.
+    */
+
    for (unsigned i = 0; i < evt.size()-1; i++) // except bottom event
       {
          for (unsigned j = i + 1; j < evt.size(); j++)
@@ -798,7 +976,7 @@ void Unfolding:: uprint_dot()
 
    fs << "}";
    fs.close();
-   printf(" successfully\n");
+   DEBUG(" successfully\n");
 }
 
 
@@ -830,7 +1008,7 @@ void Unfolding:: explore(Config & C, std::vector<Event*> D, std::vector<Event*> 
  */
 void Unfolding::explore_rnd_config ()
 {
-   printf ("--------Start Unfolding.explore_rnd_config----------\n");
+   DEBUG ("%p: Unfolding.explore_rnd_config()",this);
    assert (evt.size () > 0);
    std::string cprintstr;
    std::string uprintstr;
@@ -844,8 +1022,44 @@ void Unfolding::explore_rnd_config ()
       i = rand() % c.en.size();
       c.add(i);
    }
-   c.cprint_debug();
+   //c.cprint_debug();
+
+   //c.cprint_dot();
+   c.compute_cex();
    uprint_debug();
+   uprint_dot();
+
+   return;
+}
+/*
+ * Explore a parameter driven configuration
+ */
+void Unfolding::explore_driven_config ()
+{
+   DEBUG ("%p: Unfolding.explore_driven_config()",this);
+   assert (evt.size () > 0);
+   std::string cprintstr;
+   std::string uprintstr;
+   /* Initialize the configuration */
+   Config c(*this);
+   unsigned int i, count;
+   count = 0;
+
+   while (c.en.empty() == false)
+   {
+      srand(time(NULL));
+      i = rand() % c.en.size();
+      while ( (c.en[i]->trans->proc.id == 1) && (count < 7)) // set up when we want to add event in proc 1 (e.g: after 21 events in proc 0)
+      {
+         srand(time(NULL));
+         i = rand() % c.en.size();
+      }
+      c.add(i);
+      count++;
+   }
+   // c.cprint_debug();
+   // uprint_debug();
+   c.compute_cex();
    c.cprint_dot();
    uprint_dot();
    return;

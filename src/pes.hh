@@ -60,6 +60,7 @@ public:
    void eprint_debug() const;
    bool is_bottom () const;
    bool is_same(Event &);
+   void RD_cex(Config & c);
 
 
    friend Unfolding;
@@ -93,6 +94,7 @@ public:
 
    std::vector<Event*>              en;
    std::vector<Event*>              cex;
+   std::vector<Event*>              cex1;
    Unfolding  &                     unf;
 
 
@@ -103,6 +105,7 @@ public:
    void add (unsigned idx); // update the cut and the new event
    void add (unsigned idx, std::string &);
    void add_any ();
+   void compute_cex ();
 
    void cprint_debug () const;
    void cprint_dot(std::string &, std::string &);
@@ -110,8 +113,8 @@ public:
 
 private:
    void __update_encex (Event & e);
-   void __update_encex (Event & e, std::string &);
    void __print_en() const;
+   void __print_cex() const;
    void remove_cfl (Event & e); // modify e.dicfl
 }; // end of class Config
 
@@ -127,10 +130,10 @@ public:
    Unfolding (ir::Machine & ma);
    void create_event(ir::Trans & t, Config &);
    void uprint_debug();
-   void uprint_dot(std::string, std::string &);
    void uprint_dot();
    void explore(Config & C, std::vector<Event *> D, std::vector<Event *> A);
    void explore_rnd_config ();
+   void explore_driven_config ();
    friend Event;
 
 private :

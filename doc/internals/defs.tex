@@ -1,0 +1,262 @@
+%\newcommand\comp {\mathfrak{c}}
+%\newcommand\cycles[1]  {\mathsf{Cycles}{(#1)}}
+%\newcommand\extn {\mathcal{X}}
+%\newcommand\lchist[2]  {{ {#1}\langle#2\rangle }}
+%\newcommand\lonepref   {\ppref^1_{N}}
+%\newcommand\lpg     {\leadsto_\config}
+%\newcommand\lstruc  {\mathcal{L}}
+%\newcommand\ltwopref   {\ppref^2_{N}}
+%\newcommand\maxspoilers[1]{t^{\spoils}_{#1}}
+%\newcommand\move[1] {\stackrel{#1}{\longrightarrow }}
+%\newcommand\myleq   \le
+%\newcommand\nat     {\mathrm{I\!N}}
+%\newcommand\node[1] {\mathit{#1}}
+\newcommand\pac      {\mathrel{\nearrow\!\!\!\!\!\nearrow}}
+\newcommand\rd       \propto
+%\newcommand\spoils  {\dagger}
+
+% relations
+%\newcommand\reveals  {\mathrel{\triangleright}}
+%\newcommand\ac       {\mathrel{\nearrow}}
+\newcommand\aco      {\mathrel{/\!\!/}}
+\newcommand\cfl      {\mathrel{\#}}
+\newcommand\icfl[1][]{\mathrel{\#^i_{#1}}}
+\newcommand\co       {\mathrel{\parallel}}
+\newcommand\indep    {\mathrel{\meddiamond}}
+\newcommand\depen    {\mathrel{\diamondtimes}}
+\newcommand\eqdef    {\mathrel{:=}}
+\newcommand\evolves  {\mathrel{\sqsubseteq}}
+\newcommand\evstrict {\mathrel{\sqsubset}}
+\newcommand\ispref   {\mathrel{\trianglelefteq}}
+\newcommand\icause   {\mathrel{<_i}}
+\newcommand\ifft     {\mathrel{\text{ iff }}}
+\newcommand\nco      {\mathrel{\not\!\!\;\,\co}}
+\newcommand\fire[1]  {\mathrel{\raisebox{-1.1pt}{$\xrightarrow{#1}$}}}
+
+\newcommand\extreveals  {\mathbin{-\hspace{-2.5mm}-\hspace{-2.0mm}\reveals}}
+
+% operators
+\newcommand\iscutoff[1] {\mathop{\mathsf{cutoff}} (#1)}
+\newcommand\union[1]    {\mathop{\mathit{union}} (#1)}
+\newcommand\merge[1]    {\mathop{\mathfrak{Merge}} (#1)}
+\newcommand\od[1]       {\mathop{\mathrm{od}} (#1)}
+\newcommand\amo[1]      {\mathop{\textsf{AMO}} (#1)}
+\newcommand\acyclic[1]  {\mathop{\textsf{ACY}} (#1)}
+\newcommand\bigo[1]     {\mathop{\mathcal{O}} (#1)}
+\newcommand\progloop[1] {\mathop{\mathit{ploop}} (#1)}
+\newcommand\allhist[1]  {\mathop{\mathit{Hist}} (#1)}
+\newcommand\compt[1]    {\mathop{\mathit{compat}} (#1)}
+\newcommand\conc[1]     {\mathop{\mathit{conc}} (#1)}
+\newcommand\conf[1]     {\mathop{\mathit{conf}} (#1)}
+\newcommand\cut[1]      {\mathop{\mathit{cut}} (#1)}
+\newcommand\explain[1]  {\mathop{\mathit{expl}} (#1)}
+\newcommand\lpo[1]      {\mathop{\mathit{lpo}} (#1)}
+\newcommand\marking[1]  {\mathop{\mathit{mark}} (#1)}
+\newcommand\obser[1]    {\mathop{\mathit{obs}} (#1)}
+\newcommand\peel[2]     {\mathop{\mathit{peel}}_{#2} (#1)}
+\newcommand\peelast[1]  {\mathop{\mathit{peelmax}} (#1)}
+\newcommand\reach[1]    {\mathop{\mathit{reach}} (#1)}
+\newcommand\runs[1]     {\mathop{\mathit{runs}} (#1)}
+\newcommand\sfp[1]      {\mathop{\mathit{pred}} (#1)}
+\newcommand\spoilers[1] {\mathop{\mathit{spoilers}} (#1)}
+\newcommand\state[1]    {\mathop{\mathit{state}} (#1)}
+\newcommand\succexpl[1] {\mathop{\mathit{succexpl}} (#1)}
+\newcommand\trim[2]     {\mathop{\mathit{trim}_{#2}} (#1)}
+\newcommand\trimast[1]  {\mathop{\mathit{trimmax}} (#1)}
+\newcommand\depth[1]    {\mathop{\mathit{depth}} (#1)}
+\newcommand\pe[1]       {\mathop{\mathit{pe}} (#1)}
+\newcommand\inter[1]    {\mathop{\mathit{inter}} (#1)}
+\newcommand\proc[1]     {\mathop{\mathit{proc}} (#1)}
+\newcommand\enabl[1]    {\mathop{\mathit{enabl}} (#1)}
+\newcommand\en[1]       {\mathop{\mathit{en}} (#1)}
+\newcommand\ex[1]       {\mathop{\mathit{ex}} (#1)}
+\newcommand\cex[1]      {\mathop{\mathit{cex}} (#1)}
+\newcommand\fcfl[1]     {\mathop{\mathit{\#}} (#1)}
+\newcommand\ficfl[2][]  {\mathop{\mathit{\#^i_{#1} }} (#2)}
+\newcommand\forml[1]    {\mathcal{L} (#1)}
+
+\newcommand\mult[1]     {\mathbf{#1}}
+\newcommand\sem[1]      {\mathrm{[\![{#1}]\!]}}
+\newcommand\hist[2]     {{ {#1}[\![#2]\!] }}
+\newcommand\cont[1]     {\underline{#1}}
+\newcommand\post[1]     {#1^\bullet}
+\newcommand\pre[1]      {{}^\bullet#1}
+\newcommand\support[1]  {\bar{#1}}
+\newcommand\causes[1]   {\left \lceil #1 \right \rceil}
+\newcommand\future[1]   {\left \lfloor #1 \right \rfloor}
+
+\newcommand\FIXME[1]    {\textcolor{red}{\texttt{FIXME: #1}} }
+\newcommand\anc[1]      {{#1}^\uparrow}
+\newcommand\eenr        {\mathcal{E}}
+\newcommand\enr[1]      {\mathcal{E}_{#1}}
+%\newcommand\pes         {\mathcal{E}}
+\newcommand\les         {\mathcal{E}}
+\newcommand\unf[1]      {\mathcal{U}_{#1}}
+\newcommand\unr[1]      {\mathcal{M}_{#1}}
+\newcommand\var[1]      {\mathsf{#1}}
+\newcommand\mer[1]      {\mathcal{Q}_{#1}}
+\newcommand\hst[1]      {\mathcal{H}_{#1}}
+\newcommand\trunc[1]    {\mathcal{T}_{#1}}
+\newcommand\htrunc[1]   {\widehat{\mathcal{T}}_{#1}}
+\newcommand\pref[1]     {\mathcal{P}_{#1}}
+\newcommand\precpref[1] {\mathcal{P}^\prec_{#1}}
+\newcommand\trace[1]    {\mathcal{T}_{#1}}
+\newcommand\dgraph[1]   {\mathcal{D}_{#1}}
+\newcommand\intsem[1]   {\mathcal{S}_{#1}}
+\newcommand\cutoffs     {\mathcal{K}}
+
+% abbreviations
+\newcommand\precutoff{\text{$\prec$-cutoff}}
+\newcommand\phiasym  {\phi_\ppref^\text{asym}}
+\newcommand\phicausal{\phi_\ppref^\text{causal}}
+\newcommand\phiconf  {\phi_\ppref^\text{conf}}
+\newcommand\phidead  {\phi_\ppref^\text{dead}}
+\newcommand\phidis   {\phi_\ppref^\text{dis}}
+\newcommand\phimark  {\phi_\ppref^{\text{mark},M}}
+\newcommand\phicov   {\phi_\ppref^{\text{cov},M}}
+\newcommand\phip     {\phi_\ppref}
+\newcommand\phisym   {\phi_\ppref^\text{sym}}
+
+\newcommand\mphimark {\gamma_\qpref^{\text{mark},M}}
+\newcommand\mphicon  {\gamma_\qpref^{\text{con},M}}
+\newcommand\mphiaux  {\gamma_\qpref^\text{aux}}
+\newcommand\mphiflow {\gamma_\qpref^\text{flow}}
+\newcommand\mphiasym {\gamma_\qpref^\text{asym}}
+\newcommand\mphicov  {\gamma_\qpref^{\text{cov},M}}
+\newcommand\mphigap  {\gamma_\qpref^\text{no-gap}}
+\newcommand\mphipath {\gamma_\qpref^\text{path}}
+
+\newcommand\mphiconf {\gamma_\qpref^\text{conf}}
+\newcommand\mphidis  {\gamma_\qpref^\text{dis}}
+\newcommand\mphip    {\gamma_\qpref}
+
+
+\newcommand\mcitomp  {\textsc{Mci2mp}\@\xspace}
+\newcommand\minisat  {\textsc{Minisat}\@\xspace}
+\newcommand\mole     {\textsc{Mole}\@\xspace}
+\newcommand\prcompress{\textsc{PRCompress}\@\xspace}
+\newcommand\clp      {\textsc{Clp}\@\xspace}
+\newcommand\cmerge   {\textsc{Cmerge}\@\xspace}
+\newcommand\cunf     {\textsc{Cunf}\@\xspace}
+\newcommand\poet     {\textsc{Poet}\@\xspace}
+\newcommand\nidhugg  {\textsc{Nidhugg}\@\xspace}
+\newcommand\cosyverif{\textsc{Cosyverif}\@\xspace}
+\newcommand\coloane  {\textsc{Coloane}\@\xspace}
+\newcommand\tapaal   {\textsc{Tapaal}\@\xspace}
+\newcommand\cunft    {Cunf~Toolset}
+\newcommand\cna      {\textsc{Cna}\@\xspace}
+\newcommand\punf     {\textsc{Punf}\@\xspace}
+\newcommand\salpha   {\ppref_\alpha}
+\newcommand\spcutoff {\text{sp-cutoff}}
+\newcommand\id       {\textit{id}}
+\newcommand\ep       {EP}
+\newcommand\dr       {Dr.\@\xspace}
+\newcommand\mr       {Mr.\@\xspace}
+\newcommand\prof     {Prof.\@\xspace}
+
+\newcommand\uunf     {\mathcal{U}}
+\newcommand\ppref    {\mathcal{P}}
+\newcommand\qpref    {\mathcal{Q}}
+\newcommand\con      {\mathcal{C}}
+\newcommand\N        {\mathbb{N}}
+\newcommand\Q        {\mathbb{Q}}
+\newcommand\R        {\mathbb{R}}
+\newcommand\obs      {\mathbb{O}}
+\newcommand\hhat     {\widehat h}
+\newcommand\ehat     {\widehat e}
+\newcommand\chat     {\widehat c}
+\newcommand\conhat   {\widehat \con}
+\newcommand\Hhat     {\widehat H}
+\newcommand\Ehat     {\widehat E}
+\newcommand\Bhat     {\widehat B}
+\newcommand\cgen     {\var{c_{\text{gen}} }}
+\newcommand\cpgen    {\var{c'_{\text{gen}} }}
+\newcommand\ccon     {\var{c_{\text{con}} }}
+\newcommand\ccut     {\var{c_{\text{cut}} }}
+
+\newcommand\pp       {pp.\@\xspace}
+\newcommand\viz      {viz.\@\xspace}
+\newcommand\vs       {vs.\@\xspace}
+\newcommand\wlogg    {w.l.o.g.\xspace}
+\newcommand\aka      {a.k.a.\xspace}
+\newcommand\wrt      {w.r.t.\@\xspace}
+\newcommand\cf       {cf.\@\xspace}
+\newcommand\Wlog     {W.l.o.g.\xspace}
+\newcommand\al       {al.\@\xspace}
+\newcommand\eg       {e.g.\@\xspace}
+\newcommand\etc      {etc.\@\xspace}
+\newcommand\ie       {i.e.\@\xspace}
+\newcommand\naive    {na{\"\i}ve\xspace}
+%\newcommand\st      {s.t.\@\xspace}
+\newcommand\resp     {resp.\@\xspace}
+\newcommand\nr       {nr.\@\xspace}
+\newcommand\avg      {avg.\@\xspace}
+
+% miscellaneous
+\newcommand\cod[1]   {\texttt{#1}}
+\newcommand\tup[1]   {\langle#1\rangle}
+\newcommand\set[1]   {{\{ #1 \mathclose \}}}
+\newcommand\eqtag[1] {\hfill{} \refstepcounter{equation} \label{#1} (\arabic{equation})}
+
+%\newtheorem{cor} {Corollary}
+%\newtheorem{defn}   {Definition}
+%\newtheorem{lemma}  {Lemma}
+%\newtheorem{proposition}{Proposition}
+%\newtheorem{remark} {Remark}
+%\newtheorem{theorem}   {Theorem}
+
+%\renewcommand{\algorithmicensure}{\textbf{Output}:}
+%\renewcommand{\algorithmicrequire}{\textbf{Input}:}
+%\renewcommand{\labelitemi}{\textbf{--}}
+%\renewcommand{\labelitemi}{{\footnotesize $\bullet$}}
+
+% e  equation
+% d  def
+% f  figure
+% l  lemma, line
+% s  section
+% r  remark
+% p  proposition
+% t  theorem
+% c  corollary
+% b  table
+% a  algorithm
+% x  appendix
+% h  chapter
+% n  footnote
+% m  example
+
+% for standard names
+\crefname{equation}{}{}
+\crefname{proposition}{Prop.}{Props.}
+\Crefname{proposition}{Proposition}{Propsitions}
+\crefname{section}{\S}{\S\S}
+\Crefname{section}{Section}{Sections}
+\crefname{page}{p.}{pp.}
+\Crefname{page}{Page}{Pages}
+\crefname{chapter}{Ch.}{Ch.}
+\Crefname{chapter}{Chapter}{Chapters}
+\crefname{remark}{Rmk.}{Rmks.}
+\Crefname{remark}{Remark}{Remarks}
+\crefname{appendix}{App.}{App.}
+\Crefname{appendix}{Appendix}{Appendix}
+\crefname{algorithm}{Alg.}{Alg.}
+\Crefname{algorithm}{Algorithm}{Algorithms}
+%\crefname{algocf}{algorithm}{algorithm}
+%\Crefname{algocf}{Algorithm}{Algorithm}
+\crefname{line}{line}{line}
+\Crefname{line}{Line}{Line}
+
+% for LIPICs
+\crefname{theo}{Theorem}{Theorems}
+\crefname{lem}{Lemma}{Lemmas}
+\crefname{cor}{Corollary}{Corollaries}
+\crefname{prop}{Prop.}{Props.}
+\crefname{defn}{Def.}{Defs.}
+\Crefname{defn}{Definition}{Definitions}
+\crefname{exampl}{Example}{Examples}
+\crefname{rmk}{Remark}{Remarks}
+
+%\crefname{AlgoLine}{algorithm}{algorithm}
+
+

@@ -1,0 +1,441 @@
+#include <iostream>
+#include "llvm/IR/LLVMContext.h"
+#include "llvm/IR/Module.h"
+#include "llvm/IR/Function.h"
+#include "llvm/IR/CFG.h"
+#include "llvm/IRReader/IRReader.h"
+#include "llvm/Support/SourceMgr.h"
+#include "llvm/Support/raw_ostream.h"
+
+#include "llvm/IR/Instructions.h"
+
+#include "sa_utils.h"
+#include "sa_utils.tpp"
+
+/** 
+ * - get the names of all the global variables
+ * - get the name of the function called when threads are created
+ * - start analyzing the code at the beginning of this function
+ **/
+
+using namespace std;
+using namespace llvm;
+
+#define PTHREADCREATE "pthread_create"
+#define PTHREADJOIN   "pthread_join"
+#define LOCK          "pthread_mutex_lock"
+#define UNLOCK        "pthread_mutex_unlock"
+
+/* Returns the number of threads created in a module 
+*/
+
+int numberOfThreads( llvm::Module* mod ) {
+    // TODO: support thread creation in loops
+    int cnt = 0;
+
+    llvm::StringRef n( PTHREADCREATE );
+    llvm::Function* func = mod->getFunction( n );
+    for( auto ui = func->use_begin(); ui != func->use_end(); ui++ ) {
+        cnt++;
+    }
+        
+    return cnt;
+}
+
+/* Returns the functions called when the threads are created 
+ * and the associated thread id
+*/
+
+std::map<llvm::Value*, llvm::Function*> functionThreadCreation(  llvm::Module* mod ) {
+    std::map<llvm::Value*, llvm::Function*> creation;
+    llvm::Value* key;
+    llvm::Function* value;
+
+    llvm::StringRef n( PTHREADCREATE );
+    llvm::Function* func = mod->getFunction( n );
+
+    /* Get the uses of this function */
+    for( auto ui = func->use_begin(); ui != func->use_end(); ui++ ) {
+        /* Get the operands, which are actually the arguments passed 
+           to the function */
+        llvm::User* v = ui->getUser();
+        /* arg 0 -> thread name
+           arg 2 -> function name */
+        key = v->getOperand( 0 );
+        /* For arg2 we get a Value which is a pointer to the Function:
+           dereference the pointer and get the Function, 
+           which is a subclass of Value, therefore we can cast it */
+      llvm::Value* tmpval = v->getOperand( 2 );
+      llvm::GetElementPtrInst* ptr = static_cast<llvm::GetElementPtrInst*>( tmpval );
+      llvm::Value* ptrOp = ptr->getPointerOperand();
+      value = static_cast<llvm::Function*>( ptrOp );
+
+       creation[key] = value;
+    }
+    return creation;
+}
+
+/* Get the names of all the global variables of the module
+ * Returns a vector that contains these global variables
+ */
+
+std::vector<const llvm::GlobalVariable*> getVariables( llvm::Module* mod ) {
+    std::vector<const llvm::GlobalVariable*> vec;
+    const Module::GlobalListType &globalList = mod->getGlobalList();
+    for(auto i = globalList.begin(); i != globalList.end(); i ++) {
+        const llvm::GlobalVariable* var = &(*i);
+        vec.push_back( var );
+    }
+    return vec;
+}
+
+/* check if all the local variables are allocated in the first 
+ * block of the function
+ */
+
+bool compliantAllocaFun( llvm::Function* fun ) {
+
+    /* The entry point is always the first block in the vector 
+       because blocks are push_back()'ed into this vector */
+    
+    bool firstblock = true;
+    
+    /* Get a list of the blocks used by the function */
+   
+    std::vector<llvm::BasicBlock*> visitedblocks = blocklist( fun ) ;
+    for( auto bb = visitedblocks.begin() ; bb != visitedblocks.end() ; bb++ ) {
+        if( firstblock ) {
+            firstblock = false;
+        } else {
+            for( auto ins = (*bb)->begin() ; ins != (*bb)->end() ; ins++ ) {
+                if( opcodes.AllocaInst == ins->getOpcode() ) {
+                    return false;
+                }
+            }
+        }
+    }
+    return true;
+}
+
+/* check if all the functions (main and executed by threads) are compliant
+ */
+
+bool compliantAlloca( llvm::Module* mod ) {
+
+    bool rc;
+
+    /* Get the functions we are interested in */
+    
+    llvm::Function *mainfun = mod->getFunction( llvm::StringRef( "main" ) );
+    if( ! (rc = compliantAllocaFun( mainfun ) ) ){
+        std::cerr << "Allocation not in the first block in main function" << std::endl;
+        return false;
+    }
+
+    std::map<llvm::Value*, llvm::Function*> threadsfn = functionThreadCreation( mod );
+    for( auto ti = threadsfn.begin() ; ti != threadsfn.end() ; ti++ ) {
+        if( ! (rc = compliantAllocaFun( ti->second ) ) ){
+            std::cerr << "Allocation not in the first block in function " << ti->second->getName().str() << std::endl;
+            return false;
+        }
+    }
+
+    return true;
+}
+
+
+/* Is this variable a global variable? 
+ */
+
+/* TODO : support backward check to support uggly stuff like
+static int a;
+int foo( int t ){
+	int* p;
+	if( t > 3 ) {
+		p = &a;
+	} else {
+		p = &t;
+	}
+	return *p;
+}
+*/
+
+
+bool isGlobal( llvm::Module* mod, llvm::StringRef name ){
+    GlobalVariable* var = mod->getGlobalVariable( name );
+    return (var == NULL ) ? false:true;
+}
+
+/* Does this instruction contain a global variable?
+ * TODO : pointeurs
+ */
+
+bool parseInstruction( llvm::Module* mod, llvm::Instruction* ins ) {
+    /* look at the operands of the instruction */
+    std::cerr << " ---- " << std::endl;
+    ins->print( errs() );
+    std::cerr << "\n";
+    std::cerr << "Op code : " << ins->getOpcode() << " (" << ins->getOpcodeName() << ")" << std::endl;
+
+    switch( ins->getOpcode() ) {
+        llvm::Value* val;
+        llvm::Function *fun;
+        
+    case opcodes.CallInst:
+        /* Look at the arguments passed */
+        fun = static_cast<llvm::CallInst*>(ins)->getCalledFunction();
+        if(  0 == safeCompareFname( LOCK, fun->getName().str() ) ) {
+            val = ins->getOperand( 0 );
+            errs() << "MUTEX" << " " << val->getName() ;
+            std::cerr << " is TAKEN by " << fun->getName().str() << std::endl;
+        }
+        if(  0 == safeCompareFname( UNLOCK, fun->getName().str() ) ) {
+            val = ins->getOperand( 0 );
+            errs() << "MUTEX" << " " << val->getName() ;
+            std::cerr << " is RELEASED by " << fun->getName().str() << std::endl;
+        }
+        break;
+    case opcodes.StoreInst:
+            /* Store instruction: what do we store, and where? 
+             * Syntax: store <value> <pointer>  */
+        val = ins->getOperand( 1 );
+        if( isGlobal( mod, val->getName() ) ) {
+            errs() << val << " " << val->getName() ;
+            std::cerr << "is global" << std::endl;
+            std::cerr << "WRITE LOCAL VALUE INTO GLOBAL VAR" << std::endl;
+        }
+        val = ins->getOperand( 0 );
+        if( isGlobal( mod, val->getName() ) ) {
+            errs() << val << " " << val->getName() ;
+            std::cerr << "is global" << std::endl;
+            std::cerr << "READ VALUE FROM GLOBAL VAR AND WRITE INTO LOCAL VAR" << std::endl;
+        }
+        break;
+    case opcodes.LoadInst:
+        /* Load instruction: what do we load, from where?
+           Syntax: <result> = load <pointer> */
+        val = ins->getOperand( 0 );
+        if( isGlobal( mod, val->getName() ) ) {
+            errs() << val << " " << val->getName() ;
+            std::cerr << "is global" << std::endl;
+        }
+        break;
+
+        
+        
+    default:
+        std::cerr << "Op code " << ins->getOpcode() << " not supported yet" << std::endl;
+        break;
+        
+    }
+
+
+
+    
+    return false;
+}
+
+/* Get a vector of functions called in a block */
+
+std::vector<llvm::Function*> listOfFunctionsBlock( llvm::BasicBlock* bb ) {
+
+    std::vector<llvm::Function*> functions;
+    for( auto ins = bb->begin() ; ins != bb->end() ; ins++ ) {
+        if( opcodes.CallInst == ins->getOpcode() ) {
+            llvm::Instruction* i = &(*ins);
+            llvm::Function* fun = static_cast<llvm::CallInst*>(i)->getCalledFunction();
+            if( !itemexists( functions, fun ) ) {
+                functions.push_back( fun );
+            }
+
+        }
+    }
+    return functions;
+}
+
+/* Get a vector that contains the functions called in a function
+ */
+
+std::vector<llvm::Function*> functionsCalledByFunction( llvm::Function* fun ) {
+
+    std::vector<llvm::Function*> funlist;
+
+    /* Get a list of the blocks used by the function */
+   
+    std::vector<llvm::BasicBlock*> visitedblocks = blocklist( fun ) ;
+
+    /* Get a list of the functions called in each block */
+
+    for( auto block = visitedblocks.begin() ; block != visitedblocks.end() ; block++ ) {
+        std::vector<llvm::Function*> thelist = listOfFunctionsBlock( *block );
+        funlist.insert( funlist.end(), thelist.begin(), thelist.end() );
+    }
+
+    return funlist;
+}
+
+
+/* Parse a block and its successors (recursive)
+ * TODO : loops
+*/
+
+void parseBasicBlock(llvm::Module* mod, llvm::BasicBlock* block ) {
+    /* Okay, what is inside this block? */
+    for( auto i = block->begin() ; i != block->end() ; i++ ) {
+        bool rc = parseInstruction( mod, i );
+    }
+
+    TerminatorInst *term = block->getTerminator();
+    int numsucc = term->getNumSuccessors();
+    std::cerr << "Terminator:" << std::endl;
+    std::cerr << "\tI have " << numsucc << " successors" << std::endl;
+    for( int i = 0 ; i < numsucc ; i++ ) { // wtf no list here?!?!
+        std::cerr << "\tSuccessor " << i << std::endl;
+        parseBasicBlock( mod, term-> getSuccessor( i ) );
+    }
+}
+
+/* Parse the blocks used by a function, starting from its entry point
+*/
+
+void parseFunction( llvm::Module* mod, llvm::Function* func ) {
+    llvm::BasicBlock* entryBlock = func->begin();
+    std::cerr << "Entry block is " << std::endl;
+    parseBasicBlock( mod, entryBlock );
+}
+
+/* Does the function contain unsupported function calls?
+ */
+
+bool unsupportedCalls( llvm::Module* mod, std::string fname, std::vector<std::string> allowedfn ) {
+    llvm::StringRef n( fname );
+    llvm::Function *fun = mod->getFunction( n );
+
+    std::vector<llvm::Function*> funcs = functionsCalledByFunction( fun );
+    std::vector<llvm::Function*> extra = notInList( funcs, allowedfn );
+
+    if( not extra.empty() ) {
+        std::cerr << "Function calls not allowed in the " << fname << " function:" << std::endl;
+        for( auto f = extra.begin() ; f != extra.end() ; f++ ) {
+            std::cerr << (*f)->getName().str() << std::endl;
+        }
+        return false;
+    }
+    return true;
+}
+
+/* Accept only calls to printf and mutex-related functions 
+   in the functions executed by the threads, plus thread 
+   creation/destruction in the main function. 
+   No other function calls are allowed. */
+
+bool compliantFunCalls( llvm::Module* mod ) {
+    bool rc;
+    
+    /* Visit the functions */
+
+    std::string mainname = "main";
+    std::vector<std::string> allowedmain = {"llvm.dbg.declare", "pthread_create", "pthread_join", "printf", "pthread_mutex_lock", "pthread_mutex_unlock", "pthread_mutex_init" };
+    
+    rc = unsupportedCalls( mod, mainname, allowedmain );
+    if( !rc ) {
+        return false;
+    }
+    
+    /* functions called when threads are created? */
+    
+    std::map<llvm::Value*, llvm::Function*> threadsfn = functionThreadCreation( mod );
+    std::vector<std::string> allowedthreads = { "printf", "pthread_mutex_lock", "pthread_mutex_unlock", "pthread_mutex_init" };
+
+    for( auto ti = threadsfn.begin() ; ti != threadsfn.end() ; ti++ ) {
+        std::string fname = ti->second->getName().str();
+        rc = unsupportedCalls( mod, fname, allowedthreads );
+        if( !rc ) {
+            return false;
+        }
+    }
+    return true;
+}
+
+/* Sanity check: 
+ * make sure the input file complies with our limitations 
+ * TODO : stuff with pointers
+ * TODO : thread creation in loops
+ */
+
+bool checkcompliance( llvm::Module* mod ){
+    bool rc;
+    
+    if( !(rc = compliantFunCalls( mod ))) {
+        return false;
+    }
+
+    if( !(rc = compliantAlloca( mod ))){
+        return false;
+    }
+
+    return true;
+}
+
+
+int readIR( llvm::Module* mod ) {
+    bool rc;
+    rc = checkcompliance( mod );
+
+    if( rc ) {
+        std::cout << "The file is compliant. Continue \\o/" << std::endl;
+    } else {
+        std::cerr << "The file does not comply with our limitations. Terminating." << std::endl;
+        return -1;    
+    }
+    
+    /* Get the names of the global variables of the module */
+    auto globVar = getVariables( mod );
+
+    /* Count the number of threads */
+    int nbThreads =  numberOfThreads( mod );
+    std::cout << nbThreads << " thread creations" << std::endl;
+
+    /* Which are the functions called when threads are created? */
+    std::map<llvm::Value*, llvm::Function*> threadCreations = functionThreadCreation( mod );
+
+    /* Analyze every function individually, until pthread_join is called */
+    for( auto ti = threadCreations.begin() ; ti != threadCreations.end() ; ti++ ) {
+        llvm::Value* tid = ti->first;
+        llvm::Function* function = ti->second;
+        /* parse the blocks used by this function and get the trace */
+        parseFunction( mod, function );
+        std::cerr << "------" << std::endl;
+    }
+
+
+
+    return 0;
+}
+
+
+int main(int argc, char** argv) {
+    int rc;
+
+   
+    if (argc < 2) {
+        std::cerr << "Expected arguments" << std::endl;
+        std::cerr << "\t" << argv[0] << "  <IR file>" << std::endl;
+        return EXIT_FAILURE;
+    }
+
+    llvm::LLVMContext &context = llvm::getGlobalContext();
+    llvm::SMDiagnostic err;
+    llvm::Module *mod = llvm::ParseIRFile(argv[1], err, context);
+
+    if (!mod) {
+        err.print( argv[0], errs() );
+        return 1;
+    }
+
+    rc = readIR( mod );
+    
+    std::cout << "Exiting happily" << std::endl;
+    
+    return EXIT_SUCCESS;
+}

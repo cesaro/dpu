@@ -1,0 +1,172 @@
+%%
+%% This is file `figlatex.sty',
+%% generated with the docstrip utility.
+%%
+%% The original source files were:
+%%
+%% figlatex.dtx  (with options: `package')
+%% 
+%% IMPORTANT NOTICE:
+%% 
+%% For the copyright see the source file.
+%% 
+%% Any modified versions of this file must be renamed
+%% with new filenames distinct from figlatex.sty.
+%% 
+%% For distribution of the original source see the terms
+%% for copying and modification in the file figlatex.dtx.
+%% 
+%% This generated file may be distributed as long as the
+%% original source files, as listed above, are part of the
+%% same distribution. (The sources need not necessarily be
+%% in the same archive or directory.)
+%%
+%% File: figlatex.dtx Copyright (C) 2002--2005 V. Danjean, A. Legrand
+%%    Vincent.Danjean@ens-lyon.org
+%%    Arnaud.Legrand@ens-lyon.org
+%%
+%% This program is free software; you can redistribute it and/or
+%% modify it under the terms of the GNU General Public License
+%% as published by the Free Software Foundation; either version 2
+%% of the License, or (at your option) any later version.
+%%
+%% This program is distributed in the hope that it will be useful,
+%% but WITHOUT ANY WARRANTY; without even the implied warranty of
+%% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%% GNU General Public License for more details.
+%%
+%% You should have received a copy of the GNU General Public License
+%% along with this program; if not, write to the Free Software
+%% Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+%%
+\NeedsTeXFormat{LaTeX2e}%
+\ProvidesPackage{figlatex}%
+[2008/01/28 v0.1.3 include fig in LaTeX]
+\newif\ifFL@compatibility
+\DeclareOption{compatibility}{%
+  %\PackageWarning{figlatex}{option compatibility}%
+  \global\FL@compatibilitytrue%
+}
+\newif\ifFL@debug
+\DeclareOption{debug}{%
+  \global\FL@debugtrue%
+}
+{
+  \def\compatibility{%
+    \ExecuteOptions{compatibility}%
+  }
+  \def\debug{%
+    \ExecuteOptions{debug}%
+  }
+  \InputIfFileExists{figlatex.cfg}{%
+    \typeout{***************************************^^J%
+             * Local config file figlatex.cfg used *^^J%
+             ***************************************}
+  }{%
+    \typeout{Found no configuration file for figlatex}
+  }
+}
+\ProcessOptions
+\RequirePackage{ifpdf}
+\RequirePackage{graphicx}
+\RequirePackage{color}
+\RequirePackage{epstopdf}
+\def\FL@dmessage#1{%
+  \ifFL@debug%
+    \message{#1}%
+  \fi%
+}
+\def\Ginclude@rawtex#1{%
+  \FL@dmessage{<#1>}%
+  \bgroup%
+  \def\@tempa{!}%
+  \ifx\Gin@scaley\@tempa%
+    \let\Gin@scaley\Gin@scalex%
+  \else%
+    \ifx\Gin@scalex\@tempa\let\Gin@scalex\Gin@scaley\fi%
+  \fi%
+  \hbox{%
+    \Gscale@box{\Gin@scalex}[\Gin@scaley]{%
+      \def\Gin@scalex{1}%
+      \let\Gin@scaley\Gin@exclamation% needed for pdflatex
+      \FL@dmessage{<loading rawtex #1>}%
+      \input{#1}}}%
+  \egroup}
+\def\Ginclude@figtex#1{%
+  \message{<#1>}%
+  \bgroup%
+  \xdef\FL@filename{#1}%
+  \filename@parse{\FL@filename}%
+  \xdef\FL@filename{\filename@area\filename@base.\FL@figext}%
+  \FL@dmessage{<****loading fig \FL@filename>}%
+  \FL@includerawtexgraphics[]{\FL@filename}%
+  \egroup}
+\newcommand{\Gread@figtex}[1]{%
+  %\typeout{Oh, file exists #1}%
+  \Gread@rawtex{#1}%
+}
+\ifpdf
+  \def\FL@figext{pdftex_t}%
+  \let\Gread@rawtex\Gread@pdf%
+  \DeclareGraphicsRule{.pdftex}{pdf}{*}{}%
+  \ifFL@compatibility%
+    \PackageWarningNoLine{figlatex}{Compatibility mode enabled
+      for old LaTeX
+      \MessageBreak Using .pdf extension for pdftex files}%
+    \DeclareGraphicsRule{.pdftex_t}{rawtex}{.pdf}{}%
+    \DeclareGraphicsRule{.fig}{figtex}{.pdf}{}%
+  \else%
+    \DeclareGraphicsRule{.pdftex_t}{rawtex}{.pdftex}{}%
+    \DeclareGraphicsRule{.fig}{figtex}{.pdftex}{}%
+  \fi%
+\else
+  \def\FL@figext{pstex_t}%
+  \let\Gread@rawtex\Gread@eps%
+  \DeclareGraphicsRule{.pstex}{eps}{*}{}%
+  \DeclareGraphicsRule{.pstex_t}{rawtex}{.pstex}{}%
+  \DeclareGraphicsRule{.fig}{figtex}{.pstex}{}%
+\fi
+\newcommand{\FL@includerawtexgraphics}[2][]{%
+  \includegraphics[#1]{#2}%
+}
+\def\FL@exclamation{!}%
+\let\FL@subfig@name\FL@exclamation%
+\define@key{Gin}{subfig}{%
+  \def\FL@subfig@name{#1}%
+}
+\def\FL@sepdefault{_}%
+\def\FL@subfig@check#1{%
+}
+\def\FL@Gin@getbase#1{%
+  \ifx\FL@subfig@name\FL@exclamation%
+  \else%
+  \ifthenelse{\equal{#1}{.fig}}{%
+    % If we're including a subfig
+    \IfFileExists{\filename@area\filename@base#1}{%
+      % If the original .fig file exists, just change the name so that
+      % it comprises the full path.
+      \filename@parse{\@filef@und}%
+      % Remove potential trailing spage at the end of the extension
+      \def\filename@ext{fig}%
+      % Check if the subfig file exists
+      \FL@subfig@check{\filename@area\filename@base.subfig}%
+    }{%
+      % Else, write a warning (LaTeX will warn as well but it doesn't
+      % hurt)
+      \PackageWarning{figlatex}{No file
+        '\filename@area\filename@base#1'}%
+    }
+    % Add the subfig suffix to the fig name.
+    \edef\filename@base{\filename@base\FL@sepdefault\FL@subfig@name}%
+  }{%
+  }%
+  \fi%
+  \FL@orig@Gin@getbase{#1}%
+}
+\let\FL@orig@Gin@getbase\Gin@getbase
+\let\Gin@getbase\FL@Gin@getbase
+
+
+\endinput
+%%
+%% End of file `figlatex.sty'.

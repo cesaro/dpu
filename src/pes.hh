@@ -60,6 +60,7 @@ public:
    void eprint_debug() const;
    bool is_bottom () const;
    bool is_same(Event &);
+   bool is_causal(Event * e);
    void RD_cex(Config & c);
 
 
@@ -94,7 +95,6 @@ public:
 
    std::vector<Event*>              en;
    std::vector<Event*>              cex;
-   std::vector<Event*>              cex1;
    Unfolding  &                     unf;
 
 

@@ -241,8 +241,8 @@ void Event:: RD_cex(Config & c)
    ep = this->pre_proc;
    em = this->pre_mem;
 
-   while ( (em->is_bottom() != true) && (em->trans->proc.id != ep->trans->proc.id) )
-  // while (em->is_bottom() != true) // browse all events preceding this in pre_mem chain.
+   while ( (em->is_bottom() != true) && (em->is_causal(ep)) )
+   //while (em->is_bottom() != true) // browse all events preceding this event in pre_mem chain.
    {
       temp = new Event(t, c.unf);
       temp->pre_proc = ep;
@@ -263,6 +263,7 @@ void Event:: RD_cex(Config & c)
       /* Need to check the event's history before adding it to the unf
        * Don't add events already in the unf
        */
+
       bool in_unf = false, in_cex = false;
       for (auto & ee :c.unf.evt)
       {
@@ -271,34 +272,43 @@ void Event:: RD_cex(Config & c)
             in_unf = true;
             DEBUG("   Already in the unf as %s", ee.str().c_str());
             // if it is in cex -> don't add
-            for (auto ce : c.cex1)
+            for (auto ce : c.cex)
                if (ee.idx == ce->idx)
                {
                   in_cex = true;
                   DEBUG("Event already in the cex");
-                  break; // exit from for cex1??? need reconsider
+                  break;
                }
 
             if (in_cex == false)
             {
-               c.cex1.push_back(&ee);
+               c.cex.push_back(&ee);
                this->dicfl.push_back(&ee);
             }
 
             break;
          }
-      }
+      } // end for
+
       if (in_unf == false)
       {
-            DEBUG("Temp doesn't exist in evt");
+            DEBUG(" Temp doesn't exist in evt");
             c.unf.evt.push_back(*temp);
             c.unf.evt.back().update_parents();
             c.unf.count++;
-            c.cex1.push_back(&c.unf.evt.back());
+            c.cex.push_back(&c.unf.evt.back());
             this->dicfl.push_back(&c.unf.evt.back());
             DEBUG("   Unf.evt.back: id: %s \n ", c.unf.evt.back().str().c_str());
       }
-   }
+
+   } // end while
+}
+/*
+ * Check if this event is in causality with e
+ */
+bool Event::is_causal(Event * )
+{
+   return false;
 }
 /*
  * Overlap == operator
@@ -422,6 +432,9 @@ bool Event::check_cfl( const Event & e ) const
 /* check if 2 events are the same or not */
 bool Event:: is_same(Event & e)
 {
+   if ((this->is_bottom() == true) || (e.is_bottom() == true) )
+      return false;
+
    if ( (trans == e.trans) && (pre_proc == e.pre_proc)
          && (pre_mem == e.pre_mem) && (pre_readers == e.pre_readers))
       return true;
@@ -770,22 +783,22 @@ void Config::cprint_dot()
             switch (p->trans->type)
             {
                case ir::Trans::LOC:
-                  fs << p->idx << "[id="<< p->idx << ", label=\" " << p->dotstr() << " \" color=yellow];\n";
+                  fs << p->idx << "[id="<< p->idx << ", label=\" " << p->dotstr() << " \" fillcolor=yellow];\n";
                   fs << p->pre_proc->idx << "->"<< p->idx << "[color=brown];\n";
                   break;
                case ir::Trans::RD:
-                  fs << p->idx << "[id="<< p->idx << ", label=\" " << p->dotstr() << " \" color=palegreen];\n";
+                  fs << p->idx << "[id="<< p->idx << ", label=\" " << p->dotstr() << " \" fillcolor=palegreen];\n";
                   fs << p->pre_mem->idx << "->"<< p->idx << ";\n";
-                  fs << p->pre_proc->idx << "->"<< p->idx << "[color=brown];\n";
+                  fs << p->pre_proc->idx << "->"<< p->idx << "[fillcolor=brown];\n";
                   break;
                case ir::Trans::SYN:
-                  fs << p->idx << "[id="<< p->idx << ", label=\" " << p->dotstr() << " \" color=lightblue];\n";
+                  fs << p->idx << "[id="<< p->idx << ", label=\" " << p->dotstr() << " \" fillcolor=lightblue];\n";
                   fs << p->pre_mem->idx << "->"<< p->idx << ";\n";
                   fs << p->pre_proc->idx << "->"<< p->idx << "[color=brown];\n";
                   break;
 
                case ir::Trans::WR:
-                  fs << p->idx << "[id="<< p->idx << ", label=\" " << p->dotstr() << " \" color=red];\n";
+                  fs << p->idx << "[id="<< p->idx << ", label=\" " << p->dotstr() << " \" fillcolor=red];\n";
                   fs << p->pre_proc->idx << "->"<< p->idx << "[color=brown];\n";
                   for (auto pr : p->pre_readers)
                   {
@@ -818,8 +831,8 @@ void Config::__print_en() const
  */
 void Config::__print_cex() const
 {
-   DEBUG ("Conflicting set of config %p: size: %zu", this, cex1.size());
-      for (auto & e : cex1)
+   DEBUG ("Conflicting set of config %p: size: %zu", this, cex.size());
+      for (auto & e : cex)
          e->eprint_debug();
 }
 
@@ -913,9 +926,9 @@ void Unfolding:: uprint_dot()
    printf(" Unfolding exported to dot file: \"dpu/output/unf.dot\"");
    fs << "Digraph RGraph {\n";
    fs << "label = \"Unfolding: " << caption <<"\"";
-   fs << "node [shape=rectangle, fontsize=10, style=filled, align=right]";
+   fs << "node [shape=rectangle, fontsize=10, style=\"filled, solid\", align=right]";
    fs << "edge [style=filled]";
-   fs << "forcelabels=true; \n ";
+   //fs << "forcelabels=true; \n ";
 
    for(auto const & e : evt)
    {
@@ -928,17 +941,17 @@ void Unfolding:: uprint_dot()
       switch (e.trans->type)
       {
          case ir::Trans::LOC:
-            fs << e.idx << "[id="<< e.idx << ", label=\" " << e.dotstr() << " \" color=yellow];\n";
+            fs << e.idx << "[id="<< e.idx << ", label=\" " << e.dotstr() << " \" fillcolor=yellow];\n";
             fs << e.pre_proc->idx << "->" << e.idx << "[color=brown]\n";
             break;
          case ir::Trans::WR:
-            fs << e.idx << "[id="<< e.idx << ", label=\" " << e.dotstr() << " \" color=red];\n";
+            fs << e.idx << "[id="<< e.idx << ", label=\" " << e.dotstr() << " \" fillcolor=red];\n";
             fs << e.pre_proc->idx << "->" << e.idx << "[color=brown]\n";
             for (auto const & pre : e.pre_readers)
                fs << pre->idx << " -> " << e.idx << "\n";
             break;
          case ir::Trans::RD:
-            fs << e.idx << "[id="<< e.idx << ", label=\" " << e.dotstr() << " \" color=palegreen];\n";
+            fs << e.idx << "[id="<< e.idx << ", label=\" " << e.dotstr() << " \" fillcolor=palegreen];\n";
             fs << e.pre_proc->idx << "->" << e.idx << "[color=brown]\n";
             fs << e.pre_mem->idx << "->" << e.idx << "\n";
 
@@ -1049,7 +1062,7 @@ void Unfolding::explore_driven_config ()
    {
       srand(time(NULL));
       i = rand() % c.en.size();
-      while ( (c.en[i]->trans->proc.id == 1) && (count < 7)) // set up when we want to add event in proc 1 (e.g: after 21 events in proc 0)
+      while ( (c.en[i]->trans->proc.id == 1) && (count < 19)) // set up when we want to add event in proc 1 (e.g: after 21 events in proc 0)
       {
          srand(time(NULL));
          i = rand() % c.en.size();

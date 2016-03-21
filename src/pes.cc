@@ -306,8 +306,14 @@ void Event:: RD_cex(Config & c)
 /*
  * Check if this event is in causality with e
  */
-bool Event::is_causal(Event * )
+bool Event::is_causal(Event * e )
 {
+   if (this->trans->proc.id == e->trans->proc.id)
+   {
+      if (this->trans->src < e->trans->src)
+         return true;
+   }
+
    return false;
 }
 /*

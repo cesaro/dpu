@@ -1,6 +1,9 @@
 template <class T> bool itemexists( std::vector<T>, T);
+template <class T> void appendVector( std::vector<T>, std::vector<T> );
+
 int safeCompareFname( const char*, std::string);
 void dumpBlock( llvm::BasicBlock* );
+std::string getShortValueName( llvm::Value *);
 std::vector<llvm::Function*> notInList( std::vector<llvm::Function*>, std::vector<std::string> );
 std::vector<llvm::BasicBlock*> blocklist( llvm::Function* );
 
@@ -31,145 +34,81 @@ namespace fe { // Front-end
 class OpCodes {
  public:
 
-   static const unsigned ReturnInst = 1;
-   static const unsigned BranchInst = 2;
-   static const unsigned AllocaInst = 26;
-   static const unsigned LoadInst = 27;
-   static const unsigned StoreInst = 28;
-   static const unsigned BitCastInst = 44;
-   static const unsigned ICmpInst = 46;
-   static const unsigned CallInst = 49;
-   static const unsigned CmpInst = -1;
+    static const unsigned ReturnInst = llvm::Instruction::Ret;
+    static const unsigned BranchInst = llvm::Instruction::Br;
+    static const unsigned AllocaInst = llvm::Instruction::Alloca;
+    static const unsigned LoadInst = llvm::Instruction::Load;
+    static const unsigned StoreInst = llvm::Instruction::Store;
+    static const unsigned BitCastInst = llvm::Instruction::BitCast;
+    static const unsigned ICmpInst = llvm::Instruction::ICmp;
+    static const unsigned CallInst = llvm::Instruction::Call;
+    static const unsigned FCmpInst = llvm::Instruction::FCmp;
+    static const unsigned AddrSpaceCastInst = llvm::Instruction::AddrSpaceCast;
+    static const unsigned PtrToIntInst = llvm::Instruction::PtrToInt;
+    static const unsigned IntToPtrInst = llvm::Instruction::IntToPtr;
+    static const unsigned FPToSIInst = llvm::Instruction::FPToSI;
+    static const unsigned FPToUIInst = llvm::Instruction::FPToUI;
+    static const unsigned SIToFPInst = llvm::Instruction::SIToFP;
+    static const unsigned UIToFPInst = llvm::Instruction::UIToFP;
+    static const unsigned FPExtInst = llvm::Instruction::FPExt;
+    static const unsigned FPTruncInst = llvm::Instruction::FPTrunc;
+    static const unsigned SExtInst = llvm::Instruction::SExt;
+    static const unsigned ZExtInst = llvm::Instruction::ZExt;
+    static const unsigned TruncInst = llvm::Instruction::Trunc;
+    static const unsigned UnreachableInst = llvm::Instruction::Unreachable;
+
+    static const unsigned ResumeInst = llvm::Instruction::Resume;
+    static const unsigned InvokeInst = llvm::Instruction::Invoke;
+    static const unsigned IndirectBrInst = llvm::Instruction::IndirectBr;
+    static const unsigned SwitchInst = llvm::Instruction::Switch;
+    static const unsigned LandingPadInst = llvm::Instruction::LandingPad;
+    static const unsigned PHINode = llvm::Instruction::PHI;
+    static const unsigned InsertValueInst = llvm::Instruction::InsertValue;
+    static const unsigned ExtractValueInst = llvm::Instruction::ExtractValue;
+    static const unsigned ShuffleVectorInst = llvm::Instruction::ShuffleVector;
+    static const unsigned InsertElementInst = llvm::Instruction::InsertElement;
+    static const unsigned ExtractElementInst = llvm::Instruction::ExtractElement;
+    static const unsigned VAArgInst = llvm::Instruction::VAArg;
+    static const unsigned SelectInst = llvm::Instruction::Select;
+    static const unsigned GetElementPtrInst = llvm::Instruction::GetElementPtr;
+    static const unsigned AtomicRMWInst = llvm::Instruction::AtomicRMW;
+    static const unsigned AtomicCmpXchgInst = llvm::Instruction::AtomicCmpXchg;
+    static const unsigned FenceInst = llvm::Instruction::Fence;
+
+
 
 #if 0
-    static const unsigned AddrSpaceCastInst;
-    static const unsigned PtrToIntInst;
-    static const unsigned IntToPtrInst;
-    static const unsigned FPToSIInst;
-    static const unsigned FPToUIInst;
-    static const unsigned SIToFPInst;
-    static const unsigned UIToFPInst;
-    static const unsigned FPExtInst;
-    static const unsigned FPTruncInst;
-    static const unsigned SExtInst;
-    static const unsigned ZExtInst;
-    static const unsigned TruncInst;
-    static const unsigned UnreachableInst;
-    static const unsigned CleanupReturnInst;
-    static const unsigned CatchReturnInst;
-    static const unsigned CatchPadInst;
-    static const unsigned CleanupPadInst;
-    static const unsigned CatchSwitchInst;
-    static const unsigned ResumeInst;
-    static const unsigned InvokeInst;
-    static const unsigned IndirectBrInst;
-    static const unsigned SwitchInst;
-    static const unsigned LandingPadInst;
-    static const unsigned PHINode;
-    static const unsigned InsertValueInst;
-    static const unsigned ExtractValueInst;
-    static const unsigned ShuffleVectorInst;
-    static const unsigned InsertElementInst;
-    static const unsigned ExtractElementInst;
-    static const unsigned VAArgInst;
-    static const unsigned SelectInst;
-    static const unsigned FCmpInst;
-    static const unsigned FuncletPadInst;
-    static const unsigned GetElementPtrInst;
-    static const unsigned CastInst;
-    static const unsigned AtomicRMWInst;
-    static const unsigned AtomicCmpXchgInst;
-    static const unsigned BinaryOperator;
-    static const unsigned FenceInst;
-    static const unsigned InstrProfValueProfileInst;
-    static const unsigned InstrProfIncrementInst;
-    static const unsigned VACopyInst;
-    static const unsigned VAEndInst;
-    static const unsigned GCRelocateInst;
-    static const unsigned UnaryInstruction;
-    static const unsigned VAStartInst;
-    static const unsigned MemMoveInst;
-    static const unsigned MemCpyInst;
-    static const unsigned MemTransferInst;
-    static const unsigned MemSetInst;
+    static const unsigned CleanupReturnInst = llvm::Instruction::CleanupRet;
+    static const unsigned CatchReturnInst = llvm::Instruction::CatchRet;
+    static const unsigned CatchPadInst = llvm::Instruction::CatchPad;
+    static const unsigned CleanupPadInst = llvm::Instruction::CleanupPad;
+    static const unsigned CatchSwitchInst = llvm::Instruction::CatchSwitch;
+
+
+    static const unsigned InstrProfValueProfileInst = llvm::Instruction::xxxxx;
+    static const unsigned InstrProfIncrementInst = llvm::Instruction::  ;
+    static const unsigned VACopyInst = llvm::Instruction::  ;
+    static const unsigned VAEndInst = llvm::Instruction::  ;
+    static const unsigned GCRelocateInst = llvm::Instruction::  ;
+    static const unsigned UnaryInstruction = llvm::Instruction:: ;
+    static const unsigned VAStartInst = llvm::Instruction::  ;
+    static const unsigned MemMoveInst = llvm::Instruction::  ;
+    static const unsigned MemCpyInst = llvm::Instruction::  ;
+    static const unsigned MemTransferInst = llvm::Instruction::  ;
+    static const unsigned MemSetInst = llvm::Instruction::  ;
     static const unsigned MemIntrinsic;
-    static const unsigned DbgValueInst;
-    static const unsigned DbgDeclareInst;
-    static const unsigned TerminatorInst;
-    static const unsigned DbgInfoIntrinsic;
-    static const unsigned IntrinsicInst;
+    static const unsigned DbgValueInst = llvm::Instruction::  ;
+    static const unsigned DbgDeclareInst = llvm::Instruction::  ;
+    static const unsigned TerminatorInst = llvm::Instruction::  ;
+    static const unsigned DbgInfoIntrinsic = llvm::Instruction:: ;
+    static const unsigned IntrinsicInst = llvm::Instruction::  ;
+    static const unsigned CastInst = llvm::Instruction::cccc;
+    static const unsigned FuncletPadInst = llvm::Instruction::ccccc;
+    static const unsigned BinaryOperator = llvm::Instruction::xxxx;;
 #endif
 
  public:
-    OpCodes(){
-        //   this->AddrSpaceCastInst = llvm::AddrSpaceCastInst().getOpCode();
-        /*
-    static const unsigned BitCastInst;
-    static const unsigned PtrToIntInst;
-    static const unsigned IntToPtrInst;
-    static const unsigned FPToSIInst;
-    static const unsigned FPToUIInst;
-    static const unsigned SIToFPInst;
-    static const unsigned UIToFPInst;
-    static const unsigned FPExtInst;
-    static const unsigned FPTruncInst;
-    static const unsigned SExtInst;
-    static const unsigned ZExtInst;
-    static const unsigned TruncInst;
-    static const unsigned UnreachableInst;
-    static const unsigned CleanupReturnInst;
-    static const unsigned CatchReturnInst;
-    static const unsigned CatchPadInst;
-    static const unsigned CleanupPadInst;
-    static const unsigned CatchSwitchInst;
-    static const unsigned ResumeInst;
-    static const unsigned InvokeInst;
-    static const unsigned IndirectBrInst;
-    static const unsigned SwitchInst;
-    static const unsigned BranchInst;
-    static const unsigned ReturnInst;
-    static const unsigned LandingPadInst;
-    static const unsigned PHINode;
-    static const unsigned InsertValueInst;
-    static const unsigned ExtractValueInst;
-    static const unsigned ShuffleVectorInst;
-    static const unsigned InsertElementInst;
-    static const unsigned ExtractElementInst;
-    static const unsigned VAArgInst;
-    static const unsigned SelectInst;
-    static const unsigned CallInst;
-    static const unsigned FCmpInst;
-    static const unsigned ICmpInst;
-    static const unsigned FuncletPadInst;
-    static const unsigned CmpInst;
-    static const unsigned GetElementPtrInst;
-    static const unsigned CastInst;
-    static const unsigned AtomicRMWInst;
-    static const unsigned AtomicCmpXchgInst;
-    static const unsigned BinaryOperator;
-    static const unsigned FenceInst;
-    static const unsigned StoreInst;
-    static const unsigned InstrProfValueProfileInst;
-    static const unsigned InstrProfIncrementInst;
-    static const unsigned VACopyInst;
-    static const unsigned VAEndInst;
-    static const unsigned GCRelocateInst;
-    static const unsigned UnaryInstruction;
-    static const unsigned VAStartInst;
-    static const unsigned MemMoveInst;
-    static const unsigned LoadInst;
-    static const unsigned MemCpyInst;
-    static const unsigned MemTransferInst;
-    static const unsigned MemSetInst;
-    static const unsigned MemIntrinsic;
-    static const unsigned AllocaInst;
-    static const unsigned DbgValueInst;
-    static const unsigned DbgDeclareInst;
-    static const unsigned TerminatorInst;
-    static const unsigned DbgInfoIntrinsic;
-    static const unsigned IntrinsicInst;*/
-
-    }
+    OpCodes(){}
 };
 static OpCodes opcodes;
 

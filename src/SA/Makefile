@@ -17,7 +17,7 @@ SASRC = sa.cc sa_utils.cc
 SAOBJ = $(SASRC:.cc=.o)
 EXEC = sa
 
-TESTFILE = test_thread2
+TESTFILE = test_thread3
 
 all: $(EXEC)
 #all: run

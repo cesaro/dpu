@@ -304,14 +304,28 @@ void Event:: RD_cex(Config & c)
    } // end while
 }
 /*
- * Check if this event is in causality with e
+ * Check if e is in this event's history or not
+ * If this and e are in the same process, check their source
+ * If not, check pre_mem chain of this event to see whether e is inside or not (e can only be a RD, SYN or WR)
  */
-bool Event::is_causal(Event * e )
+bool Event::in_history(Event * e )
 {
+   Event * ep = this;
    if (this->trans->proc.id == e->trans->proc.id)
    {
-      if (this->trans->src < e->trans->src)
+      if (this->trans->src > e->trans->src)
          return true;
+   }
+   else
+   {
+      while (ep->is_bottom() == false)
+      {
+         if (ep->pre_mem == e)
+            return true;
+         else
+            ep = ep->pre_mem;
+      }
+      return false;
    }
 
    return false;

@@ -60,7 +60,7 @@ public:
    void eprint_debug() const;
    bool is_bottom () const;
    bool is_same(Event &);
-   bool is_causal(Event * e);
+   bool in_history(Event * e);
    void RD_cex(Config & c);
 
 

@@ -268,7 +268,8 @@ std::vector<llvm::Function*> functionsCalledByFunction( llvm::Function* fun ) {
 
     for( auto block = visitedblocks.begin() ; block != visitedblocks.end() ; block++ ) {
         std::vector<llvm::Function*> thelist = listOfFunctionsBlock( *block );
-        funlist.insert( funlist.end(), thelist.begin(), thelist.end() );
+        //        funlist.insert( funlist.end(), thelist.begin(), thelist.end() );
+        appendVector( funlist, thelist );
     }
 
     return funlist;
@@ -302,6 +303,117 @@ void parseFunction( llvm::Module* mod, llvm::Function* func ) {
     llvm::BasicBlock* entryBlock = func->begin();
     std::cerr << "Entry block is " << std::endl;
     parseBasicBlock( mod, entryBlock );
+}
+
+/* Get the symbols used by a function */
+
+std::vector<std::string>  getSymbolsFun( llvm::Function* fun ) {
+
+    std::vector<std::string>  symbols;
+    
+    /* Get the first blocks used */
+    /* Only the first one, because we assert that all
+       the allocations are made in the first block */
+    
+    llvm::BasicBlock* entryBlock = fun->begin();
+     
+     /* Okay, what is inside this block? */
+    
+    for( auto i = entryBlock->begin() ; i != entryBlock->end() ; i++ ) {
+        if( opcodes.AllocaInst == i->getOpcode() ) {
+            llvm::Instruction* ins = i;
+            llvm::AllocaInst* all = static_cast<llvm::AllocaInst*>(ins);
+            symbols.push_back( all->getName().str() );
+        } else {
+
+            std::string name;
+            switch( i->getOpcode() ) {
+            case opcodes.LoadInst:
+            case opcodes.CallInst:
+            case opcodes.ICmpInst:
+                name = (i->hasName()) ? i->getName().str() : getShortValueName( i );
+                break;
+            default:
+                name = "";
+                break;
+            }
+            if( name != "" ) {
+                symbols.push_back( name );
+                            
+            }            
+        }
+    }
+    return symbols;
+}
+
+
+/* Get the symbols used by all the functions */
+
+std::vector<std::pair<std::string, llvm::Value*>>  getSymbols( llvm::Module* mod ) {
+    
+    std::vector<std::pair<std::string, llvm::Value*>> symb;
+
+    llvm::Function *mainfun = mod->getFunction( llvm::StringRef( "main" ) );
+    std::vector<std::string> s = getSymbolsFun( mainfun );
+    for( auto si = s.begin() ; si != s.end() ; si++ ) {
+        std::pair<std::string, llvm::Value*> p( *si, NULL );
+        symb.push_back( p );
+    }
+    std::cerr << symb.size() << " symbols in the main function" << std::endl;
+    
+    std::map<llvm::Value*, llvm::Function*> threadsfn = functionThreadCreation( mod );
+    for( auto ti = threadsfn.begin() ; ti != threadsfn.end() ; ti++ ) {
+        std::vector<std::string> s = getSymbolsFun( ti->second );
+        int cnt = 0;
+        for( auto si = s.begin() ; si != s.end() ; si++ ) {
+            std::pair<std::string, llvm::Value*> p( *si, ti->first );
+            symb.push_back( p );
+            cnt++;            
+        }
+        std::cerr << cnt << " symbols in function " << ti->second->getName().str() <<std::endl;
+    }
+
+    return symb;
+}
+
+/* Map the symbols of the local variables and the global ones
+   with their local address in out machine
+*/
+
+std::map<std::pair<std::string, llvm::Value*>, unsigned>  mapSymbols( std::vector<std::pair<std::string, llvm::Value*>> locVar, std::vector<const llvm::GlobalVariable*> globVar, unsigned nbthreads ){
+
+    std::map<std::pair<std::string, llvm::Value*>, unsigned> machine;
+
+    /* Save some space for the program counters of the threads
+       and the main function */
+    
+    unsigned idx = nbthreads+1; 
+
+    /* global variables */
+
+    for( auto v = globVar.begin() ; v != globVar.end() ; v++ ) {
+        std::pair<std::string, llvm::Value*> p( (*v)->getName().str(), NULL );
+        machine[p] = idx;
+        std::cerr << "Global variable: " << (*v)->getName().str() << " at idx " << idx << std::endl;
+        idx++;
+   }
+
+    /* Local variables of each thread */
+
+    for( auto v = locVar.begin() ; v != locVar.end() ; v++ ) {
+        machine[*v] = idx;        
+        std::cerr << "Local variable: " << (*v).first;
+        if( NULL != (*v).second ) {
+            std::cerr << " on thread " << (*v).second->getName().str() << " at idx " << idx  << std::endl;;
+        } else {
+            std::cerr << " on the main thread " << std::endl;
+        }
+        idx++;
+    }
+
+    /* http://stackoverflow.com/questions/28921373/how-to-find-the-data-dependencies-of-a-machineinstr-in-an-llvm-machinebasicblock */
+
+    return machine;
 }
 
 /* Does the function contain unsupported function calls?
@@ -380,6 +492,9 @@ bool checkcompliance( llvm::Module* mod ){
 
 int readIR( llvm::Module* mod ) {
     bool rc;
+
+    /* Check the file complies with our limitations */
+    
     rc = checkcompliance( mod );
 
     if( rc ) {
@@ -390,14 +505,32 @@ int readIR( llvm::Module* mod ) {
     }
     
     /* Get the names of the global variables of the module */
+    
     auto globVar = getVariables( mod );
-
+    
     /* Count the number of threads */
+    
     int nbThreads =  numberOfThreads( mod );
     std::cout << nbThreads << " thread creations" << std::endl;
 
     /* Which are the functions called when threads are created? */
+    
     std::map<llvm::Value*, llvm::Function*> threadCreations = functionThreadCreation( mod );
+
+    /* Get the local variables used by each thread */
+    
+    std::vector<std::pair<std::string, llvm::Value*>> symbols = getSymbols( mod );
+
+    /* the map contains:
+     * - a pair: symbol, thread id
+     * - its address in our machine
+     */
+    
+    std::map<std::pair<std::string, llvm::Value*>, unsigned> machinememory = mapSymbols( symbols, globVar, nbThreads );
+    
+
+
+    return 0;
 
     /* Analyze every function individually, until pthread_join is called */
     for( auto ti = threadCreations.begin() ; ti != threadCreations.end() ; ti++ ) {

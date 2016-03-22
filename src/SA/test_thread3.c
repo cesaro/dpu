@@ -1,16 +1,20 @@
 #include <stdio.h> 
 #include <pthread.h>
 #include <unistd.h>
+#include <alloca.h>
 
 int b;
 pthread_mutex_t mut = PTHREAD_MUTEX_INITIALIZER;
 
 static void* helloworld( ) {
+    int c;
     pthread_mutex_lock( &mut );
     if( 3 > b ) {
+        c = b;
         pthread_mutex_unlock( &mut );
         printf("hello\n" );
     } else {
+        //        int *k = alloca( sizeof( int ) );
         printf( "ola\n" );
         b = 5;
         pthread_mutex_unlock( &mut );
@@ -29,6 +33,7 @@ int main( int argc, char** argv ) {
 
     pthread_join( t1, &ret );
     pthread_join( t2, &ret );
-    
+
    return i;
 }
+

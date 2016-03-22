@@ -31,8 +31,14 @@ $(EXEC): $(SAOBJ)
 $(TESTFILE): $(TESTFILE).c
 	$(CC) -o $@ $<
 
-$(TESTFILE).ll: $(TESTFILE).c
-	$(CC) -S -emit-llvm $< -o $@
+%.ll : %.c
+	$(CC) -S -emit-llvm $(CFLAGS) $< -o $@
+%.bc : %.c
+	$(CC) -c -emit-llvm $(CFLAGS) $< -o $@
+%.ll : %.cc
+	$(CC) -S -emit-llvm $(CXXFLAGS) $< -o $@
+%.bc : %.cc
+	$(CC) -c -emit-llvm $(CXXFLAGS) $< -o $@
 
 .PHONY: run clean
 

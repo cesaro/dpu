@@ -320,27 +320,20 @@ std::vector<std::string>  getSymbolsFun( llvm::Function* fun ) {
      /* Okay, what is inside this block? */
     
     for( auto i = entryBlock->begin() ; i != entryBlock->end() ; i++ ) {
-        if( opcodes.AllocaInst == i->getOpcode() ) {
-            llvm::Instruction* ins = i;
-            llvm::AllocaInst* all = static_cast<llvm::AllocaInst*>(ins);
-            symbols.push_back( all->getName().str() );
-        } else {
-
-            std::string name;
-            switch( i->getOpcode() ) {
-            case opcodes.LoadInst:
-            case opcodes.CallInst:
-            case opcodes.ICmpInst:
-                name = (i->hasName()) ? i->getName().str() : getShortValueName( i );
-                break;
-            default:
-                name = "";
-                break;
-            }
-            if( name != "" ) {
-                symbols.push_back( name );
-                            
-            }            
+        std::string name;
+        switch( i->getOpcode() ) {
+        case opcodes.LoadInst:
+        case opcodes.CallInst:
+        case opcodes.AllocaInst: // case when no name in this case: %1 %2 %3 allocated for argc and argv
+        case opcodes.ICmpInst:
+            name = (i->hasName()) ? i->getName().str() : getShortValueName( i );
+            break;
+        default:
+            name = "";
+            break;
+        }
+        if( name != "" ) {
+            symbols.push_back( name );
         }
     }
     return symbols;
@@ -406,7 +399,7 @@ std::map<std::pair<std::string, llvm::Value*>, unsigned>  mapSymbols( std::vecto
         if( NULL != (*v).second ) {
             std::cerr << " on thread " << (*v).second->getName().str() << " at idx " << idx  << std::endl;;
         } else {
-            std::cerr << " on the main thread " << std::endl;
+            std::cerr << " on the main thread at idx " << idx  << std::endl;
         }
         idx++;
     }

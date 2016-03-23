@@ -4,6 +4,7 @@ template <class T> void appendVector( std::vector<T>, std::vector<T> );
 int safeCompareFname( const char*, std::string);
 void dumpBlock( llvm::BasicBlock* );
 std::string getShortValueName( llvm::Value *);
+bool isLive( std::string, llvm::Function*);
 std::vector<llvm::Function*> notInList( std::vector<llvm::Function*>, std::vector<std::string> );
 std::vector<llvm::BasicBlock*> blocklist( llvm::Function* );
 

@@ -268,7 +268,6 @@ std::vector<llvm::Function*> functionsCalledByFunction( llvm::Function* fun ) {
 
     for( auto block = visitedblocks.begin() ; block != visitedblocks.end() ; block++ ) {
         std::vector<llvm::Function*> thelist = listOfFunctionsBlock( *block );
-        //        funlist.insert( funlist.end(), thelist.begin(), thelist.end() );
         appendVector( funlist, thelist );
     }
 
@@ -315,25 +314,35 @@ std::vector<std::string>  getSymbolsFun( llvm::Function* fun ) {
     /* Only the first one, because we assert that all
        the allocations are made in the first block */
     
-    llvm::BasicBlock* entryBlock = fun->begin();
+    //    llvm::BasicBlock* entryBlock = fun->begin();
      
-     /* Okay, what is inside this block? */
+    std::vector<llvm::BasicBlock*> visitedblocks = blocklist( fun ) ;
     
-    for( auto i = entryBlock->begin() ; i != entryBlock->end() ; i++ ) {
-        std::string name;
-        switch( i->getOpcode() ) {
-        case opcodes.LoadInst:
-        case opcodes.CallInst:
-        case opcodes.AllocaInst: // case when no name in this case: %1 %2 %3 allocated for argc and argv
-        case opcodes.ICmpInst:
-            name = (i->hasName()) ? i->getName().str() : getShortValueName( i );
-            break;
-        default:
-            name = "";
-            break;
-        }
-        if( name != "" ) {
-            symbols.push_back( name );
+    for( auto bb = visitedblocks.begin() ; bb != visitedblocks.end() ; bb++ ) {
+        
+        /* Okay, what is inside each block? */
+        
+        for( auto i = (*bb)->begin() ; i != (*bb)->end() ; i++ ) {
+            std::string name;
+            switch( i->getOpcode() ) { /*  TODO: needs to be completed wit other operations */
+            case opcodes.LoadInst:
+            case opcodes.CallInst:
+            case opcodes.AllocaInst: // case when no name in this case: %1 %2 %3 allocated for argc and argv
+            case opcodes.ICmpInst:
+                name = (i->hasName()) ? i->getName().str() : getShortValueName( i );
+                break;
+            default:
+                name = "";
+                break;
+            }
+            if( name != "" ) {
+                /* Is this variable live? */
+                if( isLive( name, fun ) ) {
+                    symbols.push_back( name );
+                } /*else {
+                    std::cerr << name << " is dead" << std::endl;
+                    }*/
+            }
         }
     }
     return symbols;
@@ -404,9 +413,19 @@ std::map<std::pair<std::string, llvm::Value*>, unsigned>  mapSymbols( std::vecto
         idx++;
     }
 
-    /* http://stackoverflow.com/questions/28921373/how-to-find-the-data-dependencies-of-a-machineinstr-in-an-llvm-machinebasicblock */
-
     return machine;
+}
+
+/* Map that contains the inverse of the map returned by mapSymbols
+ * For a given unsigned int (position in the machine), return the name of the symbol
+ */
+
+std::map<unsigned, std::pair<std::string, llvm::Value*>>  mapSymbolsInverse(std::map<std::pair<std::string, llvm::Value*>, unsigned> machine ){
+    std::map<unsigned, std::pair<std::string, llvm::Value*>> inverse;
+    for( auto i = machine.begin() ; i != machine.end() ; i++ ) {
+        inverse[i->second] = i->first;
+    }
+    return inverse;
 }
 
 /* Does the function contain unsupported function calls?
@@ -520,7 +539,10 @@ int readIR( llvm::Module* mod ) {
      */
     
     std::map<std::pair<std::string, llvm::Value*>, unsigned> machinememory = mapSymbols( symbols, globVar, nbThreads );
+
+    /* Reverse map, for debugging purpose */
     
+    std::map<unsigned, std::pair<std::string, llvm::Value*>> inversemap =  mapSymbolsInverse( machinememory );
 
 
     return 0;

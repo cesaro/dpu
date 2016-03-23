@@ -62,6 +62,8 @@ public:
    bool is_same(Event &);
    bool in_history(Event * e);
    void RD_cex(Config & c);
+   void SYN_cex(Config & c);
+   void WR_cex(Config & c);
 
 
    friend Unfolding;

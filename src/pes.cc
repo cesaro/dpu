@@ -235,13 +235,13 @@ void Event::update_parents()
  */
 void Event:: RD_cex(Config & c)
 {
-   DEBUG(" %p, id=%d : RD conflicting extension", this, this->idx);
+   DEBUG(" %p, id:%d: RD conflicting extension", this, this->idx);
    Event * ep, * em, * temp;
    const Trans & t = *trans;
    ep = this->pre_proc;
    em = this->pre_mem;
 
-   while ( (em->is_bottom() != true) && (em->is_causal(ep)) )
+   while ((em->in_history(ep) == false)&& (em->is_bottom() != true))
    //while (em->is_bottom() != true) // browse all events preceding this event in pre_mem chain.
    {
       temp = new Event(t, c.unf);
@@ -303,6 +303,79 @@ void Event:: RD_cex(Config & c)
 
    } // end while
 }
+
+/*
+ *  compute conflict events for a SYN event
+ */
+void Event:: SYN_cex(Config & c)
+{
+   DEBUG(" %p, id:%d: SYN conflicting extension", this, this->idx);
+   Event * ep, * em, * temp;
+   const Trans & t = *trans;
+   ep = this->pre_proc;
+   em = this->pre_mem;
+
+   while ((em->in_history(ep) == false) && (em->is_bottom() != true))
+   {
+      temp = new Event(t, c.unf);
+
+      /* make temp's history */
+      temp->pre_proc = ep;
+      temp->pre_mem  = em;
+      DEBUG("  Event created: %s ", temp->str().c_str());
+
+      /*
+       * Check if temp already exists in unf before adding
+       */
+
+      bool in_unf = false, in_cex = false;
+      for (auto & ee :c.unf.evt)
+      {
+         if ( temp->is_same(ee) == true )
+         {
+            in_unf = true;
+            DEBUG("   Already in the unf as %s", ee.str().c_str());
+            // if it is in cex -> don't add
+            for (auto ce : c.cex)
+               if (ee.idx == ce->idx)
+               {
+                  in_cex = true;
+                  DEBUG("Event already in the cex");
+                  break;
+               }
+
+            if (in_cex == false)
+            {
+               c.cex.push_back(&ee);
+               this->dicfl.push_back(&ee);
+            }
+
+            break;
+         }
+      } // end for
+
+      /* add new event to the unf */
+      if (in_unf == false)
+      {
+            DEBUG(" Temp doesn't exist in evt");
+            c.unf.evt.push_back(*temp);
+            c.unf.evt.back().update_parents();
+            c.unf.count++;
+            c.cex.push_back(&c.unf.evt.back());
+            this->dicfl.push_back(&c.unf.evt.back());
+            DEBUG("   Unf.evt.back: id: %s \n ", c.unf.evt.back().str().c_str());
+      }
+
+      em             = em->pre_mem;
+   } // end while
+}
+/*
+ * Compute conflicting event for a WR event
+ */
+void Event:: WR_cex(Config & c)
+{
+
+}
 /*
  * Check if e is in this event's history or not
  * If this and e are in the same process, check their source
@@ -311,25 +384,23 @@ void Event:: RD_cex(Config & c)
 bool Event::in_history(Event * e )
 {
    Event * ep = this;
-   if (this->trans->proc.id == e->trans->proc.id)
-   {
-      if (this->trans->src > e->trans->src)
-         return true;
-   }
-   else
-   {
-      while (ep->is_bottom() == false)
+   if (this->is_bottom() || e->is_bottom())
+      return true;
+
+   if ((this->trans->proc.id == e->trans->proc.id) && (this->trans->src > e->trans->src))
+      return true;
+
+   while (ep->is_bottom() == false)
       {
          if (ep->pre_mem == e)
             return true;
          else
             ep = ep->pre_mem;
       }
-      return false;
-   }
 
    return false;
 }
+
 /*
  * Overlap == operator
  */
@@ -724,13 +795,13 @@ void Config::compute_cex ()
                p->RD_cex(*this);
                break;
             case ir::Trans::SYN:
-               DEBUG(" %p, id:%d: This is a SYN", p, p->idx);
+               p->SYN_cex(*this);
                break;
             case ir::Trans::WR:
-               DEBUG(" %p, id:%d: This is a WR", p, p->idx);
+               p->WR_cex(*this);
                break;
             case ir::Trans::LOC:
-               DEBUG(" %p, id:%d: This is a LOC", p, p->idx);
+               DEBUG(" %p, id:%d: No conflict for a LOC", p, p->idx);
                break;
          }
          p = p->pre_proc;

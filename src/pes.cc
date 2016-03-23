@@ -45,9 +45,13 @@ Event::Event (Unfolding & u)
    post_rws.reserve(mem);
    post_wr.reserve(numprocs);
    dicfl.reserve(u.m.trans.size());
+   clock.reserve(numprocs);
 
    // create numprocs vectors for storing event pointers
    post_mem.resize(numprocs);
+   // initialize vector clock
+   for (unsigned i = 0; i < numprocs; i++)
+         clock.push_back(0);
    DEBUG ("  %p: Event.ctor:", this);
 }
 
@@ -72,7 +76,9 @@ Event::Event (const Trans & t, Unfolding & u)
    // create numprocs vectors for storing event pointers
    post_mem.resize(numprocs);
    dicfl.reserve(u.m.trans.size());
-
+   clock.reserve(numprocs);
+   for (unsigned i = 0; i < numprocs; i++)
+      clock.push_back(0);
    DEBUG ("  %p: Event.ctor: t %p: '%s'", this, &t, t.str().c_str());
 }
 
@@ -89,6 +95,7 @@ Event::Event (const Event & e)
    , localvals(e.localvals)
    , trans(e.trans)
    , color(e.color)
+   , clock(e.clock)
 {
 }
    //DEBUG ("%p: Event.ctor: other %p (copy)", this, &e);
@@ -171,6 +178,41 @@ void Event::mk_history(const Config & c)
          break;
    }
    DEBUG("   Make history: %s ",this->str().c_str());
+
+   /* set up vector clock */
+
+   switch (this->trans->type)
+   {
+      case ir::Trans::LOC:
+         clock = pre_proc->clock;
+         clock[p.id]++;
+         break;
+      case ir::Trans::SYN:
+         for (unsigned i = 0; i < procs.size(); i++)
+            clock[i] = std::max(pre_mem->clock[i], pre_proc->clock[i]);
+
+         clock[p.id]++;
+         break;
+      case ir::Trans::RD:
+         for (unsigned i = 0; i < procs.size(); i++)
+            clock[i] = std::max(pre_mem->clock[i], pre_proc->clock[i]);
+
+         clock[p.id]++;
+         break;
+      case ir::Trans::WR:
+         std::vector<unsigned> temp;
+         for (unsigned i = 0; i < procs.size(); i++)
+         {
+            /* put all elements j of pre_readers to a vector temp */
+            for (unsigned j = 0; j < procs.size(); j++)
+               temp.push_back(pre_readers[i]->clock[j]);
+
+            std::vector<unsigned>::iterator it = std::max_element(temp.begin(), temp.end()); // find out the largest element
+            clock[i] = *it; // put it to the back of clock
+         }
+         clock[p.id]++;
+         break;
+   }
 }
 /*
  * Update all events precede current event, including pre_proc, pre_mem and all pre_readers
@@ -383,6 +425,11 @@ void Event:: WR_cex(Config & c)
  */
 bool Event::in_history(Event * e )
 {
+   if (e->clock < clock)
+      return true;
+   return false;
+
+#if 0
    Event * ep = this;
    if (this->is_bottom() || e->is_bottom())
       return true;
@@ -399,6 +446,8 @@ bool Event::in_history(Event * e )
       }
 
    return false;
+#endif
+
 }
 
 /*
@@ -538,7 +587,6 @@ std::string Event::str () const
 {
    const char * code = trans ? trans->code.str().c_str() : "";
    int proc = trans ? trans->proc.id : -1;
-   std::string pr;
 
    if (pre_mem != nullptr)
       return fmt ("index: %d, %p: trans %p code: '%s' proc: %d pre_proc: %p pre_mem: %p  ",
@@ -553,8 +601,16 @@ std::string Event::dotstr () const
    const char * code = trans ? trans->code.str().c_str() : "";
    int proc = trans ? trans->proc.id : -1;
 
-      return fmt ("id: %d, code: '%s' \n proc: %d , src: %d , dest: %d",
-         idx, code, proc, trans->src, trans->dst);
+   std::string st;
+
+   for (unsigned int i = 0; i < clock.size(); i++)
+      if (i == clock.size() -1)
+         st += std::to_string(clock[i]);
+      else
+         st += std::to_string(clock[i]) + ", ";
+
+      return fmt ("id: %d, code: '%s' \n proc: %d , src: %d , dest: %d \n vclock:(%s) ",
+         idx, code, proc, trans->src, trans->dst, st.c_str());
 }
 
 /* Print all information for an event */
@@ -953,6 +1009,8 @@ void Unfolding::__create_bottom ()
    bottom = &evt.back(); // using = operator
    bottom->pre_mem = bottom;
    bottom->pre_proc = bottom;
+   for (unsigned int i = 0; i < this->m.procs.size(); i++)
+      bottom->clock.push_back(0);
 
    DEBUG ("%p: Unfolding.__create_bottom: bottom %p", this, e);
 }
@@ -1128,7 +1186,7 @@ void Unfolding::explore_rnd_config ()
    }
    //c.cprint_debug();
 
-   //c.cprint_dot();
+   c.cprint_dot();
    c.compute_cex();
    uprint_debug();
    uprint_dot();

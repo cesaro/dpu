@@ -45,24 +45,25 @@ Adressing Modes and types
   access to data
 
 Types:
+
 - i8, i16, i32, i64
 - float, double
-- u8, i16, i32, i64, float, double
 
-Operation Codes
----------------
+Operation Codes, Syntax and "Semantics"
+---------------------------------------
 
 T   = Type
-DST = Destination address
-SRC = Source address or immediate value (integer or float)
-DI  = Indirect addres, the address of an address
+DST = Destination address (address)
+SRC = Source address or immediate value (address, integer, or float)
+DI  = Indirect addres, (the address of an address)
 LAB = Label
 
 =========================== ====================================================
 Syntax                      Description
 =========================== ====================================================
 nop                         No operation
-error                       This instruction should never be reachable
+error                       This instruction should never be reached
+ret     T SRC               Terminates the function
 =========================== ====================================================
 move    T DST SRC           Moving data or storing immediate values
 imov    T DST DI            Indirect move from address pointed by DI to DST
@@ -93,14 +94,17 @@ xor     T DST SRC1 SRC2     Logical xor; expects integers
 sext    T1 T2 DST SRC       Signed extension from type T1 to T2; expects integer
 zext    T1 T2 DST SRC       Zero extends SRC from type T1 to T2; expects integer
 =========================== ====================================================
+lock    T SRC               Locks a mutex; expects address of integer operand
+unlock  T SRC               Unlocks a mutex; expects address of integer operand
+=========================== ====================================================
 
 
-Tentative translation from LLVM
+Tentative Translation from LLVM
 -------------------------------
 
 TBD
 
-Data structures
+Data Structures
 ---------------
 
 TBD

@@ -1,0 +1,49 @@
+stf_bug.c:18:1: warning: control reaches end of non-void function [-Wreturn-type]
+}
+^
+stf_bug.c:30:1: warning: control reaches end of non-void function [-Wreturn-type]
+}
+^
+2 warnings generated.
+Trace count: 1 (also 0 sleepset blocked)
+
+ Error detected:
+  (<0>,1)
+  (<0>,4)
+  (<0>,5) stf_bug.c:35: pthread_t  t1, t2;
+  (<0>,6) stf_bug.c:38: pthread_mutex_init(&mb, 0);
+  (<0>,7) stf_bug.c:40: data1 = 10;
+  (<0>,8) stf_bug.c:41: data2 = 10;
+  (<0>,11) stf_bug.c:46: pthread_join(t1, 0);
+    (<0.0>,1)
+    (<0.0>,3)
+    (<0.0>,4) stf_bug.c:9: void * thread1(void * arg)
+    (<0.0>,5) stf_bug.c:12: data1++;
+    (<0.0>,7) stf_bug.c:12: data1++;
+    (<0.0>,8) stf_bug.c:13: pthread_mutex_unlock(&ma);
+    (<0.0>,9) stf_bug.c:15: pthread_mutex_lock(&ma);
+    (<0.0>,10) stf_bug.c:16: data2++;
+    (<0.0>,12) stf_bug.c:16: data2++;
+    (<0.0>,13) stf_bug.c:17: pthread_mutex_unlock(&ma);
+    (<0.0>,14) stf_bug.c:18: }
+  (<0>,12) stf_bug.c:46: pthread_join(t1, 0);
+  (<0>,13) stf_bug.c:47: pthread_join(t2, 0);
+      (<0.1>,1)
+      (<0.1>,3)
+      (<0.1>,4) stf_bug.c:21: void * thread2(void * arg)
+      (<0.1>,5) stf_bug.c:24: data1+=5;
+      (<0.1>,7) stf_bug.c:24: data1+=5;
+      (<0.1>,8) stf_bug.c:25: pthread_mutex_unlock(&ma);
+      (<0.1>,9) stf_bug.c:27: pthread_mutex_lock(&ma);
+      (<0.1>,10) stf_bug.c:28: data2-=6;
+      (<0.1>,12) stf_bug.c:28: data2-=6;
+      (<0.1>,13) stf_bug.c:29: pthread_mutex_unlock(&ma);
+      (<0.1>,14) stf_bug.c:30: }
+  (<0>,14) stf_bug.c:47: pthread_join(t2, 0);
+  (<0>,15) stf_bug.c:49: if (data1==16 && data2==5)
+  (<0>,18) stf_bug.c:49: if (data1==16 && data2==5)
+           Error: Assertion violation at (<0>,21): (0)
+* Nidhuggc: $ /usr/bin/clang -o /tmp/tmpxlpbbafr/tmpenuhqh4r.ll -S -emit-llvm -g stf_bug.c
+* Nidhuggc: $ /usr/local/bin/nidhugg -transform /tmp/tmpxlpbbafr/tmpkvx0n5og.ll /tmp/tmpxlpbbafr/tmpenuhqh4r.ll
+* Nidhuggc: $ /usr/local/bin/nidhugg -sc /tmp/tmpxlpbbafr/tmpkvx0n5og.ll
+Total wall-clock time: 0.05 s

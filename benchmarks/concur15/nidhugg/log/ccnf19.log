@@ -1,0 +1,61 @@
+ccnf19.c:15:16: warning: control reaches end of non-void function [-Wreturn-type]
+void *t1(){a=1;}
+               ^
+ccnf19.c:16:16: warning: control reaches end of non-void function [-Wreturn-type]
+void *t2(){a=2;}
+               ^
+ccnf19.c:17:16: warning: control reaches end of non-void function [-Wreturn-type]
+void *t3(){b=1;}
+               ^
+ccnf19.c:18:16: warning: control reaches end of non-void function [-Wreturn-type]
+void *t4(){b=2;}
+               ^
+ccnf19.c:19:16: warning: control reaches end of non-void function [-Wreturn-type]
+void *t5(){c=1;}
+               ^
+ccnf19.c:20:16: warning: control reaches end of non-void function [-Wreturn-type]
+void *t6(){c=2;}
+               ^
+ccnf19.c:21:16: warning: control reaches end of non-void function [-Wreturn-type]
+void *t7(){d=1;}
+               ^
+ccnf19.c:22:16: warning: control reaches end of non-void function [-Wreturn-type]
+void *t8(){d=2;}
+               ^
+ccnf19.c:23:16: warning: control reaches end of non-void function [-Wreturn-type]
+void *t9(){e=1;}
+               ^
+ccnf19.c:24:17: warning: control reaches end of non-void function [-Wreturn-type]
+void *t10(){e=2;}
+                ^
+ccnf19.c:25:17: warning: control reaches end of non-void function [-Wreturn-type]
+void *t11(){f=1;}
+                ^
+ccnf19.c:26:17: warning: control reaches end of non-void function [-Wreturn-type]
+void *t12(){f=2;}
+                ^
+ccnf19.c:27:17: warning: control reaches end of non-void function [-Wreturn-type]
+void *t13(){g=1;}
+                ^
+ccnf19.c:28:17: warning: control reaches end of non-void function [-Wreturn-type]
+void *t14(){g=2;}
+                ^
+ccnf19.c:29:17: warning: control reaches end of non-void function [-Wreturn-type]
+void *t15(){h=1;}
+                ^
+ccnf19.c:30:17: warning: control reaches end of non-void function [-Wreturn-type]
+void *t16(){h=2;}
+                ^
+ccnf19.c:31:17: warning: control reaches end of non-void function [-Wreturn-type]
+void *t17(){i=1;}
+                ^
+ccnf19.c:32:17: warning: control reaches end of non-void function [-Wreturn-type]
+void *t18(){i=2;}
+                ^
+18 warnings generated.
+Trace count: 512 (also 0 sleepset blocked)
+No errors were detected.
+* Nidhuggc: $ /usr/bin/clang -o /tmp/tmpjku6ts8z/tmpqii44w9x.ll -S -emit-llvm -g ccnf19.c
+* Nidhuggc: $ /usr/local/bin/nidhugg -transform /tmp/tmpjku6ts8z/tmpl1qrm5a8.ll /tmp/tmpjku6ts8z/tmpqii44w9x.ll
+* Nidhuggc: $ /usr/local/bin/nidhugg -sc /tmp/tmpjku6ts8z/tmpl1qrm5a8.ll
+Total wall-clock time: 0.28 s

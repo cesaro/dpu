@@ -1,0 +1,6 @@
+Trace count: 63504 (also 0 sleepset blocked)
+No errors were detected.
+* Nidhuggc: $ /usr/bin/clang -o /tmp/tmpym1ff0ma/tmp96k56rdm.ll -S -emit-llvm -g prodcons2.c
+* Nidhuggc: $ /usr/local/bin/nidhugg --unroll=5 -transform /tmp/tmpym1ff0ma/tmpm8cwukko.ll /tmp/tmpym1ff0ma/tmp96k56rdm.ll
+* Nidhuggc: $ /usr/local/bin/nidhugg -sc /tmp/tmpym1ff0ma/tmpm8cwukko.ll
+Total wall-clock time: 38.49 s

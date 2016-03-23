@@ -1,0 +1,6 @@
+Trace count: 20 (also 0 sleepset blocked)
+No errors were detected.
+* Nidhuggc: $ /usr/bin/clang -o /tmp/tmpt6na_3nc/tmp4wzoobqc.ll -S -emit-llvm -g pgsql.c
+* Nidhuggc: $ /usr/local/bin/nidhugg --unroll=10 -transform /tmp/tmpt6na_3nc/tmpxp0grmx8.ll /tmp/tmpt6na_3nc/tmp4wzoobqc.ll
+* Nidhuggc: $ /usr/local/bin/nidhugg -sc /tmp/tmpt6na_3nc/tmpxp0grmx8.ll
+Total wall-clock time: 0.06 s

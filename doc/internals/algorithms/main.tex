@@ -343,7 +343,9 @@ UNFINISHED.
 
 \section{LLVM Frontend}
 
-Hypothesis:
+\subsection{Pass 1: Sanity Checks}
+
+Conditions to accept the input LLVM program:
 
 \begin{itemize}
 \item
@@ -359,6 +361,45 @@ Hypothesis:
 \item
   All variables in the C program are integers.
 \end{itemize}
+
+\subsection{Pass 2: Construction of 3-address IR}
+
+\subsection{Pass 2.1: Identification of Threads}
+
+\begin{itemize}
+\item Number of threads given on command line
+\item Finding out the C function executed by each thread
+\end{itemize}
+
+\subsection{Pass 2.3: Allocation of memory}
+
+\begin{itemize}
+\item
+  For each global symbol (\verb!@sym!), allocated memory space (\verb!alloca!
+  instruction), and local register (\verb!%sym!) we allocate space in the
+  memory of our virtual machine
+\item
+  We generate a symbol table mapping each address to a textual name.
+\end{itemize}
+
+\subsection{Pass 2.4: Translation to 3-address IR}
+
+Textual format and translation of LLVM opcodes in
+\verb!doc/internals/3addr-ir.rst!.
+
+\subsection{Pass 2.5: Reduction of target variables based on live variable
+analysis}
+
+Only if we have time, although this could be done based on LLVM information and
+directly during the translation of LLVM instructions to ou 3-address code.
+
+\url{https://en.wikipedia.org/wiki/Live_variable_analysis}
+
+\subsection{Pass 3: Construction of Large-Block Encoding}
+
+\subsection{Pass 3.1: Identification of local and global variables}
+\subsection{Pass 3.2: Construction of \texttt{dpu::ir::Trans} instructions}
+
 
 \section{FIXMEs}
 

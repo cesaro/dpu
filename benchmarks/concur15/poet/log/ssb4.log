@@ -1,0 +1,12 @@
+poet without cutoffs:
+poet: getFlow: no match for 1
+
+real	0m0.015s
+user	0m0.007s
+sys	0m0.008s
+poet cutoffs:
+poet: getFlow: no match for 1
+
+real	0m0.020s
+user	0m0.010s
+sys	0m0.010s

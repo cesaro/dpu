@@ -1,0 +1,13 @@
+dekker.c:27:1: warning: control may reach end of non-void function [-Wreturn-type]
+}
+^
+dekker.c:46:1: warning: control may reach end of non-void function [-Wreturn-type]
+}
+^
+2 warnings generated.
+Trace count: 199 (also 0 sleepset blocked)
+No errors were detected.
+* Nidhuggc: $ /usr/bin/clang -o /tmp/tmpbtde8ub3/tmpwtzhrpo2.ll -S -emit-llvm -g dekker.c
+* Nidhuggc: $ /usr/local/bin/nidhugg --unroll=10 -transform /tmp/tmpbtde8ub3/tmppfn6vp1x.ll /tmp/tmpbtde8ub3/tmpwtzhrpo2.ll
+* Nidhuggc: $ /usr/local/bin/nidhugg -sc /tmp/tmpbtde8ub3/tmppfn6vp1x.ll
+Total wall-clock time: 0.11 s

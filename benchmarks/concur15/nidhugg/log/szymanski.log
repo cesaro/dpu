@@ -1,0 +1,13 @@
+szymanski.c:35:1: warning: control may reach end of non-void function [-Wreturn-type]
+}
+^
+szymanski.c:56:1: warning: control may reach end of non-void function [-Wreturn-type]
+}
+^
+2 warnings generated.
+Trace count: 103 (also 0 sleepset blocked)
+No errors were detected.
+* Nidhuggc: $ /usr/bin/clang -o /tmp/tmpgvn4zb15/tmpy75yc01x.ll -S -emit-llvm -g szymanski.c
+* Nidhuggc: $ /usr/local/bin/nidhugg -transform /tmp/tmpgvn4zb15/tmp40xp812e.ll /tmp/tmpgvn4zb15/tmpy75yc01x.ll
+* Nidhuggc: $ /usr/local/bin/nidhugg -sc /tmp/tmpgvn4zb15/tmp40xp812e.ll
+Total wall-clock time: 0.07 s

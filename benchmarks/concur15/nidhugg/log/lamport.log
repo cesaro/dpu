@@ -1,0 +1,13 @@
+lamport.c:44:1: warning: control may reach end of non-void function [-Wreturn-type]
+}
+^
+lamport.c:76:1: warning: control may reach end of non-void function [-Wreturn-type]
+}
+^
+2 warnings generated.
+Trace count: 32 (also 0 sleepset blocked)
+No errors were detected.
+* Nidhuggc: $ /usr/bin/clang -o /tmp/tmpt817dgfw/tmpq1yatnou.ll -S -emit-llvm -g lamport.c
+* Nidhuggc: $ /usr/local/bin/nidhugg --unroll=10 -transform /tmp/tmpt817dgfw/tmp59vhvnka.ll /tmp/tmpt817dgfw/tmpq1yatnou.ll
+* Nidhuggc: $ /usr/local/bin/nidhugg -sc /tmp/tmpt817dgfw/tmp59vhvnka.ll
+Total wall-clock time: 0.06 s

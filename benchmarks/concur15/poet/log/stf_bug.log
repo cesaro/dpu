@@ -1,0 +1,12 @@
+poet without cutoffs:
+poet: poet found an assertion violation!
+
+real	0m0.020s
+user	0m0.016s
+sys	0m0.004s
+poet cutoffs:
+poet: poet found an assertion violation!
+
+real	0m0.016s
+user	0m0.011s
+sys	0m0.005s

@@ -1,0 +1,19 @@
+ssb8.c:14:1: warning: control reaches end of non-void function [-Wreturn-type]
+}
+^
+ssb8.c:18:1: warning: control reaches end of non-void function [-Wreturn-type]
+}
+^
+ssb8.c:24:1: warning: control reaches end of non-void function [-Wreturn-type]
+}
+^
+ssb8.c:36:1: warning: control reaches end of non-void function [-Wreturn-type]
+}
+^
+4 warnings generated.
+Trace count: 2014 (also 327 sleepset blocked)
+No errors were detected.
+* Nidhuggc: $ /usr/bin/clang -o /tmp/tmpeb8_1wjj/tmppw5r8d2h.ll -S -emit-llvm -g ssb8.c
+* Nidhuggc: $ /usr/local/bin/nidhugg -transform /tmp/tmpeb8_1wjj/tmp4scpg_ew.ll /tmp/tmpeb8_1wjj/tmppw5r8d2h.ll
+* Nidhuggc: $ /usr/local/bin/nidhugg -sc /tmp/tmpeb8_1wjj/tmp4scpg_ew.ll
+Total wall-clock time: 0.85 s

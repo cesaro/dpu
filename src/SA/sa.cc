@@ -268,7 +268,6 @@ std::vector<llvm::Function*> functionsCalledByFunction( llvm::Function* fun ) {
 
     for( auto block = visitedblocks.begin() ; block != visitedblocks.end() ; block++ ) {
         std::vector<llvm::Function*> thelist = listOfFunctionsBlock( *block );
-        //        funlist.insert( funlist.end(), thelist.begin(), thelist.end() );
         appendVector( funlist, thelist );
     }
 
@@ -414,9 +413,19 @@ std::map<std::pair<std::string, llvm::Value*>, unsigned>  mapSymbols( std::vecto
         idx++;
     }
 
-    /* http://stackoverflow.com/questions/28921373/how-to-find-the-data-dependencies-of-a-machineinstr-in-an-llvm-machinebasicblock */
-
     return machine;
+}
+
+/* Map that contains the inverse of the map returned by mapSymbols
+ * For a given unsigned int (position in the machine), return the name of the symbol
+ */
+
+std::map<unsigned, std::pair<std::string, llvm::Value*>>  mapSymbolsInverse(std::map<std::pair<std::string, llvm::Value*>, unsigned> machine ){
+    std::map<unsigned, std::pair<std::string, llvm::Value*>> inverse;
+    for( auto i = machine.begin() ; i != machine.end() ; i++ ) {
+        inverse[i->second] = i->first;
+    }
+    return inverse;
 }
 
 /* Does the function contain unsupported function calls?
@@ -530,7 +539,10 @@ int readIR( llvm::Module* mod ) {
      */
     
     std::map<std::pair<std::string, llvm::Value*>, unsigned> machinememory = mapSymbols( symbols, globVar, nbThreads );
+
+    /* Reverse map, for debugging purpose */
     
+    std::map<unsigned, std::pair<std::string, llvm::Value*>> inversemap =  mapSymbolsInverse( machinememory );
 
 
     return 0;

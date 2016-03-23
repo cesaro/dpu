@@ -54,6 +54,7 @@ TBD
 \end{abstract}
 
 \section{Execution Model}
+\label{s:model}
 
 Relevant classes:
 \verb!Machine!,
@@ -244,6 +245,7 @@ Relevant classes:
 Let $M$ be the input program model.
 Let $\unf M \eqdef \tup{E,<,\cfl,h}$ be the unfolding of $M$.
 Let $t$ be a transition of $M$ and $C \subseteq E$ a configuration of $\unf M$.
+See \cite{RSSK15long} for a formal definition.
 
 In the sequel we give an algorithm to compute the \emph{conflicting extensions}
 of~$C$, defined as
@@ -259,6 +261,8 @@ $
 \set{e \in E \colon e \notin C \land \causes e \subseteq C}
 $, where
 $\causes e \eqdef \set{e' \in E \colon e' < e}$.
+Again, see \cite{RSSK15long} to gain intuition about the necessity and motivation
+behind these definitions.
 
 Assume we are given a configuration $C$.
 We want to compute all events in $\cex C$.
@@ -273,15 +277,41 @@ events $e \in E$ such that $h(e) = t$:
 $e \in \cex C$ such that $h(e) = t$.
 \end{itemize}
 
+\begin{theorem}[Conflicting extensions]
+Let $M$ be the model of a program as described in \cref{s:model}.
+Let $C$ be an arbitrary configuration of $\unf M$.
+Then the algorithm above computes exactly the set of events $\cex C$.
+\end{theorem}
+\begin{proof}
+TBD
+\end{proof}
+
+\Cref{a:cex_wr} is slightly more complex than the algorithms for read and
+synchronization transitions, and requires the following additional definitions.
+
 Let $A$ be a set.
 A \emph{comb} over~$A$ of size $n \in \N$ is an $n$-tuple
 $c \eqdef \tup{s_1, \ldots, s_n}$ of sequences $s_i \in A^*$
 over~$A$.
 Each sequence $s_i$ of the $n$-tuple is called a \emph{spike}.
 Given a comb $c$ of size~$n$,
-a \emph{combination} of $c$ is any $n$-tuple $\tup{a_1, \ldots, a_n}$
-such that $a_i$ is one of the elements of the sequence $s_i \in A^*$, for
+a \emph{combination} of $c$ is any $n$-tuple $\tup{a_1, \ldots, a_n} \in A^n$
+such that $a_i \in A$ is one of the elements of the sequence $s_i \in A^*$, for
 $i \in \set{1, \ldots, n}$.
+
+Let $e \in E$ be a \verb!WR! event in $\unf M$.
+Let $\set{e_1, \ldots, e_n}$ be the set of \verb!pre_readers! of~$e$.
+We define the \emph{comb associated to $e$} as the only comb
+$\tup{s_1, \ldots s_n}$ of size~$n$ over~$E$ defined as follows:
+\begin{itemize}
+\item
+  Sequence $s_i \in E^*$ is formed by all \verb!RD! events and the only
+  \verb!WR! event that can be found by recursively exploring the pointer
+  \verb!pre_mem! starting from event~$e_i$. The last event to include in the
+  sequence is the first event of type \verb!WR! found during the exploration of
+  the list.
+\end{itemize}
+
 
 \begin{algorithm}
 \noindent
@@ -301,7 +331,7 @@ For each event $e \in C$ such that \verb!e->trans == t!, repeat the following:
   \item \verb!ex->pre_mem = em!,
   \end{itemize}
 \item Event \verb!ex! is in $\cex C$
-\item Goto 3.
+\item Goto 4.
 \item End.
 \end{enumerate}
 \caption{Conflicting extesions associated to \texttt{RD} transitions.}
@@ -334,7 +364,40 @@ For each event $e \in C$ such that \verb!e->trans == t!, repeat the following:
 
 \begin{algorithm}
 \noindent
-UNFINISHED.
+For each event $e \in C$ such that \verb!e->trans == t!, repeat the following:
+\begin{enumerate}
+\item Set \verb!ep = e->pre_proc!
+\item Set \verb!ew = e!
+\item
+  Let $M$ be the set of maximal events in $[e]$ that read or write variable
+  \verb!t->var! ($M$ will either be a singleton with only \verb!WR! event or
+  will contain exactly one \verb!RD! or \verb!WR! event per process)
+\item If $\verb!ew! < \verb!ep!$, then goto End.
+\item Let $c \eqdef \tup{s_1, \ldots, s_n}$ be the comb associated to \verb!ew!
+\item
+  Enumerate all combinations $\tup{e_1, \ldots, e_n}$ of $c$.
+  For any of them, do:
+  \begin{enumerate}
+  \item
+    If $\tup{e_1, \ldots, e_n} = \verb!e->pre_readers!$, then discard and take
+    next one.
+  \item
+    If any event in $\set{e_1, \ldots, e_n}$ a causal predecessor of some event in
+    $M$, then discard and take the next combination.
+  \item
+    Create (or retrieve) an event \verb!ex! such that
+    \begin{itemize}
+    \item \verb!ex->trans = t!,
+    \item \verb!ex->pre_proc = ep!,
+    \item \verb!ex->pre_readers = {e_1, ..., e_n}!,
+    \end{itemize}
+  \item
+    Set \verb!ew! to the last element (\verb!WR! event) of $s_1$
+    (or $s_2$, or $s_3$, or \ldots)
+  \end{enumerate}
+\item Goto 3.
+\item End.
+\end{enumerate}
 \caption{Conflicting extesions associated to \texttt{WR} transitions.}
 \label{a:cex_wr}
 \end{algorithm}
@@ -343,7 +406,7 @@ UNFINISHED.
 
 \section{LLVM Frontend}
 
-\subsection{Pass 1: Sanity Checks}
+\subsection*{Pass 1: Sanity Checks}
 
 Conditions to accept the input LLVM program:
 
@@ -362,16 +425,16 @@ Conditions to accept the input LLVM program:
   All variables in the C program are integers.
 \end{itemize}
 
-\subsection{Pass 2: Construction of 3-address IR}
+\subsection*{Pass 2: Construction of 3-address IR}
 
-\subsection{Pass 2.1: Identification of Threads}
+\subsection*{Pass 2.1: Identification of Threads}
 
 \begin{itemize}
 \item Number of threads given on command line
 \item Finding out the C function executed by each thread
 \end{itemize}
 
-\subsection{Pass 2.3: Allocation of memory}
+\subsection*{Pass 2.3: Allocation of memory}
 
 \begin{itemize}
 \item
@@ -382,12 +445,12 @@ Conditions to accept the input LLVM program:
   We generate a symbol table mapping each address to a textual name.
 \end{itemize}
 
-\subsection{Pass 2.4: Translation to 3-address IR}
+\subsection*{Pass 2.4: Translation to 3-address IR}
 
 Textual format and translation of LLVM opcodes in
 \verb!doc/internals/3addr-ir.rst!.
 
-\subsection{Pass 2.5: Reduction of target variables based on live variable
+\subsection*{Pass 2.5: Reduction of target variables based on live variable
 analysis}
 
 Only if we have time, although this could be done based on LLVM information and
@@ -395,19 +458,22 @@ directly during the translation of LLVM instructions to ou 3-address code.
 
 \url{https://en.wikipedia.org/wiki/Live_variable_analysis}
 
-\subsection{Pass 3: Construction of Large-Block Encoding}
-
-\subsection{Pass 3.1: Identification of local and global variables}
-\subsection{Pass 3.2: Construction of \texttt{dpu::ir::Trans} instructions}
+\subsection*{Pass 3: Construction of Large-Block Encoding}
+\subsection*{Pass 3.1: Identification of local and global variables}
+TBD
+\subsection*{Pass 3.2: Construction of \texttt{dpu::ir::Trans} instructions}
+TBD
 
 
 \section{FIXMEs}
 
-- do we need \verb!post_*! ?
+- do we need \verb!post_*! in any event?
+
+- do we need \verb!pre_mem! in \verb!WR! events?
 
 
-%\bibliographystyle{splncs}
-%\bibliography{refs}
+\bibliographystyle{splncs}
+\bibliography{refs}
 
 \end{document}
 

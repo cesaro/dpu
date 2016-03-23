@@ -98,6 +98,60 @@ lock    T SRC               Locks a mutex; expects address of integer operand
 unlock  T SRC               Unlocks a mutex; expects address of integer operand
 =========================== ====================================================
 
+Example
+-------
+
+Symbol table:
+
+===== ===== ======
+addr  type  symbol
+===== ===== ======
+0x04  i32   x
+0x08  i32   y
+0x0c  i32   i
+0x10  i32   acc
+0x14  i32   cnd
+===== ===== ======
+
+Program::
+ entry:
+   move i32 [x] 2
+   move i32 [y] 5
+   move i32 [i] 0
+   move i32 [acc] 0
+   br loopend
+ 
+ loophead:
+   add i32 [acc] [acc] [x]
+   add i32 [i] [i] 1
+ 
+ loopend:
+   cmp ult i32 [cnd] [i] [y]
+   br [cnd] loophead loopexit
+ 
+ loopexit:
+   mul i32 [i] [x] [y]
+   cmp ne i32 [cnd] [acc] [i]
+   br [cnd] fault term
+ 
+ fault:
+   error
+ 
+ term:
+   ret i32 0
+
+Equivalent C program::
+ void test ()
+ {
+   int x = 2;
+   int y = 5;
+   int i;
+   int acc = 0;
+
+   for (i = 0; i < y; i++) acc += y
+
+   assert (acc == x * y);
+ }
 
 Tentative Translation from LLVM
 -------------------------------

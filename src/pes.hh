@@ -47,6 +47,7 @@ public:
    const ir::Trans *     trans;
    int                   color;
    std::vector<Event *>  dicfl;  // set of direct conflicting events
+   std::vector <int>     clock; // size = number of processes + 1 (to store clock for all its predecessors: pre_proc, pre_mem or pre_readers)
 
    bool         operator ==   (const Event &) const;
    Event & 	    operator =    (const Event &);

@@ -1,0 +1,31 @@
+ccnf9.c:10:16: warning: control reaches end of non-void function [-Wreturn-type]
+void *t1(){a=1;}
+               ^
+ccnf9.c:11:16: warning: control reaches end of non-void function [-Wreturn-type]
+void *t2(){a=2;}
+               ^
+ccnf9.c:12:16: warning: control reaches end of non-void function [-Wreturn-type]
+void *t3(){b=1;}
+               ^
+ccnf9.c:13:16: warning: control reaches end of non-void function [-Wreturn-type]
+void *t4(){b=2;}
+               ^
+ccnf9.c:14:16: warning: control reaches end of non-void function [-Wreturn-type]
+void *t5(){c=1;}
+               ^
+ccnf9.c:15:16: warning: control reaches end of non-void function [-Wreturn-type]
+void *t6(){c=2;}
+               ^
+ccnf9.c:16:16: warning: control reaches end of non-void function [-Wreturn-type]
+void *t7(){d=1;}
+               ^
+ccnf9.c:17:16: warning: control reaches end of non-void function [-Wreturn-type]
+void *t8(){d=2;}
+               ^
+8 warnings generated.
+Trace count: 16 (also 0 sleepset blocked)
+No errors were detected.
+* Nidhuggc: $ /usr/bin/clang -o /tmp/tmp6ae5iq_a/tmpk82y6am6.ll -S -emit-llvm -g ccnf9.c
+* Nidhuggc: $ /usr/local/bin/nidhugg -transform /tmp/tmp6ae5iq_a/tmp63b0s9uf.ll /tmp/tmp6ae5iq_a/tmpk82y6am6.ll
+* Nidhuggc: $ /usr/local/bin/nidhugg -sc /tmp/tmp6ae5iq_a/tmp63b0s9uf.ll
+Total wall-clock time: 0.05 s

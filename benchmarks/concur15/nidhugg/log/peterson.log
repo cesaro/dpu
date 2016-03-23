@@ -1,0 +1,13 @@
+peterson.c:22:1: warning: control may reach end of non-void function [-Wreturn-type]
+}
+^
+peterson.c:36:1: warning: control may reach end of non-void function [-Wreturn-type]
+}
+^
+2 warnings generated.
+Trace count: 266 (also 0 sleepset blocked)
+No errors were detected.
+* Nidhuggc: $ /usr/bin/clang -o /tmp/tmp45gs_5su/tmpr6wpsx_1.ll -S -emit-llvm -g peterson.c
+* Nidhuggc: $ /usr/local/bin/nidhugg --unroll=10 -transform /tmp/tmp45gs_5su/tmp_h1yys7n.ll /tmp/tmp45gs_5su/tmpr6wpsx_1.ll
+* Nidhuggc: $ /usr/local/bin/nidhugg -sc /tmp/tmp45gs_5su/tmp_h1yys7n.ll
+Total wall-clock time: 0.11 s

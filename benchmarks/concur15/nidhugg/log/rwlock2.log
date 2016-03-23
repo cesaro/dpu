@@ -1,0 +1,50 @@
+rwlock2.c:20:1: warning: control reaches end of non-void function [-Wreturn-type]
+}
+^
+rwlock2.c:28:1: warning: control reaches end of non-void function [-Wreturn-type]
+}
+^
+rwlock2.c:46:1: warning: control may reach end of non-void function [-Wreturn-type]
+}
+^
+rwlock2.c:64:1: warning: control may reach end of non-void function [-Wreturn-type]
+}
+^
+4 warnings generated.
+Trace count: 20790 (also 512 sleepset blocked)
+
+ Error detected:
+  (<0>,1) rwlock2.c:68: pthread_create(&t1, 0, writer1, 0);
+  (<0>,9) rwlock2.c:72: pthread_join(t1, 0);
+    (<0.0>,1)
+    (<0.0>,3) rwlock2.c:15: int aux=w;
+    (<0.0>,4) rwlock2.c:15: int aux=w;
+    (<0.0>,6) rwlock2.c:16: while(aux != 0 || r != 0) { aux = w; } // __VERIFIER_assume(w==0 && r==0);
+    (<0.0>,9) rwlock2.c:16: while(aux != 0 || r != 0) { aux = w; } // __VERIFIER_assume(w==0 && r==0);
+      (<0.1>,1)
+      (<0.1>,6) rwlock2.c:33: int aux=w;
+    (<0.0>,13) rwlock2.c:17: w = 1;
+      (<0.1>,7) rwlock2.c:33: int aux=w;
+      (<0.1>,9) rwlock2.c:34: while(aux != 0){
+      (<0.1>,12) rwlock2.c:37: int auxr = r;
+      (<0.1>,13) rwlock2.c:37: int auxr = r;
+      (<0.1>,14) rwlock2.c:38: r = auxr+1;
+      (<0.1>,16) rwlock2.c:38: r = auxr+1;
+      (<0.1>,17) rwlock2.c:40: l = x;
+    (<0.0>,14) rwlock2.c:18: x = 3;
+    (<0.0>,15) rwlock2.c:19: w = 0;
+    (<0.0>,16) rwlock2.c:20: }
+  (<0>,10) rwlock2.c:72: pthread_join(t1, 0);
+  (<0>,11) rwlock2.c:73: pthread_join(t2, 0);
+      (<0.1>,18) rwlock2.c:40: l = x;
+      (<0.1>,19) rwlock2.c:41: y = l;
+      (<0.1>,20) rwlock2.c:41: y = l;
+      (<0.1>,21) rwlock2.c:42: int aux2 = y;
+      (<0.1>,22) rwlock2.c:42: int aux2 = y;
+      (<0.1>,23) rwlock2.c:43: if(aux2 != x){ assert(0); } //assert(y == x);
+      (<0.1>,24) rwlock2.c:43: if(aux2 != x){ assert(0); } //assert(y == x);
+                 Error: Assertion violation at (<0.1>,27): (0)
+* Nidhuggc: $ /usr/bin/clang -o /tmp/tmprx_h25og/tmpxmz6m98a.ll -S -emit-llvm -g rwlock2.c
+* Nidhuggc: $ /usr/local/bin/nidhugg --unroll=2 -transform /tmp/tmprx_h25og/tmppi07ayra.ll /tmp/tmprx_h25og/tmpxmz6m98a.ll
+* Nidhuggc: $ /usr/local/bin/nidhugg -sc /tmp/tmprx_h25og/tmppi07ayra.ll
+Total wall-clock time: 7.88 s

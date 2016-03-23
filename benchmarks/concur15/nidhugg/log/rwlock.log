@@ -1,0 +1,19 @@
+rwlock.c:33:1: warning: control reaches end of non-void function [-Wreturn-type]
+}
+^
+rwlock.c:48:1: warning: control reaches end of non-void function [-Wreturn-type]
+}
+^
+rwlock.c:69:1: warning: control may reach end of non-void function [-Wreturn-type]
+}
+^
+rwlock.c:92:1: warning: control may reach end of non-void function [-Wreturn-type]
+}
+^
+4 warnings generated.
+Trace count: 2174 (also 14 sleepset blocked)
+No errors were detected.
+* Nidhuggc: $ /usr/bin/clang -o /tmp/tmp40rrg6l_/tmpbysq1wny.ll -S -emit-llvm -g rwlock.c
+* Nidhuggc: $ /usr/local/bin/nidhugg --unroll=10 -transform /tmp/tmp40rrg6l_/tmpke2go2al.ll /tmp/tmp40rrg6l_/tmpbysq1wny.ll
+* Nidhuggc: $ /usr/local/bin/nidhugg -sc /tmp/tmp40rrg6l_/tmpke2go2al.ll
+Total wall-clock time: 0.83 s

@@ -1,0 +1,13 @@
+stf.c:19:1: warning: control reaches end of non-void function [-Wreturn-type]
+}
+^
+stf.c:34:1: warning: control reaches end of non-void function [-Wreturn-type]
+}
+^
+2 warnings generated.
+Trace count: 6 (also 0 sleepset blocked)
+No errors were detected.
+* Nidhuggc: $ /usr/bin/clang -o /tmp/tmpcv4uplxz/tmpqhgpe115.ll -S -emit-llvm -g stf.c
+* Nidhuggc: $ /usr/local/bin/nidhugg -transform /tmp/tmpcv4uplxz/tmpy5uil12q.ll /tmp/tmpcv4uplxz/tmpqhgpe115.ll
+* Nidhuggc: $ /usr/local/bin/nidhugg -sc /tmp/tmpcv4uplxz/tmpy5uil12q.ll
+Total wall-clock time: 0.06 s

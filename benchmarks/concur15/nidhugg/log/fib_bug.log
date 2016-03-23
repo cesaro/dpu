@@ -1,0 +1,140 @@
+fib_bug.c:19:1: warning: control reaches end of non-void function [-Wreturn-type]
+}
+^
+fib_bug.c:34:1: warning: control reaches end of non-void function [-Wreturn-type]
+}
+^
+2 warnings generated.
+Trace count: 2046 (also 0 sleepset blocked)
+
+ Error detected:
+  (<0>,1)
+  (<0>,6)
+  (<0>,7) fib_bug.c:37: main(int argc, char **argv)
+  (<0>,10) fib_bug.c:44: pthread_join(id1,NULL);
+    (<0.0>,1)
+    (<0.0>,5) fib_bug.c:12: int k = 0;
+    (<0.0>,6) fib_bug.c:13: int s, t;
+    (<0.0>,8) fib_bug.c:14: for (k = 0; k < NUM; k=k+1){
+    (<0.0>,11) fib_bug.c:15: s = j;
+    (<0.0>,12) fib_bug.c:15: s = j;
+    (<0.0>,13) fib_bug.c:16: t = i+s;
+    (<0.0>,14) fib_bug.c:16: t = i+s;
+    (<0.0>,16) fib_bug.c:16: t = i+s;
+    (<0.0>,17) fib_bug.c:17: i=t;
+    (<0.0>,18) fib_bug.c:17: i=t;
+    (<0.0>,20) fib_bug.c:14: for (k = 0; k < NUM; k=k+1){
+    (<0.0>,22) fib_bug.c:14: for (k = 0; k < NUM; k=k+1){
+    (<0.0>,24) fib_bug.c:14: for (k = 0; k < NUM; k=k+1){
+      (<0.1>,1)
+      (<0.1>,5) fib_bug.c:23: int k = 0;
+      (<0.1>,6) fib_bug.c:27: for (k = 0; k < NUM; k=k+1){
+      (<0.1>,8) fib_bug.c:27: for (k = 0; k < NUM; k=k+1){
+      (<0.1>,11) fib_bug.c:28: t = j;
+      (<0.1>,12) fib_bug.c:28: t = j;
+      (<0.1>,13) fib_bug.c:29: s = t + i;
+      (<0.1>,14) fib_bug.c:29: s = t + i;
+      (<0.1>,16) fib_bug.c:29: s = t + i;
+      (<0.1>,17) fib_bug.c:30: j = s;
+      (<0.1>,18) fib_bug.c:30: j = s;
+    (<0.0>,27) fib_bug.c:15: s = j;
+    (<0.0>,28) fib_bug.c:15: s = j;
+    (<0.0>,29) fib_bug.c:16: t = i+s;
+    (<0.0>,30) fib_bug.c:16: t = i+s;
+    (<0.0>,32) fib_bug.c:16: t = i+s;
+    (<0.0>,33) fib_bug.c:17: i=t;
+    (<0.0>,34) fib_bug.c:17: i=t;
+    (<0.0>,36) fib_bug.c:14: for (k = 0; k < NUM; k=k+1){
+    (<0.0>,38) fib_bug.c:14: for (k = 0; k < NUM; k=k+1){
+    (<0.0>,40) fib_bug.c:14: for (k = 0; k < NUM; k=k+1){
+      (<0.1>,19) fib_bug.c:31: }
+      (<0.1>,20) fib_bug.c:27: for (k = 0; k < NUM; k=k+1){
+      (<0.1>,22) fib_bug.c:27: for (k = 0; k < NUM; k=k+1){
+      (<0.1>,24) fib_bug.c:27: for (k = 0; k < NUM; k=k+1){
+      (<0.1>,27) fib_bug.c:28: t = j;
+      (<0.1>,28) fib_bug.c:28: t = j;
+      (<0.1>,29) fib_bug.c:29: s = t + i;
+      (<0.1>,30) fib_bug.c:29: s = t + i;
+      (<0.1>,32) fib_bug.c:29: s = t + i;
+      (<0.1>,33) fib_bug.c:30: j = s;
+      (<0.1>,34) fib_bug.c:30: j = s;
+    (<0.0>,43) fib_bug.c:15: s = j;
+    (<0.0>,44) fib_bug.c:15: s = j;
+    (<0.0>,45) fib_bug.c:16: t = i+s;
+    (<0.0>,46) fib_bug.c:16: t = i+s;
+    (<0.0>,48) fib_bug.c:16: t = i+s;
+    (<0.0>,49) fib_bug.c:17: i=t;
+    (<0.0>,50) fib_bug.c:17: i=t;
+    (<0.0>,52) fib_bug.c:14: for (k = 0; k < NUM; k=k+1){
+    (<0.0>,54) fib_bug.c:14: for (k = 0; k < NUM; k=k+1){
+    (<0.0>,56) fib_bug.c:14: for (k = 0; k < NUM; k=k+1){
+      (<0.1>,35) fib_bug.c:31: }
+      (<0.1>,36) fib_bug.c:27: for (k = 0; k < NUM; k=k+1){
+      (<0.1>,38) fib_bug.c:27: for (k = 0; k < NUM; k=k+1){
+      (<0.1>,40) fib_bug.c:27: for (k = 0; k < NUM; k=k+1){
+      (<0.1>,43) fib_bug.c:28: t = j;
+      (<0.1>,44) fib_bug.c:28: t = j;
+      (<0.1>,45) fib_bug.c:29: s = t + i;
+      (<0.1>,46) fib_bug.c:29: s = t + i;
+      (<0.1>,48) fib_bug.c:29: s = t + i;
+      (<0.1>,49) fib_bug.c:30: j = s;
+      (<0.1>,50) fib_bug.c:30: j = s;
+    (<0.0>,59) fib_bug.c:15: s = j;
+    (<0.0>,60) fib_bug.c:15: s = j;
+    (<0.0>,61) fib_bug.c:16: t = i+s;
+    (<0.0>,62) fib_bug.c:16: t = i+s;
+    (<0.0>,64) fib_bug.c:16: t = i+s;
+    (<0.0>,65) fib_bug.c:17: i=t;
+    (<0.0>,66) fib_bug.c:17: i=t;
+    (<0.0>,68) fib_bug.c:14: for (k = 0; k < NUM; k=k+1){
+    (<0.0>,70) fib_bug.c:14: for (k = 0; k < NUM; k=k+1){
+    (<0.0>,72) fib_bug.c:14: for (k = 0; k < NUM; k=k+1){
+      (<0.1>,51) fib_bug.c:31: }
+      (<0.1>,52) fib_bug.c:27: for (k = 0; k < NUM; k=k+1){
+      (<0.1>,54) fib_bug.c:27: for (k = 0; k < NUM; k=k+1){
+      (<0.1>,56) fib_bug.c:27: for (k = 0; k < NUM; k=k+1){
+      (<0.1>,59) fib_bug.c:28: t = j;
+      (<0.1>,60) fib_bug.c:28: t = j;
+      (<0.1>,61) fib_bug.c:29: s = t + i;
+      (<0.1>,62) fib_bug.c:29: s = t + i;
+      (<0.1>,64) fib_bug.c:29: s = t + i;
+      (<0.1>,65) fib_bug.c:30: j = s;
+      (<0.1>,66) fib_bug.c:30: j = s;
+    (<0.0>,75) fib_bug.c:15: s = j;
+    (<0.0>,76) fib_bug.c:15: s = j;
+    (<0.0>,77) fib_bug.c:16: t = i+s;
+    (<0.0>,78) fib_bug.c:16: t = i+s;
+    (<0.0>,80) fib_bug.c:16: t = i+s;
+    (<0.0>,81) fib_bug.c:17: i=t;
+    (<0.0>,82) fib_bug.c:17: i=t;
+    (<0.0>,84) fib_bug.c:14: for (k = 0; k < NUM; k=k+1){
+    (<0.0>,86) fib_bug.c:14: for (k = 0; k < NUM; k=k+1){
+    (<0.0>,88) fib_bug.c:14: for (k = 0; k < NUM; k=k+1){
+    (<0.0>,91) fib_bug.c:19: }
+  (<0>,11) fib_bug.c:44: pthread_join(id1,NULL);
+  (<0>,12) fib_bug.c:45: pthread_join(id2,NULL);
+      (<0.1>,67) fib_bug.c:31: }
+      (<0.1>,68) fib_bug.c:27: for (k = 0; k < NUM; k=k+1){
+      (<0.1>,70) fib_bug.c:27: for (k = 0; k < NUM; k=k+1){
+      (<0.1>,72) fib_bug.c:27: for (k = 0; k < NUM; k=k+1){
+      (<0.1>,75) fib_bug.c:28: t = j;
+      (<0.1>,76) fib_bug.c:28: t = j;
+      (<0.1>,77) fib_bug.c:29: s = t + i;
+      (<0.1>,78) fib_bug.c:29: s = t + i;
+      (<0.1>,80) fib_bug.c:29: s = t + i;
+      (<0.1>,81) fib_bug.c:30: j = s;
+      (<0.1>,82) fib_bug.c:30: j = s;
+      (<0.1>,84) fib_bug.c:27: for (k = 0; k < NUM; k=k+1){
+      (<0.1>,86) fib_bug.c:27: for (k = 0; k < NUM; k=k+1){
+      (<0.1>,88) fib_bug.c:27: for (k = 0; k < NUM; k=k+1){
+      (<0.1>,91) fib_bug.c:34: }
+  (<0>,13) fib_bug.c:45: pthread_join(id2,NULL);
+  (<0>,14) fib_bug.c:47: int l=i;
+  (<0>,15) fib_bug.c:47: int l=i;
+  (<0>,16) fib_bug.c:48: if (l >= 144 || j >= 144) {
+  (<0>,19) fib_bug.c:48: if (l >= 144 || j >= 144) {
+           Error: Assertion violation at (<0>,22): (0)
+* Nidhuggc: $ /usr/bin/clang -o /tmp/tmp7b6f4_bz/tmpc2g82fa1.ll -S -emit-llvm -g fib_bug.c
+* Nidhuggc: $ /usr/local/bin/nidhugg -transform /tmp/tmp7b6f4_bz/tmpsffvbgj_.ll /tmp/tmp7b6f4_bz/tmpc2g82fa1.ll
+* Nidhuggc: $ /usr/local/bin/nidhugg -sc /tmp/tmp7b6f4_bz/tmpsffvbgj_.ll
+Total wall-clock time: 0.74 s

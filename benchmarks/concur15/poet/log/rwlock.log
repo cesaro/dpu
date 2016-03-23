@@ -1,0 +1,6 @@
+poet cutoffs:
+poet: Prelude.head: empty list
+
+real	0m0.056s
+user	0m0.043s
+sys	0m0.013s

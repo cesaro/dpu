@@ -1,0 +1,19 @@
+ssb3.c:14:1: warning: control reaches end of non-void function [-Wreturn-type]
+}
+^
+ssb3.c:18:1: warning: control reaches end of non-void function [-Wreturn-type]
+}
+^
+ssb3.c:24:1: warning: control reaches end of non-void function [-Wreturn-type]
+}
+^
+ssb3.c:36:1: warning: control reaches end of non-void function [-Wreturn-type]
+}
+^
+4 warnings generated.
+Trace count: 169 (also 67 sleepset blocked)
+No errors were detected.
+* Nidhuggc: $ /usr/bin/clang -o /tmp/tmpiwpo3qkg/tmpg5dd_dli.ll -S -emit-llvm -g ssb3.c
+* Nidhuggc: $ /usr/local/bin/nidhugg -transform /tmp/tmpiwpo3qkg/tmpw3ae_75h.ll /tmp/tmpiwpo3qkg/tmpg5dd_dli.ll
+* Nidhuggc: $ /usr/local/bin/nidhugg -sc /tmp/tmpiwpo3qkg/tmpw3ae_75h.ll
+Total wall-clock time: 0.12 s

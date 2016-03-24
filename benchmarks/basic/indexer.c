@@ -43,14 +43,14 @@ void * t1()
       w1 = m1 * 11 + tid1;
     }
     else{
-      return NULL;
+      return 0;
     }
     
     h1 = (w1 * 7) % SIZE;
     
     if (h1<0){
       //ERROR: // TODO: put assert here? 
-      return NULL;
+      return 0;
     }
     
     int flag1 = 1;
@@ -69,7 +69,7 @@ void * t1()
 	    break;
     }
   }
-  return NULL;
+  return 0;
 }
 
 void * t2()
@@ -85,14 +85,14 @@ void * t2()
       w2 = m2 * 11 + tid2;
     }
     else{
-      return NULL;
+      return 0;
     }
     
     h2 = (w2 * 7) % SIZE;
     
     if (h2<0){
       //ERROR: // TODO: put assert here? 
-      return NULL;
+      return 0;
     }
     
     int flag2 = 1;
@@ -111,7 +111,7 @@ void * t2()
 	      break;
     }
   }
-  return NULL;
+  return 0;
 }
 
 int main()
@@ -120,14 +120,14 @@ int main()
 
   while (i < SIZE)
   {
-      pthread_mutex_init(&cas_mutex[i], NULL);
+      pthread_mutex_init(&cas_mutex[i], 0);
       i+=1;
   }
 
-  pthread_create(&tids[0], NULL,  t1, NULL);
-  pthread_create(&tids[1], NULL,  t2, NULL);
+  pthread_create(&tids[0], 0,  t1, 0);
+  pthread_create(&tids[1], 0,  t2, 0);
 
-  pthread_join(tids[0], NULL);
-  pthread_join(tids[1], NULL);
+  pthread_join(tids[0], 0);
+  pthread_join(tids[1], 0);
 
 }

@@ -205,10 +205,11 @@ void Event::mk_history(const Config & c)
          {
             /* put all elements j of pre_readers to a vector temp */
             for (unsigned j = 0; j < procs.size(); j++)
-               temp.push_back(pre_readers[i]->clock[j]);
+               temp.push_back(pre_readers[j]->clock[i]);
 
             std::vector<unsigned>::iterator it = std::max_element(temp.begin(), temp.end()); // find out the largest element
             clock[i] = *it; // put it to the back of clock
+            temp.clear();
          }
          clock[p.id]++;
          break;
@@ -283,8 +284,7 @@ void Event:: RD_cex(Config & c)
    ep = this->pre_proc;
    em = this->pre_mem;
 
-   while ((em->in_history(ep) == false)&& (em->is_bottom() != true))
-   //while (em->is_bottom() != true) // browse all events preceding this event in pre_mem chain.
+   while ((em->is_bottom() != true) && (ep->in_history(em) == false))
    {
       temp = new Event(t, c.unf);
       temp->pre_proc = ep;
@@ -314,7 +314,7 @@ void Event:: RD_cex(Config & c)
             in_unf = true;
             DEBUG("   Already in the unf as %s", ee.str().c_str());
             // if it is in cex -> don't add
-            for (auto ce : c.cex)
+            for (auto ce : c.cex1)
                if (ee.idx == ce->idx)
                {
                   in_cex = true;
@@ -324,7 +324,7 @@ void Event:: RD_cex(Config & c)
 
             if (in_cex == false)
             {
-               c.cex.push_back(&ee);
+               c.cex1.push_back(&ee);
                this->dicfl.push_back(&ee);
             }
 
@@ -338,7 +338,7 @@ void Event:: RD_cex(Config & c)
             c.unf.evt.push_back(*temp);
             c.unf.evt.back().update_parents();
             c.unf.count++;
-            c.cex.push_back(&c.unf.evt.back());
+            c.cex1.push_back(&c.unf.evt.back());
             this->dicfl.push_back(&c.unf.evt.back());
             DEBUG("   Unf.evt.back: id: %s \n ", c.unf.evt.back().str().c_str());
       }
@@ -425,29 +425,16 @@ void Event:: WR_cex(Config & c)
  */
 bool Event::in_history(Event * e )
 {
-   if (e->clock < clock)
-      return true;
-   return false;
-
 #if 0
-   Event * ep = this;
-   if (this->is_bottom() || e->is_bottom())
-      return true;
-
-   if ((this->trans->proc.id == e->trans->proc.id) && (this->trans->src > e->trans->src))
-      return true;
-
-   while (ep->is_bottom() == false)
-      {
-         if (ep->pre_mem == e)
-            return true;
-         else
-            ep = ep->pre_mem;
-      }
-
-   return false;
+   for (unsigned int i = 0; i < clock.size(); i++)
+   if (e->clock[i] > clock[i])
+      return false;
+   return true;
 #endif
 
+   if (e->clock < clock)
+        return true;
+     return false;
 }
 
 /*
@@ -598,19 +585,19 @@ std::string Event::str () const
 
 std::string Event::dotstr () const
 {
-   const char * code = trans ? trans->code.str().c_str() : "";
-   int proc = trans ? trans->proc.id : -1;
-
    std::string st;
-
    for (unsigned int i = 0; i < clock.size(); i++)
       if (i == clock.size() -1)
          st += std::to_string(clock[i]);
       else
          st += std::to_string(clock[i]) + ", ";
 
-      return fmt ("id: %d, code: '%s' \n proc: %d , src: %d , dest: %d \n vclock:(%s) ",
-         idx, code, proc, trans->src, trans->dst, st.c_str());
+   const char * code = (trans != nullptr) ? trans->code.str().c_str() : ""; // pay attention at c_str()
+   int proc = (trans != nullptr) ? trans->proc.id : -1;
+   int src = trans? trans->src : 0;
+   int dst = trans? trans->dst : 0;
+
+   return fmt ("id: %d, code: '%s' \n proc: %d , src: %d , dest: %d \n clock:(%s) ", idx, code, proc, src, dst, st.c_str());
 }
 
 /* Print all information for an event */
@@ -679,6 +666,7 @@ Config::Config (Unfolding & u)
 	// FIXME is this necessary ? -- Cesar
    en.reserve(u.m.trans.size()*10);
    cex.reserve(u.m.trans.size()*10);
+   cex1.reserve(u.m.trans.size()*10);
 
    // compute enable set for a configuration with the only event "bottom"
    __update_encex (*unf.bottom);
@@ -930,22 +918,22 @@ void Config::cprint_dot()
             switch (p->trans->type)
             {
                case ir::Trans::LOC:
-                  fs << p->idx << "[id="<< p->idx << ", label=\" " << p->dotstr() << " \" fillcolor=yellow];\n";
+                  fs << p->idx << "[id="<< p->idx << ", label=\" " << p->dotstr() << " \", fillcolor=yellow];\n";
                   fs << p->pre_proc->idx << "->"<< p->idx << "[color=brown];\n";
                   break;
                case ir::Trans::RD:
-                  fs << p->idx << "[id="<< p->idx << ", label=\" " << p->dotstr() << " \" fillcolor=palegreen];\n";
+                  fs << p->idx << "[id="<< p->idx << ", label=\" " << p->dotstr() << " \", fillcolor=palegreen];\n";
                   fs << p->pre_mem->idx << "->"<< p->idx << ";\n";
                   fs << p->pre_proc->idx << "->"<< p->idx << "[fillcolor=brown];\n";
                   break;
                case ir::Trans::SYN:
-                  fs << p->idx << "[id="<< p->idx << ", label=\" " << p->dotstr() << " \" fillcolor=lightblue];\n";
+                  fs << p->idx << "[id="<< p->idx << ", label=\" " << p->dotstr() << " \", fillcolor=lightblue];\n";
                   fs << p->pre_mem->idx << "->"<< p->idx << ";\n";
                   fs << p->pre_proc->idx << "->"<< p->idx << "[color=brown];\n";
                   break;
 
                case ir::Trans::WR:
-                  fs << p->idx << "[id="<< p->idx << ", label=\" " << p->dotstr() << " \" fillcolor=red];\n";
+                  fs << p->idx << "[id="<< p->idx << ", label=\" " << p->dotstr() << " \", fillcolor=red];\n";
                   fs << p->pre_proc->idx << "->"<< p->idx << "[color=brown];\n";
                   for (auto pr : p->pre_readers)
                   {
@@ -978,8 +966,8 @@ void Config::__print_en() const
  */
 void Config::__print_cex() const
 {
-   DEBUG ("Conflicting set of config %p: size: %zu", this, cex.size());
-      for (auto & e : cex)
+   DEBUG ("Conflicting set of config %p: size: %zu", this, cex1.size());
+      for (auto & e : cex1)
          e->eprint_debug();
 }
 
@@ -1009,8 +997,6 @@ void Unfolding::__create_bottom ()
    bottom = &evt.back(); // using = operator
    bottom->pre_mem = bottom;
    bottom->pre_proc = bottom;
-   for (unsigned int i = 0; i < this->m.procs.size(); i++)
-      bottom->clock.push_back(0);
 
    DEBUG ("%p: Unfolding.__create_bottom: bottom %p", this, e);
 }
@@ -1071,19 +1057,19 @@ void Unfolding:: uprint_dot()
    }
 
    std::ofstream fs("output/unf.dot", std::fstream::out);
-   std::string caption = "Building multiplier";
+   std::string caption = "Unfolding";
    printf(" Unfolding exported to dot file: \"dpu/output/unf.dot\"");
    fs << "Digraph RGraph {\n";
    fs << "label = \"Unfolding: " << caption <<"\"";
    fs << "node [shape=rectangle, fontsize=10, style=\"filled, solid\", align=right]";
    fs << "edge [style=filled]";
-   //fs << "forcelabels=true; \n ";
 
    for(auto const & e : evt)
    {
       if (e.is_bottom())
       {
-         fs << e.idx << "[label=\"bottom\"]\n";
+         fs << e.idx << "[label=\"" << e.dotstr() <<" \"]\n";
+         //fs << e.idx << "[label = bottom]\n";
          continue;
       }
 
@@ -1211,7 +1197,7 @@ void Unfolding::explore_driven_config ()
    {
       srand(time(NULL));
       i = rand() % c.en.size();
-      while ( (c.en[i]->trans->proc.id == 1) && (count < 19)) // set up when we want to add event in proc 1 (e.g: after 21 events in proc 0)
+      while ( (c.en[i]->trans->proc.id == 1) && (count < 15)) // set up when we want to add event in proc 1 (e.g: after 21 events in proc 0)
       {
          srand(time(NULL));
          i = rand() % c.en.size();
@@ -1220,7 +1206,7 @@ void Unfolding::explore_driven_config ()
       count++;
    }
    // c.cprint_debug();
-   // uprint_debug();
+   uprint_debug();
    c.compute_cex();
    c.cprint_dot();
    uprint_dot();

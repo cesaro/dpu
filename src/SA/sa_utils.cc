@@ -176,3 +176,88 @@ bool isLive( std::string name, llvm::Function* fun  ){
     }
     return false;
 }
+
+/* Get what alloca allocates
+ * Returns two integers:
+ * - size in bits of each field
+ * - number of blocks
+ */
+
+std::pair<unsigned, unsigned> getAllocaInfo( llvm::Instruction* ins ) {
+    std::pair<unsigned, unsigned> info;
+    
+    llvm::AllocaInst* aa = static_cast<llvm::AllocaInst*>(&(*ins));
+    
+    if( aa->getAllocatedType()->isPointerTy() ) {
+        /* Pointers give a size of 0. Use something else instead.*/
+        info.first = POINTERSIZE;
+    } else {
+        info.first = aa->getAllocatedType()->getPrimitiveSizeInBits();
+    }
+
+    llvm::Value* size = aa->getArraySize();
+    std::string s_size =  (size->hasName()) ? size->getName().str() : getShortValueName( size );
+    info.second = std::stoi( s_size );
+    
+    return info;
+}
+
+/* Dump the state of a machine
+ * Used for debugging
+ */
+
+void  dumpMachine(  machine_t* machine ){
+    std::cerr << "Address \t| Symbol / threadid \t| Value" << std::endl;
+    
+    for( auto i = machine->begin() ; i != machine->end() ; i++ ) {
+        if( i->first.first != "" ){
+            std::cerr << i->second << "\t\t|" << i->first.first << " / " << i->first.second << "\t\t";
+            if( 0 == i->first.second && i->first.first.length( ) < 3 )
+                std::cerr << "\t";
+            std::cerr << "|" << " TODO " << std::endl;
+        }
+    }
+}
+
+/* Is this variable a global variable? 
+ */
+
+/* TODO : support backward check to support uggly stuff like
+static int a;
+int foo( int t ){
+	int* p;
+	if( t > 3 ) {
+		p = &a;
+	} else {
+		p = &t;
+	}
+	return *p;
+}
+*/
+
+
+bool isGlobal( llvm::Module* mod, llvm::StringRef name ){
+    GlobalVariable* var = mod->getGlobalVariable( name );
+    return (var == NULL ) ? false:true;
+}
+
+/* Puts the type of a value into a string 
+ */
+
+std::string typeToStr( Type* ty ) {
+    std::string s;
+    /* Type */
+    if( ty->isIntegerTy() ) {
+        s = "i";
+    }
+    if( ty->isFloatingPointTy() ) {
+        s = "f";
+    }
+    /* Length */
+    if( !ty->isPointerTy() ) {
+        s = s + std::to_string( ty->getPrimitiveSizeInBits() );
+    } else {
+        s = "i" + std::to_string( POINTERSIZE );
+    }
+    return s;
+}

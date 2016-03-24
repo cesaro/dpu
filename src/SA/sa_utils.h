@@ -1,3 +1,41 @@
+#include <iostream>
+#include "llvm/IR/LLVMContext.h"
+#include "llvm/IR/Module.h"
+#include "llvm/IR/Function.h"
+#include "llvm/IR/CFG.h"
+#include "llvm/IRReader/IRReader.h"
+#include "llvm/Support/SourceMgr.h"
+#include "llvm/Support/raw_ostream.h"
+
+#include "llvm/IR/Instructions.h"
+
+
+using namespace std;
+using namespace llvm;
+
+/**********************************************************************/
+/*   Constants                                                        */
+/**********************************************************************/
+
+#define POINTERSIZE 32
+#define PTHREADCREATE "pthread_create"
+#define PTHREADJOIN   "pthread_join"
+#define LOCK          "pthread_mutex_lock"
+#define UNLOCK        "pthread_mutex_unlock"
+
+
+/**********************************************************************/
+/*   Type aliases                                                     */
+/**********************************************************************/
+
+using symbol_t = std::pair<std::string, llvm::Value*>;
+using machine_t = std::map<symbol_t, unsigned>;
+using machine_inverse_t = std::map<unsigned, symbol_t>;
+
+/**********************************************************************/
+/*   Prototypes                                                       */
+/**********************************************************************/
+
 template <class T> bool itemexists( std::vector<T>, T);
 template <class T> void appendVector( std::vector<T>, std::vector<T> );
 
@@ -7,6 +45,14 @@ std::string getShortValueName( llvm::Value *);
 bool isLive( std::string, llvm::Function*);
 std::vector<llvm::Function*> notInList( std::vector<llvm::Function*>, std::vector<std::string> );
 std::vector<llvm::BasicBlock*> blocklist( llvm::Function* );
+std::pair<unsigned, unsigned> getAllocaInfo( llvm::Instruction*);
+void  dumpMachine(  machine_t* );
+bool isGlobal( llvm::Module*, llvm::StringRef );
+std::string typeToStr( Type*);
+
+/**********************************************************************/
+/*   Classes definition                                               */
+/**********************************************************************/
 
 
 namespace fe { // Front-end

@@ -1,16 +1,6 @@
-#include <iostream>
-#include "llvm/IR/LLVMContext.h"
-#include "llvm/IR/Module.h"
-#include "llvm/IR/Function.h"
-#include "llvm/IR/CFG.h"
-#include "llvm/IRReader/IRReader.h"
-#include "llvm/Support/SourceMgr.h"
-#include "llvm/Support/raw_ostream.h"
-
-#include "llvm/IR/Instructions.h"
-
 #include "sa_utils.h"
 #include "sa_utils.tpp"
+#include "sa_ir.h"
 
 /** 
  * - get the names of all the global variables
@@ -20,11 +10,6 @@
 
 using namespace std;
 using namespace llvm;
-
-#define PTHREADCREATE "pthread_create"
-#define PTHREADJOIN   "pthread_join"
-#define LOCK          "pthread_mutex_lock"
-#define UNLOCK        "pthread_mutex_unlock"
 
 /* Returns the number of threads created in a module 
 */
@@ -144,35 +129,12 @@ bool compliantAlloca( llvm::Module* mod ) {
 }
 
 
-/* Is this variable a global variable? 
- */
-
-/* TODO : support backward check to support uggly stuff like
-static int a;
-int foo( int t ){
-	int* p;
-	if( t > 3 ) {
-		p = &a;
-	} else {
-		p = &t;
-	}
-	return *p;
-}
-*/
-
-
-bool isGlobal( llvm::Module* mod, llvm::StringRef name ){
-    GlobalVariable* var = mod->getGlobalVariable( name );
-    return (var == NULL ) ? false:true;
-}
-
 /* Does this instruction contain a global variable?
  * TODO : pointeurs
  */
 
-bool parseInstruction( llvm::Module* mod, llvm::Instruction* ins ) {
+void parseInstruction( llvm::Module* mod, machine_t* machine, llvm::Instruction* ins, llvm::Value* tid ) {
     /* look at the operands of the instruction */
-    std::cerr << " ---- " << std::endl;
     ins->print( errs() );
     std::cerr << "\n";
     std::cerr << "Op code : " << ins->getOpcode() << " (" << ins->getOpcodeName() << ")" << std::endl;
@@ -182,49 +144,24 @@ bool parseInstruction( llvm::Module* mod, llvm::Instruction* ins ) {
         llvm::Function *fun;
         
     case opcodes.CallInst:
-        /* Look at the arguments passed */
-        fun = static_cast<llvm::CallInst*>(ins)->getCalledFunction();
-        if(  0 == safeCompareFname( LOCK, fun->getName().str() ) ) {
-            val = ins->getOperand( 0 );
-            errs() << "MUTEX" << " " << val->getName() ;
-            std::cerr << " is TAKEN by " << fun->getName().str() << std::endl;
-        }
-        if(  0 == safeCompareFname( UNLOCK, fun->getName().str() ) ) {
-            val = ins->getOperand( 0 );
-            errs() << "MUTEX" << " " << val->getName() ;
-            std::cerr << " is RELEASED by " << fun->getName().str() << std::endl;
-        }
+        outputCall( mod, ins, machine, tid );
         break;
     case opcodes.StoreInst:
-            /* Store instruction: what do we store, and where? 
-             * Syntax: store <value> <pointer>  */
-        val = ins->getOperand( 1 );
-        if( isGlobal( mod, val->getName() ) ) {
-            errs() << val << " " << val->getName() ;
-            std::cerr << "is global" << std::endl;
-            std::cerr << "WRITE LOCAL VALUE INTO GLOBAL VAR" << std::endl;
-        }
-        val = ins->getOperand( 0 );
-        if( isGlobal( mod, val->getName() ) ) {
-            errs() << val << " " << val->getName() ;
-            std::cerr << "is global" << std::endl;
-            std::cerr << "READ VALUE FROM GLOBAL VAR AND WRITE INTO LOCAL VAR" << std::endl;
-        }
+        outputStore( mod, ins, machine, tid );
+        break;
+    case opcodes.AllocaInst:
+        outputAlloca( mod, ins, machine, tid );
         break;
     case opcodes.LoadInst:
-        /* Load instruction: what do we load, from where?
-           Syntax: <result> = load <pointer> */
-        val = ins->getOperand( 0 );
-        if( isGlobal( mod, val->getName() ) ) {
-            errs() << val << " " << val->getName() ;
-            std::cerr << "is global" << std::endl;
-        }
+        outputLoad( mod, ins, machine, tid );
         break;
 
         
         
     default:
         std::cerr << "Op code " << ins->getOpcode() << " not supported yet" << std::endl;
+        outputUnknown( mod, ins, machine, tid );
+
         break;
         
     }
@@ -232,7 +169,7 @@ bool parseInstruction( llvm::Module* mod, llvm::Instruction* ins ) {
 
 
     
-    return false;
+    std::cerr << " ---- " << std::endl;
 }
 
 /* Get a vector of functions called in a block */
@@ -279,10 +216,13 @@ std::vector<llvm::Function*> functionsCalledByFunction( llvm::Function* fun ) {
  * TODO : loops
 */
 
-void parseBasicBlock(llvm::Module* mod, llvm::BasicBlock* block ) {
+void parseBasicBlock(llvm::Module* mod, machine_t* machine, llvm::BasicBlock* block, llvm::Value* tid ) {
+    int line = 0;
     /* Okay, what is inside this block? */
     for( auto i = block->begin() ; i != block->end() ; i++ ) {
-        bool rc = parseInstruction( mod, i );
+        std::cout << "Line " << line << std::endl;
+        parseInstruction( mod, machine, i, tid );
+        line++;
     }
 
     TerminatorInst *term = block->getTerminator();
@@ -291,17 +231,38 @@ void parseBasicBlock(llvm::Module* mod, llvm::BasicBlock* block ) {
     std::cerr << "\tI have " << numsucc << " successors" << std::endl;
     for( int i = 0 ; i < numsucc ; i++ ) { // wtf no list here?!?!
         std::cerr << "\tSuccessor " << i << std::endl;
-        parseBasicBlock( mod, term-> getSuccessor( i ) );
+        parseBasicBlock( mod, machine, term-> getSuccessor( i ), tid );
     }
 }
 
 /* Parse the blocks used by a function, starting from its entry point
 */
 
-void parseFunction( llvm::Module* mod, llvm::Function* func ) {
+void parseFunction( llvm::Module* mod, machine_t* machine, llvm::Function* func, llvm::Value* tid ) {
     llvm::BasicBlock* entryBlock = func->begin();
     std::cerr << "Entry block is " << std::endl;
-    parseBasicBlock( mod, entryBlock );
+    parseBasicBlock( mod, machine, entryBlock, tid );
+}
+
+/* Transform the LLVM IR code into our internal representation
+ */
+
+void IRpass( llvm::Module* mod, machine_t* machine ) {
+
+    /* Analyze every function individually, until pthread_join is called */
+
+    llvm::Function *mainfunc = mod->getFunction( llvm::StringRef( "main" ) );
+    std::cerr << "MAIN FUNCTION" << std::endl;        
+    parseFunction( mod, machine, mainfunc, NULL );
+
+    std::map<llvm::Value*, llvm::Function*> threadCreations = functionThreadCreation( mod );
+    for( auto ti = threadCreations.begin() ; ti != threadCreations.end() ; ti++ ) {
+        llvm::Value* tid = ti->first;
+        llvm::Function* function = ti->second;
+        std::cerr << "FUNCTION " << function->getName().str() << std::endl;
+        parseFunction( mod, machine, function, tid );
+        std::cerr << "------" << std::endl;
+    }
 }
 
 /* Get the symbols used by a function */
@@ -323,15 +284,32 @@ std::vector<std::string>  getSymbolsFun( llvm::Function* fun ) {
         /* Okay, what is inside each block? */
         
         for( auto i = (*bb)->begin() ; i != (*bb)->end() ; i++ ) {
+            std::pair<unsigned, unsigned> allo;
             std::string name;
+            int nb;
+            name = (i->hasName()) ? i->getName().str() : getShortValueName( i );
             switch( i->getOpcode() ) { /*  TODO: needs to be completed wit other operations */
             case opcodes.LoadInst:
             case opcodes.CallInst:
-            case opcodes.AllocaInst: // case when no name in this case: %1 %2 %3 allocated for argc and argv
             case opcodes.ICmpInst:
-                name = (i->hasName()) ? i->getName().str() : getShortValueName( i );
                 break;
-            default:
+            case opcodes.AllocaInst: // case when no name in this case: %1 %2 %3 allocated for argc and argv
+                /* Here we need to allocate to memory blocks:
+                   one for the allocated memory itself, one for the pointer */
+                allo = getAllocaInfo( &(*i) );
+                nb = std::ceil( allo.first / 32 );
+                //           std::cerr << " allocated size: " << allo.second << " elements of size " << allo.first << " in " << nb << " blocks each" << std::endl;
+                /* pointer */
+                symbols.push_back( name );
+                /* allocated mem */
+                for( int i = 0 ; i < (nb*allo.second) ; i++ ) {
+                    if( 0 == i )
+                        symbols.push_back( "*" + name );
+                    else
+                        symbols.push_back( "" );
+                }
+               break;
+          default:
                 name = "";
                 break;
             }
@@ -351,14 +329,14 @@ std::vector<std::string>  getSymbolsFun( llvm::Function* fun ) {
 
 /* Get the symbols used by all the functions */
 
-std::vector<std::pair<std::string, llvm::Value*>>  getSymbols( llvm::Module* mod ) {
+std::vector<symbol_t>  getSymbols( llvm::Module* mod ) {
     
-    std::vector<std::pair<std::string, llvm::Value*>> symb;
+    std::vector<symbol_t> symb;
 
     llvm::Function *mainfun = mod->getFunction( llvm::StringRef( "main" ) );
     std::vector<std::string> s = getSymbolsFun( mainfun );
     for( auto si = s.begin() ; si != s.end() ; si++ ) {
-        std::pair<std::string, llvm::Value*> p( *si, NULL );
+        symbol_t p( *si, NULL );
         symb.push_back( p );
     }
     std::cerr << symb.size() << " symbols in the main function" << std::endl;
@@ -368,7 +346,7 @@ std::vector<std::pair<std::string, llvm::Value*>>  getSymbols( llvm::Module* mod
         std::vector<std::string> s = getSymbolsFun( ti->second );
         int cnt = 0;
         for( auto si = s.begin() ; si != s.end() ; si++ ) {
-            std::pair<std::string, llvm::Value*> p( *si, ti->first );
+            symbol_t p( *si, ti->first );
             symb.push_back( p );
             cnt++;            
         }
@@ -382,9 +360,9 @@ std::vector<std::pair<std::string, llvm::Value*>>  getSymbols( llvm::Module* mod
    with their local address in out machine
 */
 
-std::map<std::pair<std::string, llvm::Value*>, unsigned>  mapSymbols( std::vector<std::pair<std::string, llvm::Value*>> locVar, std::vector<const llvm::GlobalVariable*> globVar, unsigned nbthreads ){
+machine_t  mapSymbols( std::vector<symbol_t> locVar, std::vector<const llvm::GlobalVariable*> globVar, unsigned nbthreads ){
 
-    std::map<std::pair<std::string, llvm::Value*>, unsigned> machine;
+    machine_t machine;
 
     /* Save some space for the program counters of the threads
        and the main function */
@@ -394,7 +372,7 @@ std::map<std::pair<std::string, llvm::Value*>, unsigned>  mapSymbols( std::vecto
     /* global variables */
 
     for( auto v = globVar.begin() ; v != globVar.end() ; v++ ) {
-        std::pair<std::string, llvm::Value*> p( (*v)->getName().str(), NULL );
+        symbol_t p( (*v)->getName().str(), NULL );
         machine[p] = idx;
         std::cerr << "Global variable: " << (*v)->getName().str() << " at idx " << idx << std::endl;
         idx++;
@@ -420,10 +398,12 @@ std::map<std::pair<std::string, llvm::Value*>, unsigned>  mapSymbols( std::vecto
  * For a given unsigned int (position in the machine), return the name of the symbol
  */
 
-std::map<unsigned, std::pair<std::string, llvm::Value*>>  mapSymbolsInverse(std::map<std::pair<std::string, llvm::Value*>, unsigned> machine ){
-    std::map<unsigned, std::pair<std::string, llvm::Value*>> inverse;
+machine_inverse_t  mapSymbolsInverse( machine_t machine ){
+    machine_inverse_t inverse;
     for( auto i = machine.begin() ; i != machine.end() ; i++ ) {
-        inverse[i->second] = i->first;
+        if( i->first.first != "" ){
+            inverse[i->second] = i->first;
+        }
     }
     return inverse;
 }
@@ -531,33 +511,27 @@ int readIR( llvm::Module* mod ) {
 
     /* Get the local variables used by each thread */
     
-    std::vector<std::pair<std::string, llvm::Value*>> symbols = getSymbols( mod );
+    std::vector<symbol_t> symbols = getSymbols( mod );
 
     /* the map contains:
      * - a pair: symbol, thread id
      * - its address in our machine
      */
     
-    std::map<std::pair<std::string, llvm::Value*>, unsigned> machinememory = mapSymbols( symbols, globVar, nbThreads );
+    machine_t machinememory = mapSymbols( symbols, globVar, nbThreads );
 
     /* Reverse map, for debugging purpose */
     
-    std::map<unsigned, std::pair<std::string, llvm::Value*>> inversemap =  mapSymbolsInverse( machinememory );
+    machine_inverse_t inversemap =  mapSymbolsInverse( machinememory );
 
+    /* Last phase: transform the code */
 
-    return 0;
+    IRpass( mod, &machinememory );
 
-    /* Analyze every function individually, until pthread_join is called */
-    for( auto ti = threadCreations.begin() ; ti != threadCreations.end() ; ti++ ) {
-        llvm::Value* tid = ti->first;
-        llvm::Function* function = ti->second;
-        /* parse the blocks used by this function and get the trace */
-        parseFunction( mod, function );
-        std::cerr << "------" << std::endl;
-    }
+    /* Dump the state of the machine (debugging) */
 
-
-
+    // dumpMachine( &machinememory );
+    
     return 0;
 }
 

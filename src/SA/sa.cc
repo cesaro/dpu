@@ -170,9 +170,8 @@ bool isGlobal( llvm::Module* mod, llvm::StringRef name ){
  * TODO : pointeurs
  */
 
-bool parseInstruction( llvm::Module* mod, llvm::Instruction* ins ) {
+void parseInstruction( llvm::Module* mod, llvm::Instruction* ins ) {
     /* look at the operands of the instruction */
-    std::cerr << " ---- " << std::endl;
     ins->print( errs() );
     std::cerr << "\n";
     std::cerr << "Op code : " << ins->getOpcode() << " (" << ins->getOpcodeName() << ")" << std::endl;
@@ -232,7 +231,7 @@ bool parseInstruction( llvm::Module* mod, llvm::Instruction* ins ) {
 
 
     
-    return false;
+    std::cerr << " ---- " << std::endl;
 }
 
 /* Get a vector of functions called in a block */
@@ -284,7 +283,7 @@ void parseBasicBlock(llvm::Module* mod, llvm::BasicBlock* block ) {
     /* Okay, what is inside this block? */
     for( auto i = block->begin() ; i != block->end() ; i++ ) {
         std::cout << "Line " << line << std::endl;
-        bool rc = parseInstruction( mod, i );
+        parseInstruction( mod, i );
         line++;
     }
 
@@ -422,9 +421,9 @@ std::vector<std::pair<std::string, llvm::Value*>>  getSymbols( llvm::Module* mod
    with their local address in out machine
 */
 
-std::map<std::pair<std::string, llvm::Value*>, unsigned>  mapSymbols( std::vector<std::pair<std::string, llvm::Value*>> locVar, std::vector<const llvm::GlobalVariable*> globVar, unsigned nbthreads ){
+machine_t  mapSymbols( std::vector<std::pair<std::string, llvm::Value*>> locVar, std::vector<const llvm::GlobalVariable*> globVar, unsigned nbthreads ){
 
-    std::map<std::pair<std::string, llvm::Value*>, unsigned> machine;
+    machine_t machine;
 
     /* Save some space for the program counters of the threads
        and the main function */
@@ -460,7 +459,7 @@ std::map<std::pair<std::string, llvm::Value*>, unsigned>  mapSymbols( std::vecto
  * For a given unsigned int (position in the machine), return the name of the symbol
  */
 
-std::map<unsigned, std::pair<std::string, llvm::Value*>>  mapSymbolsInverse(std::map<std::pair<std::string, llvm::Value*>, unsigned> machine ){
+machine_inverse_t  mapSymbolsInverse( machine_t machine ){
     std::map<unsigned, std::pair<std::string, llvm::Value*>> inverse;
     for( auto i = machine.begin() ; i != machine.end() ; i++ ) {
         if( i->first.first != "" ){
@@ -580,19 +579,19 @@ int readIR( llvm::Module* mod ) {
      * - its address in our machine
      */
     
-    std::map<std::pair<std::string, llvm::Value*>, unsigned> machinememory = mapSymbols( symbols, globVar, nbThreads );
+    machine_t machinememory = mapSymbols( symbols, globVar, nbThreads );
 
     /* Reverse map, for debugging purpose */
     
-    std::map<unsigned, std::pair<std::string, llvm::Value*>> inversemap =  mapSymbolsInverse( machinememory );
+    machine_inverse_t inversemap =  mapSymbolsInverse( machinememory );
 
     /* Dump the state of the machine (debugging) */
 
-    dumpMachine( machinememory );
+    //  dumpMachine( machinememory );
     
     /* Last phase: transform the code */
 
-    //    IRpass( mod );
+    IRpass( mod );
 
     return 0;
 }

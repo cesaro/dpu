@@ -1,5 +1,8 @@
 #define POINTERSIZE 32
 
+using machine_t = std::map<std::pair<std::string, llvm::Value*>, unsigned>;
+using machine_inverse_t = std::map<unsigned, std::pair<std::string, llvm::Value*>>;
+
 template <class T> bool itemexists( std::vector<T>, T);
 template <class T> void appendVector( std::vector<T>, std::vector<T> );
 
@@ -10,7 +13,7 @@ bool isLive( std::string, llvm::Function*);
 std::vector<llvm::Function*> notInList( std::vector<llvm::Function*>, std::vector<std::string> );
 std::vector<llvm::BasicBlock*> blocklist( llvm::Function* );
 std::pair<unsigned, unsigned> getAllocaInfo( llvm::Instruction*);
-void  dumpMachine(  std::map<std::pair<std::string, llvm::Value*>, unsigned>);
+void  dumpMachine(  machine_t* );
 
 
 namespace fe { // Front-end

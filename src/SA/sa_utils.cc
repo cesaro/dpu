@@ -206,10 +206,10 @@ std::pair<unsigned, unsigned> getAllocaInfo( llvm::Instruction* ins ) {
  * Used for debugging
  */
 
-void  dumpMachine(  std::map<std::pair<std::string, llvm::Value*>, unsigned> machine ){
+void  dumpMachine(  machine_t* machine ){
     std::cerr << "Address \t| Symbol / threadid \t| Value" << std::endl;
     
-    for( auto i = machine.begin() ; i != machine.end() ; i++ ) {
+    for( auto i = machine->begin() ; i != machine->end() ; i++ ) {
         if( i->first.first != "" ){
             std::cerr << i->second << "\t\t|" << i->first.first << " / " << i->first.second << "\t\t";
             if( 0 == i->first.second && i->first.first.length( ) < 3 )

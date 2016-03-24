@@ -185,8 +185,9 @@ store i32 %4, i32* %i     | MOVE i32 [[i]] [%4]
 Data Structures
 ---------------
 
+========= ===== ===== ===== ======== ============================= =================================
 opcode    type  dst   src1  src2     text                          comments
-
+========= ===== ===== ===== ======== ============================= =================================
 NOP       -     -     -     -        nop
 ERROR     -     -     -     -        error
 RET       T     -     SRC   -        ret T [SRC]                   
@@ -198,24 +199,25 @@ MOVEI8    T     DST   IMM1  IMM2     move T [DST] IMM              T is 5-8, IMM
 IMOV      T     DST   SRC   -        imov T [DST] [[SRC]]
 CMP_EQ    T     DST   SRC1  SRC2     cmp eq T [DST] [SRC1] [SRC2]
 CMP_EQI4  T     DST   SRC1  IMM      cmp eq T [DST] [SRC] IMM      T is 1-4
+========= ===== ===== ===== ======== ============================= =================================
 -> similarly for cmp ule, uge, ult, sgt, sge, slt, sle
-
 BRZ       -     -     SRC   -        brz [SRC] LAB                 SRC interpreted as 32 bits
 BRNZ      -     -     SRC   -        brz [SRC] LAB                 SRC interpreted as 32 bits
-
+========= ===== ===== ===== ======== ============================= =================================
 ADD       T     DST   SRC1  SRC2     add T [DST] [SRC1] [SRC2]
 ADDI4     T     DST   SRC1  IMM      add T [DST] [SRC1] IMM        T is 1-4
 ADDI8     T     DST   IMM1  IMM2     add T [DST] [DST] IMM         T is 5-8, IMM1 low, IMM2 high
 -> similarly for sub, mul
 -> sdiv, udiv, srem, urem only accepts T from 1 to 4, so opcodes SDIV and SDIVI4, and so on
-
+========= ===== ===== ===== ======== ============================= =================================
 OR        T     DST   SRC1  SRC2     or T [DST] [SRC1] [SRC2]
 ORI4      T     DST   SRC   IMM      or T [DST] [SRC] IMM          T is 1-4
 -> similarly for and, xor
-
+========= ===== ===== ===== ======== ============================= =================================
 SEXT      T1    DST   SRC   T2       sext T1 T2 [DST] [SRC]        T1 < T2 <= 8
 -> similarly for zext
-
+========= ===== ===== ===== ======== ============================= =================================
 LOCK      T     DST   -     -        lock T [DST]   
 UNLOCK    T     DST   -     -        lock T [DST]   
 PRINTF    T     FMT   SRC1  SRC2     printf T [FMT] [SRC1] [SRC2]
+========= ===== ===== ===== ======== ============================= =================================

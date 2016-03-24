@@ -176,3 +176,28 @@ bool isLive( std::string name, llvm::Function* fun  ){
     }
     return false;
 }
+
+/* Get what alloca allocates
+ * Returns two integers:
+ * - size in bits of each field
+ * - number of blocks
+ */
+
+std::pair<unsigned, unsigned> getAllocaInfo( llvm::Instruction* ins ) {
+    std::pair<unsigned, unsigned> info;
+    
+    llvm::AllocaInst* aa = static_cast<llvm::AllocaInst*>(&(*ins));
+    
+    if( aa->getAllocatedType()->isPointerTy() ) {
+        /* Pointers give a size of 0. Use something else instead.*/
+        info.first = POINTERSIZE;
+    } else {
+        info.first = aa->getAllocatedType()->getPrimitiveSizeInBits();
+    }
+
+    llvm::Value* size = aa->getArraySize();
+    std::string s_size =  (size->hasName()) ? size->getName().str() : getShortValueName( size );
+    info.second = std::stoi( s_size );
+    
+    return info;
+}

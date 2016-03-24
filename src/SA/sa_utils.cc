@@ -218,3 +218,26 @@ void  dumpMachine(  machine_t* machine ){
         }
     }
 }
+
+/* Is this variable a global variable? 
+ */
+
+/* TODO : support backward check to support uggly stuff like
+static int a;
+int foo( int t ){
+	int* p;
+	if( t > 3 ) {
+		p = &a;
+	} else {
+		p = &t;
+	}
+	return *p;
+}
+*/
+
+
+bool isGlobal( llvm::Module* mod, llvm::StringRef name ){
+    GlobalVariable* var = mod->getGlobalVariable( name );
+    return (var == NULL ) ? false:true;
+}
+

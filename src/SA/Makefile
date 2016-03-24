@@ -13,7 +13,7 @@ STDDEF = -std=c++11
 CPPFLAGS =
 CLFAGS =
 
-SASRC = sa.cc sa_utils.cc
+SASRC = sa.cc sa_utils.cc sa_ir.cc
 SAOBJ = $(SASRC:.cc=.o)
 EXEC = sa
 

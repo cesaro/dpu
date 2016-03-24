@@ -48,6 +48,7 @@ std::vector<llvm::BasicBlock*> blocklist( llvm::Function* );
 std::pair<unsigned, unsigned> getAllocaInfo( llvm::Instruction*);
 void  dumpMachine(  machine_t* );
 bool isGlobal( llvm::Module*, llvm::StringRef );
+std::string typeToStr( Type*);
 
 /**********************************************************************/
 /*   Classes definition                                               */

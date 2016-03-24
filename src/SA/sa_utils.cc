@@ -241,3 +241,23 @@ bool isGlobal( llvm::Module* mod, llvm::StringRef name ){
     return (var == NULL ) ? false:true;
 }
 
+/* Puts the type of a value into a string 
+ */
+
+std::string typeToStr( Type* ty ) {
+    std::string s;
+    /* Type */
+    if( ty->isIntegerTy() ) {
+        s = "i";
+    }
+    if( ty->isFloatingPointTy() ) {
+        s = "f";
+    }
+    /* Length */
+    if( !ty->isPointerTy() ) {
+        s = s + std::to_string( ty->getPrimitiveSizeInBits() );
+    } else {
+        s = s + std::to_string( POINTERSIZE );
+    }
+    return s;
+}

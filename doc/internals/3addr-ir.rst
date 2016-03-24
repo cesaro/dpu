@@ -35,7 +35,7 @@ Examples
 
  ...
 
-Adressing Modes and types
+Adressing Modes
 ---------------
 
 - Immediate operands, given directly on the instruction
@@ -44,17 +44,28 @@ Adressing Modes and types
 - Indirect access: only the instruction ``imov`` is able to perform indirect
   access to data
 
-Types:
+Types
+-----
 
-- i8, i16, i32, i64
-- float, double
+Operand sizes:
+
+- i8        = 1
+- i16       = 2
+- i32       = 4
+- i64       = 8
+- float     = 4
+- double    = 8
+- arbitrary = between 0 and 2^32-1
+
+Integer type = 1, 2, 4, or 8
+Float type   = 4 or 8
 
 Operation Codes, Syntax and "Semantics"
 ---------------------------------------
 
 T   = Type
 DST = Destination address (address)
-SRC = Source address or immediate value (address, integer, or float)
+SRC = Source address or immediate value (address, integer, or float, at most 32bits)
 DI  = Indirect addres, (the address of an address)
 LAB = Label
 
@@ -70,12 +81,16 @@ imov    T DST DI            Indirect move from address pointed by DI to DST
 =========================== ====================================================
 cmp eq  T DST SRC1 SRC2     Comparison: equal
 cmp ne  T DST SRC1 SRC2     Comparison: not equal
+cmp ugt T DST SRC1 SRC2     Comparison: unsigned greater than
+cmp uge T DST SRC1 SRC2     Comparison: unsigned greater or equal
 cmp ult T DST SRC1 SRC2     Comparison: unsigned less than
 cmp ule T DST SRC1 SRC2     Comparison: unsigned less or equal
+cmp sgt T DST SRC1 SRC2     Comparison: signed greater than
+cmp sge T DST SRC1 SRC2     Comparison: signed greater or equal
 cmp slt T DST SRC1 SRC2     Comparison: signed less than
 cmp sle T DST SRC1 SRC2     Comparison: signed less or equal
-br        LAB               Unconditional branch
-br        SRC LAB1 LAB2     Conditional branch
+brz       SRC LAB           Jump if zero (SRC is i32)
+brnz      SRC LAB           Jump if non zero (SRC is i32)
 =========================== ====================================================
 add     T DST SRC1 SRC2     Addition
 sub     T DST SRC1 SRC2     Substraction
@@ -87,16 +102,21 @@ urem    T DST SRC1 SRC2     Remainder of unsigned division; expects integer type
 fdiv    T DST SRC1 SRC2     ## Division; expects float type
 frem    T DST SRC1 SRC2     ## Remainder of division; expects float type
 =========================== ====================================================
-or      T DST SRC1 SRC2     Logical or; expects integers
-and     T DST SRC1 SRC2     Logical and; expects integers
-xor     T DST SRC1 SRC2     Logical xor; expects integers
+or      T DST SRC1 SRC2     Bitwise logical or; expects integers
+and     T DST SRC1 SRC2     Bitwise logical and; expects integers
+xor     T DST SRC1 SRC2     Bitwise logical xor; expects integers
 =========================== ====================================================
 sext    T1 T2 DST SRC       Signed extension from type T1 to T2; expects integer
 zext    T1 T2 DST SRC       Zero extends SRC from type T1 to T2; expects integer
 =========================== ====================================================
 lock    T SRC               Locks a mutex; expects address of integer operand
 unlock  T SRC               Unlocks a mutex; expects address of integer operand
+printf  T FMT SRC1 SRC2     Printf, where FMT admits 0, 1 or 2 "%d"
 =========================== ====================================================
+br        LAB               Unconditional branch (nop)
+br        SRC LAB1 LAB2     Conditional branch
+=========================== ====================================================
+
 
 Example
 -------
@@ -161,4 +181,37 @@ TBD
 Data Structures
 ---------------
 
-TBD
+opcode    type  dst   src1  src2     text                          comments
+
+NOP       -     -     -     -        nop
+ERROR     -     -     -     -        error
+RET       T     -     SRC   -        ret T [SRC]                   
+RETI4     T     -     IMM   -        ret T IMM                     T is 1-4
+RETI8     T     -     IMM1  IMM2     ret T IMM                     T is 5-8, IMM1 low, IMM2 high
+MOVE      T     DST   SRC   -        move T [DST] [SRC]
+MOVEI4    T     DST   IMM   -        move T [DST] IMM              T is 1-4
+MOVEI8    T     DST   IMM1  IMM2     move T [DST] IMM              T is 5-8, IMM1 low, IMM2 high
+IMOV      T     DST   SRC   -        imov T [DST] [[SRC]]
+CMP_EQ    T     DST   SRC1  SRC2     cmp eq T [DST] [SRC1] [SRC2]
+CMP_EQI4  T     DST   SRC1  IMM      cmp eq T [DST] [SRC] IMM      T is 1-4
+-> similarly for cmp ule, uge, ult, sgt, sge, slt, sle
+
+BRZ       -     -     SRC   -        brz [SRC] LAB                 SRC interpreted as 32 bits
+BRNZ      -     -     SRC   -        brz [SRC] LAB                 SRC interpreted as 32 bits
+
+ADD       T     DST   SRC1  SRC2     add T [DST] [SRC1] [SRC2]
+ADDI4     T     DST   SRC1  IMM      add T [DST] [SRC1] IMM        T is 1-4
+ADDI8     T     DST   IMM1  IMM2     add T [DST] [DST] IMM         T is 5-8, IMM1 low, IMM2 high
+-> similarly for sub, mul
+-> sdiv, udiv, srem, urem only accepts T from 1 to 4, so opcodes SDIV and SDIVI4, and so on
+
+OR        T     DST   SRC1  SRC2     or T [DST] [SRC1] [SRC2]
+ORI4      T     DST   SRC   IMM      or T [DST] [SRC] IMM          T is 1-4
+-> similarly for and, xor
+
+SEXT      T1    DST   SRC   T2       sext T1 T2 [DST] [SRC]        T1 < T2 <= 8
+-> similarly for zext
+
+LOCK      T     DST   -     -        lock T [DST]   
+UNLOCK    T     DST   -     -        lock T [DST]   
+PRINTF    T     FMT   SRC1  SRC2     printf T [FMT] [SRC1] [SRC2]

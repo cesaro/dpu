@@ -178,6 +178,10 @@ Tentative Translation from LLVM
 
 TBD
 
+%add = alloca i32         | MOVE i32 [[add]] [3]
+%val = load i32* add      | IMOVE i32 [val] [add]
+store i32 %4, i32* %i     | MOVE i32 [[i]] [%4]
+
 Data Structures
 ---------------
 

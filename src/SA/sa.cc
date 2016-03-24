@@ -160,6 +160,8 @@ void parseInstruction( llvm::Module* mod, machine_t* machine, llvm::Instruction*
         
     default:
         std::cerr << "Op code " << ins->getOpcode() << " not supported yet" << std::endl;
+        outputUnknown( mod, ins, machine, tid );
+
         break;
         
     }

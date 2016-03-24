@@ -257,7 +257,7 @@ std::string typeToStr( Type* ty ) {
     if( !ty->isPointerTy() ) {
         s = s + std::to_string( ty->getPrimitiveSizeInBits() );
     } else {
-        s = s + std::to_string( POINTERSIZE );
+        s = "i" + std::to_string( POINTERSIZE );
     }
     return s;
 }

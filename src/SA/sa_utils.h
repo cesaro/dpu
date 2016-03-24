@@ -10,6 +10,7 @@ bool isLive( std::string, llvm::Function*);
 std::vector<llvm::Function*> notInList( std::vector<llvm::Function*>, std::vector<std::string> );
 std::vector<llvm::BasicBlock*> blocklist( llvm::Function* );
 std::pair<unsigned, unsigned> getAllocaInfo( llvm::Instruction*);
+void  dumpMachine(  std::map<std::pair<std::string, llvm::Value*>, unsigned>);
 
 
 namespace fe { // Front-end

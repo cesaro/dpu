@@ -463,7 +463,9 @@ std::map<std::pair<std::string, llvm::Value*>, unsigned>  mapSymbols( std::vecto
 std::map<unsigned, std::pair<std::string, llvm::Value*>>  mapSymbolsInverse(std::map<std::pair<std::string, llvm::Value*>, unsigned> machine ){
     std::map<unsigned, std::pair<std::string, llvm::Value*>> inverse;
     for( auto i = machine.begin() ; i != machine.end() ; i++ ) {
-        inverse[i->second] = i->first;
+        if( i->first.first != "" ){
+            inverse[i->second] = i->first;
+        }
     }
     return inverse;
 }
@@ -584,9 +586,13 @@ int readIR( llvm::Module* mod ) {
     
     std::map<unsigned, std::pair<std::string, llvm::Value*>> inversemap =  mapSymbolsInverse( machinememory );
 
+    /* Dump the state of the machine (debugging) */
+
+    dumpMachine( machinememory );
+    
     /* Last phase: transform the code */
 
-    IRpass( mod );
+    //    IRpass( mod );
 
     return 0;
 }

@@ -201,3 +201,17 @@ std::pair<unsigned, unsigned> getAllocaInfo( llvm::Instruction* ins ) {
     
     return info;
 }
+
+/* Dump the state of a machine
+ * Used for debugging
+ */
+
+void  dumpMachine(  std::map<std::pair<std::string, llvm::Value*>, unsigned> machine ){
+    std::cerr << "Address \t| Symbol \t Value" << std::endl;
+    
+    for( auto i = machine.begin() ; i != machine.end() ; i++ ) {
+        if( i->first.first != "" ){
+            std::cerr << i->second << "\t\t|" << i->first.first << "\t\t|" << " TODO " << std::endl;
+        }
+    }
+}

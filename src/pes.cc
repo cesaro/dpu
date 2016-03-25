@@ -187,20 +187,24 @@ void Event::mk_history(const Config & c)
          clock = pre_proc->clock;
          clock[p.id]++;
          break;
+
       case ir::Trans::SYN:
          for (unsigned i = 0; i < procs.size(); i++)
             clock[i] = std::max(pre_mem->clock[i], pre_proc->clock[i]);
 
          clock[p.id]++;
          break;
+
       case ir::Trans::RD:
          for (unsigned i = 0; i < procs.size(); i++)
             clock[i] = std::max(pre_mem->clock[i], pre_proc->clock[i]);
 
          clock[p.id]++;
          break;
+
       case ir::Trans::WR:
          std::vector<unsigned> temp;
+         // find out the max elements among those of all pre_readers.
          for (unsigned i = 0; i < procs.size(); i++)
          {
             /* put all elements j of pre_readers to a vector temp */
@@ -210,7 +214,12 @@ void Event::mk_history(const Config & c)
             std::vector<unsigned>::iterator it = std::max_element(temp.begin(), temp.end()); // find out the largest element
             clock[i] = *it; // put it to the back of clock
             temp.clear();
+            // take the max value between pre_proc and pre_reader[p.id] to make sure the value is maximum
+            for (unsigned i = 0; i < clock.size(); i++)
+               if (clock[i] < this->pre_proc->clock[i])
+                  clock[i] = this->pre_proc->clock[i];
          }
+
          clock[p.id]++;
          break;
    }

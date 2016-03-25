@@ -22,6 +22,7 @@ using namespace llvm;
 #define PTHREADJOIN   "pthread_join"
 #define LOCK          "pthread_mutex_lock"
 #define UNLOCK        "pthread_mutex_unlock"
+#define PRINTF        "printf"
 
 
 /**********************************************************************/

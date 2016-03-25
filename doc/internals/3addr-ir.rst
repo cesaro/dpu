@@ -72,7 +72,6 @@ LAB = Label
 =========================== ====================================================
 Syntax                      Description
 =========================== ====================================================
-nop                         No operation
 error                       This instruction should never be reached
 ret     T SRC               Terminates the function
 =========================== ====================================================
@@ -134,6 +133,9 @@ Address    Size  Initial                 Symbol
 ===== ===== ======
 
 Program::
+
+ Function "main"
+ ===============
  entry:
    move i32 [x] 2
    move i32 [y] 5
@@ -159,6 +161,9 @@ Program::
  
  term:
    ret i32 0
+
+ End
+ ===
 
 Equivalent C program::
  void test ()
@@ -200,7 +205,6 @@ Data Structures
 ========= ===== ===== ===== ======== ============================= =================================
 opcode    size  dst   src1  src2     text                          comments
 ========= ===== ===== ===== ======== ============================= =================================
-NOP       -     -     -     -        nop
 ERROR     -     -     -     -        error
 RET       T     -     SRC   -        ret T [SRC]                   
 RETI      T     -     -     IMM      ret T IMM                     
@@ -212,6 +216,7 @@ CMP_EQ    T     DST   SRC1  SRC2     cmp eq T [DST] [SRC1] [SRC2]
 CMP_EQI   T     DST   SRC   IMM      cmp eq T [DST] [SRC] IMM      
 -> similarly for cmp ule, uge, ult, sgt, sge, slt, sle
 ========= ===== ===== ===== ======== ============================= =================================
+BR        -     -     SRC   LAB2     br i32 [SRC] LAB1 LAB2        SRC is i32; LAB1 external, LAB2 i64
 BRZ       -     -     SRC   -        brz i32 [SRC] LAB             SRC interpreted as 32 bits
 BRNZ      -     -     SRC   -        brz i32 [SRC] LAB             SRC interpreted as 32 bits
 ========= ===== ===== ===== ======== ============================= =================================

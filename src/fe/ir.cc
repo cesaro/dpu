@@ -11,7 +11,7 @@
 
 using namespace dpu::fe::ir;
 
-Symbol * Module::sym_lookup (std::string & name)
+Symbol * Module::sym_lookup (const std::string & name)
 {
 	auto it = symtab.find (name);
 	if (it == symtab.end ()) return 0;
@@ -50,13 +50,24 @@ Symbol * Module::allocate (const char * name, uint32_t size, uint32_t align,
 	memory.resize (addr + size);
 	if (initval) memcpy (memory.data () + addr, initval, size);
 
-	// create a symbol pointed to the newly allocated memory space
-	s = new Symbol (name, addr, size);
-	if (s->name.size () >= MAX_SYM_NAME) throw std::logic_error ("Maximum length for symbol name exceeded");
-
-	// insert the symbol in the symbol table and (reverse) address table
-	symtab[name] = s;
-	addrtab[addr] = s;
+	std::string n (name);
+	s = sym_lookup (n);
+	if (s != 0)
+	{
+		// if there was already a symbol with same name, redefine address
+		addrtab.erase (s->addr);
+		s->addr = addr;
+		addrtab[addr] = s;
+		s->size = size;
+	}
+	else
+	{
+		// if not, create new symbol pointing to the newly allocated memory space
+		s = new Symbol (name, addr, size);
+		symtab[name] = s;
+		addrtab[addr] = s;
+		//if (s->name.size () >= MAX_SYM_NAME) throw std::logic_error ("Maximum length for symbol name exceeded");
+	}
 
 	return s;
 }
@@ -64,12 +75,21 @@ Symbol * Module::allocate (const char * name, uint32_t size, uint32_t align,
 void Module::validate ()
 {
 	// - coherence of memory size and symbols in the symtab
-	// - maxthreads = threads.
+	// - numthreads = threads.
 	// - immediate values in instructions do not have enabled bits out of range
 	// - addresses in all instructions are within memory ranges, including +size
 	// - addresses in all instructions are aligned to data size
 	// - all instructions with 2 or more predecessors or a BRxx predecessor have non-empty label
 	// - all instructions have expected types 1,2,4,8; except for printf
+	// - warn if symbols "overlap"
+	// - coherence between labeltab in function and pointed instructions
+	// - if instruction has more than 1 successor, then it has 2 and they are brz and brnz
+	// - if instruction has 0 successors, then it is error or ret
+	// - if i2 in post of i1, then i1 in pre of i2, and vice versa
+	// - function's pointer to the module is this module
+	// - no instruction operand is a PC (instructions do not modify PCs)
+	// - no BRZ / BRNZ instructions are authorized here, only BR
+	// - labels and symbols are of the form [_a-zA-Z][_a-zA-Z0-9]*
 
 	throw std::logic_error ("Not implemented");
 }
@@ -96,11 +116,23 @@ Module::~Module ()
 
 void Module::print (FILE * f)
 {
+	int i;
 
 	fprintf (f, "Module at %p: ", this);
-	fprintf (f, "%zu functions, %zuB memory, %zu symbols, %zd instructions (ever allocated)\n",
+	fprintf (f, "%zu functions, %zuB memory, %zu symbols, %zd instructions (ever allocated)\n\n",
 			functions.size (), memory.size (), symtab.size (), instructions.size ());
+
 	print_symtab (f);
+	fputs ("\n", f);
+
+	for (auto fun : functions)
+	{
+		i = fprintf (f, "Function \"%s\"\n", fun->name.c_str ()) - 1;
+		fputs ((std::string ("=") * i).c_str (), f);
+		fputs ("\n", f);
+		fun->print (f);
+		fputs ("End\n===\n\n", f);
+	}
 }
 
 std::string Module::print_addr (uint32_t addr)
@@ -170,12 +202,77 @@ Function::~Function ()
    DEBUG ("%p: fe::ir::Module.dtor:", this);
 }
 
+Instruction * Function::label_lookup (const std::string & label)
+{
+	auto it = labeltab.find (label);
+	if (it == labeltab.end ()) return 0;
+	return it->second;
+}
+
+void Function::label_set (std::string && label, Instruction * ins)
+{
+	auto it = labeltab.find (label);
+	if (it != labeltab.end ()) it->second->label.clear ();
+	ins->label = std::move (label);
+	labeltab[ins->label] = ins;
+}
+
+void Function::labels_clear ()
+{
+	labeltab.clear ();
+}
+
+void Function::print (FILE * f)
+{
+	std::vector<Instruction*> stack;
+	unsigned m;
+	Instruction * ins;
+
+	if (entry == 0)
+	{
+		fputs ("  ; empty body\n", f);
+		return;
+	}
+
+	// DFS exploration of the CFG, marking explored instructions
+	m = new_mark ();
+	stack.push_back (entry);
+	while (stack.size ())
+	{
+		// pop an instruction and explore the leftmost branch from there
+		ins = stack.back ();
+		stack.pop_back ();
+		while (ins and ins->m != m)
+		{
+			// visit the instruction
+			ins->m = m;
+			// print label, if present
+			if (ins->label.size () != 0) fprintf (f, "%s :\n", ins->label.c_str ());
+			// check for unauthorized instructions
+			if (ins->op == BRZ or ins->op == BRNZ)
+			{
+				fputs ("  ; ERROR: found disallowed brz/brnz instruction\n", f);
+				return;
+			}
+			// print the instruction
+			fprintf (f, "  %s\n", module->print_instr(ins).c_str());
+			// set backtrack point here if there is an "else" branch to explore
+			if (ins->op == BR) stack.push_back (ins->br_nextz ());
+			ins = ins->next;
+		}
+	}
+}
+
+unsigned Function::new_mark ()
+{
+	return module->new_mark ();
+}
 
 Program::Program (unsigned mt) :
-	maxthreads (_maxthreads),
-	_maxthreads (mt)
+	numthreads (_numthreads),
+	_numthreads (mt)
 {
-   DEBUG ("%p: fe::ir::Program.ctor: maxthreads %u", this, maxthreads);
+   DEBUG ("%p: fe::ir::Program.ctor: numthreads %u", this, numthreads);
 }
 
 Function * Program::add_thread (std::string name)
@@ -187,7 +284,7 @@ Function * Program::add_thread (std::string name)
 
 void Program::validate ()
 {
-	// - maxthreads = threads.size()
+	// - numthreads = threads.size()
 	// - main is one of the threads
 
 	throw std::logic_error ("Not implemented");
@@ -196,8 +293,8 @@ void Program::validate ()
 void Program::print (FILE * f)
 {
 	fprintf (f, "Program at %p: ", this);
-	fprintf (f, "%zu threads, %u maxthreads, main thread '%s', module at %p\n",
-			threads.size (), maxthreads,
+	fprintf (f, "%zu threads, %u numthreads, main thread '%s', module at %p\n",
+			threads.size (), numthreads,
 			main ? main->name.c_str() : "(null)", &module);
 	module.print (f);
 }
@@ -208,12 +305,10 @@ std::string Module::print_instr (Instr * ins)
 	switch (ins->op)
 	{
 	// miscellaneous instructions
-	case NOP :
-		return "nop";
 	case ERROR :
 		return "error";
 	case PRINTF :
-		return fmt ("printf %s \"%s\" [%s] [%s]",
+		return fmt ("printf  %s \"%s\" [%s] [%s]",
 				ins->size2str (),
 				memory.data () + ins->dst,
 				print_addr(ins->src1).c_str (),
@@ -222,30 +317,30 @@ std::string Module::print_instr (Instr * ins)
 	// synchronization instructions and return
 	case LOCK :
 	case UNLOCK :
-		return fmt ("%s %s [%s]",
+		return fmt ("%-7s %s [%s]",
 				ins->op2str (),
 				ins->size2str (),
 				print_addr(ins->dst).c_str ());
 	case RET :
-		return fmt ("ret %s [%s]",
+		return fmt ("ret     %s [%s]",
 				ins->size2str (),
 				print_addr(ins->src1).c_str ());
 	case RETI :
-		return fmt ("ret %s 0x%lx", ins->size2str (), ins->src2);
+		return fmt ("ret     %s 0x%lx", ins->size2str (), ins->src2);
 
 	// move instructions
 	case MOVE :
-		return fmt ("move %s [%s] [%s]",
+		return fmt ("move    %s [%s] [%s]",
 				ins->size2str (),
 				print_addr(ins->dst).c_str (),
 				print_addr(ins->src1).c_str ());
 	case MOVEI :
-		return fmt ("move %s [%s] 0x%lx",
+		return fmt ("move    %s [%s] 0x%lx",
 				ins->size2str (),
 				print_addr(ins->dst).c_str (),
 				ins->src2);
 	case IMOV :
-		return fmt ("imov %s [%s] [[%s]]",
+		return fmt ("imov    %s [%s] [[%s]]",
 				ins->size2str (),
 				print_addr(ins->dst).c_str (),
 				print_addr(ins->src1).c_str ());
@@ -272,7 +367,7 @@ std::string Module::print_instr (Instr * ins)
 	case AND :
 	case XOR :
 
-		return fmt ("%s %s [%s] [%s] [%s]",
+		return fmt ("%-7s %s [%s] [%s] [%s]",
 				ins->op2str (),
 				ins->size2str (),
 				print_addr(ins->dst).c_str (),
@@ -300,7 +395,7 @@ std::string Module::print_instr (Instr * ins)
 	case ORI :
 	case ANDI :
 	case XORI :
-		return fmt ("%s %s [%s] [%s] 0x%lx",
+		return fmt ("%-7s %s [%s] [%s] 0x%lx",
 				ins->op2str (),
 				ins->size2str (),
 				print_addr(ins->dst).c_str (),
@@ -311,19 +406,20 @@ std::string Module::print_instr (Instr * ins)
 	//case FREM : return "FIXME";
 
 	// branch instructions
-	case BRZ : return "brz";
-		return fmt ("brz i32 [%s] l%lu",
-				print_addr(ins->src1).c_str (),
-				ins->src2);
-	case BRNZ : return "brnz";
-		return fmt ("brnz i32 [%s] l%lu",
-				print_addr(ins->src1).c_str (),
-				ins->src2);
+	case BR :
+		return fmt ("br      i32 [%s] ??? ???",
+				print_addr(ins->src1).c_str ());
+	case BRZ :
+		return fmt ("brz     i32 [%s] ???",
+				print_addr(ins->src1).c_str ());
+	case BRNZ :
+		return fmt ("brnz    i32 [%s] ???",
+				print_addr(ins->src1).c_str ());
 
 	// sign extension instructions
 	case SEXT :
 	case ZEXT :
-		return fmt ("%s %s to %s [%s] [%s]",
+		return fmt ("%-7s %s to %s [%s] [%s]",
 				ins->op2str (),
 				ins->size2str (ins->size),
 				ins->size2str (ins->src2),
@@ -332,12 +428,39 @@ std::string Module::print_instr (Instr * ins)
 	}
 }
 
+std::string Module::print_instr (Instruction * ins)
+{
+	switch (ins->op)
+	{
+	case BR :
+		return fmt ("br i32 [%s] %s %s",
+				print_addr (ins->src1).c_str (),
+				print_label (ins->br_nextnz ()).c_str (),
+				print_label (ins->br_nextz  ()).c_str ());
+	case BRZ :
+		return fmt ("brz i32 [%s] %s",
+				print_addr(ins->src1).c_str (),
+				print_label (ins->next).c_str ());
+	case BRNZ :
+		return fmt ("brnz i32 [%s] %s",
+				print_addr(ins->src1).c_str (),
+				print_label (ins->next).c_str ());
+	default :
+		return print_instr ((Instr *) ins);
+	}
+}
+
+std::string Module::print_label (Instruction * ins)
+{
+	if (ins == 0) return "ERROR_NULL_PTR";
+	if (ins->label.size () == 0) return "ERROR_EMPTY_LABEL";
+	return ins->label;
+}
+
 const char * Instr::op2str ()
 {
 	switch (op)
 	{
-	case NOP :
-		return "nop";
 	case ERROR :
 		return "error";
 	case RET :
@@ -384,6 +507,8 @@ const char * Instr::op2str ()
 		return "cmp sle";
 
 	//
+	case BR :
+		return "br";
 	case BRZ :
 		return "brz";
 	case BRNZ :
@@ -468,3 +593,140 @@ uint64_t Instr::cast_val (uint64_t v)
 		return v & mask;
 	}
 }
+
+Builder::Builder (Function * f) :
+	f (f),
+	last (0),
+	last_label (0),
+	branch (1) // nz branch
+{ }
+
+void Builder::attach (Function * f)
+	{ this->f = f; f->entry = 0; last = 0; }
+
+void Builder::attach (Function * f, Instruction * ins)
+	{ this->f = f; last = ins; }
+
+void Builder::attach (Instruction * ins)
+	{ last = ins; }
+
+Instruction * Builder::get_last ()
+	{ return last; }
+
+void Builder::set_branch (int b)
+	{ branch = b; }
+
+std::string Builder::gen_label ()
+	{ return fmt ("l%d", last_label++); }
+
+void Builder::set_label ()
+	{ set_label (last, gen_label ()); }
+
+void Builder::set_label (std::string && label)
+	{ set_label (last, std::move (label)); }
+
+void Builder::set_label  (Instruction * ins)
+	{ set_label (ins, gen_label ()); }
+
+void Builder::set_label (Instruction * ins, std::string && label)
+{
+	// disallowed if we didn't first generate one instruction
+	if (last == 0)
+		throw std::logic_error ("Tried to set a label before adding at least one instruction.");
+	f->label_set (std::move(label), ins);
+}
+
+void Builder::insert (Instruction *ins)
+{
+	// put the instruction in the module's set of instructions, for
+	// memory-leaking pourposes
+	f->module->instructions.push_back (ins);
+
+	// if last is null, this is the first instruction of the function
+	if (last == 0)
+	{
+		if (f->entry != 0) f->labels_clear ();
+		f->entry = ins;
+		ins->pre.clear ();
+	}
+	else
+	{
+		// if last instruction is a BR instruction, then variable branch tells
+		// which branch to insert
+		if (last->op == BR)
+		{
+			if (branch)
+				last->next = ins; // "then / nz" branch
+			else
+				last->src2 = (uint64_t) ins; // "else / z" branch
+		}
+		else
+		{
+			last->next = ins;
+		}
+		ins->pre.push_back (last);
+	}
+
+	// the new instruction becomes the last one
+	last = ins;
+}
+
+Instruction * Builder::mk_error ()
+{
+	Instruction * i = new Instruction ();
+	i->op = ERROR;
+	insert (i);
+	return i;
+}
+
+Instruction * Builder::mk_ret   (Datasize s, Addr src)
+{
+	Instruction * i = new Instruction ();
+	i->op = RET;
+	i->size = s;
+	i->src1 = src;
+	insert (i);
+	return i;
+}
+
+Instruction * Builder::mk_ret   (Datasize s, Imm imm)
+{
+	Instruction * i = new Instruction ();
+	i->op = RETI;
+	i->size = s;
+	i->src2 = imm;
+	insert (i);
+	return i;
+}
+
+Instruction * Builder::mk_move  (Datasize s, Addr dst, Addr src)
+{
+	Instruction * i = new Instruction ();
+	i->op = MOVE;
+	i->size = s;
+	i->dst = dst;
+	i->src1 = src;
+	insert (i);
+	return i;
+}
+Instruction * Builder::mk_move  (Datasize s, Addr dst, Imm imm)
+{
+	Instruction * i = new Instruction ();
+	i->op = MOVEI;
+	i->size = s;
+	i->dst = dst;
+	i->src2 = imm;
+	insert (i);
+	return i;
+}
+Instruction * Builder::mk_imov  (Datasize s, Addr dst, Addr src)
+{
+	Instruction * i = new Instruction ();
+	i->op = IMOV;
+	i->size = s;
+	i->dst = dst;
+	i->src1 = src;
+	insert (i);
+	return i;
+}
+

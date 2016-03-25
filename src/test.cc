@@ -1120,11 +1120,46 @@ void test16()
 	ins.src2 = 0;
 	std::cout << p.module.print_instr (&ins) << "\n";
 
-
-	//printf ("address of x %d\n", (int) Addr (*x));
-	//printf ("address of y %d\n", (int) Addr (*y));
-	//printf ("address of i %d\n", (int) Addr (*i));
 	return;
-	// move 4 [0x0] 0x2
-	//Instr ins = make_move (4, *x, Imm (2));
 }
+
+void test17 ()
+{
+	using namespace fe::ir;
+
+	Function * f;
+
+	Program p (1);
+
+	// add 1 thread
+	f = p.add_thread ("main");
+	p.main = f;
+
+	// create an instruction builder attached to the main function
+	Builder b (f);
+
+	// allocate 5 symbols, 32 bits each one
+	Symbol * x = p.module.allocate ("x", 4, 4, 4);
+	Symbol * y = p.module.allocate ("y", 4, 4, 20);
+	Symbol * i = p.module.allocate ("i", 4, 4);
+	Symbol * acc = p.module.allocate ("acc", 4, 4);
+
+	// generate some instructions
+	b.mk_error ();
+	b.set_label ("error instruction");
+
+	b.mk_ret (I16, Addr (0x2));
+	b.set_label ("ret instructions");
+	b.mk_ret (I32, Imm (0x1234));
+
+	b.mk_move (I32, *x, Imm (2));
+	b.set_label ("move instructions");
+	b.mk_move (I32, *y, *i);
+	b.mk_imov (I64, *acc, *x);
+
+	b.mk_error ();
+	b.set_label ("cmp instructions");
+
+	p.dump ();
+}
+

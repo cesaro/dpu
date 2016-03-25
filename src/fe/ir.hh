@@ -51,7 +51,6 @@ public :
 
 enum Opcode
 {
-	NOP,
 	ERROR,
 	RET,
 	RETI,
@@ -82,6 +81,7 @@ enum Opcode
 	CMP_SLTI,
 	CMP_SLEI,
 	//
+	BR,
 	BRZ,
 	BRNZ,
    // add DST SRC1 SRC2
@@ -119,6 +119,16 @@ enum Opcode
 	PRINTF
 };
 
+enum Datasize
+{
+	I8  = 1,
+	I16 = 2,
+	I32 = 4,
+	I64 = 8,
+	FLOAT = 4,
+	DOUBLE = 8,
+};
+
 struct Instr
 {
 	uint32_t dst;
@@ -134,16 +144,15 @@ struct Instr
 	uint64_t     cast_imm () { return cast_val (src2); }
 };
 
-class Instruction : Instr
+struct Instruction : Instr
 {
-	//~Instruction () = default;
-public :
-	std::vector<Instruction *> pre;
-	std::vector<Instruction *> next;
-	unsigned                   m;
-	std::string						label;
+	std::vector<Instruction*> pre;
+	Instruction *             next;
+	unsigned                  m;
+	std::string               label;
 
-	void set_next (Instruction * n);
+	Instruction * br_nextnz () { return next; }
+	Instruction * br_nextz  () { return (Instruction *) src2; }
 };
 
 class Module;
@@ -156,6 +165,15 @@ public :
 
 	Function (std::string name, Module * m);
 	~Function ();
+
+	Instruction * label_lookup (const std::string & label);
+	void          label_set    (std::string && label, Instruction * ins);
+	void          labels_clear ();
+	void          print        (FILE * f);
+	unsigned      new_mark     ();
+
+private :
+	std::map<std::string, Instruction*> labeltab;
 };
 
 class Module
@@ -164,7 +182,7 @@ public :
 	Module ();
 	~Module ();
 
-	Symbol *    sym_lookup   (std::string & name);
+	Symbol *    sym_lookup   (const std::string & name);
 	Symbol *    allocate     (const char * name, uint32_t size, uint32_t align, uint64_t initval);
 	Symbol *    allocate     (const char * name, uint32_t size, uint32_t align, const void * initval);
 	Symbol *    allocate     (const char * name, uint32_t size, uint32_t align); // initial value = zero
@@ -172,6 +190,8 @@ public :
 	void        validate     ();
 	std::string print_instr  (Instruction * ins);
 	std::string print_instr  (Instr * ins);
+	std::string print_addr   (uint32_t addr);
+	std::string print_label  (Instruction * ins);
 	void        print        (FILE * f);
 	void        dump         () { print (stderr); }
 	unsigned    new_mark     () { return mark++; }
@@ -184,8 +204,9 @@ private :
 	std::vector<Instruction*>      instructions;
 	unsigned                       mark;
 
-	std::string print_addr   (uint32_t addr);
 	void        print_symtab (FILE * f);
+
+	friend class Builder;
 };
 
 class Program
@@ -195,9 +216,9 @@ public :
 	Module 						module;
 	std::vector<Function*>  threads;
 	Function *					main;
-	const unsigned &        maxthreads;
+	const unsigned &        numthreads;
 
-	Program (unsigned maxthreads);
+	Program (unsigned numthreads);
 	Function * add_thread (std::string name);
 
 	void validate ();
@@ -206,20 +227,44 @@ public :
 	void dump () { print (stderr); }
 
 private :
-	unsigned _maxthreads;
+	unsigned _numthreads;
 };
 
 class Builder
 {
 public :
-	Builder (Function * f) : f (f) {}
+	Builder (Function * f);
 
-	void attach (Function * f) { this->f = f; }
-	Instruction * get_last () { return last; }
+	void          attach     (Function * f);
+	void          attach     (Function * f, Instruction * ins);
+	void          attach     (Instruction * ins);
+	Instruction * get_last   ();
+	void          set_branch (int b); // 1 for nz branch; 0 for z branch
+
+	Instruction * push       ();
+	Instruction * push       (Instruction * ins);
+	Instruction * pop        ();
+
+	std::string   gen_label  ();
+	void          set_label  ();
+	void          set_label  (std::string && label);
+	void          set_label  (Instruction * ins);
+	void          set_label  (Instruction * ins, std::string && label);
+
+	Instruction * mk_error ();
+	Instruction * mk_ret   (Datasize s, Addr src);
+	Instruction * mk_ret   (Datasize s, Imm imm);
+	Instruction * mk_move  (Datasize s, Addr dst, Addr src);
+	Instruction * mk_move  (Datasize s, Addr dst, Imm imm);
+	Instruction * mk_imov  (Datasize s, Addr dst, Addr src);
 
 private :
-	Function * f;
+	Function *    f;
 	Instruction * last;
+	unsigned      last_label;
+	int           branch;
+
+	void insert (Instruction *ins);
 };
 
 } } } // namespace dpu::fe::ir

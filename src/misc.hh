@@ -5,5 +5,6 @@
 #include <string>
 
 std::string fmt (const std::string fmt_str, ...);
+std::string operator * (std::string lhs, int i);
 
 #endif

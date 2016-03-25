@@ -31,3 +31,13 @@ std::string fmt (const std::string fmt_str, ...)
 	return std::string(formatted.get());
 }
 
+std::string operator * (std::string lhs, int i)
+{
+	int len;
+	
+	len = lhs.size ();
+	lhs.reserve (len * i);
+	for (; i >= 2; --i) lhs.append (lhs.data (), len);
+	return lhs;
+}
+

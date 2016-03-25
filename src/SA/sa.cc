@@ -137,6 +137,7 @@ void parseInstruction( llvm::Module* mod, machine_t* machine, llvm::Instruction*
     /* look at the operands of the instruction */
     ins->print( errs() );
     std::cerr << "\n";
+    std::cerr << "Op code " << ins->getOpcode() << " " << ins->getOpcodeName() << std::endl;
 
     switch( ins->getOpcode() ) {
         llvm::Value* val;
@@ -159,6 +160,9 @@ void parseInstruction( llvm::Module* mod, machine_t* machine, llvm::Instruction*
         break;
     case opcodes.BranchInst:
         outputBranch( mod, ins, machine, tid );
+        break;
+    case opcodes.ICmpInst:
+        outputIcmp( mod, ins, machine, tid );
         break;
 
         

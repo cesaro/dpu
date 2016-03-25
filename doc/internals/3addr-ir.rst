@@ -185,6 +185,8 @@ ret i32 %10               | RET i32 %10
 ret i8* null              | RET
 br i1 %3, label %4, label %8 | BR %3 0xaf8610 0xaf8670
 br label %11              | BR 0x1c80d90
+%3 = icmp sgt i32 3, %2   | CMP sgt %3 3 %2
+
 
 
 

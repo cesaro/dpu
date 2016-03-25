@@ -101,6 +101,48 @@ void outputBranch( llvm::Module* mod, llvm::Instruction* ins, machine_t* machine
     }
 }
 
+void outputIcmp( llvm::Module* mod, llvm::Instruction* ins, machine_t* machine, llvm::Value* tid ) {
+    llvm::ICmpInst* cmp = static_cast<llvm::ICmpInst*>(ins);
+    llvm::CmpInst::Predicate pr = cmp->getPredicate();
+    std::cout << "CMP ";
+    switch( pr ) {
+    case llvm::CmpInst::ICMP_EQ:
+        std::cout << "eq ";
+        break;
+    case llvm::CmpInst::ICMP_NE:
+        std::cout << "ne ";
+        break;
+    case llvm::CmpInst::ICMP_UGT:
+        std::cout << "ugt ";
+        break;
+    case llvm::CmpInst::ICMP_UGE:
+        std::cout << "uge ";
+        break;
+    case llvm::CmpInst::ICMP_SGT:
+        std::cout << "sgt ";
+        break;
+    case llvm::CmpInst::ICMP_SGE:
+        std::cout << "sge ";
+        break;
+    case llvm::CmpInst::ICMP_SLT:
+        std::cout << "slt ";
+        break;
+    case llvm::CmpInst::ICMP_SLE:
+        std::cout << "sle ";
+       break;
+    default:
+        std::cerr << "OTHER PREDICATE" << std::endl;
+    }
+
+    std::string dest = (ins->hasName()) ? ins->getName().str() : getShortValueName( ins );
+    llvm::Value* src1 = ins->getOperand( 0 );
+    llvm::Value* src2 = ins->getOperand( 1 );
+    std::string src1name = (src1->hasName()) ? src1->getName().str() : getShortValueName( src1 );
+    std::string src2name = (src2->hasName()) ? src2->getName().str() : getShortValueName( src2 );
+    
+    std::cout << dest << " " << src1name << " " << src2name << std::endl;
+}
+
 void outputUnknown( llvm::Module* mod, llvm::Instruction* ins, machine_t* machine, llvm::Value* tid ) {
     std::cout << "Unknown operation ";
     ins->print( outs() );

@@ -425,8 +425,45 @@ void Event:: SYN_cex(Config & c)
  */
 void Event:: WR_cex(Config & c)
 {
+   Event * ep, * ew, * temp;
+   std::vector<std::vector<Event *> > steak;
+   std::vector<Event *> maxevt;
+   steak.reserve(c.unf.m.procs.size());
+   maxevt.reserve(c.unf.m.procs.size());
 
+   ep = this->pre_proc;
+   ew = this;
+   while ((ew->is_bottom() == false) && (ep->in_history(ew)) )
+   {
+      /* find maximal events of this event -> try to reduce the size of the comb if possible
+       * some pre_reader may be the same.
+       */
+      maxevt.clear();
+      for (unsigned i = 0; i < this->pre_readers.size(); i++)
+         if (std::find(maxevt.begin(),maxevt.end(),pre_readers[i]) != maxevt.end() )
+            maxevt.push_back(pre_readers[i]);
+      /*
+       * set up the steaks of comb
+       */
+      steak = maxevt;
+      for (unsigned i = 0; i < steak.size(); i++)
+      {
+         temp = steak[i];
+         while (temp )
+         {
+            if (temp->trans->type == ir::Trans::RD)
+               steak[i].push_back(temp->pre_mem);
+            else
+               steak[i].push_back(temp->pre_readers[i]);
+
+         }
+      }
+
+
+      ew = steak[0].back();
+   }
 }
+
 /*
  * Check if e is in this event's history or not
  * If this and e are in the same process, check their source

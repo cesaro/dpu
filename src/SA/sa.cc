@@ -157,8 +157,10 @@ void parseInstruction( llvm::Module* mod, machine_t* machine, llvm::Instruction*
     case opcodes.ReturnInst:
         outputReturn( mod, ins, machine, tid );
         break;
+    case opcodes.BranchInst:
+        outputBranch( mod, ins, machine, tid );
+        break;
 
-        
         
     default:
         std::cerr << "Op code " << ins->getOpcode() << " not supported yet" << std::endl;

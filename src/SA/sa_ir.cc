@@ -89,6 +89,18 @@ void outputReturn( llvm::Module* mod, llvm::Instruction* ins, machine_t* machine
     std::cout << std::endl;
 }
 
+void outputBranch( llvm::Module* mod, llvm::Instruction* ins, machine_t* machine, llvm::Value* tid ) {
+    llvm::BranchInst* br = static_cast<llvm::BranchInst*>(ins);
+    if( br->isUnconditional() ) {
+        std::cout << "BR " << br->getSuccessor( 0 ) << std::endl;
+    } else {
+        llvm::Value* cond = br->getCondition();
+        std::string condname = (cond->hasName()) ? cond->getName().str() : getShortValueName( cond );
+        std::cout << "BR " << condname << " " << br->getSuccessor( 0 ) << " " << br->getSuccessor( 1 ) << std::endl;
+
+    }
+}
+
 void outputUnknown( llvm::Module* mod, llvm::Instruction* ins, machine_t* machine, llvm::Value* tid ) {
     std::cout << "Unknown operation ";
     ins->print( outs() );

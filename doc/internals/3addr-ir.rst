@@ -183,6 +183,10 @@ TBD
 store i32 %4, i32* %i     | MOVE i32 [[i]] [%4]
 ret i32 %10               | RET i32 %10
 ret i8* null              | RET
+br i1 %3, label %4, label %8 | BR %3 0xaf8610 0xaf8670
+br label %11              | BR 0x1c80d90
+
+
 
 Data Structures
 ---------------

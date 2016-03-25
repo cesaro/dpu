@@ -36,7 +36,7 @@ prof : $(TARGETS)
 	src/main /tmp/ele4.ll_net
 
 tags : $(SRCS)
-	#ctags -R --c++-kinds=+p --fields=+K --extra=+q /usr/include/llvm-3.6/ .
+	@#ctags -R --c++-kinds=+p --fields=+K --extra=+q /usr/include/llvm-3.6/ .
 	ctags -R --c++-kinds=+p --fields=+K --extra=+q ./src
 
 g gdb : $(TARGETS)

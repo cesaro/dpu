@@ -24,8 +24,7 @@ CXXFLAGS:=-Wall -Wextra -std=c++11 -g
 #CPPFLAGS:=-I src/ -D_POSIX_C_SOURCE=200809L -D__STDC_LIMIT_MACROS -D__STDC_FORMAT_MACROS -D NDEBUG
 CPPFLAGS:=-I src/ -D_POSIX_C_SOURCE=200809L -D__STDC_LIMIT_MACROS -D__STDC_FORMAT_MACROS
 #LDFLAGS:=-dead_strip -static
-LDFLAGS:=-dead_strip
-#LDFLAGS:=
+LDFLAGS:=
 
 # source code
 SRCS:=$(wildcard src/*.c src/*.cc src/*/*.c src/*/*.cc src/*/*/*.c src/*/*/*.cc)

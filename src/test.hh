@@ -16,5 +16,14 @@ void test12 ();
 void test13 ();
 void test14 ();
 void test15 ();
+void test16 ();
+void test17 ();
+void test18 ();
+void test19 ();
+void test20 ();
+void test21 ();
+void test22 ();
+void test23 ();
+void test24 ();
 
 #endif

@@ -14,6 +14,10 @@
 #include "statement.hh"
 #include "verbosity.h"
 
+#include "fe/ir.hh"
+
+using namespace dpu;
+
 //#include "boost/filesystem.hpp"
 //using namespace boost::filesystem;
 
@@ -1064,3 +1068,63 @@ void test15()
    u.explore_rnd_config ();
 }
 
+void test16()
+{
+	using namespace fe::ir;
+
+	Function * f;
+
+	Program p (1);
+
+	// add 1 thread
+	f = p.add_thread ("main");
+	p.main = f;
+
+	// allocate 5 symbols of 32 bits
+	Symbol * x = p.module.allocate ("x", 4, 4, 4);
+	Symbol * y = p.module.allocate ("y", 4, 4, 20);
+	//Symbol * i = p.module.allocate ("i", 4, 4, 128);
+	//Symbol * acc = p.module.allocate ("acc", 4, 4);
+	//Symbol * cnd = p.module.allocate ("cnd", 4, 4);
+	p.module.allocate ("xx", 5, 8, 0x1234);
+	p.module.allocate ("yy", 10, 16, 0x12345678);
+	Symbol * fmt = p.module.allocate ("fmt", 16, 1, "hello world %d");
+
+	p.dump ();
+
+	Instr ins;
+	ins.op = Opcode::RET;
+	ins.size = 1;
+	ins.src1 = Addr (*x) + 0x1;
+	//ins.src2 = 0x0123456789abcef;
+	ins.src2 = 0x0123;
+	std::cout << p.module.print_instr (&ins) << "\n";
+
+	ins.op = Opcode::MOVE;
+	ins.size = 1;
+	ins.dst = Addr (*y) + 0x5;
+	ins.src1 = 0x1;
+	ins.src2 = 0x7; // ignored, illegal
+	std::cout << p.module.print_instr (&ins) << "\n";
+
+	ins.op = Opcode::MOVEI;
+	ins.size = 8;
+	ins.dst = 0x5;
+	ins.src2 = 0x5566;
+	std::cout << p.module.print_instr (&ins) << "\n";
+
+	ins.op = Opcode::PRINTF;
+	ins.size = 4;
+	ins.dst = Addr (*fmt);
+	ins.src1 = Addr (*y);
+	ins.src2 = 0;
+	std::cout << p.module.print_instr (&ins) << "\n";
+
+
+	//printf ("address of x %d\n", (int) Addr (*x));
+	//printf ("address of y %d\n", (int) Addr (*y));
+	//printf ("address of i %d\n", (int) Addr (*i));
+	return;
+	// move 4 [0x0] 0x2
+	//Instr ins = make_move (4, *x, Imm (2));
+}

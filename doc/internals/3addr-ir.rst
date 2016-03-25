@@ -124,9 +124,9 @@ Example
 Symbol table:
 
 ===== ===== ======
-addr  type  symbol
-===== ===== ======
-0x04  i32   x
+Address    Size  Initial                 Symbol
+========== ===== ======================= =====================================
+0x00  i32   x
 0x08  i32   y
 0x0c  i32   i
 0x10  i32   acc
@@ -194,33 +194,27 @@ Data Structures
 ---------------
 
 ========= ===== ===== ===== ======== ============================= =================================
-opcode    type  dst   src1  src2     text                          comments
+opcode    size  dst   src1  src2     text                          comments
 ========= ===== ===== ===== ======== ============================= =================================
 NOP       -     -     -     -        nop
 ERROR     -     -     -     -        error
 RET       T     -     SRC   -        ret T [SRC]                   
-RETI4     T     -     IMM   -        ret T IMM                     T is 1-4
-RETI8     T     -     IMM1  IMM2     ret T IMM                     T is 5-8, IMM1 low, IMM2 high
+RETI      T     -     -     IMM      ret T IMM                     
 MOVE      T     DST   SRC   -        move T [DST] [SRC]
-MOVEI4    T     DST   IMM   -        move T [DST] IMM              T is 1-4
-MOVEI8    T     DST   IMM1  IMM2     move T [DST] IMM              T is 5-8, IMM1 low, IMM2 high
+MOVEI     T     DST   -     IMM      move T [DST] IMM
 IMOV      T     DST   SRC   -        imov T [DST] [[SRC]]
-CMP_EQ    T     DST   SRC1  SRC2     cmp eq T [DST] [SRC1] [SRC2]
-CMP_EQI4  T     DST   SRC1  IMM      cmp eq T [DST] [SRC] IMM      T is 1-4
 ========= ===== ===== ===== ======== ============================= =================================
+CMP_EQ    T     DST   SRC1  SRC2     cmp eq T [DST] [SRC1] [SRC2]
+CMP_EQI   T     DST   SRC   IMM      cmp eq T [DST] [SRC] IMM      
 -> similarly for cmp ule, uge, ult, sgt, sge, slt, sle
-BRZ       -     -     SRC   -        brz [SRC] LAB                 SRC interpreted as 32 bits
-BRNZ      -     -     SRC   -        brz [SRC] LAB                 SRC interpreted as 32 bits
+========= ===== ===== ===== ======== ============================= =================================
+BRZ       -     -     SRC   -        brz i32 [SRC] LAB             SRC interpreted as 32 bits
+BRNZ      -     -     SRC   -        brz i32 [SRC] LAB             SRC interpreted as 32 bits
 ========= ===== ===== ===== ======== ============================= =================================
 ADD       T     DST   SRC1  SRC2     add T [DST] [SRC1] [SRC2]
-ADDI4     T     DST   SRC1  IMM      add T [DST] [SRC1] IMM        T is 1-4
-ADDI8     T     DST   IMM1  IMM2     add T [DST] [DST] IMM         T is 5-8, IMM1 low, IMM2 high
--> similarly for sub, mul
--> sdiv, udiv, srem, urem only accepts T from 1 to 4, so opcodes SDIV and SDIVI4, and so on
-========= ===== ===== ===== ======== ============================= =================================
-OR        T     DST   SRC1  SRC2     or T [DST] [SRC1] [SRC2]
-ORI4      T     DST   SRC   IMM      or T [DST] [SRC] IMM          T is 1-4
--> similarly for and, xor
+ADDI      T     DST   SRC   IMM      add T [DST] [SRC] IMM        
+-> similarly for sub, mul, sdiv, udiv, srem, urem
+-> similarly for or, and, xor
 ========= ===== ===== ===== ======== ============================= =================================
 SEXT      T1    DST   SRC   T2       sext T1 T2 [DST] [SRC]        T1 < T2 <= 8
 -> similarly for zext
@@ -229,3 +223,4 @@ LOCK      T     DST   -     -        lock T [DST]
 UNLOCK    T     DST   -     -        lock T [DST]   
 PRINTF    T     FMT   SRC1  SRC2     printf T [FMT] [SRC1] [SRC2]
 ========= ===== ===== ===== ======== ============================= =================================
+

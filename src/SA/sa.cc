@@ -137,7 +137,6 @@ void parseInstruction( llvm::Module* mod, machine_t* machine, llvm::Instruction*
     /* look at the operands of the instruction */
     ins->print( errs() );
     std::cerr << "\n";
-    std::cerr << "Op code : " << ins->getOpcode() << " (" << ins->getOpcodeName() << ")" << std::endl;
 
     switch( ins->getOpcode() ) {
         llvm::Value* val;
@@ -154,6 +153,9 @@ void parseInstruction( llvm::Module* mod, machine_t* machine, llvm::Instruction*
         break;
     case opcodes.LoadInst:
         outputLoad( mod, ins, machine, tid );
+        break;
+    case opcodes.ReturnInst:
+        outputReturn( mod, ins, machine, tid );
         break;
 
         
@@ -220,7 +222,7 @@ void parseBasicBlock(llvm::Module* mod, machine_t* machine, llvm::BasicBlock* bl
     int line = 0;
     /* Okay, what is inside this block? */
     for( auto i = block->begin() ; i != block->end() ; i++ ) {
-        std::cout << "Line " << line << std::endl;
+        printLineNb( line, block, tid );                   
         parseInstruction( mod, machine, i, tid );
         line++;
     }

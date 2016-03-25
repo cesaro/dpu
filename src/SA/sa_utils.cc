@@ -1,5 +1,6 @@
 #include <iostream>
 #include <cstring>
+#include <iomanip>
 #include "llvm/IR/BasicBlock.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/IR/Function.h"
@@ -260,4 +261,20 @@ std::string typeToStr( Type* ty ) {
         s = "i" + std::to_string( POINTERSIZE );
     }
     return s;
+}
+
+/* Pretty print, can be modified, that gives the line number etc
+ * Prints, in three colunms;
+ * - the line number
+ * - the block
+ * - the thread id
+ */
+
+void printLineNb( int line, llvm::BasicBlock* block, llvm::Value* tid ) {
+    std::cout << setfill(' ') << setw(3) << line << " " << block << " ";
+    if( NULL == tid ) {
+        std::cout << "main      | ";
+    } else {
+            std::cout << tid << " | ";
+    }
 }

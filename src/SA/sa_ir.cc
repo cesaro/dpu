@@ -1,4 +1,5 @@
 #include <iostream>
+#include "llvm/IR/Constants.h"
 
 #include "sa_utils.h"
 
@@ -18,7 +19,6 @@ void outputAlloca( llvm::Module* mod, llvm::Instruction* ins, machine_t* machine
     unsigned addr = (*machine)[symb];
     
     std::cout << "MOVE i32 [" << addr << "] " << addr_p;
-    std::cout << "\t # thread " << tid;
     std::cout << std::endl;
 }
 
@@ -34,10 +34,9 @@ void outputLoad( llvm::Module* mod, llvm::Instruction* ins, machine_t* machine, 
     std::string dstname = dst->getName().str();
     symbol_t symb( dstname, tid );
 
-    Type* ty = ins->getType();
+    llvm::Type* ty = ins->getType();
    
     std::cout << "IMOVE " << typeToStr( ty ) << " [" << dst->getName().str() << "] [" << name << "]";
-    std::cout << "\t # thread " << tid;
     std::cout << std::endl;
 }
 
@@ -50,14 +49,13 @@ void outputStore( llvm::Module* mod, llvm::Instruction* ins, machine_t* machine,
     std::string valname = (val->hasName()) ? val->getName().str() : getShortValueName( val );
     symbol_t symb_val( valname, tid );
     
-    Type* ty = val->getType();
+    llvm::Type* ty = val->getType();
     
     llvm::Value* ptr = ins->getOperand( 1 );
     std::string ptrname = (ptr->hasName()) ? ptr->getName().str() : getShortValueName( ptr );
     symbol_t symb_ptr( ptrname, tid );
 
     std::cout << "STORE " << typeToStr( ty ) << " [" << ptrname << "] " <<  valname;
-    std::cout << "\t # thread " << tid;
     std::cout << std::endl;
 }
 
@@ -77,6 +75,18 @@ void outputCall( llvm::Module* mod, llvm::Instruction* ins, machine_t* machine, 
             std::cerr << " is RELEASED by " << fun->getName().str() << std::endl;
         }
 
+}
+
+void outputReturn( llvm::Module* mod, llvm::Instruction* ins, machine_t* machine, llvm::Value* tid ) {
+    llvm::ReturnInst* ret = static_cast<llvm::ReturnInst*>(ins);
+    llvm::Value* val = ret->getReturnValue();
+    llvm::Type* ty = val->getType();
+    std::string retname = (val->hasName()) ? val->getName().str() : getShortValueName( val );
+    std::cout << "RET ";
+    if( !isa<llvm::ConstantPointerNull>(val )) {
+        std::cout << typeToStr( ty ) << " " << retname ;
+    }
+    std::cout << std::endl;
 }
 
 void outputUnknown( llvm::Module* mod, llvm::Instruction* ins, machine_t* machine, llvm::Value* tid ) {

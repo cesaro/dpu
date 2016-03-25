@@ -49,6 +49,7 @@ std::pair<unsigned, unsigned> getAllocaInfo( llvm::Instruction*);
 void  dumpMachine(  machine_t* );
 bool isGlobal( llvm::Module*, llvm::StringRef );
 std::string typeToStr( Type*);
+void printLineNb( int, llvm::BasicBlock*, llvm::Value* );
 
 /**********************************************************************/
 /*   Classes definition                                               */

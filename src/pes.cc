@@ -423,8 +423,9 @@ void Event:: SYN_cex(Config & c)
 /*
  * Compute conflicting event for a WR event
  */
-void Event:: WR_cex(Config & c)
+void Event:: WR_cex(Config & )
 {
+#if 0
    Event * ep, * ew, * temp;
    std::vector<std::vector<Event *> > steak;
    std::vector<Event *> maxevt;
@@ -462,6 +463,7 @@ void Event:: WR_cex(Config & c)
 
       ew = steak[0].back();
    }
+#endif
 }
 
 /*

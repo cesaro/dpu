@@ -59,22 +59,48 @@ void outputStore( llvm::Module* mod, llvm::Instruction* ins, machine_t* machine,
     std::cout << std::endl;
 }
 
-void outputCall( llvm::Module* mod, llvm::Instruction* ins, machine_t* machine, llvm::Value* tid ) {
-        llvm::Function *fun;
-        llvm::Value* val;
-        /* Look at the arguments passed */
-        fun = static_cast<llvm::CallInst*>(ins)->getCalledFunction();
-        if(  0 == safeCompareFname( LOCK, fun->getName().str() ) ) {
-            val = ins->getOperand( 0 );
-            errs() << "MUTEX" << " " << val->getName() ;
-            std::cerr << " is TAKEN by " << fun->getName().str() << std::endl;
-        }
-        if(  0 == safeCompareFname( UNLOCK, fun->getName().str() ) ) {
-            val = ins->getOperand( 0 );
-            errs() << "MUTEX" << " " << val->getName() ;
-            std::cerr << " is RELEASED by " << fun->getName().str() << std::endl;
-        }
+/* In our IR, Muteces are represented by integers.
+ * Here we are taking the address of the said mutex in the memory
+ * of our machine.
+ */
+void lockMutex(  machine_t* machine, llvm::Value* mut ) {
+    std::cout << "LOCK " << typeToStr( mut->getType() ) << " ";
+    symbol_t mutsym( mut->getName().str(), NULL );
+    std::cout << "[" << (*machine)[ mutsym ] << "]";
+}
 
+void unlockMutex(  machine_t* machine, llvm::Value* mut ) {
+    std::cout << "UNLOCK " << typeToStr( mut->getType() ) << " ";
+    symbol_t mutsym( mut->getName().str(), NULL );
+    std::cout << "[" << (*machine)[ mutsym ] << "]";
+}
+
+void outputCall( llvm::Module* mod, llvm::Instruction* ins, machine_t* machine, llvm::Value* tid ) {
+    llvm::Function *fun;
+    llvm::Value* val;
+    
+    fun = static_cast<llvm::CallInst*>(ins)->getCalledFunction();
+    
+    std::string ret = ((ins->hasName()) ? ins->getName().str() : getShortValueName( ins ));
+    std::string type = typeToStr(fun->getFunctionType()->getReturnType() );
+      /* Which function is called? */
+  
+   if(  0 == safeCompareFname( LOCK, fun->getName().str() ) ) {
+        val = ins->getOperand( 0 );
+        lockMutex( machine, val );
+    }
+    if(  0 == safeCompareFname( UNLOCK, fun->getName().str() ) ) {
+        val = ins->getOperand( 0 );
+        unlockMutex( machine, val );
+    }
+    if(  0 == safeCompareFname( PRINTF, fun->getName().str() ) ) {
+        val = ins->getOperand( 0 );
+        std::string toprint = (val->hasName()) ? val->getName().str() : getShortValueName( val );
+        std::cout << "PRINTF " << type << " " << ret << " " << toprint;
+    }
+
+    
+    std::cout << std::endl;
 }
 
 void outputReturn( llvm::Module* mod, llvm::Instruction* ins, machine_t* machine, llvm::Value* tid ) {

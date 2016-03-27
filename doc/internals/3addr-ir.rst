@@ -124,15 +124,16 @@ Example
 
 Symbol table:
 
-===== ===== ======
-Address    Size  Initial                 Symbol
-========== ===== ======================= =====================================
-0x00  i32   x
-0x08  i32   y
-0x0c  i32   i
-0x10  i32   acc
-0x14  i32   cnd
-===== ===== ======
+========== ===== ======= =======
+Address    Size  Initial Symbol
+========== ===== ======= =======
+0x00       i32   0       __pc0
+0x04       i32   2       x
+0x08       i32   5       y
+0x0c       i32   0       i
+0x10       i32   0       acc
+0x14       i32   0       cnd
+========== ===== ======= =======
 
 Program::
 
@@ -143,15 +144,15 @@ Program::
    move i32 [y] 5
    move i32 [i] 0
    move i32 [acc] 0
-   br loopend
+ 
+ loopend:
+   cmp slt i32 [cnd] [i] [y]
+   br [cnd] loophead loopexit
  
  loophead:
    add i32 [acc] [acc] [x]
    add i32 [i] [i] 1
- 
- loopend:
-   cmp ult i32 [cnd] [i] [y]
-   br [cnd] loophead loopexit
+   br loopend
  
  loopexit:
    mul i32 [i] [x] [y]

@@ -120,7 +120,7 @@ void Module::print (FILE * f)
 	int i;
 
 	fprintf (f, "Module at %p: ", this);
-	fprintf (f, "%zu functions, %zuB memory, %zu symbols, %zd instructions (ever allocated)\n\n",
+	fprintf (f, "%zu functions, %zuB memory, %zu symbols, %zd instructions (including unreachable)\n\n",
 			functions.size (), memory.size (), symtab.size (), instructions.size ());
 
 	print_symtab (f);
@@ -223,6 +223,40 @@ void Function::labels_clear ()
 	labeltab.clear ();
 }
 
+void Function::print2 (FILE * f)
+{
+	std::vector<Instruction*> stack;
+	unsigned m;
+	Instruction * ins;
+	int count = 0;
+
+	if (entry == 0) { fputs ("(empty body)\n", f); return; }
+
+	// DFS exploration of the CFG, marking explored instructions
+	m = new_mark ();
+	stack.push_back (entry);
+	while (stack.size ())
+	{
+		ins = stack.back ();
+		stack.pop_back ();
+		while (ins and ins->m != m)
+		{
+			ins->m = m;
+			count++;
+			fprintf (f, "\n%p: %s\n   label: '%s'\n   next: %p pre: ",
+					ins,  module->print_instr (ins).c_str (),
+					ins->label.c_str (),
+					ins->next);
+			if (ins->pre.size () == 0) fputs ("(empty)", f);
+			for (auto & inss : ins->pre) fprintf (f, "%p, ", inss);
+			fputs ("\n", f);
+			if (ins->op == BR) stack.push_back (ins->get_nextz ());
+			ins = ins->get_next ();
+		}
+	}
+	fprintf (f, "\nDone: %d instructions\n", count);
+}
+
 void Function::print (FILE * f)
 {
 	std::vector<Instruction*> stack;
@@ -243,12 +277,25 @@ void Function::print (FILE * f)
 		// pop an instruction and explore the leftmost branch from there
 		ins = stack.back ();
 		stack.pop_back ();
-		while (ins and ins->m != m)
+		while (ins)
 		{
+			// if the instruction is already visited, print "pseudo branch"
+			if (ins->m == m)
+			{
+				if (ins->label.size () == 0)
+				{
+					fputs ("  ; ERROR: found unlabelled basic block which is target of 2 instructions", f);
+					return;
+				}
+				fprintf (f, "  br      %s\n\n", ins->label.c_str ());
+				break;
+			}
 			// visit the instruction
 			ins->m = m;
 			// print label, if present
 			if (ins->label.size () != 0) fprintf (f, "%s :\n", ins->label.c_str ());
+			// print comment, if present
+			if (ins->comment.size () != 0) fprintf (f, "; %s\n", ins->comment.c_str ());
 			// check for unauthorized instructions
 			if (ins->op == BRZ or ins->op == BRNZ)
 			{
@@ -258,7 +305,11 @@ void Function::print (FILE * f)
 			// print the instruction
 			fprintf (f, "  %s\n", module->print_instr(ins).c_str());
 			// set backtrack point here if there is an "else" branch to explore
-			if (ins->op == BR) stack.push_back (ins->get_nextz ());
+			if (ins->op == BR)
+			{
+				stack.push_back (ins->get_nextz ());
+				fputs ("\n", f);
+			}
 			ins = ins->next;
 		}
 	}
@@ -462,16 +513,16 @@ std::string Module::print_instr (Instruction * ins)
 	switch (ins->op)
 	{
 	case BR :
-		return fmt ("br i32 [%s] %s %s",
+		return fmt ("br      i32 [%s] %s %s",
 				print_addr (ins->src1).c_str (),
 				print_label (ins->get_nextnz ()).c_str (),
 				print_label (ins->get_nextz  ()).c_str ());
 	case BRZ :
-		return fmt ("brz i32 [%s] %s",
+		return fmt ("brz     i32 [%s] %s",
 				print_addr(ins->src1).c_str (),
 				print_label (ins->next).c_str ());
 	case BRNZ :
-		return fmt ("brnz i32 [%s] %s",
+		return fmt ("brnz    i32 [%s] %s",
 				print_addr(ins->src1).c_str (),
 				print_label (ins->next).c_str ());
 	default :
@@ -722,6 +773,20 @@ void Builder::set_label (Instruction * ins, std::string && label)
 		throw std::logic_error ("Cannot set a label before adding the first instruction.");
 	f->label_set (std::move(label), ins);
 }
+
+void Builder::set_comment (const std::string & s)
+	{ set_comment (std::string (s)); }
+
+void Builder::set_comment (std::string && s)
+{
+	// disallowed if we didn't first generate one instruction
+	if (last == 0)
+		throw std::logic_error ("Cannot set a comment before adding the first instruction.");
+	if (last->comment.size () != 0)
+		last->comment.append ("\n; ");
+	last->comment += std::move (s);
+}
+
 
 void Builder::insert (Instruction *ins)
 {

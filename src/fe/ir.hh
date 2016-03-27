@@ -155,6 +155,7 @@ struct Instruction : Instr
 	Instruction *             next;
 	unsigned                  m;
 	std::string               label;
+	std::string               comment;
 
 	void set_next  (Instruction * ins);
 	void set_nextz (Instruction * ins);
@@ -181,6 +182,9 @@ public :
 	void          label_set    (std::string && label, Instruction * ins);
 	void          labels_clear ();
 	void          print        (FILE * f);
+	void          print2       (FILE * f);
+	void          dump         () { print (stderr); }
+	void          dump2        () { print2 (stderr); }
 	unsigned      new_mark     ();
 
 private :
@@ -262,6 +266,9 @@ public :
 	void          set_label  (std::string && label);
 	void          set_label  (Instruction * ins);
 	void          set_label  (Instruction * ins, std::string && label);
+
+	void          set_comment (const std::string & s);
+	void          set_comment (std::string && s);
 
 	// error and return
 	Instruction * mk_error   ();

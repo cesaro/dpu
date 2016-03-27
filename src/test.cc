@@ -1146,20 +1146,20 @@ void test17 ()
 
 	// generate some instructions
 	b.mk_error ();
-	b.set_label ("error_instruction");
+	b.set_comment ("error instructions");
 
 	b.mk_ret (I16, Addr (0x2));
-	b.set_label ("ret_instructions");
+	b.set_comment ("return instructions");
 	b.mk_ret (I32, Imm (0x1234));
 
 	b.mk_move (I32, *x, Imm (2));
-	b.set_label ("move_instructions");
+	b.set_comment ("instructions for moving data");
 	b.mk_move (I32, *y, *i);
 	b.mk_movis (I64, *acc, *x);
 	b.mk_movid (I64, *acc, *x);
 
 	b.mk_cmp_eq (I16, *acc, *x, *y);
-	b.set_label ("cmp_instructions");
+	b.set_comment ("comparison instructions");
 	b.mk_cmp_eq (I16, *acc, *x, Imm (129));
 
 	b.mk_cmp_ne (I16, *acc, *x, *y);
@@ -1182,14 +1182,15 @@ void test17 ()
 	b.mk_cmp_sle (I16, *acc, *x, Imm (129));
 
 	b.mk_br (*acc);
-	b.set_label ("br_instruction");
+	b.set_comment ("branch instruction");
 	b.push ();
 
 	// we continue generating instruction on the non-zero branch
 	b.set_branch (1);
 
 	b.mk_add (I8, *i, *x, *y);
-	b.set_label ("arithmetic_instructions_2_addresses");
+	b.set_label (); // target of a branch needs a label
+	b.set_comment ("arithmetic instructions with 2 addresses");
 	b.mk_sub (I8, *i, *x, *y);
 	b.mk_mul (I8, *i, *x, *y);
 	b.mk_sdiv (I8, *i, *x, *y);
@@ -1198,20 +1199,32 @@ void test17 ()
 	b.mk_urem (I8, *i, *x, *y);
 
 	b.mk_add (I8, *i, *x, Imm (26));
-	b.set_label ("arithmetic_instructions_with_immediate");
-	b.mk_sub (I8, *i, Imm (26), *x);             // i = 26 - x
-	b.mk_add (I8, *i, *x, Imm ((uint8_t) -26));  // i = x - 26
-	b.mk_mul (I8, *i, *x, Imm ((uint8_t) 26));   // i = x * -26
+	b.set_comment ("arithmetic instructions with one immediate value");
+	b.set_comment ("i = x + 26");
+	b.mk_sub (I8, *i, Imm (26), *x);
+	b.set_comment ("i = 2 - x");
+	b.mk_add (I8, *i, *x, Imm ((uint8_t) -2));
+	b.set_comment ("i = x - 2");
+	b.mk_mul (I16, *i, *x, Imm ((uint16_t) -2));
+	b.set_comment ("i = x * -2");
 
-	b.mk_sdiv (I8, *i, *x, Imm ((uint8_t) -26)); // i = x / -26
-	b.mk_sdiv (I8, *i, Imm ((uint8_t) -26), *x); // i = -26 / x
-	b.mk_udiv (I8, *i, *x, Imm ((uint8_t) 32));  // i = x / 32
-	b.mk_udiv (I8, *i, Imm ((uint8_t) 32), *x);  // i = 32 / x
+	b.mk_sdiv (I8, *i, *x, Imm ((uint8_t) -1));
+	b.set_comment ("i = x / -1");
+	b.mk_sdiv (I64, *i, Imm ((uint8_t) -1), *x);
+	b.set_comment ("i = -1 / x");
+	b.mk_udiv (I8, *i, *x, Imm ((uint8_t) 32));
+	b.set_comment ("i = x / 32");
+	b.mk_udiv (I8, *i, Imm ((uint8_t) 32), *x);
+	b.set_comment ("i = 32 / x");
 
-	b.mk_srem (I8, *i, *x, Imm ((uint8_t) -26)); // i = x % -26
-	b.mk_srem (I8, *i, Imm ((uint8_t) -26), *x); // i = -26 % x
-	b.mk_urem (I8, *i, *x, Imm ((uint8_t) 32));  // i = x % 32
-	b.mk_urem (I8, *i, Imm ((uint8_t) 32), *x);  // i = 32 % x
+	b.mk_srem (I8, *i, *x, Imm ((uint8_t) -2));
+	b.set_comment ("i = x % -2");
+	b.mk_srem (I8, *i, Imm ((uint8_t) -2), *x);
+	b.set_comment ("i = -2 % x");
+	b.mk_urem (I8, *i, *x, Imm ((uint8_t) 32));
+	b.set_comment ("i = x % 32");
+	b.mk_urem (I8, *i, Imm ((uint8_t) 32), *x);
+	b.set_comment ("i = 32 % x");
 
 	b.mk_ret (I64, Imm (0));
 
@@ -1219,7 +1232,8 @@ void test17 ()
 	b.set_branch (0); // continue adding instructions in zero branch
 
 	b.mk_and (I64, *i, *x, *y);
-	b.set_label ("bitwise_logic_instructions");
+	b.set_label (); // target of a BR instruction always needs a label
+	b.set_comment ("bitwise logic instructions");
 	b.mk_and (I64, *i, *x, Imm (0xff0800));
 	b.mk_or (I64, *i, *x, *y);
 	b.mk_or (I64, *i, *x, Imm (0xff0800));
@@ -1227,16 +1241,115 @@ void test17 ()
 	b.mk_xor (I64, *i, *x, Imm (0xff0800));
 
 	b.mk_sext (I8, I16, *i, *x);
-	b.set_label ("sign_extension");
+	b.set_comment ("sign extension");
 	b.mk_zext (I16, I32, *i, *x);
 
 	b.mk_lock (*acc);
-	b.set_label ("misc_instructions");
+	b.set_comment ("miscellaneous instructions");
 	b.mk_unlock (*acc);
 	b.mk_printf ("hello world without arguments");
 	b.mk_printf ("format with one 32bit arg %d", I32, *x);
-	b.mk_printf ("format with two 64bit args %d and %d", I64, *x, *y);
+	b.mk_printf ("format with two 64bit args %ld and %ld", I64, *x, *y);
 
 	p.dump ();
+}
+
+void test18 ()
+{
+	// build the following program:
+	//
+   //  int y = 5;
+	//
+   //  int main ()
+   //  {
+   //    int x = 2;
+   //    int i;
+   //    int acc = 0;
+   // 
+   //    for (i = 0; i < y; i++) acc += y
+   // 
+   //    assert (acc == x * y);
+	//    return 0;
+   //  }
+   //
+   //  int thr1 ()
+   //  {
+   //    y = 6;
+	//    return 0;
+   //  }
+
+	using namespace fe::ir;
+
+	Function * f;
+	Instruction * ins1;
+	Instruction * ins2;
+
+	Program p (2);
+
+	// add 1 thread
+	f = p.add_thread ("main");
+	p.main = f;
+
+	// create an instruction builder attached to the main function
+	Builder b (f);
+
+	// allocate 5 symbols, 32 bits each one
+	Symbol * x = p.module.allocate ("x", 4, 4, 4);
+	Symbol * y = p.module.allocate ("y", 4, 4, 20);
+	Symbol * i = p.module.allocate ("i", 4, 4);
+	Symbol * acc = p.module.allocate ("acc", 4, 4);
+	Symbol * cnd = p.module.allocate ("cnd", 4, 4);
+
+	b.mk_move (I32, *x, Imm (2));
+	b.set_label ("entry");
+	b.mk_move (I32, *y, Imm (5));
+	b.mk_move (I32, *i, Imm (0));
+
+	ins1 = b.mk_cmp_slt (I32, *cnd, *i, *y);
+	b.set_label ("loopend");
+
+	// branch instruction, continue with the NZ branch
+	b.mk_br (*cnd);
+	b.push ();
+	b.set_branch (1);
+
+	b.mk_add (I32, *acc, *acc, *x);
+	b.set_label ("loophead");
+	ins2 = b.mk_add (I32, *i, *i, Imm (1));
+	ins2->set_next (ins1);
+
+	// at the branch instruction again, continue with the Z branch
+	b.pop ();
+	b.set_branch (0);
+
+	b.mk_mul (I32, *i, *x, *y);
+	b.set_label ("loopexit");
+	b.mk_cmp_ne (I32, *cnd, *acc, *i);
+	b.mk_br (*cnd);
+
+	// push BR instruction, continue with NZ branch
+	b.push ();
+	b.set_branch (1);
+
+	b.mk_error ();
+	b.set_label ();
+
+	// continue with Z branch
+	b.pop ();
+	b.set_branch (0);
+	b.mk_ret (I32, Imm (0));
+	b.set_label ();
+
+
+
+	// add a second thread
+	f = p.add_thread ("thr1");
+	b.attach (f);
+
+	b.mk_move (I32, *y, Imm (6));
+	b.mk_ret (I32, Imm (0));
+
+	p.dump ();
+	//f->dump2 ();
 }
 

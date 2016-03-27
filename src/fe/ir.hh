@@ -12,9 +12,6 @@ namespace dpu {
 namespace fe {
 namespace ir {
 
-const int MAX_SYM_NAME = 256;
-const int MAX_INST_TEXT = MAX_SYM_NAME * 4;
-
 struct Addr
 {
 	uint32_t addr;
@@ -35,12 +32,14 @@ public :
 	std::string  name;
 	Addr			 addr;
 	uint32_t     size;
+	const void * init_value;
 
-	Symbol (std::string && n, Addr a, uint32_t s) :
-		name (n), addr (a), size (s) {}
+	Symbol (std::string && n, Addr a, uint32_t s, const void * iv) :
+		name (n), addr (a), size (s), init_value (iv)
+		{ DEBUG ("%p: fe::ir::Symbol.ctor: name '%s' size %u, addr %p", this, name.c_str(), s, addr.addr); }
 
-	Symbol (const char * n, Addr a, uint32_t s) :
-		Symbol (std::string (n), a, s) {}
+	Symbol (const char * n, Addr a, uint32_t s, const void * iv) :
+		Symbol (std::string (n), a, s, iv) {}
 
 	~Symbol () { DEBUG ("%p: fe::ir::Symbol.dtor: name '%s' addr %p", this, name.c_str(), addr.addr); }
 
@@ -147,6 +146,7 @@ struct Instr
 	const char * size2str () { return size2str (size); }
 	uint64_t     cast_val (uint64_t v);
 	uint64_t     cast_imm () { return cast_val (src2); }
+	bool         has_imm ();
 };
 
 struct Instruction : Instr
@@ -156,6 +156,10 @@ struct Instruction : Instr
 	unsigned                  m;
 	std::string               label;
 	std::string               comment;
+
+	// ctor, default dtor
+	Instruction () :
+		next (0), m (0) {}
 
 	void set_next  (Instruction * ins);
 	void set_nextz (Instruction * ins);
@@ -189,37 +193,58 @@ public :
 
 private :
 	std::map<std::string, Instruction*> labeltab;
+
+	friend class Module;
 };
 
 class Module
 {
 public :
+	// ctor and dtor
 	Module ();
 	~Module ();
 
+	// allocating symbols and getting their value
 	Symbol *    sym_lookup   (const std::string & name);
 	Symbol *    allocate     (const char * name, uint32_t size, uint32_t align, uint64_t initval);
 	Symbol *    allocate     (const char * name, uint32_t size, uint32_t align, const void * initval);
 	Symbol *    allocate     (const char * name, uint32_t size, uint32_t align); // initial value = zero
 	Function *  add_function (std::string name);
-	void        validate     ();
+
+	// printing functions, instructions, etc.
 	std::string print_instr  (Instruction * ins);
 	std::string print_instr  (Instr * ins);
 	std::string print_addr   (uint32_t addr);
 	std::string print_label  (Instruction * ins);
+	void        print_symtab (FILE * f);
 	void        print        (FILE * f);
 	void        dump         () { print (stderr); }
+
+	// miscellanea
+	void        validate     (uint32_t data_start = 0);
 	unsigned    new_mark     () { return mark++; }
+
+	// enumerators
+	typedef       std::vector<Function*>::iterator     iterator;
+	typedef       std::vector<Instruction*>::iterator  inst_iterator;
+	typedef       std::vector<Symbol*>::iterator       sym_iterator;
+	iterator      begin        () { return functions.begin (); }
+	iterator      end          () { return functions.end (); }
+	inst_iterator inst_begin   () { return instructions.begin (); }
+	inst_iterator inst_end     () { return instructions.end (); }
+	sym_iterator  sym_begin    () { return symbols.begin (); }
+	sym_iterator  sym_end      () { return symbols.end (); }
 
 private :
 	std::vector<unsigned char>     memory;
-	std::map<std::string, Symbol*> symtab;
-	std::map<uint32_t, Symbol*>    addrtab;
 	std::vector<Function*>         functions;
 	std::vector<Instruction*>      instructions;
+	std::vector<Symbol*>           symbols;
+	std::map<std::string, Symbol*> symtab;
+	std::map<uint32_t, Symbol*>    addrtab;
 	unsigned                       mark;
 
-	void        print_symtab (FILE * f);
+	void __validate_2c_2d_2e (Instruction *i, uint32_t min, uint32_t max);
 
 	friend class Builder;
 };
@@ -233,6 +258,7 @@ public :
 	Function *					main;
 	const unsigned &        numthreads;
 
+	// ctor takes as argument final number of threads that will be added
 	Program (unsigned numthreads);
 	Function * add_thread (std::string name);
 

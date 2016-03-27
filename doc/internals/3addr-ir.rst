@@ -208,7 +208,7 @@ Data Structures
 ========= ===== ===== ===== ======== ============================= =================================
 opcode    size  dst   src1  src2     text                          comments
 ========= ===== ===== ===== ======== ============================= =================================
-ERROR     -     -     -     -        error
+ERROR     1     -     -     -        error
 RET       T     -     SRC   -        ret T [SRC]                   
 RETI      T     -     -     IMM      ret T IMM                     
 MOVE      T     DST   SRC   -        move T [DST] [SRC]
@@ -242,7 +242,7 @@ UREM      T     DST   SRC1  SRC2     urem T [DST] [SRC1] [SRC2]    DST = SRC1 % 
 UREMIA    T     DST   SRC   IMM      urem T [DST] IMM [SRC]        DST = IMM % SRC   (unsigned)
 UREMAI    T     DST   SRC   IMM      urem T [DST] [SRC] IMM        DST = SRC % IMM   (unsigned)
 ========= ===== ===== ===== ======== ============================= =================================
-SEXT      T1    DST   SRC   T2       sext T1 T2 [DST] [SRC]        T1 < T2 <= 8
+SEXT      T1    DST   SRC   T2       sext T1 T2 [DST] [SRC]        1 <= T1 < T2 <= 8
 -> similarly for zext
 ========= ===== ===== ===== ======== ============================= =================================
 LOCK      4     DST   -     -        lock [DST]   

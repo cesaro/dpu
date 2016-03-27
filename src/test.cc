@@ -1350,6 +1350,13 @@ void test18 ()
 	b.mk_ret (I32, Imm (0));
 
 	p.dump ();
-	//f->dump2 ();
+	//for (auto f : p.module) f->dump2 ();
+	p.validate ();
+
+	for (auto f : p.module) SHOW (f, "p");
+	for (auto s = p.module.sym_begin(); s != p.module.sym_end(); ++s)
+	{
+		DEBUG ("Symbol '%s' addr %lu size %lu", (*s)->name.c_str(), (*s)->addr, (*s)->size);
+	}
 }
 

@@ -37,6 +37,7 @@ Symbol * Module::allocate (const char * name, uint32_t size, uint32_t align,
 	uint32_t padding;
 	uint32_t currsize;
 	Symbol * s;
+	void * iv;
 
 	// compute the address as the current memory size + necessary padding
 	currsize = memory.size ();
@@ -44,11 +45,13 @@ Symbol * Module::allocate (const char * name, uint32_t size, uint32_t align,
 	padding = rem == 0 ? 0 : align - rem;
 	addr = currsize + padding;
 
-	DEBUG ("%p: Module::allocate: currsize %zd padding %zd addr %zd", this, currsize, padding, addr);
+	DEBUG ("%p: Module::allocate: currsize %zd padding %zd addr %zd name '%s'",
+			this, currsize, padding, addr, name);
 
 	// resize the memory container and copy initial value
 	memory.resize (addr + size);
-	if (initval) memcpy (memory.data () + addr, initval, size);
+	iv = memory.data () + addr;
+	if (initval) memcpy (iv, initval, size);
 
 	std::string n (name);
 	s = sym_lookup (n);
@@ -63,43 +66,303 @@ Symbol * Module::allocate (const char * name, uint32_t size, uint32_t align,
 	else
 	{
 		// if not, create new symbol pointing to the newly allocated memory space
-		s = new Symbol (name, addr, size);
+		s = new Symbol (name, addr, size, iv);
 		symtab[name] = s;
 		addrtab[addr] = s;
-		//if (s->name.size () >= MAX_SYM_NAME) throw std::logic_error ("Maximum length for symbol name exceeded");
+		symbols.push_back (s);
 	}
 
 	return s;
 }
 
-void Module::validate ()
+void Module::validate (uint32_t data_start)
 {
-	// - coherence of memory size and symbols in the symtab
-	// - numthreads = threads.
-	// - immediate values in instructions do not have enabled bits out of range
-	// - addresses in all instructions are within memory ranges, including +size
-	// - addresses in all instructions are aligned to data size
-	// - all instructions with 2 or more predecessors or a BRxx predecessor have non-empty label
-	// - all instructions have expected types 1,2,4,8; except for printf
-	// - warn if symbols "overlap"
-	// - coherence between labeltab in function and pointed instructions
-	// - if instruction has more than 1 successor, then it has 2 and they are brz and brnz
-	// - if instruction has 0 successors, then it is error or ret
-	// - if i2 in post of i1, then i1 in pre of i2, and vice versa
-	// - function's pointer to the module is this module
-	// - no instruction operand is a PC (instructions do not modify PCs)
-	// - no BRZ / BRNZ instructions are authorized here, only BR
-	// - labels and symbols are of the form [_a-zA-Z][_a-zA-Z0-9]*
-	// - both branches of a BR instruction point to some other instruction (no end)
+	// 1.   coherence of memory size and symbols in the symtab
+	// 2a.  all instructions have expected types 1,2,4,8; sext/zext also
+	// 2b.  immediate values in instructions do not have enabled bits out of range
+	// 2c.  addresses in all instructions are within memory ranges, including +size
+	// 2d.  instructions do not read or write PCs
+	// 2e.  addresses in all instructions are aligned to instruction's data size
+	// 3a.  if instruction has 0 successors, then it is error or ret
+	// 3b.  no BRZ / BRNZ instructions are authorized in this IR, only BR
+	// 3c.  both branches of a BR instruction point to some other instruction (no end)
+	// 3d.  if i2 is next of i1, then i1 in pre of i2
+	// 3e.  if i1 in pre of i2, then i2 is next of i1
+	// 3f.  all instructions with 2 or more predecessors or a BRxx predecessor have non-empty label
+	// 4.   coherence between labeltab in function and pointed instructions
+	// 5.   function's pointer to the module is this module
+	//
+	// 6.   label names and symbol names are of the form [_a-zA-Z][_a-zA-Z0-9]*
+	// 7.   warn if symbols "overlap"
 
-	throw std::logic_error ("Not implemented");
+	// currently 6 and 7 are not enforced
+
+	size_t memsize = memory.size ();
+
+	for (auto & p : symtab)
+	{
+		// checking 1
+		if (p.second->addr + p.second->size > memsize)
+		{
+			std::string s = fmt ("Symbol '%s', addr %lu, size %lu: out of memory range (%zu bytes)",
+					p.second->name.c_str (), p.second->addr, p.second->size, memsize);
+			throw std::logic_error (s);
+		}
+	}
+
+	for (auto i : instructions)
+	{
+		// checking 2a
+		if (i->size != 1 and i->size != 2 and i->size != 4 and i->size != 8)
+		{
+			std::string s = fmt ("'%s': invalid operand size",
+					print_instr (i).c_str());
+			throw std::logic_error (s);
+		}
+		if (i->op == SEXT or i->op == ZEXT)
+		{
+			if ((i->src2 != 2 and i->src2 != 4 and i->src2 != 8) or
+					i->size >= i->src2)
+			{
+				std::string s = fmt ("'%s': invalid target operand size",
+						print_instr (i).c_str());
+				throw std::logic_error (s);
+			}
+		}
+
+		// checking 2b
+		if (i->has_imm () and i->cast_imm () != i->src2)
+		{
+			std::string s = fmt ("'%s': immediate operand: high bits beyond operand size",
+					print_instr (i).c_str());
+			throw std::logic_error (s);
+		}
+
+		// checking 2c
+		// checking 2d
+		// checking 2e
+		__validate_2c_2d_2e (i, data_start, memsize);
+
+		// checking 3a
+		if (i->next == 0 and i->op != ERROR and i->op != RET and i->op != RETI)
+		{
+			std::string s = fmt ("'%s': has no next instruction but is not 'error' or 'ret'",
+					print_instr (i).c_str());
+			throw std::logic_error (s);
+		}
+
+		// checking 3b
+		if (i->op == BRZ or i->op == BRNZ)
+		{
+			std::string s = fmt ("'%s': disallowed instruction brz or brnz",
+					print_instr (i).c_str());
+			throw std::logic_error (s);
+		}
+
+		// checking 3c (only the z branch, the nz one was already checked)
+		if (i->op == BR and i->src2 == 0)
+		{
+			std::string s = fmt ("'%s': the 'else' branch has no next instruction",
+					print_instr (i).c_str());
+			throw std::logic_error (s);
+		}
+
+		// checking 3d
+		// checking 3e
+		if (i->next and
+				i->next->pre.end() == std::find (i->next->pre.begin(), i->next->pre.end(), i))
+		{
+			std::string s = fmt ("'%s': invalid 'next/pre' pointers detected, bug! (check with Function::dump2 ;)",
+					print_instr (i).c_str());
+			throw std::logic_error (s);
+		}
+		if (i->op == BR and i->get_nextz ())
+		{
+			Instruction * n = i->get_nextz ();
+			if (n->pre.end() == std::find (n->pre.begin(), n->pre.end(), i))
+			{
+				std::string s = fmt ("'%s': invalid 'next/pre' pointers detected, bug! (check with Function::dump2 ;)",
+						print_instr (i).c_str());
+				throw std::logic_error (s);
+			}
+		}
+
+		for (auto ii : i->pre)
+		{
+			if (not (ii->next == i or (ii->op == BR and ii->get_nextz() == i)))
+			{
+				std::string s = fmt ("'%s': invalid 'next/pre' pointers detected, bug! (check with Function::dump2 ;)",
+						print_instr (i).c_str());
+				throw std::logic_error (s);
+			}
+		}
+
+		// checking 3f
+		if (i->pre.size () >= 2 and i->label.size () == 0)
+		{
+			std::string s = fmt ("'%s': has >= 2 predecessor basic blocks but has no label",
+					print_instr (i).c_str());
+			throw std::logic_error (s);
+		}
+
+	}
+
+	// checking 4
+	unsigned m = new_mark ();
+	for (auto f : functions)
+	{
+		for (auto & p : f->labeltab)
+		{
+			p.second->m = m;
+			if (p.first != p.second->label)
+			{
+				std::string s = fmt ("'%s': data structure courruption detected: unexpected label",
+						print_instr (p.second).c_str());
+				throw std::logic_error (s);
+			}
+		}
+		// checking 5
+		if (f->module != this)
+		{
+			std::string s = fmt ("Function '%s': unexpected pointer to Module object",
+					f->name.c_str ());
+			throw std::logic_error (s);
+		}
+	}
+	for (auto i : instructions)
+	{
+		if (i->label.size () and i->m !=m)
+		{
+			std::string s = fmt ("'%s': data structure courruption detected: unexpected label",
+					print_instr (i).c_str());
+			throw std::logic_error (s);
+		}
+	}
 }
 
-Function * Module::add_function (std::string name)
+void Module::__validate_2c_2d_2e (Instruction *i, uint32_t min, uint32_t max)
 {
-	Function * f = new Function (name, this);
-	functions.push_back (f);
-	return f;
+#define CHECK_RANGE(a,s) \
+	{ \
+		if ((a) < min or ((a) +(s)) > max) \
+		{ \
+			throw std::logic_error (fmt ("'%s': invalid address: beyond memory range", print_instr (i).c_str())); \
+		} \
+	}
+#define CHECK_ALIGN(a,s) \
+	{ \
+		if ((a) % (s) != 0) \
+		{ \
+			throw std::logic_error (fmt ("'%s': address misaligned to operand size", print_instr (i).c_str())); \
+		} \
+	}
+
+	switch (i->op)
+	{
+	case ERROR :
+	case RETI :
+		// 0 address to check
+		return;
+
+	// checking only src1
+	case RET :
+	case MOVID :
+	case BR :
+	case BRZ :
+	case BRNZ :
+		CHECK_RANGE (i->src1, i->size);
+		CHECK_ALIGN (i->src1, i->size);
+		return;
+
+	// checking only dst
+	case MOVEI :
+	case MOVIS :
+	case LOCK :
+	case UNLOCK :
+		CHECK_RANGE (i->dst, i->size);
+		CHECK_ALIGN (i->dst, i->size);
+		return;
+
+	// checking: dst, src1
+	case MOVE :
+	case CMP_EQI :
+	case CMP_NEI :
+	case CMP_UGTI :
+	case CMP_UGEI :
+	case CMP_ULTI :
+	case CMP_ULEI :
+	case CMP_SGTI :
+	case CMP_SGEI :
+	case CMP_SLTI :
+	case CMP_SLEI :
+	case ADDI :
+	case SUBI :
+	case MULI :
+	case SDIVIA :
+	case SDIVAI :
+	case UDIVIA :
+	case UDIVAI :
+	case SREMIA :
+	case SREMAI :
+	case UREMIA :
+	case UREMAI :
+	case ORI :
+	case ANDI :
+	case XORI :
+		CHECK_RANGE (i->dst, i->size);
+		CHECK_ALIGN (i->dst, i->size);
+		CHECK_RANGE (i->src1, i->size);
+		CHECK_ALIGN (i->src1, i->size);
+		return;
+
+	// checking: dst, src1, src2
+	case CMP_EQ :
+	case CMP_NE :
+	case CMP_UGT :
+	case CMP_UGE :
+	case CMP_ULT :
+	case CMP_ULE :
+	case CMP_SGT :
+	case CMP_SGE :
+	case CMP_SLT :
+	case CMP_SLE :
+	case ADD :
+	case SUB :
+	case MUL :
+	case SDIV :
+	case UDIV :
+	case SREM :
+	case UREM :
+	//case FDIV :
+	//case FREM :
+	case OR :
+	case AND :
+	case XOR :
+		CHECK_RANGE (i->dst, i->size);
+		CHECK_ALIGN (i->dst, i->size);
+		CHECK_RANGE (i->src1, i->size);
+		CHECK_ALIGN (i->src1, i->size);
+		CHECK_RANGE (i->src2, i->size);
+		CHECK_ALIGN (i->src2, i->size);
+		return;
+
+	// special case: dst, src1, with size being src2
+	case SEXT :
+	case ZEXT :
+		CHECK_RANGE (i->dst, i->src2);
+		CHECK_ALIGN (i->dst, i->src2);
+		CHECK_RANGE (i->src1, i->src2);
+		CHECK_ALIGN (i->src1, i->src2);
+		return;
+
+	// special case: src1, src2
+	case PRINTF :
+		CHECK_RANGE (i->src1, i->size);
+		CHECK_ALIGN (i->src1, i->size);
+		CHECK_RANGE (i->src2, i->size);
+		CHECK_ALIGN (i->src2, i->size);
+		return;
+	}
 }
 
 Module::Module () :
@@ -112,7 +375,15 @@ Module::~Module ()
 {
    DEBUG ("%p: fe::ir::Module.dtor:", this);
 	for (auto & p : symtab) delete p.second;
-	for (auto & i : instructions) delete i;
+	for (auto i : instructions) delete i;
+	for (auto f : functions) delete f;
+}
+
+Function * Module::add_function (std::string name)
+{
+	Function * f = new Function (name, this);
+	functions.push_back (f);
+	return f;
 }
 
 void Module::print (FILE * f)
@@ -128,7 +399,7 @@ void Module::print (FILE * f)
 
 	for (auto fun : functions)
 	{
-		i = fprintf (f, "Function \"%s\"\n", fun->name.c_str ()) - 1;
+		i = fprintf (f, "Function at %p \"%s\"\n", fun, fun->name.c_str ()) - 1;
 		fputs ((std::string ("=") * i).c_str (), f);
 		fputs ("\n", f);
 		fun->print (f);
@@ -200,7 +471,7 @@ Function::Function (std::string name, Module * m) :
 
 Function::~Function ()
 {
-   DEBUG ("%p: fe::ir::Module.dtor:", this);
+   DEBUG ("%p: fe::ir::Function.dtor:", this);
 }
 
 Instruction * Function::label_lookup (const std::string & label)
@@ -230,6 +501,7 @@ void Function::print2 (FILE * f)
 	Instruction * ins;
 	int count = 0;
 
+	fputs ("==========\n", f);
 	if (entry == 0) { fputs ("(empty body)\n", f); return; }
 
 	// DFS exploration of the CFG, marking explored instructions
@@ -243,18 +515,19 @@ void Function::print2 (FILE * f)
 		{
 			ins->m = m;
 			count++;
-			fprintf (f, "\n%p: %s\n   label: '%s'\n   next: %p pre: ",
+			fprintf (f, "%p: %s\n   label: '%s'\n   next: %p pre: ",
 					ins,  module->print_instr (ins).c_str (),
 					ins->label.c_str (),
 					ins->next);
 			if (ins->pre.size () == 0) fputs ("(empty)", f);
 			for (auto & inss : ins->pre) fprintf (f, "%p, ", inss);
-			fputs ("\n", f);
+			fputs ("\n\n", f);
 			if (ins->op == BR) stack.push_back (ins->get_nextz ());
 			ins = ins->get_next ();
 		}
 	}
-	fprintf (f, "\nDone: %d instructions\n", count);
+	fprintf (f, "Done: %d instructions\n", count);
+	fputs ("==========\n", f);
 }
 
 void Function::print (FILE * f)
@@ -321,6 +594,7 @@ unsigned Function::new_mark ()
 }
 
 Program::Program (unsigned mt) :
+	main (0), // null
 	numthreads (_numthreads),
 	_numthreads (mt)
 {
@@ -347,10 +621,26 @@ Function * Program::add_thread (std::string name)
 
 void Program::validate ()
 {
-	// - numthreads = threads.size()
-	// - main is one of the threads
+	// 1.   numthreads = threads.
+	// 2.   main is one of the functions in the module
 
-	throw std::logic_error ("Not implemented");
+	// checking 1
+	if (numthreads != threads.size ())
+	{
+		std::string s = fmt ("Program declared with %d threads but only %d were defined",
+				numthreads, threads.size ());
+		throw std::logic_error (s);
+	}
+
+	// checking 2
+	if (main == 0)
+		throw std::logic_error ("Program has no main thread set");
+	auto it = std::find (module.begin(), module.end(), main);
+	if (it == module.end ())
+		throw std::logic_error ("The main thread is not one of the functions of the Module");
+
+	// validate the module
+	module.validate (numthreads * 4);
 }
 
 void Program::print (FILE * f)
@@ -680,6 +970,77 @@ uint64_t Instr::cast_val (uint64_t v)
 	}
 }
 
+bool Instr::has_imm ()
+{
+	switch (op)
+	{
+	case ERROR :
+	case RET :
+	case MOVE :
+	case MOVIS :
+	case MOVID :
+	case CMP_EQ :
+	case CMP_NE :
+	case CMP_UGT :
+	case CMP_UGE :
+	case CMP_ULT :
+	case CMP_ULE :
+	case CMP_SGT :
+	case CMP_SGE :
+	case CMP_SLT :
+	case CMP_SLE :
+	case BR :
+	case BRZ :
+	case BRNZ :
+	case ADD :
+	case SUB :
+	case MUL :
+	case SDIV :
+	case UDIV :
+	case SREM :
+	case UREM :
+	//case FDIV :
+	//case FREM :
+	case OR :
+	case AND :
+	case XOR :
+	case SEXT :
+	case ZEXT :
+	case LOCK :
+	case UNLOCK :
+	case PRINTF :
+		return false;
+
+	case RETI :
+	case MOVEI :
+	case CMP_EQI :
+	case CMP_NEI :
+	case CMP_UGTI :
+	case CMP_UGEI :
+	case CMP_ULTI :
+	case CMP_ULEI :
+	case CMP_SGTI :
+	case CMP_SGEI :
+	case CMP_SLTI :
+	case CMP_SLEI :
+	case ADDI :
+	case SUBI :
+	case MULI :
+	case SDIVIA :
+	case SDIVAI :
+	case UDIVIA :
+	case UDIVAI :
+	case SREMIA :
+	case SREMAI :
+	case UREMIA :
+	case UREMAI :
+	case ORI :
+	case ANDI :
+	case XORI :
+		return true;
+	}
+}
+
 void Instruction::set_next (Instruction * ins)
 {
 	rm_next ();
@@ -837,7 +1198,7 @@ void Builder::insert (Instruction *ins)
 
 Instruction * Builder::mk_error ()
 {
-	INSTR_MACRO2 (ERROR, 0, 0, 0, 0);
+	INSTR_MACRO2 (ERROR, 1, 0, 0, 0);
 }
 
 Instruction * Builder::mk_ret   (Datasize s, Addr src)
@@ -1135,7 +1496,7 @@ Instruction * Builder::mk_printf  (const char * fmt_, Datasize s, Addr src1, Add
 	if (src1 == 0)
 		return mk_printf (sym->addr, I8, *sym, *sym);
 	if (src2 == 0)
-		return mk_printf (sym->addr, s, src1, *sym);
+		return mk_printf (sym->addr, s, src1, src1);
 	return mk_printf (sym->addr, s, src1, src2);
 }
 

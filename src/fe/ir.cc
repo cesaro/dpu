@@ -90,6 +90,7 @@ void Module::validate ()
 	// - no instruction operand is a PC (instructions do not modify PCs)
 	// - no BRZ / BRNZ instructions are authorized here, only BR
 	// - labels and symbols are of the form [_a-zA-Z][_a-zA-Z0-9]*
+	// - both branches of a BR instruction point to some other instruction (no end)
 
 	throw std::logic_error ("Not implemented");
 }
@@ -257,7 +258,7 @@ void Function::print (FILE * f)
 			// print the instruction
 			fprintf (f, "  %s\n", module->print_instr(ins).c_str());
 			// set backtrack point here if there is an "else" branch to explore
-			if (ins->op == BR) stack.push_back (ins->br_nextz ());
+			if (ins->op == BR) stack.push_back (ins->get_nextz ());
 			ins = ins->next;
 		}
 	}
@@ -272,7 +273,18 @@ Program::Program (unsigned mt) :
 	numthreads (_numthreads),
 	_numthreads (mt)
 {
+	char buff[32];
    DEBUG ("%p: fe::ir::Program.ctor: numthreads %u", this, numthreads);
+
+	if (mt == 0)
+		throw std::logic_error ("Number of threads must be greater than 0");
+
+	// allocate memory space for program counters
+	for (unsigned i = 0; i < mt; ++i)
+	{
+		sprintf (buff, "__pc%u", i);
+		module.allocate (buff, 4, 4);
+	}
 }
 
 Function * Program::add_thread (std::string name)
@@ -308,9 +320,9 @@ std::string Module::print_instr (Instr * ins)
 	case ERROR :
 		return "error";
 	case PRINTF :
-		return fmt ("printf  %s \"%s\" [%s] [%s]",
-				ins->size2str (),
+		return fmt ("printf  \"%s\" %s [%s] [%s]",
 				memory.data () + ins->dst,
+				ins->size2str (),
 				print_addr(ins->src1).c_str (),
 				print_addr(ins->src2).c_str ());
 
@@ -339,8 +351,13 @@ std::string Module::print_instr (Instr * ins)
 				ins->size2str (),
 				print_addr(ins->dst).c_str (),
 				ins->src2);
-	case IMOV :
+	case MOVIS :
 		return fmt ("imov    %s [%s] [[%s]]",
+				ins->size2str (),
+				print_addr(ins->dst).c_str (),
+				print_addr(ins->src1).c_str ());
+	case MOVID :
+		return fmt ("imov    %s [[%s]] [%s]",
 				ins->size2str (),
 				print_addr(ins->dst).c_str (),
 				print_addr(ins->src1).c_str ());
@@ -386,12 +403,11 @@ std::string Module::print_instr (Instr * ins)
 	case CMP_SLTI :
 	case CMP_SLEI :
 	case ADDI :
-	case SUBI :
 	case MULI :
-	case SDIVI :
-	case UDIVI :
-	case SREMI :
-	case UREMI :
+	case SDIVAI :
+	case UDIVAI :
+	case SREMAI :
+	case UREMAI :
 	case ORI :
 	case ANDI :
 	case XORI :
@@ -401,6 +417,19 @@ std::string Module::print_instr (Instr * ins)
 				print_addr(ins->dst).c_str (),
 				print_addr(ins->src1).c_str (),
 				ins->src2);
+
+	// dst = imm op src1
+	case SUBI :
+	case SDIVIA :
+	case UDIVIA :
+	case SREMIA :
+	case UREMIA :
+		return fmt ("%-7s %s [%s] 0x%lx [%s]",
+				ins->op2str (),
+				ins->size2str (),
+				print_addr(ins->dst).c_str (),
+				ins->src2,
+				print_addr(ins->src1).c_str ());
 
 	//case FDIV :
 	//case FREM : return "FIXME";
@@ -435,8 +464,8 @@ std::string Module::print_instr (Instruction * ins)
 	case BR :
 		return fmt ("br i32 [%s] %s %s",
 				print_addr (ins->src1).c_str (),
-				print_label (ins->br_nextnz ()).c_str (),
-				print_label (ins->br_nextz  ()).c_str ());
+				print_label (ins->get_nextnz ()).c_str (),
+				print_label (ins->get_nextz  ()).c_str ());
 	case BRZ :
 		return fmt ("brz i32 [%s] %s",
 				print_addr(ins->src1).c_str (),
@@ -471,8 +500,10 @@ const char * Instr::op2str ()
 	case MOVE :
 	case MOVEI :
 		return "move";
-	case IMOV :
-		return "imov";
+	case MOVIS :
+		return "movis";
+	case MOVID :
+		return "movid";
 
 	//
 	case CMP_EQ :
@@ -526,16 +557,20 @@ const char * Instr::op2str ()
 		return "mul";
 
 	case SDIV :
-	case SDIVI :
+	case SDIVIA :
+	case SDIVAI :
 		return "sdiv";
 	case UDIV :
-	case UDIVI :
+	case UDIVIA :
+	case UDIVAI :
 		return "udiv";
 	case SREM :
-	case SREMI :
+	case SREMIA :
+	case SREMAI :
 		return "srem";
 	case UREM :
-	case UREMI :
+	case UREMIA :
+	case UREMAI :
 		return "urem";
 
 	//case FDIV :
@@ -594,11 +629,51 @@ uint64_t Instr::cast_val (uint64_t v)
 	}
 }
 
+void Instruction::set_next (Instruction * ins)
+{
+	rm_next ();
+	next = ins;
+	ins->pre.push_back (this);
+}
+
+void Instruction::rm_next ()
+{
+	if (next == 0) return;
+	auto it = std::find (next->pre.begin(), next->pre.end(), this);
+	if (it == next->pre.end ())
+		throw std::logic_error ("Found instruction with faulty next/pre pointers");
+	next->pre.erase (it);
+	next = 0;
+}
+
+void Instruction::set_nextz (Instruction * ins)
+{
+	if (op != BR)
+		throw std::logic_error ("Call to set_nextz on instruciton other than BR");
+	rm_nextz ();
+	src2 = (uint64_t) ins;
+	ins->pre.push_back (this);
+}
+
+void Instruction::rm_nextz ()
+{
+	if (op != BR)
+		throw std::logic_error ("Call to set_nextz on instruciton other than BR");
+	if (src2 == 0) return;
+	Instruction * n = (Instruction *) src2;
+	auto it = std::find (n->pre.begin(), n->pre.end(), this);
+	if (it == n->pre.end ())
+		throw std::logic_error ("Found BR instruction with faulty next/pre pointers");
+	n->pre.erase (it);
+	src2 = 0;
+}
+
 Builder::Builder (Function * f) :
 	f (f),
 	last (0),
 	last_label (0),
-	branch (1) // nz branch
+	branch (1), // nz branch
+	stack ()
 { }
 
 void Builder::attach (Function * f)
@@ -616,6 +691,18 @@ Instruction * Builder::get_last ()
 void Builder::set_branch (int b)
 	{ branch = b; }
 
+void Builder::push ()
+	{ push (last); }
+
+void Builder::push (Instruction * ins)
+	{ stack.push_back (ins); }
+
+Instruction * Builder::pop  ()
+	{ auto i = stack.back(); stack.pop_back(); last = i; return i; }
+
+Instruction * Builder::peek  ()
+	{ return stack.back(); }
+
 std::string Builder::gen_label ()
 	{ return fmt ("l%d", last_label++); }
 
@@ -632,7 +719,7 @@ void Builder::set_label (Instruction * ins, std::string && label)
 {
 	// disallowed if we didn't first generate one instruction
 	if (last == 0)
-		throw std::logic_error ("Tried to set a label before adding at least one instruction.");
+		throw std::logic_error ("Cannot set a label before adding the first instruction.");
 	f->label_set (std::move(label), ins);
 }
 
@@ -647,7 +734,6 @@ void Builder::insert (Instruction *ins)
 	{
 		if (f->entry != 0) f->labels_clear ();
 		f->entry = ins;
-		ins->pre.clear ();
 	}
 	else
 	{
@@ -656,77 +742,345 @@ void Builder::insert (Instruction *ins)
 		if (last->op == BR)
 		{
 			if (branch)
-				last->next = ins; // "then / nz" branch
+				last->set_next (ins); // "then / nz" branch
 			else
-				last->src2 = (uint64_t) ins; // "else / z" branch
+				last->set_nextz (ins); // "else / z" branch
 		}
 		else
 		{
-			last->next = ins;
+			last->set_next (ins);
 		}
-		ins->pre.push_back (last);
 	}
 
 	// the new instruction becomes the last one
 	last = ins;
 }
 
+#define INSTR_MACRO1(o,s,d,s1,s2) \
+	Instruction * i = new Instruction (); \
+	i->op   = o; \
+	i->size = s; \
+	i->dst  = d; \
+	i->src1 = s1; \
+	i->src2 = s2; \
+	insert (i)
+
+#define INSTR_MACRO2(op,s,dst,src1,src2) \
+	INSTR_MACRO1 (op, s, dst, src1, src2); \
+	return i
+
+
 Instruction * Builder::mk_error ()
 {
-	Instruction * i = new Instruction ();
-	i->op = ERROR;
-	insert (i);
-	return i;
+	INSTR_MACRO2 (ERROR, 0, 0, 0, 0);
 }
 
 Instruction * Builder::mk_ret   (Datasize s, Addr src)
 {
-	Instruction * i = new Instruction ();
-	i->op = RET;
-	i->size = s;
-	i->src1 = src;
-	insert (i);
-	return i;
+	INSTR_MACRO2 (RET, s, 0, src, 0);
 }
 
 Instruction * Builder::mk_ret   (Datasize s, Imm imm)
 {
-	Instruction * i = new Instruction ();
-	i->op = RETI;
-	i->size = s;
-	i->src2 = imm;
-	insert (i);
-	return i;
+	INSTR_MACRO2 (RETI, s, 0, 0, imm);
 }
 
 Instruction * Builder::mk_move  (Datasize s, Addr dst, Addr src)
 {
-	Instruction * i = new Instruction ();
-	i->op = MOVE;
-	i->size = s;
-	i->dst = dst;
-	i->src1 = src;
-	insert (i);
-	return i;
+	INSTR_MACRO2 (MOVE, s, dst, src, 0);
 }
+
 Instruction * Builder::mk_move  (Datasize s, Addr dst, Imm imm)
 {
-	Instruction * i = new Instruction ();
-	i->op = MOVEI;
-	i->size = s;
-	i->dst = dst;
-	i->src2 = imm;
-	insert (i);
+	INSTR_MACRO2 (MOVEI, s, dst, 0, imm);
+}
+
+Instruction * Builder::mk_movis (Datasize s, Addr dst, Addr src)
+{
+	INSTR_MACRO2 (MOVIS, s, dst, src, 0);
+}
+
+Instruction * Builder::mk_movid (Datasize s, Addr dst, Addr src)
+{
+	INSTR_MACRO2 (MOVID, s, dst, src, 0);
+}
+
+Instruction * Builder::mk_cmp_eq  (Datasize s, Addr dst, Addr src1, Addr src2)
+{
+	INSTR_MACRO2 (CMP_EQ,  s, dst, src1, src2);
+}
+
+Instruction * Builder::mk_cmp_eq  (Datasize s, Addr dst, Addr src1, Imm imm)
+{
+	INSTR_MACRO2 (CMP_EQI,  s, dst, src1, imm);
+}
+
+Instruction * Builder::mk_cmp_ne  (Datasize s, Addr dst, Addr src1, Addr src2)
+{
+	INSTR_MACRO2 (CMP_NE,  s, dst, src1, src2);
+}
+
+Instruction * Builder::mk_cmp_ne  (Datasize s, Addr dst, Addr src1, Imm imm)
+{
+	INSTR_MACRO2 (CMP_NEI,  s, dst, src1, imm);
+}
+
+Instruction * Builder::mk_cmp_ugt (Datasize s, Addr dst, Addr src1, Addr src2)
+{
+	INSTR_MACRO2 (CMP_UGT, s, dst, src1, src2);
+}
+
+Instruction * Builder::mk_cmp_ugt (Datasize s, Addr dst, Addr src1, Imm imm)
+{
+	INSTR_MACRO2 (CMP_UGTI, s, dst, src1, imm);
+}
+
+Instruction * Builder::mk_cmp_uge (Datasize s, Addr dst, Addr src1, Addr src2)
+{
+	INSTR_MACRO2 (CMP_UGE, s, dst, src1, src2);
+}
+
+Instruction * Builder::mk_cmp_uge (Datasize s, Addr dst, Addr src1, Imm imm)
+{
+	INSTR_MACRO2 (CMP_UGEI, s, dst, src1, imm);
+}
+
+Instruction * Builder::mk_cmp_ult (Datasize s, Addr dst, Addr src1, Addr src2)
+{
+	INSTR_MACRO2 (CMP_ULT, s, dst, src1, src2);
+}
+
+Instruction * Builder::mk_cmp_ult (Datasize s, Addr dst, Addr src1, Imm imm)
+{
+	INSTR_MACRO2 (CMP_ULTI, s, dst, src1, imm);
+}
+
+Instruction * Builder::mk_cmp_ule (Datasize s, Addr dst, Addr src1, Addr src2)
+{
+	INSTR_MACRO2 (CMP_ULE, s, dst, src1, src2);
+}
+
+Instruction * Builder::mk_cmp_ule (Datasize s, Addr dst, Addr src1, Imm imm)
+{
+	INSTR_MACRO2 (CMP_ULEI, s, dst, src1, imm);
+}
+
+Instruction * Builder::mk_cmp_sgt (Datasize s, Addr dst, Addr src1, Addr src2)
+{
+	INSTR_MACRO2 (CMP_SGT, s, dst, src1, src2);
+}
+
+Instruction * Builder::mk_cmp_sgt (Datasize s, Addr dst, Addr src1, Imm imm)
+{
+	INSTR_MACRO2 (CMP_SGTI, s, dst, src1, imm);
+}
+
+Instruction * Builder::mk_cmp_sge (Datasize s, Addr dst, Addr src1, Addr src2)
+{
+	INSTR_MACRO2 (CMP_SGE, s, dst, src1, src2);
+}
+
+Instruction * Builder::mk_cmp_sge (Datasize s, Addr dst, Addr src1, Imm imm)
+{
+	INSTR_MACRO2 (CMP_SGEI, s, dst, src1, imm);
+}
+
+Instruction * Builder::mk_cmp_slt (Datasize s, Addr dst, Addr src1, Addr src2)
+{
+	INSTR_MACRO2 (CMP_SLT, s, dst, src1, src2);
+}
+
+Instruction * Builder::mk_cmp_slt (Datasize s, Addr dst, Addr src1, Imm imm)
+{
+	INSTR_MACRO2 (CMP_SLTI, s, dst, src1, imm);
+}
+
+Instruction * Builder::mk_cmp_sle (Datasize s, Addr dst, Addr src1, Addr src2)
+{
+	INSTR_MACRO2 (CMP_SLE, s, dst, src1, src2);
+}
+
+Instruction * Builder::mk_cmp_sle (Datasize s, Addr dst, Addr src1, Imm imm)
+{
+	INSTR_MACRO2 (CMP_SLEI, s, dst, src1, imm);
+}
+
+Instruction * Builder::mk_br      (Addr src, Instruction * nzbr, Instruction * zbr)
+{
+	INSTR_MACRO1 (BR, I32, 0, src, 0);
+	if (zbr) i->set_nextz (zbr);
+	if (nzbr) i->set_next (nzbr);
 	return i;
 }
-Instruction * Builder::mk_imov  (Datasize s, Addr dst, Addr src)
+
+Instruction * Builder::mk_br      (Addr src)
 {
-	Instruction * i = new Instruction ();
-	i->op = IMOV;
-	i->size = s;
-	i->dst = dst;
-	i->src1 = src;
-	insert (i);
-	return i;
+	return mk_br (src, 0, 0);
+}
+
+Instruction * Builder::mk_add     (Datasize s, Addr dst, Addr src1, Addr src2)
+{
+	INSTR_MACRO2 (ADD , s, dst, src1, src2);
+}
+
+Instruction * Builder::mk_add     (Datasize s, Addr dst, Addr src, Imm imm)
+{
+	INSTR_MACRO2 (ADDI  , s, dst, src, imm);
+}
+
+Instruction * Builder::mk_sub     (Datasize s, Addr dst, Addr src1, Addr src2)
+{
+	INSTR_MACRO2 (SUB , s, dst, src1, src2);
+}
+
+Instruction * Builder::mk_sub     (Datasize s, Addr dst, Imm imm, Addr src)
+{
+	INSTR_MACRO2 (SUBI  , s, dst, src, imm);
+}
+
+Instruction * Builder::mk_mul     (Datasize s, Addr dst, Addr src1, Addr src2)
+{
+	INSTR_MACRO2 (MUL , s, dst, src1, src2);
+}
+
+Instruction * Builder::mk_mul     (Datasize s, Addr dst, Addr src, Imm imm)
+{
+	INSTR_MACRO2 (MULI  , s, dst, src, imm);
+}
+
+Instruction * Builder::mk_sdiv    (Datasize s, Addr dst, Addr src1, Addr src2)
+{
+	INSTR_MACRO2 (SDIV, s, dst, src1, src2);
+}
+
+Instruction * Builder::mk_sdiv    (Datasize s, Addr dst, Imm imm, Addr src)
+{
+	INSTR_MACRO2 (SDIVIA, s, dst, src, imm);
+}
+
+Instruction * Builder::mk_sdiv    (Datasize s, Addr dst, Addr src, Imm imm)
+{
+	INSTR_MACRO2 (SDIVAI, s, dst, src, imm);
+}
+
+Instruction * Builder::mk_udiv    (Datasize s, Addr dst, Addr src1, Addr src2)
+{
+	INSTR_MACRO2 (UDIV, s, dst, src1, src2);
+}
+
+Instruction * Builder::mk_udiv    (Datasize s, Addr dst, Imm imm, Addr src)
+{
+	INSTR_MACRO2 (UDIVIA, s, dst, src, imm);
+}
+
+Instruction * Builder::mk_udiv    (Datasize s, Addr dst, Addr src, Imm imm)
+{
+	INSTR_MACRO2 (UDIVAI, s, dst, src, imm);
+}
+
+Instruction * Builder::mk_srem    (Datasize s, Addr dst, Addr src1, Addr src2)
+{
+	INSTR_MACRO2 (SREM, s, dst, src1, src2);
+}
+
+Instruction * Builder::mk_srem    (Datasize s, Addr dst, Imm imm, Addr src)
+{
+	INSTR_MACRO2 (SREMIA, s, dst, src, imm);
+}
+
+Instruction * Builder::mk_srem    (Datasize s, Addr dst, Addr src, Imm imm)
+{
+	INSTR_MACRO2 (SREMAI, s, dst, src, imm);
+}
+
+Instruction * Builder::mk_urem    (Datasize s, Addr dst, Addr src1, Addr src2)
+{
+	INSTR_MACRO2 (UREM, s, dst, src1, src2);
+}
+
+Instruction * Builder::mk_urem    (Datasize s, Addr dst, Imm imm, Addr src)
+{
+	INSTR_MACRO2 (UREMIA, s, dst, src, imm);
+}
+
+Instruction * Builder::mk_urem    (Datasize s, Addr dst, Addr src, Imm imm)
+{
+	INSTR_MACRO2 (UREMAI, s, dst, src, imm);
+}
+
+Instruction * Builder::mk_or      (Datasize s, Addr dst, Addr src1, Addr src2)
+{
+	INSTR_MACRO2 (OR, s, dst, src1, src2);
+}
+
+Instruction * Builder::mk_or      (Datasize s, Addr dst, Addr src, Imm imm)
+{
+	INSTR_MACRO2 (ORI , s, dst, src, imm);
+}
+
+Instruction * Builder::mk_and     (Datasize s, Addr dst, Addr src1, Addr src2)
+{
+	INSTR_MACRO2 (AND, s, dst, src1, src2);
+}
+
+Instruction * Builder::mk_and     (Datasize s, Addr dst, Addr src, Imm imm)
+{
+	INSTR_MACRO2 (ANDI, s, dst, src, imm);
+}
+
+Instruction * Builder::mk_xor     (Datasize s, Addr dst, Addr src1, Addr src2)
+{
+	INSTR_MACRO2 (XOR, s, dst, src1, src2);
+}
+
+Instruction * Builder::mk_xor     (Datasize s, Addr dst, Addr src, Imm imm)
+{
+	INSTR_MACRO2 (XORI, s, dst, src, imm);
+}
+
+Instruction * Builder::mk_sext    (Datasize from, Datasize to, Addr dst, Addr src)
+{
+	INSTR_MACRO2 (SEXT, from, dst, src, to);
+}
+
+Instruction * Builder::mk_zext    (Datasize from, Datasize to, Addr dst, Addr src)
+{
+	INSTR_MACRO2 (ZEXT, from, dst, src, to);
+}
+
+Instruction * Builder::mk_lock    (Addr addr)
+{
+	INSTR_MACRO2 (LOCK, I32, addr, 0, 0);
+}
+
+Instruction * Builder::mk_unlock  (Addr addr)
+{
+	INSTR_MACRO2 (UNLOCK, I32, addr, 0, 0);
+}
+
+Instruction * Builder::mk_printf  (Addr fmt, Datasize s, Addr src1, Addr src2)
+{
+	INSTR_MACRO2 (PRINTF, s, fmt, src1, src2);
+}
+
+Instruction * Builder::mk_printf  (const char * fmt_, Datasize s, Addr src1, Addr src2)
+{
+	std::string symname = fmt ("__fmt%u", last_label++);
+	Symbol * sym = f->module->allocate (symname.c_str(), strlen (fmt_) + 1, 1, fmt_);
+	if (src1 == 0)
+		return mk_printf (sym->addr, I8, *sym, *sym);
+	if (src2 == 0)
+		return mk_printf (sym->addr, s, src1, *sym);
+	return mk_printf (sym->addr, s, src1, src2);
+}
+
+Instruction * Builder::mk_printf  (const char * fmt)
+{
+	return mk_printf (fmt, I8, 0, 0);
+}
+
+Instruction * Builder::mk_printf  (const char * fmt, Datasize s, Addr src1)
+{
+	return mk_printf (fmt, s, src1, 0);
 }
 

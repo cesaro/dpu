@@ -51,13 +51,15 @@ public :
 
 enum Opcode
 {
+	// exit instructions
 	ERROR,
 	RET,
 	RETI,
-	//
+	// direct and indirect move
 	MOVE,
 	MOVEI,
-	IMOV,
+	MOVIS,
+	MOVID,
    // cmp xxx DST SRC1 SRC2
 	CMP_EQ,
 	CMP_NE,
@@ -80,26 +82,29 @@ enum Opcode
 	CMP_SGEI,
 	CMP_SLTI,
 	CMP_SLEI,
-	//
+	// branch
 	BR,
 	BRZ,
 	BRNZ,
-   // add DST SRC1 SRC2
+   // arithmetic
 	ADD,
-	SUB,
-	MUL,
-	SDIV,
-	UDIV,
-	SREM,
-	UREM,
-   // add DST SRC1 IMM
 	ADDI,
+	SUB,
 	SUBI,
+	MUL,
 	MULI,
-	SDIVI,
-	UDIVI,
-	SREMI,
-	UREMI,
+	SDIV,
+	SDIVIA,
+	SDIVAI,
+	UDIV,
+	UDIVIA,
+	UDIVAI,
+	SREM,
+	SREMIA,
+	SREMAI,
+	UREM,
+	UREMIA,
+	UREMAI,
 	//FDIV,
 	//FREM,
 	// or DST SRC1 SRC2
@@ -110,10 +115,10 @@ enum Opcode
 	ORI,
 	ANDI,
 	XORI,
-	//
+	// sign extension
 	SEXT,
 	ZEXT,
-	//
+	// miscellaneous instructions
 	LOCK,
 	UNLOCK,
 	PRINTF
@@ -151,8 +156,14 @@ struct Instruction : Instr
 	unsigned                  m;
 	std::string               label;
 
-	Instruction * br_nextnz () { return next; }
-	Instruction * br_nextz  () { return (Instruction *) src2; }
+	void set_next  (Instruction * ins);
+	void set_nextz (Instruction * ins);
+	void rm_next   ();
+	void rm_nextz  ();
+
+	Instruction * get_next   () { return next; }
+	Instruction * get_nextnz () { return next; }
+	Instruction * get_nextz  () { return (Instruction *) src2; }
 };
 
 class Module;
@@ -241,9 +252,10 @@ public :
 	Instruction * get_last   ();
 	void          set_branch (int b); // 1 for nz branch; 0 for z branch
 
-	Instruction * push       ();
-	Instruction * push       (Instruction * ins);
+	void          push       ();
+	void          push       (Instruction * ins);
 	Instruction * pop        ();
+	Instruction * peek       ();
 
 	std::string   gen_label  ();
 	void          set_label  ();
@@ -251,18 +263,89 @@ public :
 	void          set_label  (Instruction * ins);
 	void          set_label  (Instruction * ins, std::string && label);
 
-	Instruction * mk_error ();
-	Instruction * mk_ret   (Datasize s, Addr src);
-	Instruction * mk_ret   (Datasize s, Imm imm);
-	Instruction * mk_move  (Datasize s, Addr dst, Addr src);
-	Instruction * mk_move  (Datasize s, Addr dst, Imm imm);
-	Instruction * mk_imov  (Datasize s, Addr dst, Addr src);
+	// error and return
+	Instruction * mk_error   ();
+	Instruction * mk_ret     (Datasize s, Addr src);
+	Instruction * mk_ret     (Datasize s, Imm imm);
+
+	// moving data
+	Instruction * mk_move    (Datasize s, Addr dst, Addr src);
+	Instruction * mk_move    (Datasize s, Addr dst, Imm imm);
+	Instruction * mk_movis   (Datasize s, Addr dst, Addr src);
+	Instruction * mk_movid   (Datasize s, Addr dst, Addr src);
+
+	// compare instructions
+	Instruction * mk_cmp_eq  (Datasize s, Addr dst, Addr src1, Addr src2);
+	Instruction * mk_cmp_eq  (Datasize s, Addr dst, Addr src1, Imm imm);
+	Instruction * mk_cmp_ne  (Datasize s, Addr dst, Addr src1, Addr src2);
+	Instruction * mk_cmp_ne  (Datasize s, Addr dst, Addr src1, Imm imm);
+	Instruction * mk_cmp_ugt (Datasize s, Addr dst, Addr src1, Addr src2);
+	Instruction * mk_cmp_ugt (Datasize s, Addr dst, Addr src1, Imm imm);
+	Instruction * mk_cmp_uge (Datasize s, Addr dst, Addr src1, Addr src2);
+	Instruction * mk_cmp_uge (Datasize s, Addr dst, Addr src1, Imm imm);
+	Instruction * mk_cmp_ult (Datasize s, Addr dst, Addr src1, Addr src2);
+	Instruction * mk_cmp_ult (Datasize s, Addr dst, Addr src1, Imm imm);
+	Instruction * mk_cmp_ule (Datasize s, Addr dst, Addr src1, Addr src2);
+	Instruction * mk_cmp_ule (Datasize s, Addr dst, Addr src1, Imm imm);
+	Instruction * mk_cmp_sgt (Datasize s, Addr dst, Addr src1, Addr src2);
+	Instruction * mk_cmp_sgt (Datasize s, Addr dst, Addr src1, Imm imm);
+	Instruction * mk_cmp_sge (Datasize s, Addr dst, Addr src1, Addr src2);
+	Instruction * mk_cmp_sge (Datasize s, Addr dst, Addr src1, Imm imm);
+	Instruction * mk_cmp_slt (Datasize s, Addr dst, Addr src1, Addr src2);
+	Instruction * mk_cmp_slt (Datasize s, Addr dst, Addr src1, Imm imm);
+	Instruction * mk_cmp_sle (Datasize s, Addr dst, Addr src1, Addr src2);
+	Instruction * mk_cmp_sle (Datasize s, Addr dst, Addr src1, Imm imm);
+
+	// branch
+	Instruction * mk_br      (Addr src, Instruction * nzbr, Instruction * zbr);
+	Instruction * mk_br      (Addr src);
+
+	// arithmetic instructions
+	Instruction * mk_add     (Datasize s, Addr dst, Addr src1, Addr src2);
+	Instruction * mk_add     (Datasize s, Addr dst, Addr src, Imm imm);
+	Instruction * mk_sub     (Datasize s, Addr dst, Addr src1, Addr src2);
+	Instruction * mk_sub     (Datasize s, Addr dst, Imm imm, Addr src);
+	Instruction * mk_mul     (Datasize s, Addr dst, Addr src1, Addr src2);
+	Instruction * mk_mul     (Datasize s, Addr dst, Addr src, Imm imm);
+	Instruction * mk_sdiv    (Datasize s, Addr dst, Addr src1, Addr src2);
+	Instruction * mk_sdiv    (Datasize s, Addr dst, Imm imm, Addr src);
+	Instruction * mk_sdiv    (Datasize s, Addr dst, Addr src, Imm imm);
+	Instruction * mk_udiv    (Datasize s, Addr dst, Addr src1, Addr src2);
+	Instruction * mk_udiv    (Datasize s, Addr dst, Imm imm, Addr src);
+	Instruction * mk_udiv    (Datasize s, Addr dst, Addr src, Imm imm);
+	Instruction * mk_srem    (Datasize s, Addr dst, Addr src1, Addr src2);
+	Instruction * mk_srem    (Datasize s, Addr dst, Imm imm, Addr src);
+	Instruction * mk_srem    (Datasize s, Addr dst, Addr src, Imm imm);
+	Instruction * mk_urem    (Datasize s, Addr dst, Addr src1, Addr src2);
+	Instruction * mk_urem    (Datasize s, Addr dst, Imm imm, Addr src);
+	Instruction * mk_urem    (Datasize s, Addr dst, Addr src, Imm imm);
+
+	// bitwise logic instructions
+	Instruction * mk_or      (Datasize s, Addr dst, Addr src1, Addr src2);
+	Instruction * mk_or      (Datasize s, Addr dst, Addr src, Imm imm);
+	Instruction * mk_and     (Datasize s, Addr dst, Addr src1, Addr src2);
+	Instruction * mk_and     (Datasize s, Addr dst, Addr src, Imm imm);
+	Instruction * mk_xor     (Datasize s, Addr dst, Addr src1, Addr src2);
+	Instruction * mk_xor     (Datasize s, Addr dst, Addr src, Imm imm);
+
+	// sign extension
+	Instruction * mk_sext    (Datasize from, Datasize to, Addr dst, Addr src);
+	Instruction * mk_zext    (Datasize from, Datasize to, Addr dst, Addr src);
+
+	// mutex and printf
+	Instruction * mk_lock    (Addr addr);
+	Instruction * mk_unlock  (Addr addr);
+	Instruction * mk_printf  (Addr fmt, Datasize s, Addr src1, Addr src2);
+	Instruction * mk_printf  (const char * fmt);
+	Instruction * mk_printf  (const char * fmt, Datasize s, Addr src1);
+	Instruction * mk_printf  (const char * fmt, Datasize s, Addr src1, Addr src2);
 
 private :
-	Function *    f;
-	Instruction * last;
-	unsigned      last_label;
-	int           branch;
+	Function *                f;
+	Instruction *             last;
+	unsigned                  last_label;
+	int                       branch;
+	std::vector<Instruction*> stack;
 
 	void insert (Instruction *ins);
 };

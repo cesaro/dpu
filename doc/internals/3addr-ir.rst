@@ -63,11 +63,12 @@ Float type   = 4 or 8
 Operation Codes, Syntax and "Semantics"
 ---------------------------------------
 
-T   = Type
-DST = Destination address (address)
-SRC = Source address or immediate value (address, integer, or float, at most 32bits)
-DI  = Indirect addres, (the address of an address)
-LAB = Label
+T    = Type
+DST  = Destination address (address)
+IDST = Indirect Destination address (the address of an address)
+SRC  = Source address or immediate value (address, integer, or float, at most 32bits)
+DI   = Indirect addres, (the address of an address)
+LAB  = Label
 
 =========================== ====================================================
 Syntax                      Description
@@ -76,7 +77,8 @@ error                       This instruction should never be reached
 ret     T SRC               Terminates the function
 =========================== ====================================================
 move    T DST SRC           Moving data or storing immediate values
-imov    T DST DI            Indirect move from address pointed by DI to DST
+movis   T DST DI            Move from indirect source address to destination
+movid   T IDST SRC          Move to indirect destination address from source
 =========================== ====================================================
 cmp eq  T DST SRC1 SRC2     Comparison: equal
 cmp ne  T DST SRC1 SRC2     Comparison: not equal
@@ -88,8 +90,7 @@ cmp sgt T DST SRC1 SRC2     Comparison: signed greater than
 cmp sge T DST SRC1 SRC2     Comparison: signed greater or equal
 cmp slt T DST SRC1 SRC2     Comparison: signed less than
 cmp sle T DST SRC1 SRC2     Comparison: signed less or equal
-brz       SRC LAB           Jump if zero (SRC is i32)
-brnz      SRC LAB           Jump if non zero (SRC is i32)
+br        SRC LAB1 LAB2     Branch to LAB1 if SRC is non-zero; otherwise LAB2
 =========================== ====================================================
 add     T DST SRC1 SRC2     Addition
 sub     T DST SRC1 SRC2     Substraction
@@ -113,7 +114,8 @@ unlock  T SRC               Unlocks a mutex; expects address of integer operand
 printf  T FMT SRC1 SRC2     Printf, where FMT admits 0, 1 or 2 "%d"
 =========================== ====================================================
 br        LAB               Unconditional branch (nop)
-br        SRC LAB1 LAB2     Conditional branch
+brz       SRC LAB           Jump if zero (SRC is i32)
+brnz      SRC LAB           Jump if non zero (SRC is i32)
 =========================== ====================================================
 
 
@@ -210,26 +212,40 @@ RET       T     -     SRC   -        ret T [SRC]
 RETI      T     -     -     IMM      ret T IMM                     
 MOVE      T     DST   SRC   -        move T [DST] [SRC]
 MOVEI     T     DST   -     IMM      move T [DST] IMM
-IMOV      T     DST   SRC   -        imov T [DST] [[SRC]]
+MOVIS     T     DST   SRC   -        imov T [DST] [[SRC]]
+MOVID     T     DST   SRC   -        imov T [[DST]] [SRC]
 ========= ===== ===== ===== ======== ============================= =================================
 CMP_EQ    T     DST   SRC1  SRC2     cmp eq T [DST] [SRC1] [SRC2]
 CMP_EQI   T     DST   SRC   IMM      cmp eq T [DST] [SRC] IMM      
 -> similarly for cmp ule, uge, ult, sgt, sge, slt, sle
 ========= ===== ===== ===== ======== ============================= =================================
-BR        -     -     SRC   LAB2     br i32 [SRC] LAB1 LAB2        SRC is i32; LAB1 external, LAB2 i64
-BRZ       -     -     SRC   -        brz i32 [SRC] LAB             SRC interpreted as 32 bits
-BRNZ      -     -     SRC   -        brz i32 [SRC] LAB             SRC interpreted as 32 bits
+BR        4     -     SRC   LAB2     br i32 [SRC] LAB1 LAB2        SRC is i32; LAB1 external, LAB2 i64
+BRZ       4     -     SRC   -        brz i32 [SRC] LAB             SRC interpreted as 32 bits
+BRNZ      4     -     SRC   -        brz i32 [SRC] LAB             SRC interpreted as 32 bits
 ========= ===== ===== ===== ======== ============================= =================================
 ADD       T     DST   SRC1  SRC2     add T [DST] [SRC1] [SRC2]
 ADDI      T     DST   SRC   IMM      add T [DST] [SRC] IMM        
--> similarly for sub, mul, sdiv, udiv, srem, urem
--> similarly for or, and, xor
+-> similarly for mul, or, and, xor
+SUB       T     DST   SRC1  SRC2     sub T [DST] [SRC1] [SRC2]
+SUBI      T     DST   SRC   IMM      sub T [DST] IMM [SRC]         DST = IMM - SRC
+SDIV      T     DST   SRC1  SRC2     sdiv T [DST] [SRC1] [SRC2]    DST = SRC1 / SRC2 (signed)
+SDIVIA    T     DST   SRC   IMM      sdiv T [DST] IMM [SRC]        DST = IMM / SRC   (signed)
+SDIVAI    T     DST   SRC   IMM      sdiv T [DST] [SRC] IMM        DST = SRC / IMM   (signed)
+UDIV      T     DST   SRC1  SRC2     udiv T [DST] [SRC1] [SRC2]    DST = SRC1 / SRC2 (unsigned)
+UDIVIA    T     DST   SRC   IMM      udiv T [DST] IMM [SRC]        DST = IMM / SRC   (unsigned)
+UDIVAI    T     DST   SRC   IMM      udiv T [DST] [SRC] IMM        DST = SRC / IMM   (unsigned)
+SREM      T     DST   SRC1  SRC2     srem T [DST] [SRC1] [SRC2]    DST = SRC1 % SRC2 (signed)
+SREMIA    T     DST   SRC   IMM      srem T [DST] IMM [SRC]        DST = IMM % SRC   (signed)
+SREMAI    T     DST   SRC   IMM      srem T [DST] [SRC] IMM        DST = SRC % IMM   (signed)
+UREM      T     DST   SRC1  SRC2     urem T [DST] [SRC1] [SRC2]    DST = SRC1 % SRC2 (unsigned)
+UREMIA    T     DST   SRC   IMM      urem T [DST] IMM [SRC]        DST = IMM % SRC   (unsigned)
+UREMAI    T     DST   SRC   IMM      urem T [DST] [SRC] IMM        DST = SRC % IMM   (unsigned)
 ========= ===== ===== ===== ======== ============================= =================================
 SEXT      T1    DST   SRC   T2       sext T1 T2 [DST] [SRC]        T1 < T2 <= 8
 -> similarly for zext
 ========= ===== ===== ===== ======== ============================= =================================
-LOCK      T     DST   -     -        lock T [DST]   
-UNLOCK    T     DST   -     -        lock T [DST]   
-PRINTF    T     FMT   SRC1  SRC2     printf T [FMT] [SRC1] [SRC2]
+LOCK      4     DST   -     -        lock [DST]   
+UNLOCK    4     DST   -     -        lock [DST]   
+PRINTF    T     FMT   SRC1  SRC2     printf T [FMT] [SRC1] [SRC2]  Both SRC1/2 interpreted with size T
 ========= ===== ===== ===== ======== ============================= =================================
 

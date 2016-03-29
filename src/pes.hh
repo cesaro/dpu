@@ -65,6 +65,7 @@ public:
    void RD_cex(Config & c);
    void SYN_cex(Config & c);
    void WR_cex(Config & c);
+   void compute_combi(unsigned int, std::vector<std::vector<Event *>> & s, std::vector<Event *> c);
 
 
    friend Unfolding;

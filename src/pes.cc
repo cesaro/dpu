@@ -427,47 +427,76 @@ void Event:: WR_cex(Config & c)
 {
 
    Event * ep, * ew, * temp;
-   std::vector<std::vector<Event *> > steaks;
-   std::vector<Event *> maxevt;
-   steaks.reserve(c.unf.m.procs.size());
-   maxevt.reserve(c.unf.m.procs.size());
+   unsigned numprocs = c.unf.m.procs.size();
+   std::vector<std::vector<Event *> > spikes;
+   spikes.reserve(numprocs);
 
    ep = this->pre_proc;
    ew = this;
-   while ((ew->is_bottom() == false) && (ep->in_history(ew)) )
+
+   /* set up the comb (spikes) */
+   while ((ew->is_bottom() == false) && (ep->in_history(ew)) ) // stop when ew is inside ep's history
    {
-      /* find maximal events of this event -> try to reduce the size of the comb if possible
-       * some pre_reader may be the same.
-       */
-      maxevt.clear();
-      for (unsigned i = 0; i < this->pre_readers.size(); i++)
-      {
-         if (std::find(maxevt.begin(),maxevt.end(),pre_readers[i]) != maxevt.end() )
-            maxevt.push_back(pre_readers[i]);
-      }
-      /*
-       * set up the steaks of comb
-       */
+      spikes.clear(); // clear for new comb for new WR
 
-      // steaks = maxevt; <- I cannot compile, I commented out this line -- Cesar
-
-      for (unsigned i = 0; i < steaks.size(); i++)
+      /* set up the comb (spikes) */
+      for (unsigned i = 0; i < ew->pre_readers.size(); i++)
       {
-         // temp = steaks[i]; <- Cannot compile, commened out -- Cesar
-         while (temp )
+         temp = ew->pre_readers[i];
+         while (temp->trans->type != ir::Trans::WR)
          {
-            if (temp->trans->type == ir::Trans::RD)
-               steaks[i].push_back(temp->pre_mem);
-            else
-               steaks[i].push_back(temp->pre_readers[i]);
-
+            spikes[i].push_back(temp);
+            temp = temp->pre_mem;
          }
       }
 
+      /* show the comb */
+      for (unsigned i = 0; i < spikes.size(); i++)
+      {
+         for (unsigned j = 0; j < spikes[i].size(); j++)
+            printf("%d", spikes[i][j]->idx);
+         printf("\n");
+      }
 
-      ew = steaks[0].back();
+      ew = spikes[0].back();
+      /* if ew is the event which is inside ep's history, remove all RD events that are also in the history from the comb */
+      if (ep->in_history(ew) == true)
+      {
+         for (int unsigned i = 0; i < spikes.size(); i++)
+         {
+            for (unsigned j = 0; j < spikes[i].size(); j++)
+               if (ep->in_history(spikes[i][j]) == true)
+               {
+                  spikes[i][j] = spikes[i].back();
+                  spikes[i].pop_back(); // remove the spikes[i][j]
+               }
+         }
+      }
+      /*
+       * Compute all possible combinations c(s1,s2,..sn) from the spikes to produce new conflicting events
+       */
+      std::vector<Event *> combi;
+      combi.reserve(numprocs);
+      this->compute_combi(0, spikes, combi);
    }
-
+}
+/*
+ * compute all combinations of set s
+ * c is vector to store a combination
+ */
+void Event::compute_combi(unsigned int i, std::vector<std::vector<Event *>> & s, std::vector<Event *> c)
+{
+   for (unsigned j = 0; j < s[i].size(); j++ )
+   {
+      c.push_back(s[i][j]);
+      if (c.size() == s.size())
+      {
+         // make an event
+         c.pop_back();
+      }
+      else
+         compute_combi(i+1,s,c);
+   }
 }
 
 /*

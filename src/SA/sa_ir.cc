@@ -75,6 +75,20 @@ void unlockMutex(  machine_t* machine, llvm::Value* mut ) {
     std::cout << "[" << (*machine)[ mutsym ] << "]";
 }
 
+void startThread( machine_t* machine, llvm::Value* tid ) {
+    symbol_t p( "thread", tid );
+    std::cout << "UNLOCK T [" << (*machine)[ p ] << "]";
+}
+
+void joinThread( machine_t* machine, llvm::Value* tid ) {
+    /* the tid is not passed directly but through a register
+       in which the tid is LOADed */
+    std::string varname = ((tid->hasName()) ? tid->getName().str() : getShortValueName( tid ));
+    symbol_t tidsym( varname, NULL );
+    std::cout << "LOCK ";
+    std::cout << "[" << (*machine)[ tidsym ] << "]";
+}
+
 void outputCall( llvm::Module* mod, llvm::Instruction* ins, machine_t* machine, llvm::Value* tid ) {
     llvm::Function *fun;
     llvm::Value* val;
@@ -98,8 +112,17 @@ void outputCall( llvm::Module* mod, llvm::Instruction* ins, machine_t* machine, 
         std::string toprint = (val->hasName()) ? val->getName().str() : getShortValueName( val );
         std::cout << "PRINTF " << type << " " << ret << " " << toprint;
     }
+    if(  0 == safeCompareFname( PTHREADCREATE, fun->getName().str() ) ) {
+        /* Thread creation. Unlock the thread */
+        val = ins->getOperand( 0 );
+        startThread( machine, val );
+    }
+    if(  0 == safeCompareFname( PTHREADJOIN, fun->getName().str() ) ) {
+        /* Thread creation. Unlock the thread */
+        val = ins->getOperand( 0 );
+        joinThread( machine, val );
+    }
 
-    
     std::cout << std::endl;
 }
 

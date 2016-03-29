@@ -367,14 +367,22 @@ std::vector<symbol_t>  getSymbols( llvm::Module* mod ) {
    with their local address in out machine
 */
 
-machine_t  mapSymbols( std::vector<symbol_t> locVar, std::vector<const llvm::GlobalVariable*> globVar, unsigned nbthreads ){
+machine_t  mapSymbols( std::vector<symbol_t> locVar, std::vector<const llvm::GlobalVariable*> globVar, unsigned nbthreads, std::map<llvm::Value*, llvm::Function*> threadfunctions ){
 
     machine_t machine;
 
     /* Save some space for the program counters of the threads
        and the main function */
     
-    unsigned idx = nbthreads+1; 
+    unsigned idx = nbthreads+1;
+
+    /* thread creation/destruction is a SYNC on specific lock */
+
+     for( auto ti = threadfunctions.begin() ; ti != threadfunctions.end() ; ti++ ) {
+         symbol_t p( "thread", ti->first );
+         machine[p] = idx;
+         idx++;
+     }
 
     /* global variables */
 
@@ -525,7 +533,7 @@ int readIR( llvm::Module* mod ) {
      * - its address in our machine
      */
     
-    machine_t machinememory = mapSymbols( symbols, globVar, nbThreads );
+    machine_t machinememory = mapSymbols( symbols, globVar, nbThreads, threadCreations );
 
     /* Reverse map, for debugging purpose */
     

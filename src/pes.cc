@@ -425,11 +425,11 @@ void Event:: SYN_cex(Config & c)
  */
 void Event:: WR_cex(Config & )
 {
-#if 0
+
    Event * ep, * ew, * temp;
-   std::vector<std::vector<Event *> > steak;
+   std::vector<std::vector<Event *> > steaks;
    std::vector<Event *> maxevt;
-   steak.reserve(c.unf.m.procs.size());
+   steaks.reserve(c.unf.m.procs.size());
    maxevt.reserve(c.unf.m.procs.size());
 
    ep = this->pre_proc;
@@ -441,29 +441,31 @@ void Event:: WR_cex(Config & )
        */
       maxevt.clear();
       for (unsigned i = 0; i < this->pre_readers.size(); i++)
+      {
          if (std::find(maxevt.begin(),maxevt.end(),pre_readers[i]) != maxevt.end() )
             maxevt.push_back(pre_readers[i]);
+      }
       /*
        * set up the steaks of comb
        */
-      steak = maxevt;
-      for (unsigned i = 0; i < steak.size(); i++)
+      steaks = maxevt;
+      for (unsigned i = 0; i < steaks.size(); i++)
       {
-         temp = steak[i];
+         temp = steaks[i];
          while (temp )
          {
             if (temp->trans->type == ir::Trans::RD)
-               steak[i].push_back(temp->pre_mem);
+               steaks[i].push_back(temp->pre_mem);
             else
-               steak[i].push_back(temp->pre_readers[i]);
+               steaks[i].push_back(temp->pre_readers[i]);
 
          }
       }
 
 
-      ew = steak[0].back();
+      ew = steaks[0].back();
    }
-#endif
+
 }
 
 /*

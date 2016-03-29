@@ -374,7 +374,15 @@ machine_t  mapSymbols( std::vector<symbol_t> locVar, std::vector<const llvm::Glo
     /* Save some space for the program counters of the threads
        and the main function */
     
-    unsigned idx = nbthreads+1; 
+    unsigned idx = nbthreads+1;
+
+    /* thread creation/destruction is a SYNC on specific lock */
+
+    for( int t = 0 ;  t < nbthreads ; t++ ) {
+        symbol_t p( "thread" + itoa( t ), NULL );
+        machine[p] = idx;
+        idx++;
+    }
 
     /* global variables */
 

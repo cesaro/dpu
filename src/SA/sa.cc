@@ -379,7 +379,7 @@ machine_t  mapSymbols( std::vector<symbol_t> locVar, std::vector<const llvm::Glo
     /* thread creation/destruction is a SYNC on specific lock */
 
     for( int t = 0 ;  t < nbthreads ; t++ ) {
-        symbol_t p( "thread" + itoa( t ), NULL );
+        symbol_t p( "thread" + std::to_string( t ), NULL );
         machine[p] = idx;
         idx++;
     }

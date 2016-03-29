@@ -16,7 +16,7 @@ struct Addr
 {
 	uint32_t addr;
 	Addr (uint32_t a) : addr (a) {};
-	operator uint32_t () { return addr; }
+	operator uint32_t () const { return addr; }
 };
 
 struct Imm
@@ -32,14 +32,13 @@ public :
 	std::string  name;
 	Addr			 addr;
 	uint32_t     size;
-	const void * init_value;
 
-	Symbol (std::string && n, Addr a, uint32_t s, const void * iv) :
-		name (n), addr (a), size (s), init_value (iv)
+	Symbol (std::string && n, Addr a, uint32_t s) :
+		name (n), addr (a), size (s)
 		{ DEBUG ("%p: fe::ir::Symbol.ctor: name '%s' size %u, addr %p", this, name.c_str(), s, addr.addr); }
 
-	Symbol (const char * n, Addr a, uint32_t s, const void * iv) :
-		Symbol (std::string (n), a, s, iv) {}
+	Symbol (const char * n, Addr a, uint32_t s) :
+		Symbol (std::string (n), a, s) {}
 
 	~Symbol () { DEBUG ("%p: fe::ir::Symbol.dtor: name '%s' addr %p", this, name.c_str(), addr.addr); }
 
@@ -168,7 +167,7 @@ struct Instruction : Instr
 
 	Instruction * get_next   () { return next; }
 	Instruction * get_nextnz () { return next; }
-	Instruction * get_nextz  () { return (Instruction *) src2; }
+	Instruction * get_nextz  () { return op == BR ? (Instruction *) src2 : 0; }
 };
 
 class Module;
@@ -206,19 +205,20 @@ public :
 
 	// allocating symbols and getting their value
 	Symbol *    sym_lookup   (const std::string & name);
+	const uint8_t * sym_init_val (const Symbol * s);
 	Symbol *    allocate     (const char * name, uint32_t size, uint32_t align, uint64_t initval);
 	Symbol *    allocate     (const char * name, uint32_t size, uint32_t align, const void * initval);
 	Symbol *    allocate     (const char * name, uint32_t size, uint32_t align); // initial value = zero
 	Function *  add_function (std::string name);
 
 	// printing functions, instructions, etc.
-	std::string print_instr  (Instruction * ins);
-	std::string print_instr  (Instr * ins);
-	std::string print_addr   (uint32_t addr);
-	std::string print_label  (Instruction * ins);
-	void        print_symtab (FILE * f);
-	void        print        (FILE * f);
-	void        dump         () { print (stderr); }
+	std::string print_instr  (Instruction * ins) const;
+	std::string print_instr  (Instr * ins) const;
+	std::string print_addr   (uint32_t addr) const;
+	std::string print_label  (Instruction * ins) const;
+	void        print_symtab (FILE * f) const;
+	void        print        (FILE * f) const;
+	void        dump         () const { print (stderr); }
 
 	// miscellanea
 	void        validate     (uint32_t data_start = 0);
@@ -236,7 +236,7 @@ public :
 	sym_iterator  sym_end      () { return symbols.end (); }
 
 private :
-	std::vector<unsigned char>     memory;
+	std::vector<uint8_t>           memory;
 	std::vector<Function*>         functions;
 	std::vector<Instruction*>      instructions;
 	std::vector<Symbol*>           symbols;
@@ -244,7 +244,8 @@ private :
 	std::map<uint32_t, Symbol*>    addrtab;
 	unsigned                       mark;
 
-	void __validate_2c_2d_2e (Instruction *i, uint32_t min, uint32_t max);
+	void        __validate_2c_2d_2e (Instruction *i, uint32_t min, uint32_t max);
+	std::string __quoted_str        (const char * str) const;
 
 	friend class Builder;
 };
@@ -295,6 +296,7 @@ public :
 
 	void          set_comment (const std::string & s);
 	void          set_comment (std::string && s);
+	void          set_comment (Instruction * ins, std::string && s);
 
 	// error and return
 	Instruction * mk_error   ();

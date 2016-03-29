@@ -369,7 +369,7 @@ For each event $e \in C$ such that \verb!e->trans == t!, repeat the following:
 \item Set \verb!ep = e->pre_proc!
 \item Set \verb!ew = e!
 \item
-  Let $M$ be the set of maximal events in $[e]$ that read or write variable
+  Let $M$ be the set of maximal events in $[e_p]$ that read or write variable
   \verb!t->var! ($M$ will either be a singleton with only \verb!WR! event or
   will contain exactly one \verb!RD! or \verb!WR! event per process)
 \item If $\verb!ew! < \verb!ep!$, then goto End.
@@ -413,7 +413,7 @@ Conditions to accept the input LLVM program:
 \begin{itemize}
 \item
   \verb!pthread_create! must be called directly from the main function and not
-  in a loop.
+  in a loop or within a conditional.
 \item
   \verb!printf!,
   \verb!pthread_{create,join,mutex_lock,mutex_unlock}! are the only function calls
@@ -422,7 +422,7 @@ Conditions to accept the input LLVM program:
   All \verb!alloca! must be found in the first \verb!BasicBlock! of the
   function, and no block can jump into that block (not in a loop).
 \item
-  All variables in the C program are integers.
+  All variables in the C program are integers or arrays integers.
 \end{itemize}
 
 \subsection*{Pass 2: Construction of 3-address IR}
@@ -460,8 +460,28 @@ directly during the translation of LLVM instructions to ou 3-address code.
 
 \subsection*{Pass 3: Construction of Large-Block Encoding}
 \subsection*{Pass 3.1: Identification of local and global variables}
-TBD
-\subsection*{Pass 3.2: Construction of \texttt{dpu::ir::Trans} instructions}
+\begin{itemize}
+\item
+  For us a variable is a 4 bytes block or an 8 bytes block, starting at an
+  address multiple of, respectively, 4 or 8 bytes. Any memory access should
+  regard exactly the 4 or 8 bytes inside a variable or any byte or 2 bytes inside a
+  variable, but should never involve bytes belonging to two variables.
+  Make a pass that ensures this for directy memory access instructions, for
+  indirect accesses we will pray (think of this in the future).
+\item
+  A symbol (pair address-size $\tup{a,s} \in \N \times \N$) is \emph{local} to a
+  thread if that thread is the only one that can modify the addresses
+  $a, a+1, a+2, \ldots a+s-1$.
+  It is \emph{global} if it is not local.
+  Make a pass to detect thread local and global variables.
+\item
+  We assume that one thread will never pass a pointer to some of its local
+  variables or arrays to the other thread. On a later stage we will implement a
+  points-to static analysis to detect this.
+  So for now we ingore the \verb!movid! and \verb!movis! instructions.
+\end{itemize}
+
+\subsection*{Pass 3.2: Construction of large blocks}
 TBD
 
 

@@ -1258,6 +1258,9 @@ void test18 ()
 {
 	// build the following program:
 	//
+	// This is almost the same as the one described in the example section of
+	// doc/internals/3addr-ir.rst
+	//
    //  int y = 5;
 	//
    //  int main ()
@@ -1269,6 +1272,8 @@ void test18 ()
    //    for (i = 0; i < y; i++) acc += y
    // 
    //    assert (acc == x * y);
+	//    printf ("x is %d, y is %d\n", x, y);
+	//    printf ("acc is %d\n", I32, acc);
 	//    return 0;
    //  }
    //
@@ -1284,7 +1289,7 @@ void test18 ()
 	Instruction * ins1;
 	Instruction * ins2;
 
-	Program p (2);
+	Program p (2); // 2 is the final number of threads that we will have
 
 	// add 1 thread
 	f = p.add_thread ("main");
@@ -1308,17 +1313,17 @@ void test18 ()
 	ins1 = b.mk_cmp_slt (I32, *cnd, *i, *y);
 	b.set_label ("loopend");
 
-	// branch instruction, continue with the NZ branch
+	// branch instruction
 	b.mk_br (*cnd);
 	b.push ();
-	b.set_branch (1);
+	b.set_branch (1); // we continue emitting instruction in the non-zero branch
 
 	b.mk_add (I32, *acc, *acc, *x);
 	b.set_label ("loophead");
 	ins2 = b.mk_add (I32, *i, *i, Imm (1));
-	ins2->set_next (ins1);
+	ins2->set_next (ins1); // next instruction is ins1, above
 
-	// at the branch instruction again, continue with the Z branch
+	// at the branch instruction again, continue with the zero branch
 	b.pop ();
 	b.set_branch (0);
 
@@ -1337,6 +1342,8 @@ void test18 ()
 	// continue with Z branch
 	b.pop ();
 	b.set_branch (0);
+	b.mk_printf ("x is %d, y is %d\n", I32, *x, *y);
+	b.mk_printf ("acc is %d\n", I32, *acc);
 	b.mk_ret (I32, Imm (0));
 	b.set_label ();
 

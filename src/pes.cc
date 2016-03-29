@@ -423,7 +423,7 @@ void Event:: SYN_cex(Config & c)
 /*
  * Compute conflicting event for a WR event
  */
-void Event:: WR_cex(Config & )
+void Event:: WR_cex(Config & c)
 {
 
    Event * ep, * ew, * temp;
@@ -448,10 +448,12 @@ void Event:: WR_cex(Config & )
       /*
        * set up the steaks of comb
        */
-      steaks = maxevt;
+
+      // steaks = maxevt; <- I cannot compile, I commented out this line -- Cesar
+
       for (unsigned i = 0; i < steaks.size(); i++)
       {
-         temp = steaks[i];
+         // temp = steaks[i]; <- Cannot compile, commened out -- Cesar
          while (temp )
          {
             if (temp->trans->type == ir::Trans::RD)

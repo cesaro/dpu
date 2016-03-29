@@ -18,6 +18,12 @@ Symbol * Module::sym_lookup (const std::string & name)
 	return it->second;
 }
 
+const uint8_t * Module::sym_init_val (const Symbol * s)
+{
+	if (uint32_t (s->addr) >= memory.size ()) return 0;
+	return memory.data () + s->addr;
+}
+
 Symbol * Module::allocate (const char * name, uint32_t size, uint32_t align,
 		uint64_t initval)
 {
@@ -37,7 +43,6 @@ Symbol * Module::allocate (const char * name, uint32_t size, uint32_t align,
 	uint32_t padding;
 	uint32_t currsize;
 	Symbol * s;
-	void * iv;
 
 	// compute the address as the current memory size + necessary padding
 	currsize = memory.size ();
@@ -50,8 +55,7 @@ Symbol * Module::allocate (const char * name, uint32_t size, uint32_t align,
 
 	// resize the memory container and copy initial value
 	memory.resize (addr + size);
-	iv = memory.data () + addr;
-	if (initval) memcpy (iv, initval, size);
+	if (initval) memcpy (memory.data () + addr, initval, size);
 
 	std::string n (name);
 	s = sym_lookup (n);
@@ -66,7 +70,7 @@ Symbol * Module::allocate (const char * name, uint32_t size, uint32_t align,
 	else
 	{
 		// if not, create new symbol pointing to the newly allocated memory space
-		s = new Symbol (name, addr, size, iv);
+		s = new Symbol (name, addr, size);
 		symtab[name] = s;
 		addrtab[addr] = s;
 		symbols.push_back (s);
@@ -365,6 +369,35 @@ void Module::__validate_2c_2d_2e (Instruction *i, uint32_t min, uint32_t max)
 	}
 }
 
+std::string Module::__quoted_str (const char * str) const
+{
+	std::string s;
+
+	s.reserve (strlen (str));
+	for (const char * c = str; *c; ++c)
+	{
+		SHOW (*c, "c");
+		switch (*c)
+		{
+		case '\t' :
+			s.append ("\\t");
+			break;
+		case '\r' :
+			s.append ("\\r");
+			break;
+		case '\n' :
+			s.append ("\\n");
+			break;
+		case '\0' : // unreachable
+			s.append ("\\0");
+			break;
+		default :
+			s.push_back (*c);
+		}
+	}
+	return s;
+}
+
 Module::Module () :
 	mark (1)
 {
@@ -386,7 +419,7 @@ Function * Module::add_function (std::string name)
 	return f;
 }
 
-void Module::print (FILE * f)
+void Module::print (FILE * f) const
 {
 	int i;
 
@@ -407,7 +440,7 @@ void Module::print (FILE * f)
 	}
 }
 
-std::string Module::print_addr (uint32_t addr)
+std::string Module::print_addr (uint32_t addr) const
 {
 	uint32_t a = addr;
 	Symbol * s = 0;
@@ -430,7 +463,7 @@ std::string Module::print_addr (uint32_t addr)
 	return fmt ("%s+0x%x", s->name.c_str (), addr - s->addr);
 }
 
-void Module::print_symtab (FILE * f)
+void Module::print_symtab (FILE * f) const
 {
 #if 0
 	// put in a vector and sort by address
@@ -652,7 +685,7 @@ void Program::print (FILE * f)
 	module.print (f);
 }
 
-std::string Module::print_instr (Instr * ins)
+std::string Module::print_instr (Instr * ins) const
 {
 	// return fmt ("op '%s' size %u dst %u src1 %u src2 %u", op2str (), size, dst, src1, src2);
 	switch (ins->op)
@@ -662,7 +695,7 @@ std::string Module::print_instr (Instr * ins)
 		return "error";
 	case PRINTF :
 		return fmt ("printf  \"%s\" %s [%s] [%s]",
-				memory.data () + ins->dst,
+				__quoted_str ((const char *) memory.data () + ins->dst).c_str (),
 				ins->size2str (),
 				print_addr(ins->src1).c_str (),
 				print_addr(ins->src2).c_str ());
@@ -798,7 +831,7 @@ std::string Module::print_instr (Instr * ins)
 	}
 }
 
-std::string Module::print_instr (Instruction * ins)
+std::string Module::print_instr (Instruction * ins) const
 {
 	switch (ins->op)
 	{
@@ -820,7 +853,7 @@ std::string Module::print_instr (Instruction * ins)
 	}
 }
 
-std::string Module::print_label (Instruction * ins)
+std::string Module::print_label (Instruction * ins) const
 {
 	if (ins == 0) return "ERROR_NULL_PTR";
 	if (ins->label.size () == 0) return "ERROR_EMPTY_LABEL";
@@ -1136,16 +1169,19 @@ void Builder::set_label (Instruction * ins, std::string && label)
 }
 
 void Builder::set_comment (const std::string & s)
-	{ set_comment (std::string (s)); }
+	{ set_comment (last, std::string (s)); }
 
 void Builder::set_comment (std::string && s)
+	{ set_comment (last, std::move (s)); }
+
+void Builder::set_comment (Instruction * ins, std::string && s)
 {
 	// disallowed if we didn't first generate one instruction
-	if (last == 0)
+	if (ins == 0)
 		throw std::logic_error ("Cannot set a comment before adding the first instruction.");
-	if (last->comment.size () != 0)
-		last->comment.append ("\n; ");
-	last->comment += std::move (s);
+	if (ins->comment.size () != 0)
+		ins->comment.append ("\n; ");
+	ins->comment += std::move (s);
 }
 
 

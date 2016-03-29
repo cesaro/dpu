@@ -216,7 +216,7 @@ MOVEI     T     DST   -     IMM      move T [DST] IMM
 MOVIS     T     DST   SRC   -        imov T [DST] [[SRC]]
 MOVID     T     DST   SRC   -        imov T [[DST]] [SRC]
 ========= ===== ===== ===== ======== ============================= =================================
-CMP_EQ    T     DST   SRC1  SRC2     cmp eq T [DST] [SRC1] [SRC2]
+CMP_EQ    T     DST   SRC1  SRC2     cmp eq T [DST] [SRC1] [SRC2]  SRCx size T; DST is i32
 CMP_EQI   T     DST   SRC   IMM      cmp eq T [DST] [SRC] IMM      
 -> similarly for cmp ule, uge, ult, sgt, sge, slt, sle
 ========= ===== ===== ===== ======== ============================= =================================
@@ -242,11 +242,13 @@ UREM      T     DST   SRC1  SRC2     urem T [DST] [SRC1] [SRC2]    DST = SRC1 % 
 UREMIA    T     DST   SRC   IMM      urem T [DST] IMM [SRC]        DST = IMM % SRC   (unsigned)
 UREMAI    T     DST   SRC   IMM      urem T [DST] [SRC] IMM        DST = SRC % IMM   (unsigned)
 ========= ===== ===== ===== ======== ============================= =================================
-SEXT      T1    DST   SRC   T2       sext T1 T2 [DST] [SRC]        1 <= T1 < T2 <= 8
+SEXT      T1    DST   SRC   T2       sext T1 to T2 [DST] [SRC]     1 <= T1 < T2 <= 8
 -> similarly for zext
 ========= ===== ===== ===== ======== ============================= =================================
 LOCK      4     DST   -     -        lock [DST]   
 UNLOCK    4     DST   -     -        lock [DST]   
-PRINTF    T     FMT   SRC1  SRC2     printf T [FMT] [SRC1] [SRC2]  Both SRC1/2 interpreted with size T
+PRINTF    T     FMT   FMT   FMT      printf [FMT]                  FMT has no %d
+PRINTF    T     FMT   SRC   SRC      printf [FMT] T [SRC]          FMT has only one %d
+PRINTF    T     FMT   SRC1  SRC2     printf [FMT] T [SRC1] [SRC2]  FMT has 2 %d, both SRCs size T
 ========= ===== ===== ===== ======== ============================= =================================
 

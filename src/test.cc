@@ -1367,3 +1367,64 @@ void test18 ()
 	}
 }
 
+void combi(unsigned int i, std::vector<std::vector<int>> s, std::vector<int> c)
+{
+ // unsigned j = curptr;
+ // while (j < s[i].size())
+   for (unsigned j = 0; j < s[i].size(); j++ )
+   {
+      if (j < s[i].size())
+      {
+         c.push_back(s[i][j]);
+         if (i == s.size() - 1)
+         {
+            for (unsigned k = 0; k < c.size(); k++)
+               printf("%d ", c[k]);
+            printf("\n");
+         }
+         else
+
+            combi(i+1, s, c);
+      }
+      c.pop_back();
+   }
+}
+
+void test19()
+{
+   std::vector<std::vector<int>> s;
+   unsigned int n,m;
+   m = 3;
+   n = 4;
+   std::vector<int> c;
+   c.reserve(n);
+   s.reserve(n);
+   std::vector<int> temp;
+
+
+   for (unsigned int i = 0; i < n; i++)
+   {
+      temp.clear();
+      printf("\n m = %d: ", m);
+
+      for (unsigned j = 0; j < m ; j++ )
+      {
+         temp.push_back(i+j);
+         printf("%d ", temp.back());
+      }
+      s.push_back(temp);
+   }
+
+   DEBUG("\nSet of %d sets", s.size());
+   for (unsigned int i = 0; i < n; i++)
+   {
+      printf("set %d: ", i);
+      for (unsigned j = 0; j < m ; j++ )
+         printf("%d  ",s[i][j]);
+      printf("\n");
+   }
+
+   DEBUG("compute all combinations");
+   combi(0, s, c);
+
+}

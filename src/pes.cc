@@ -425,53 +425,56 @@ void Event:: SYN_cex(Config & c)
  */
 void Event:: WR_cex(Config & c)
 {
-
+   DEBUG(" %p: id:%d WR cex computing", this, this->idx);
    Event * ep, * ew, * temp;
    unsigned numprocs = c.unf.m.procs.size();
-   std::vector<std::vector<Event *> > spikes;
-   spikes.reserve(numprocs);
+   std::vector<std::vector<Event *> > spikes(numprocs);
+   spikes.resize(numprocs);
 
    ep = this->pre_proc;
    ew = this;
+   int count = 0;
 
-   /* set up the comb (spikes) */
-   while ((ew->is_bottom() == false) && (ep->in_history(ew)) ) // stop when ew is inside ep's history
+   while ((ew->is_bottom() == false) && (ep->in_history(ew)) == false )
    {
-      spikes.clear(); // clear for new comb for new WR
+      for (unsigned k = 0; k < numprocs; k++)
+         spikes[k].clear(); // clear all spikes for storing new elements
 
-      /* set up the comb (spikes) */
+      DEBUG("Comb #%d for event %d: ", count++, ew->idx);
       for (unsigned i = 0; i < ew->pre_readers.size(); i++)
       {
          temp = ew->pre_readers[i];
-         while (temp->trans->type != ir::Trans::WR)
+         while ((temp->is_bottom() == false) && (temp->trans->type != ir::Trans::WR))
          {
             spikes[i].push_back(temp);
             temp = temp->pre_mem;
          }
-      }
 
+         spikes[i].push_back(temp); // add the last WR or bottom to the spike
+      }
       /* show the comb */
+      //DEBUG("   Show the comb");
       for (unsigned i = 0; i < spikes.size(); i++)
       {
+         printf("    Process %d: ", i);
          for (unsigned j = 0; j < spikes[i].size(); j++)
-            printf("%d", spikes[i][j]->idx);
+            printf("%d ", spikes[i][j]->idx);
          printf("\n");
       }
 
       ew = spikes[0].back();
-      /* if ew is the event which is inside ep's history, remove all RD events that are also in the history from the comb */
+      /*
+       * if ew is a event which is inside ep's history,
+       * remove from the comb ew itself and all RD events that are also in the history
+       * should think about bottom!!!
+       */
       if (ep->in_history(ew) == true)
       {
          for (int unsigned i = 0; i < spikes.size(); i++)
-         {
-            for (unsigned j = 0; j < spikes[i].size(); j++)
-               if (ep->in_history(spikes[i][j]) == true)
-               {
-                  spikes[i][j] = spikes[i].back();
-                  spikes[i].pop_back(); // remove the spikes[i][j]
-               }
-         }
+            while (ep->in_history(spikes[i].back()) == true)
+               spikes[i].pop_back(); // WR event at the back and its predecessors have an order backward
       }
+
       /*
        * Compute all possible combinations c(s1,s2,..sn) from the spikes to produce new conflicting events
        */
@@ -484,19 +487,31 @@ void Event:: WR_cex(Config & c)
  * compute all combinations of set s
  * c is vector to store a combination
  */
-void Event::compute_combi(unsigned int i, std::vector<std::vector<Event *>> & s, std::vector<Event *> c)
+void Event::compute_combi(unsigned int i, const std::vector<std::vector<Event *>> & s, std::vector<Event *> combi)
 {
    for (unsigned j = 0; j < s[i].size(); j++ )
-   {
-      c.push_back(s[i][j]);
-      if (c.size() == s.size())
       {
-         // make an event
-         c.pop_back();
+         if (j < s[i].size())
+         {
+            combi.push_back(s[i][j]);
+            if (i == s.size() - 1)
+            {
+               printf("combi:");
+               for (unsigned k = 0; k < combi.size(); k++)
+                  printf("%d ", combi[k]->idx);
+              // create_WR(combi, ep, t);
+               printf("\n");
+            }
+            else
+               compute_combi(i+1, s, combi);
+         }
+         combi.pop_back();
       }
-      else
-         compute_combi(i+1,s,c);
-   }
+}
+// create an WR event with a given trans, pre_proc and pre_readers
+void Event::create_WR(std::vector<Event *>, Event *, ir::Trans *)
+{
+
 }
 
 /*
@@ -577,22 +592,17 @@ bool Event::check_cfl( const Event & e ) const
     *  a LOC event has no conflict with any other transition.
     * "2 LOC trans sharing a localvar" doesn't matter because it depends on the PC of process.
     */
-
    if ((this->trans->type == ir::Trans::LOC)  || (e.trans->type == ir::Trans::LOC))
       return false;
 
-
    Event * parent = pre_mem;
-
    std::vector<Event *>::iterator this_idx, e_idx;
 
    // special case when parent is bottom, bottom as a WR, but not exactly a WR
-
    if (parent->is_bottom())
    {
 	   for (unsigned i = 0; i< parent->post_mem.size(); i++)
 	   {
-
 		  this_idx = std::find(parent->post_mem[i].begin(), parent->post_mem[i].end(),this);
 		  e_idx    = std::find(parent->post_mem[i].begin(), parent->post_mem[i].end(),&e);
         if ( (this_idx != parent->post_mem[i].end()) && (e_idx != parent->post_mem[i].end()) )
@@ -602,7 +612,6 @@ bool Event::check_cfl( const Event & e ) const
    }
 
    const ir::Trans & pa_tr = *(parent->trans);
-
    switch (pa_tr.type)
    {
       case ir::Trans::RD:
@@ -663,7 +672,7 @@ std::string Event::str () const
 	  return fmt ("index: %d, %p: trans %p code: '%s' proc: %d pre_proc: %p pre_mem(null): %p ",
 	            idx, this, trans, code, proc, pre_proc, pre_mem);
 }
-
+/* represent event's information for dot print */
 std::string Event::dotstr () const
 {
    std::string st;
@@ -681,7 +690,7 @@ std::string Event::dotstr () const
    return fmt ("id: %d, code: '%s' \n proc: %d , src: %d , dest: %d \n clock:(%s) ", idx, code, proc, src, dst, st.c_str());
 }
 
-/* Print all information for an event */
+/* Print all information of an event */
 void Event::eprint_debug() const
 {
 	printf ("Event: %s", this->str().c_str());
@@ -731,7 +740,7 @@ void Event::eprint_debug() const
 }
 
 /*
- *========= Methods of class Config===========
+ *========= Methods of Config class ===========
  */
 
 Config::Config (Unfolding & u)
@@ -766,7 +775,7 @@ Config:: Config (const Config & c)
 #endif
 
 /*
- * Add an event to a configuration
+ * Add an event fixed by developer to a configuration
  */
 
 void Config::add_any ()
@@ -774,6 +783,10 @@ void Config::add_any ()
    // the last event in enable set
    add (en.size () - 1);
 }
+
+/*
+ * add an event identiied by its value
+ */
 
 void Config::add (const Event & e)
 {
@@ -785,6 +798,9 @@ void Config::add (const Event & e)
 
 }
 
+/*
+ * add an event identiied by its index idx
+ */
 void Config::add (unsigned idx)
 {
    assert(idx < en.size());
@@ -876,9 +892,7 @@ void Config::__update_encex (Event & e )
        *  create new event with transition t and add it to evt of the unf
        *  have to check evt capacity before adding to prevent the reallocation.
        */
-
       unf.create_event(*t, *this);
-
    }
 }
 
@@ -905,7 +919,9 @@ void Config::remove_cfl(Event & e)
    }
    printf("\n");
 }
-
+/*
+ * compute confilct extension for a maximal configuration
+ */
 void Config::compute_cex ()
 {
    DEBUG("%p: Config.compute_cex: ");
@@ -937,7 +953,7 @@ void Config::compute_cex ()
 }
 
 /*
- * Print all the latest events of config to console
+ * Print all the latest events of a configuration to console
  */
 void Config::cprint_debug () const
 {
@@ -976,7 +992,7 @@ void Config::cprint_dot()
          DEBUG("Directory \"output\" has just been created!");
    }
 
-   printf(" The configuration exported to dot file: \"dpu/output/conf.dot\"");
+   printf(" The configuration is exported to dot file: \"dpu/output/conf.dot\"");
    std::ofstream fs("output/conf.dot", std::fstream::out);
    if (fs.is_open() != true)
       printf("Cannot open the file\n");
@@ -1033,7 +1049,7 @@ void Config::cprint_dot()
 }
 
 /*
- *  Print the size of curent enable set
+ *  Print the size of current enable set
  */
 void Config::__print_en() const
 {
@@ -1111,17 +1127,17 @@ void Unfolding::create_event(ir::Trans & t, Config & c)
    DEBUG("   Unf.evt.back: id: %s \n ", evt.back().str().c_str());
 }
 
-
+/* Print all event of the unfolding */
 void Unfolding:: uprint_debug()
 {
    DEBUG("\n%p Unf.evt: ", this);
    for (auto & e : evt)
       e.eprint_debug();
 }
+
 /*
  * Print the unfolding into dot file.
  */
-
 void Unfolding:: uprint_dot()
 {
    /* Create a folder namely output in case it hasn't existed. Work only in Linux */
@@ -1139,7 +1155,7 @@ void Unfolding:: uprint_dot()
 
    std::ofstream fs("output/unf.dot", std::fstream::out);
    std::string caption = "Unfolding";
-   printf(" Unfolding exported to dot file: \"dpu/output/unf.dot\"");
+   printf(" Unfolding is exported to dot file: \"dpu/output/unf.dot\"");
    fs << "Digraph RGraph {\n";
    fs << "label = \"Unfolding: " << caption <<"\"";
    fs << "node [shape=rectangle, fontsize=10, style=\"filled, solid\", align=right]";
@@ -1208,7 +1224,9 @@ void Unfolding:: uprint_dot()
    DEBUG(" successfully\n");
 }
 
-
+/*
+ * Explore the entire unfolding
+ */
 void Unfolding:: explore(Config & C, std::vector<Event*> D, std::vector<Event*> A)
 {
    Event * pe;
@@ -1261,7 +1279,7 @@ void Unfolding::explore_rnd_config ()
    return;
 }
 /*
- * Explore a parameter driven configuration
+ * Explore a configuration with a parameter driven by developer
  */
 void Unfolding::explore_driven_config ()
 {

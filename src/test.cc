@@ -1394,25 +1394,27 @@ void test19()
 {
    std::vector<std::vector<int>> s;
    unsigned int n,m;
-   m = 3;
-   n = 4;
+   m = 2;
+   n = 3;
    std::vector<int> c;
    c.reserve(n);
    s.reserve(n);
+   s.resize(n);
    std::vector<int> temp;
 
 
    for (unsigned int i = 0; i < n; i++)
    {
-      temp.clear();
+     // temp.clear();
       printf("\n m = %d: ", m);
 
       for (unsigned j = 0; j < m ; j++ )
       {
-         temp.push_back(i+j);
-         printf("%d ", temp.back());
+         //temp.push_back(i+j);
+         //printf("%d ", temp.back());
+         s[i].push_back(i+j);
       }
-      s.push_back(temp);
+      //s.push_back(temp);
    }
 
    DEBUG("\nSet of %d sets", s.size());
@@ -1426,5 +1428,6 @@ void test19()
 
    DEBUG("compute all combinations");
    combi(0, s, c);
+   DEBUG("stop");
 
 }

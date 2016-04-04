@@ -459,6 +459,7 @@ directly during the translation of LLVM instructions to ou 3-address code.
 \url{https://en.wikipedia.org/wiki/Live_variable_analysis}
 
 \subsection*{Pass 3: Construction of Large-Block Encoding}
+
 \subsection*{Pass 3.1: Identification of local and global variables}
 \begin{itemize}
 \item
@@ -471,9 +472,9 @@ directly during the translation of LLVM instructions to ou 3-address code.
 \item
   A symbol (pair address-size $\tup{a,s} \in \N \times \N$) is \emph{local} to a
   thread if that thread is the only one that can modify the addresses
-  $a, a+1, a+2, \ldots a+s-1$.
+  $a, a+1, a+2, \ldots, a+s-1$.
   It is \emph{global} if it is not local.
-  Make a pass to detect thread local and global variables.
+  Make a pass to detect the variables local to each thread and the global ones.
 \item
   We assume that one thread will never pass a pointer to some of its local
   variables or arrays to the other thread. On a later stage we will implement a
@@ -481,9 +482,33 @@ directly during the translation of LLVM instructions to ou 3-address code.
   So for now we ingore the \verb!movid! and \verb!movis! instructions.
 \end{itemize}
 
-\subsection*{Pass 3.2: Construction of large blocks}
-TBD
+\subsection*{Pass 3.2: Instruction splitting: 0 or 1 global access per instruction}
 
+Rewrite instructions that make use of 2 or 3 global addresses to make use of at
+most 1 global variable.
+Use auxiliary local variables to store intermediate values. Easy.
+
+For \verb!movis!, \verb!movid!, \verb!brz!, and \verb!brnz! instructions,
+rewrite them so they use 0 global addresses.
+
+\subsection*{Pass 3.3: Construction of large blocks}
+
+An indirect instruction is either \verb!movid! or \verb!movis!.
+A local instruction is one that only refers to local addresses and is not
+indirect.
+A branch instruction is either
+\verb!brz! or \verb!brnz! (by assumption branch instructions are local).
+A global instruction is one that is not local or indirect.
+
+The first block of a thread is composed of all instructions of the first basic
+block that are local and not branch.
+
+All remaining blocks start at a
+\begin{itemize}
+\item branch instructions,
+\item indirect instruction, or
+\item global instruction.
+\end{itemize}
 
 \section{FIXMEs}
 

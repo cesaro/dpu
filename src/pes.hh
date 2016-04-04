@@ -65,8 +65,7 @@ public:
    void RD_cex(Config & c);
    void SYN_cex(Config & c);
    void WR_cex(Config & c);
-   void compute_combi(unsigned int i, const std::vector<std::vector<Event *>> & s, std::vector<Event *> c);
-   void create_WR(std::vector<Event *>, Event *, ir::Trans *);
+   void compute_combi(unsigned int i, const std::vector<std::vector<Event *>> & s, std::vector<Event *> combi, Config & c);
 
 
    friend Unfolding;
@@ -85,7 +84,7 @@ class Config
 {
 public:
    ir::State                        gstate;
-
+   Unfolding  &                     unf;
    /*
     * latest_proc : Processes -> Events
     * initialzed by memsize but actually it uses only the last (memsize - numprocs) elements
@@ -101,7 +100,7 @@ public:
    std::vector<Event*>              en;
    std::vector<Event*>              cex;
    std::vector<Event*>              cex1;
-   Unfolding  &                     unf;
+
 
 
    Config (Unfolding & u); // creates an empty configuration
@@ -112,6 +111,7 @@ public:
    void add (unsigned idx, std::string &);
    void add_any ();
    void compute_cex ();
+   void add_to_cex(Event * temp);
 
    void cprint_debug () const;
    void cprint_dot(std::string &, std::string &);
@@ -135,8 +135,11 @@ public:
 
    Unfolding (ir::Machine & ma);
    void create_event(ir::Trans & t, Config &);
+   Event & add_to_unf(Event * temp);
+
    void uprint_debug();
    void uprint_dot();
+
    void explore(Config & C, std::vector<Event *> D, std::vector<Event *> A);
    void explore_rnd_config ();
    void explore_driven_config ();

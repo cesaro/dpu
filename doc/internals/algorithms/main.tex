@@ -402,6 +402,67 @@ For each event $e \in C$ such that \verb!e->trans == t!, repeat the following:
 \label{a:cex_wr}
 \end{algorithm}
 
+\subsection{Alternatives}
+Given a configuration $C \subset U$ and a set of events $D \subset U$, an alternative to D after C is an configuration $J \subset U $ such that:
+\begin{itemize}
+\item $C \cup J$ is a configuration
+\item for all event $e \in D$ , there is some $e'\in C$ such that $e' \in \icfl{e}$
+\end{itemize}
+
+We have $\forall e \in D: e \in ex(C)$ that means $e \in cex(C)$ or $e \in en(C) $
+
+If  $e \in cex(C)$, there exists an event $e' \in C: e'\icfl\{e\}$. So, it shouldn't be taken into account.
+ 
+If $e \in en(C)$. A is a set of $e \in D: e \in en(C)$. Do as the followings to find out all possible J.
+\begin{itemize}
+\item 
+	Set up a \emph{comb} (over A) of size $n \in \N$  is an $n$-tuple
+	$c \eqdef \tup{s_1, \ldots, s_n}$ of sequences $s_i \in A^*$
+	over~$A$ (n is the number of elements in A)
+	Each sequence $s_i$ of the $n$-tuple is called a \emph{spike} 
+	which contains all events that are in immediate conflict with $e_{i} \in A$. (Each event has a attribute to store all its immediately-conflicting events) \\
+	Given a comb $c$ of size~$n$,
+	a \emph{combination} of $c$ is any $n$-tuple $\tup{a_1, \ldots, a_n} \in A^n$
+	such that $a_i \in A$ is one of the elements of the sequence $s_i \in A^*$, for
+	$i \in \set{1, \ldots, n}$.
+\item
+	If there exists any two events in conflict, discard the combination
+\item
+	If $\tup{a_1, \ldots, a_n}$ is conflict free (there does not exist any pair of events which are in conflict)
+	J will be the union of all their local configuration: $ J = \cup [e'_i]$
+\end{itemize}
+
+How to achive J from merging local configurations of n events.
+$J = \emptyset$
+
+For each event e, go back to its parents including $e.pre_proc$, $e.pre_mem$ (for RD and SYN event) and $e.pre_readers$ (for WR event)
+
+If its parent $e_pr$ is in C then go to End. If not, add that one to J and continue $e = e_pr$.
+
+(All events has a bit to imply that it is visited by C or not. Check that bit to know if an event is in C or not)
+
+
+\begin{algorithm}
+\noindent
+For each event $e \in D$ repeat the following:
+\begin{enumerate}
+\item
+	Let $c \eqdef \tup{s_1, \ldots, s_n}$ be the comb associated to $A \subseteq D$ . 
+	c is computed by adding all events in $e_i.dicfl$ to its corresponding spike.
+\item
+	Enumerate all combinations $\tup{e_1, \ldots, e_n}$ of $c$.
+\item
+	For any of them, do:
+	\begin{enumerate}
+	\item
+    	If $\tup{e_1, \ldots, e_n}$ is conflict-free, get J from union of their all local configurations.
+	    If there is one couple in conflict, then discard and take next combination
+	\end{enumerate}
+\item End.
+\end{enumerate}
+\caption{Computing all alternatives J for D after C}
+\label{a:alter}
+\end{algorithm}
 
 
 \section{LLVM Frontend}

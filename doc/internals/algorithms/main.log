@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.16 (TeX Live 2015) (preloaded format=pdflatex 2015.10.14)  3 APR 2016 19:11
+This is pdfTeX, Version 3.14159265-2.6-1.40.16 (TeX Live 2015) (preloaded format=pdflatex 2015.10.14)  4 APR 2016 22:54
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -913,34 +913,39 @@ Overfull \hbox (15.0pt too wide) detected at line 403
 [][] 
  []
 
-[4] [5]
-Overfull \hbox (8.25192pt too wide) in paragraph at lines 450--452
+[4] [5] [6]
+Overfull \hbox (15.0pt too wide) detected at line 465
+[][] 
+ []
+
+
+Overfull \hbox (8.25192pt too wide) in paragraph at lines 511--513
 \T1/cmr/m/n/10 (-20) Textual for-mat and trans-la-tion of LLVM op-codes in []\T
 1/cmtt/m/n/10 doc/internals/3addr-ir.rst\T1/cmr/m/n/10 (-20) . 
  []
 
-[6] [7]
+[7] [8]
 No file main.bbl.
-Package atveryend Info: Empty hook `BeforeClearDocument' on input line 523.
-[8]
-Package atveryend Info: Empty hook `AfterLastShipout' on input line 523.
+Package atveryend Info: Empty hook `BeforeClearDocument' on input line 584.
+[9]
+Package atveryend Info: Empty hook `AfterLastShipout' on input line 584.
  (./main.aux)
-Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 523.
-Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 523.
+Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 584.
+Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 584.
 Package rerunfilecheck Info: File `main.out' has not changed.
-(rerunfilecheck)             Checksum: 6DB08651C80C58AE7474925F838CD75F;941.
+(rerunfilecheck)             Checksum: 26406F5E9BA7DB2E3D8A5542176C2C92;1011.
 
 
 LaTeX Warning: There were undefined references.
 
-Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 523.
+Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 584.
  ) 
 Here is how much of TeX's memory you used:
- 12196 strings out of 493089
- 189893 string characters out of 6134841
- 372794 words of memory out of 5000000
- 15347 multiletter control sequences out of 15000+600000
- 15959 words of font info for 72 fonts, out of 8000000 for 9000
+ 12210 strings out of 493089
+ 190031 string characters out of 6134841
+ 373794 words of memory out of 5000000
+ 15350 multiletter control sequences out of 15000+600000
+ 16017 words of font info for 73 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  49i,9n,35p,338b,557s stack positions out of 5000i,500n,10000p,200000b,80000s
 {/usr/local/texlive/2015/texmf-dist/fonts/enc/dvips/cm-super/cm-super-t1.enc}
@@ -960,10 +965,10 @@ ive/2015/texmf-dist/fonts/type1/public/cm-super/sfrm0900.pfb></usr/local/texliv
 e/2015/texmf-dist/fonts/type1/public/cm-super/sfrm1000.pfb></usr/local/texlive/
 2015/texmf-dist/fonts/type1/public/cm-super/sfti1000.pfb></usr/local/texlive/20
 15/texmf-dist/fonts/type1/public/cm-super/sftt1000.pfb>
-Output written on main.pdf (8 pages, 248065 bytes).
+Output written on main.pdf (9 pages, 255832 bytes).
 PDF statistics:
- 236 PDF objects out of 1000 (max. 8388607)
- 207 compressed objects within 3 object streams
- 72 named destinations out of 1000 (max. 500000)
- 17521 words of extra memory for PDF output out of 20736 (max. 10000000)
+ 254 PDF objects out of 1000 (max. 8388607)
+ 224 compressed objects within 3 object streams
+ 81 named destinations out of 1000 (max. 500000)
+ 17529 words of extra memory for PDF output out of 20736 (max. 10000000)
 

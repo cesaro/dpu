@@ -409,7 +409,7 @@ Given a configuration $C \subset U$ and a set of events $D \subset U$, an altern
 \item for all event $e \in D$ , there is some $e'\in C$ such that $e' \in \icfl{e}$
 \end{itemize}
 
-We have $\forall e \in D: e \in ex(C)$ that means $e \in cex(C)$ or $e \in en(C) $
+We have $\forall e \in D: $ $e \in cex(C)$ or $e \in en(C) $ or $e \in en(C')$ with $C'\subset C$
 
 If  $e \in cex(C)$, there exists an event $e' \in C: e'\icfl\{e\}$. So, it shouldn't be taken into account.
  
@@ -431,6 +431,8 @@ If $e \in en(C)$. A is a set of $e \in D: e \in en(C)$. Do as the followings to 
 	If $\tup{a_1, \ldots, a_n}$ is conflict free (there does not exist any pair of events which are in conflict)
 	J will be the union of all their local configuration: $ J = \cup [e'_i]$
 \end{itemize}
+
+If $e \in en(C')$ with $C'\subset C$: ????
 
 How to achive J from merging local configurations of n events.
 $J = \emptyset$

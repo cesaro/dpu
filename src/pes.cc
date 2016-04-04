@@ -578,6 +578,9 @@ bool Event::check_cfl( const Event & e ) const
 {
    if (this->is_bottom() || e.is_bottom() || (*this == e) )
       return false;
+
+   if (this->pre_proc == e.pre_proc) return true;
+
 #if 0
    /* 2 LOC in the same process: consume the same PC (same source) or wirte and read the same localvar */
       if ((this->trans->type == ir::Trans::LOC) && (e.trans->type == ir::Trans::LOC) && (this->trans->proc.id == e.trans->proc.id) && (this->trans->src == e.trans->src))

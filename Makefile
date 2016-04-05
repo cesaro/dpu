@@ -26,7 +26,7 @@ r run: compile
 
 $(TARGETS) : % : %.o $(OBJS)
 	@echo "LD  $@"
-	@$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
+	@$(CXX) $(LDFLAGS) -o $@ $^ $(LDLIBS)
 
 #$(MINISAT)/build/release/lib/libminisat.a :
 #	cd $(MINISAT); make lr
@@ -44,6 +44,7 @@ g gdb : $(TARGETS)
 
 vars :
 	@echo CC $(CC)
+	@echo CXX $(CXX)
 	@echo CXX $(CXX)
 	@echo SRCS $(SRCS)
 	@echo MSRCS $(MSRCS)

@@ -3,6 +3,7 @@ FIGS:=$(wildcard fig/*.fig fig/*/*.fig)
 FIGS:=$(patsubst %.fig,%.pdftex,$(FIGS)) $(patsubst %.fig,%.pdftex_t,$(FIGS))
 TEXC:=pdflatex -interaction=nonstopmode
 
+#T=m
 T=main
  
 p parse : $(FIGS)
@@ -38,7 +39,7 @@ o open :
 	open $T.pdf
 
 clean :
-	bash -c 'rm -f $T.{aux,bbl,blg,lof,lol,lot,log,out,toc,snm,nav,pag,bcf,run.xml,vtc}'
+	bash -c 'rm -f $T.{aux,bbl,blg,lof,lol,lot,log,out,toc,snm,nav,pag,bcf,run.xml,vtc,fls}'
 	bash -c 'rm -f $T-blx.bib'
 	bash -c 'rm -f *.fdb_latexmk'
 	bash -c 'rm -f fig/*.pdftex fig/*.pdftex_t'

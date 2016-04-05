@@ -67,7 +67,7 @@ Event::Event (const Trans & t, Unfolding & u)
 {
    assert(u.count < u.evt.capacity());
    unsigned numprocs = u.m.procs.size();
-   unsigned mem = u.m.memsize - numprocs;
+   //unsigned mem = u.m.memsize - numprocs;
    // pre_readers.reserve(numprocs);
    // post_mem.reserve(numprocs);
    // post_proc.reserve(u.m.trans.size());
@@ -289,7 +289,7 @@ void Event:: RD_cex(Config & c)
 {
    DEBUG(" %p, id:%d: RD conflicting extension", this, this->idx);
    Event * ep, * em;
-   Event temp;
+   Event * temp;
    const Trans & t = *trans;
    ep = this->pre_proc;
    em = this->pre_mem;

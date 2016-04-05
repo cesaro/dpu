@@ -71,6 +71,7 @@ public:
    friend Unfolding;
 
 private:
+   Event ();
    Event (Unfolding & u);
    Event (const ir::Trans & t, Unfolding & u);
 
@@ -108,7 +109,6 @@ public:
    
    void add (const Event & e); // update the cut and the new event
    void add (unsigned idx); // update the cut and the new event
-   void add (unsigned idx, std::string &);
    void add_any ();
    void compute_cex ();
    void add_to_cex(Event * temp);

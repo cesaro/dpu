@@ -68,14 +68,14 @@ Event::Event (const Trans & t, Unfolding & u)
    assert(u.count < u.evt.capacity());
    unsigned numprocs = u.m.procs.size();
    unsigned mem = u.m.memsize - numprocs;
-   pre_readers.reserve(numprocs);
-   post_mem.reserve(numprocs);
-   post_proc.reserve(u.m.trans.size());
-   post_rws.reserve(mem);
-   post_wr.reserve(numprocs);
+   // pre_readers.reserve(numprocs);
+   // post_mem.reserve(numprocs);
+   // post_proc.reserve(u.m.trans.size());
+   // post_rws.reserve(mem);
+   // post_wr.reserve(numprocs);
    // create numprocs vectors for storing event pointers
    post_mem.resize(numprocs);
-   dicfl.reserve(u.m.trans.size());
+   // dicfl.reserve(u.m.trans.size());
    clock.reserve(numprocs);
    for (unsigned i = 0; i < numprocs; i++)
       clock.push_back(0);
@@ -288,7 +288,8 @@ void Event::update_parents()
 void Event:: RD_cex(Config & c)
 {
    DEBUG(" %p, id:%d: RD conflicting extension", this, this->idx);
-   Event * ep, * em, * temp;
+   Event * ep, * em;
+   Event temp;
    const Trans & t = *trans;
    ep = this->pre_proc;
    em = this->pre_mem;
@@ -297,7 +298,7 @@ void Event:: RD_cex(Config & c)
    {
       temp = new Event(t, c.unf);
       temp->pre_proc = ep;
-      temp->pre_readers.clear();
+      //temp->pre_readers.clear();
 
       if (em->trans->type == ir::Trans::RD)
       {
@@ -649,8 +650,7 @@ bool Event::check_cfl( const Event & e ) const
 /* check if 2 events are the same or not */
 bool Event:: is_same(Event & e)
 {
-   if ((this->is_bottom() == true) || (e.is_bottom() == true) )
-      return false;
+   if (this->is_bottom() or e.is_bottom()) return false;
 
    if ( (trans == e.trans) && (pre_proc == e.pre_proc)
          && (pre_mem == e.pre_mem) && (pre_readers == e.pre_readers))
@@ -1323,13 +1323,12 @@ void Unfolding::explore_driven_config ()
    unsigned int i, count;
    count = 0;
 
+   srand(time(NULL));
    while (c.en.empty() == false)
    {
-      srand(time(NULL));
       i = rand() % c.en.size();
       while ( (c.en[i]->trans->proc.id == 1) && (count < 15)) // set up when we want to add event in proc 1 (e.g: after 21 events in proc 0)
       {
-         srand(time(NULL));
          i = rand() % c.en.size();
       }
       c.add(i);

@@ -320,7 +320,7 @@ std::vector<std::string>  getSymbolsFun( llvm::Function* fun ) {
                 name = "";
                 break;
             }
-            if( name != "" ) {
+            if( name != "" && i->getOpcode() != opcodes.AllocaInst ) {
                 /* Is this variable live? */
                 if( isLive( name, fun ) ) {
                     symbols.push_back( name );

@@ -406,16 +406,17 @@ For each event $e \in C$ such that \verb!e->trans == t!, repeat the following:
 Given a configuration $C \subset U$ and a set of events $D \subset U$, an alternative to D after C is an configuration $J \subset U $ such that:
 \begin{itemize}
 \item $C \cup J$ is a configuration
-\item for all event $e \in D$ , there is some $e'\in C$ such that $e' \in \icfl{e}$
+\item for all event $e \in D$ , there is some $e'\in C \cup J$ such that $e' \in  \icfl{e}$
 \end{itemize}
 
 We have $\forall e \in D: e \in ex(C)$ that means $e \in cex(C)$ or $e \in en(C) $
 
 If  $e \in cex(C)$, there exists an event $e' \in C: e'\icfl\{e\}$. So, it shouldn't be taken into account.
  
-If $e \in en(C)$. A is a set of $e \in D: e \in en(C)$. Do as the followings to find out all possible J.
+If $e \in en(C)$. Do as the followings to find out all possible J.
 \begin{itemize}
 \item 
+	A is a set of $e \in D: e \in en(C)$. 
 	Set up a \emph{comb} (over A) of size $n \in \N$  is an $n$-tuple
 	$c \eqdef \tup{s_1, \ldots, s_n}$ of sequences $s_i \in A^*$
 	over~$A$ (n is the number of elements in A)

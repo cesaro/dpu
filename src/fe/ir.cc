@@ -244,7 +244,7 @@ void Module::validate (uint32_t data_start)
 	}
 }
 
-void Module::__validate_2c_2d_2e (Instruction *i, uint32_t min, uint32_t max)
+void Module::__validate_2c_2d_2e (Instruction *i, uint32_t min, uint32_t max) const
 {
 #define CHECK_RANGE(a,s) \
 	{ \
@@ -270,7 +270,6 @@ void Module::__validate_2c_2d_2e (Instruction *i, uint32_t min, uint32_t max)
 
 	// checking only src1
 	case RET :
-	case MOVID :
 	case BR :
 	case BRZ :
 	case BRNZ :
@@ -280,7 +279,6 @@ void Module::__validate_2c_2d_2e (Instruction *i, uint32_t min, uint32_t max)
 
 	// checking only dst
 	case MOVEI :
-	case MOVIS :
 	case LOCK :
 	case UNLOCK :
 		CHECK_RANGE (i->dst, i->size);
@@ -289,6 +287,8 @@ void Module::__validate_2c_2d_2e (Instruction *i, uint32_t min, uint32_t max)
 
 	// checking: dst, src1
 	case MOVE :
+	case MOVID :
+	case MOVIS :
 	case CMP_EQI :
 	case CMP_NEI :
 	case CMP_UGTI :
@@ -367,35 +367,6 @@ void Module::__validate_2c_2d_2e (Instruction *i, uint32_t min, uint32_t max)
 		CHECK_ALIGN (i->src2, i->size);
 		return;
 	}
-}
-
-std::string Module::__quoted_str (const char * str) const
-{
-	std::string s;
-
-	s.reserve (strlen (str));
-	for (const char * c = str; *c; ++c)
-	{
-		SHOW (*c, "c");
-		switch (*c)
-		{
-		case '\t' :
-			s.append ("\\t");
-			break;
-		case '\r' :
-			s.append ("\\r");
-			break;
-		case '\n' :
-			s.append ("\\n");
-			break;
-		case '\0' : // unreachable
-			s.append ("\\0");
-			break;
-		default :
-			s.push_back (*c);
-		}
-	}
-	return s;
 }
 
 Module::Module () :
@@ -695,7 +666,7 @@ std::string Module::print_instr (Instr * ins) const
 		return "error";
 	case PRINTF :
 		return fmt ("printf  \"%s\" %s [%s] [%s]",
-				__quoted_str ((const char *) memory.data () + ins->dst).c_str (),
+				quoted_str ((const char *) memory.data () + ins->dst).c_str (),
 				ins->size2str (),
 				print_addr(ins->src1).c_str (),
 				print_addr(ins->src2).c_str ());
@@ -1546,3 +1517,591 @@ Instruction * Builder::mk_printf  (const char * fmt, Datasize s, Addr src1)
 	return mk_printf (fmt, s, src1, 0);
 }
 
+
+void Instr::exec (uint8_t * mem)
+{
+	uint32_t addr;
+
+	switch (op)
+	{
+	case ERROR :
+	case RET :
+	case RETI :
+	case BR :
+	case BRZ :
+	case BRNZ :
+		return;
+
+	//
+	case MOVE :
+		switch (size)
+		{
+		case 1 : * ( uint8_t *) (mem + dst) = * ( uint8_t *) (mem + src1); return;
+		case 2 : * (uint16_t *) (mem + dst) = * (uint16_t *) (mem + src1); return;
+		case 4 : * (uint32_t *) (mem + dst) = * (uint32_t *) (mem + src1); return;
+		case 8 : * (uint64_t *) (mem + dst) = * (uint64_t *) (mem + src1); return;
+		default : return;
+		}
+
+	case MOVEI :
+		switch (size)
+		{
+		case 1 : * ( uint8_t *) (mem + dst) = ( uint8_t) (src2); return;
+		case 2 : * (uint16_t *) (mem + dst) = (uint16_t) (src2); return;
+		case 4 : * (uint32_t *) (mem + dst) = (uint32_t) (src2); return;
+		case 8 : * (uint64_t *) (mem + dst) = (uint64_t) (src2); return;
+		default : return;
+		}
+
+	case MOVIS :
+		addr = * (uint32_t*) (mem + src1);
+		// a trash pointer should have been detected at this point
+		switch (size)
+		{
+		case 1 : * ( uint8_t *) (mem + dst) = * ( uint8_t*) (mem + addr); return;
+		case 2 : * (uint16_t *) (mem + dst) = * (uint16_t*) (mem + addr); return;
+		case 4 : * (uint32_t *) (mem + dst) = * (uint32_t*) (mem + addr); return;
+		case 8 : * (uint64_t *) (mem + dst) = * (uint64_t*) (mem + addr); return;
+		default : return;
+		}
+
+	case MOVID :
+		addr = * (uint32_t*) (mem + dst);
+		// a trash pointer should have been detected at this point
+		switch (size)
+		{
+		case 1 : * ( uint8_t*) (mem + addr) = * ( uint8_t*) (mem + src1); return;
+		case 2 : * (uint16_t*) (mem + addr) = * (uint16_t*) (mem + src1); return;
+		case 4 : * (uint32_t*) (mem + addr) = * (uint32_t*) (mem + src1); return;
+		case 8 : * (uint64_t*) (mem + addr) = * (uint64_t*) (mem + src1); return;
+		default : return;
+		}
+
+	case CMP_EQ :
+		switch (size)
+		{
+		case 1 : *(uint32_t*)(mem+dst) = *( uint8_t*)(mem+src1) == *( uint8_t*)(mem+src2); return;
+		case 2 : *(uint32_t*)(mem+dst) = *(uint16_t*)(mem+src1) == *(uint16_t*)(mem+src2); return;
+		case 4 : *(uint32_t*)(mem+dst) = *(uint32_t*)(mem+src1) == *(uint32_t*)(mem+src2); return;
+		case 8 : *(uint32_t*)(mem+dst) = *(uint64_t*)(mem+src1) == *(uint64_t*)(mem+src2); return;
+		default : return;
+		}
+
+	case CMP_EQI :
+		switch (size)
+		{
+		case 1 : *(uint32_t*)(mem+dst) = *( uint8_t*)(mem+src1) == ( uint8_t)(src2); return;
+		case 2 : *(uint32_t*)(mem+dst) = *(uint16_t*)(mem+src1) == (uint16_t)(src2); return;
+		case 4 : *(uint32_t*)(mem+dst) = *(uint32_t*)(mem+src1) == (uint32_t)(src2); return;
+		case 8 : *(uint32_t*)(mem+dst) = *(uint64_t*)(mem+src1) == (uint64_t)(src2); return;
+		default : return;
+		}
+
+	case CMP_NE :
+		switch (size)
+		{
+		case 1 : *(uint32_t*)(mem+dst) = *( uint8_t*)(mem+src1) != *( uint8_t*)(mem+src2); return;
+		case 2 : *(uint32_t*)(mem+dst) = *(uint16_t*)(mem+src1) != *(uint16_t*)(mem+src2); return;
+		case 4 : *(uint32_t*)(mem+dst) = *(uint32_t*)(mem+src1) != *(uint32_t*)(mem+src2); return;
+		case 8 : *(uint32_t*)(mem+dst) = *(uint64_t*)(mem+src1) != *(uint64_t*)(mem+src2); return;
+		default : return;
+		}
+
+	case CMP_NEI :
+		switch (size)
+		{
+		case 1 : *(uint32_t*)(mem+dst) = *( uint8_t*)(mem+src1) != ( uint8_t)(src2); return;
+		case 2 : *(uint32_t*)(mem+dst) = *(uint16_t*)(mem+src1) != (uint16_t)(src2); return;
+		case 4 : *(uint32_t*)(mem+dst) = *(uint32_t*)(mem+src1) != (uint32_t)(src2); return;
+		case 8 : *(uint32_t*)(mem+dst) = *(uint64_t*)(mem+src1) != (uint64_t)(src2); return;
+		default : return;
+		}
+
+	case CMP_UGT :
+		switch (size)
+		{
+		case 1 : *(uint32_t*)(mem+dst) = *( uint8_t*)(mem+src1) > *( uint8_t*)(mem+src2); return;
+		case 2 : *(uint32_t*)(mem+dst) = *(uint16_t*)(mem+src1) > *(uint16_t*)(mem+src2); return;
+		case 4 : *(uint32_t*)(mem+dst) = *(uint32_t*)(mem+src1) > *(uint32_t*)(mem+src2); return;
+		case 8 : *(uint32_t*)(mem+dst) = *(uint64_t*)(mem+src1) > *(uint64_t*)(mem+src2); return;
+		default : return;
+		}
+	case CMP_UGTI :
+		switch (size)
+		{
+		case 1 : *(uint32_t*)(mem+dst) = *( uint8_t*)(mem+src1) > ( uint8_t)(src2); return;
+		case 2 : *(uint32_t*)(mem+dst) = *(uint16_t*)(mem+src1) > (uint16_t)(src2); return;
+		case 4 : *(uint32_t*)(mem+dst) = *(uint32_t*)(mem+src1) > (uint32_t)(src2); return;
+		case 8 : *(uint32_t*)(mem+dst) = *(uint64_t*)(mem+src1) > (uint64_t)(src2); return;
+		default : return;
+		}
+
+	case CMP_UGE :
+		switch (size)
+		{
+		case 1 : *(uint32_t*)(mem+dst) = *( uint8_t*)(mem+src1) >= *( uint8_t*)(mem+src2); return;
+		case 2 : *(uint32_t*)(mem+dst) = *(uint16_t*)(mem+src1) >= *(uint16_t*)(mem+src2); return;
+		case 4 : *(uint32_t*)(mem+dst) = *(uint32_t*)(mem+src1) >= *(uint32_t*)(mem+src2); return;
+		case 8 : *(uint32_t*)(mem+dst) = *(uint64_t*)(mem+src1) >= *(uint64_t*)(mem+src2); return;
+		default : return;
+		}
+	case CMP_UGEI :
+		switch (size)
+		{
+		case 1 : *(uint32_t*)(mem+dst) = *( uint8_t*)(mem+src1) >= ( uint8_t)(src2); return;
+		case 2 : *(uint32_t*)(mem+dst) = *(uint16_t*)(mem+src1) >= (uint16_t)(src2); return;
+		case 4 : *(uint32_t*)(mem+dst) = *(uint32_t*)(mem+src1) >= (uint32_t)(src2); return;
+		case 8 : *(uint32_t*)(mem+dst) = *(uint64_t*)(mem+src1) >= (uint64_t)(src2); return;
+		default : return;
+		}
+
+	case CMP_ULT :
+		switch (size)
+		{
+		case 1 : *(uint32_t*)(mem+dst) = *( uint8_t*)(mem+src1) < *( uint8_t*)(mem+src2); return;
+		case 2 : *(uint32_t*)(mem+dst) = *(uint16_t*)(mem+src1) < *(uint16_t*)(mem+src2); return;
+		case 4 : *(uint32_t*)(mem+dst) = *(uint32_t*)(mem+src1) < *(uint32_t*)(mem+src2); return;
+		case 8 : *(uint32_t*)(mem+dst) = *(uint64_t*)(mem+src1) < *(uint64_t*)(mem+src2); return;
+		default : return;
+		}
+	case CMP_ULTI :
+		switch (size)
+		{
+		case 1 : *(uint32_t*)(mem+dst) = *( uint8_t*)(mem+src1) < ( uint8_t)(src2); return;
+		case 2 : *(uint32_t*)(mem+dst) = *(uint16_t*)(mem+src1) < (uint16_t)(src2); return;
+		case 4 : *(uint32_t*)(mem+dst) = *(uint32_t*)(mem+src1) < (uint32_t)(src2); return;
+		case 8 : *(uint32_t*)(mem+dst) = *(uint64_t*)(mem+src1) < (uint64_t)(src2); return;
+		default : return;
+		}
+
+	case CMP_ULE :
+		switch (size)
+		{
+		case 1 : *(uint32_t*)(mem+dst) = *( uint8_t*)(mem+src1) <= *( uint8_t*)(mem+src2); return;
+		case 2 : *(uint32_t*)(mem+dst) = *(uint16_t*)(mem+src1) <= *(uint16_t*)(mem+src2); return;
+		case 4 : *(uint32_t*)(mem+dst) = *(uint32_t*)(mem+src1) <= *(uint32_t*)(mem+src2); return;
+		case 8 : *(uint32_t*)(mem+dst) = *(uint64_t*)(mem+src1) <= *(uint64_t*)(mem+src2); return;
+		default : return;
+		}
+	case CMP_ULEI :
+		switch (size)
+		{
+		case 1 : *(uint32_t*)(mem+dst) = *( uint8_t*)(mem+src1) <= ( uint8_t)(src2); return;
+		case 2 : *(uint32_t*)(mem+dst) = *(uint16_t*)(mem+src1) <= (uint16_t)(src2); return;
+		case 4 : *(uint32_t*)(mem+dst) = *(uint32_t*)(mem+src1) <= (uint32_t)(src2); return;
+		case 8 : *(uint32_t*)(mem+dst) = *(uint64_t*)(mem+src1) <= (uint64_t)(src2); return;
+		default : return;
+		}
+
+	case CMP_SGT :
+		switch (size)
+		{
+		case 1 : *(uint32_t*)(mem+dst) = *( int8_t*)(mem+src1) > *( int8_t*)(mem+src2); return;
+		case 2 : *(uint32_t*)(mem+dst) = *(int16_t*)(mem+src1) > *(int16_t*)(mem+src2); return;
+		case 4 : *(uint32_t*)(mem+dst) = *(int32_t*)(mem+src1) > *(int32_t*)(mem+src2); return;
+		case 8 : *(uint32_t*)(mem+dst) = *(int64_t*)(mem+src1) > *(int64_t*)(mem+src2); return;
+		default : return;
+		}
+	case CMP_SGTI :
+		switch (size)
+		{
+		case 1 : *(uint32_t*)(mem+dst) = *( int8_t*)(mem+src1) > ( int8_t)(src2); return;
+		case 2 : *(uint32_t*)(mem+dst) = *(int16_t*)(mem+src1) > (int16_t)(src2); return;
+		case 4 : *(uint32_t*)(mem+dst) = *(int32_t*)(mem+src1) > (int32_t)(src2); return;
+		case 8 : *(uint32_t*)(mem+dst) = *(int64_t*)(mem+src1) > (int64_t)(src2); return;
+		default : return;
+		}
+
+	case CMP_SGE :
+		switch (size)
+		{
+		case 1 : *(uint32_t*)(mem+dst) = *( int8_t*)(mem+src1) >= *( int8_t*)(mem+src2); return;
+		case 2 : *(uint32_t*)(mem+dst) = *(int16_t*)(mem+src1) >= *(int16_t*)(mem+src2); return;
+		case 4 : *(uint32_t*)(mem+dst) = *(int32_t*)(mem+src1) >= *(int32_t*)(mem+src2); return;
+		case 8 : *(uint32_t*)(mem+dst) = *(int64_t*)(mem+src1) >= *(int64_t*)(mem+src2); return;
+		default : return;
+		}
+	case CMP_SGEI :
+		switch (size)
+		{
+		case 1 : *(uint32_t*)(mem+dst) = *( int8_t*)(mem+src1) >= ( int8_t)(src2); return;
+		case 2 : *(uint32_t*)(mem+dst) = *(int16_t*)(mem+src1) >= (int16_t)(src2); return;
+		case 4 : *(uint32_t*)(mem+dst) = *(int32_t*)(mem+src1) >= (int32_t)(src2); return;
+		case 8 : *(uint32_t*)(mem+dst) = *(int64_t*)(mem+src1) >= (int64_t)(src2); return;
+		default : return;
+		}
+
+	case CMP_SLT :
+		switch (size)
+		{
+		case 1 : *(uint32_t*)(mem+dst) = *( int8_t*)(mem+src1) < *( int8_t*)(mem+src2); return;
+		case 2 : *(uint32_t*)(mem+dst) = *(int16_t*)(mem+src1) < *(int16_t*)(mem+src2); return;
+		case 4 : *(uint32_t*)(mem+dst) = *(int32_t*)(mem+src1) < *(int32_t*)(mem+src2); return;
+		case 8 : *(uint32_t*)(mem+dst) = *(int64_t*)(mem+src1) < *(int64_t*)(mem+src2); return;
+		default : return;
+		}
+	case CMP_SLTI :
+		switch (size)
+		{
+		case 1 : *(uint32_t*)(mem+dst) = *( int8_t*)(mem+src1) < ( int8_t)(src2); return;
+		case 2 : *(uint32_t*)(mem+dst) = *(int16_t*)(mem+src1) < (int16_t)(src2); return;
+		case 4 : *(uint32_t*)(mem+dst) = *(int32_t*)(mem+src1) < (int32_t)(src2); return;
+		case 8 : *(uint32_t*)(mem+dst) = *(int64_t*)(mem+src1) < (int64_t)(src2); return;
+		default : return;
+		}
+
+	case CMP_SLE :
+		switch (size)
+		{
+		case 1 : *(uint32_t*)(mem+dst) = *( int8_t*)(mem+src1) <= *( int8_t*)(mem+src2); return;
+		case 2 : *(uint32_t*)(mem+dst) = *(int16_t*)(mem+src1) <= *(int16_t*)(mem+src2); return;
+		case 4 : *(uint32_t*)(mem+dst) = *(int32_t*)(mem+src1) <= *(int32_t*)(mem+src2); return;
+		case 8 : *(uint32_t*)(mem+dst) = *(int64_t*)(mem+src1) <= *(int64_t*)(mem+src2); return;
+		default : return;
+		}
+	case CMP_SLEI :
+		switch (size)
+		{
+		case 1 : *(uint32_t*)(mem+dst) = *( int8_t*)(mem+src1) <= ( int8_t)(src2); return;
+		case 2 : *(uint32_t*)(mem+dst) = *(int16_t*)(mem+src1) <= (int16_t)(src2); return;
+		case 4 : *(uint32_t*)(mem+dst) = *(int32_t*)(mem+src1) <= (int32_t)(src2); return;
+		case 8 : *(uint32_t*)(mem+dst) = *(int64_t*)(mem+src1) <= (int64_t)(src2); return;
+		default : return;
+		}
+
+	// arithmetic
+
+	case ADD :
+		switch (size)
+		{
+		case 1 : *( uint8_t*)(mem+dst) = *( uint8_t*)(mem+src1) + *( uint8_t*)(mem+src2); return;
+		case 2 : *(uint16_t*)(mem+dst) = *(uint16_t*)(mem+src1) + *(uint16_t*)(mem+src2); return;
+		case 4 : *(uint32_t*)(mem+dst) = *(uint32_t*)(mem+src1) + *(uint32_t*)(mem+src2); return;
+		case 8 : *(uint64_t*)(mem+dst) = *(uint64_t*)(mem+src1) + *(uint64_t*)(mem+src2); return;
+		default : return;
+		}
+
+	case ADDI :
+		switch (size)
+		{
+		case 1 : *( uint8_t*)(mem+dst) = *( uint8_t*)(mem+src1) + ( uint8_t)(src2); return;
+		case 2 : *(uint16_t*)(mem+dst) = *(uint16_t*)(mem+src1) + (uint16_t)(src2); return;
+		case 4 : *(uint32_t*)(mem+dst) = *(uint32_t*)(mem+src1) + (uint32_t)(src2); return;
+		case 8 : *(uint64_t*)(mem+dst) = *(uint64_t*)(mem+src1) + (uint64_t)(src2); return;
+		default : return;
+		}
+
+	case SUB :
+		switch (size)
+		{
+		case 1 : *( uint8_t*)(mem+dst) = *( uint8_t*)(mem+src1) - *( uint8_t*)(mem+src2); return;
+		case 2 : *(uint16_t*)(mem+dst) = *(uint16_t*)(mem+src1) - *(uint16_t*)(mem+src2); return;
+		case 4 : *(uint32_t*)(mem+dst) = *(uint32_t*)(mem+src1) - *(uint32_t*)(mem+src2); return;
+		case 8 : *(uint64_t*)(mem+dst) = *(uint64_t*)(mem+src1) - *(uint64_t*)(mem+src2); return;
+		default : return;
+		}
+
+	case SUBI :
+		switch (size)
+		{
+		case 1 : *( uint8_t*)(mem+dst) = ( uint8_t)(src2) - *( uint8_t*)(mem+src1) ; return;
+		case 2 : *(uint16_t*)(mem+dst) = (uint16_t)(src2) - *(uint16_t*)(mem+src1) ; return;
+		case 4 : *(uint32_t*)(mem+dst) = (uint32_t)(src2) - *(uint32_t*)(mem+src1) ; return;
+		case 8 : *(uint64_t*)(mem+dst) = (uint64_t)(src2) - *(uint64_t*)(mem+src1) ; return;
+		default : return;
+		}
+
+	case MUL :
+		switch (size)
+		{
+		case 1 : *( uint8_t*)(mem+dst) = *( uint8_t*)(mem+src1) * *( uint8_t*)(mem+src2); return;
+		case 2 : *(uint16_t*)(mem+dst) = *(uint16_t*)(mem+src1) * *(uint16_t*)(mem+src2); return;
+		case 4 : *(uint32_t*)(mem+dst) = *(uint32_t*)(mem+src1) * *(uint32_t*)(mem+src2); return;
+		case 8 : *(uint64_t*)(mem+dst) = *(uint64_t*)(mem+src1) * *(uint64_t*)(mem+src2); return;
+		default : return;
+		}
+
+	case MULI :
+		switch (size)
+		{
+		case 1 : *( uint8_t*)(mem+dst) = *( uint8_t*)(mem+src1) * ( uint8_t)(src2); return;
+		case 2 : *(uint16_t*)(mem+dst) = *(uint16_t*)(mem+src1) * (uint16_t)(src2); return;
+		case 4 : *(uint32_t*)(mem+dst) = *(uint32_t*)(mem+src1) * (uint32_t)(src2); return;
+		case 8 : *(uint64_t*)(mem+dst) = *(uint64_t*)(mem+src1) * (uint64_t)(src2); return;
+		default : return;
+		}
+
+	case SDIV :
+		switch (size)
+		{
+		case 1 : *( int8_t*)(mem+dst) = *( int8_t*)(mem+src1) / *( int8_t*)(mem+src2); return;
+		case 2 : *(int16_t*)(mem+dst) = *(int16_t*)(mem+src1) / *(int16_t*)(mem+src2); return;
+		case 4 : *(int32_t*)(mem+dst) = *(int32_t*)(mem+src1) / *(int32_t*)(mem+src2); return;
+		case 8 : *(int64_t*)(mem+dst) = *(int64_t*)(mem+src1) / *(int64_t*)(mem+src2); return;
+		default : return;
+		}
+
+	case SDIVIA :
+		switch (size)
+		{
+		case 1 : *( int8_t*)(mem+dst) = ( int8_t)(src2) / *( int8_t*)(mem+src1); return;
+		case 2 : *(int16_t*)(mem+dst) = (int16_t)(src2) / *(int16_t*)(mem+src1); return;
+		case 4 : *(int32_t*)(mem+dst) = (int32_t)(src2) / *(int32_t*)(mem+src1); return;
+		case 8 : *(int64_t*)(mem+dst) = (int64_t)(src2) / *(int64_t*)(mem+src1); return;
+		default : return;
+		}
+
+	case SDIVAI :
+		switch (size)
+		{
+		case 1 : *( int8_t*)(mem+dst) = *( int8_t*)(mem+src1) / ( int8_t)(src2); return;
+		case 2 : *(int16_t*)(mem+dst) = *(int16_t*)(mem+src1) / (int16_t)(src2); return;
+		case 4 : *(int32_t*)(mem+dst) = *(int32_t*)(mem+src1) / (int32_t)(src2); return;
+		case 8 : *(int64_t*)(mem+dst) = *(int64_t*)(mem+src1) / (int64_t)(src2); return;
+		default : return;
+		}
+
+	case UDIV :
+		switch (size)
+		{
+		case 1 : *( uint8_t*)(mem+dst) = *( uint8_t*)(mem+src1) / *( uint8_t*)(mem+src2); return;
+		case 2 : *(uint16_t*)(mem+dst) = *(uint16_t*)(mem+src1) / *(uint16_t*)(mem+src2); return;
+		case 4 : *(uint32_t*)(mem+dst) = *(uint32_t*)(mem+src1) / *(uint32_t*)(mem+src2); return;
+		case 8 : *(uint64_t*)(mem+dst) = *(uint64_t*)(mem+src1) / *(uint64_t*)(mem+src2); return;
+		default : return;
+		}
+
+	case UDIVIA :
+		switch (size)
+		{
+		case 1 : *( uint8_t*)(mem+dst) = ( uint8_t)(src2) / *( uint8_t*)(mem+src1); return;
+		case 2 : *(uint16_t*)(mem+dst) = (uint16_t)(src2) / *(uint16_t*)(mem+src1); return;
+		case 4 : *(uint32_t*)(mem+dst) = (uint32_t)(src2) / *(uint32_t*)(mem+src1); return;
+		case 8 : *(uint64_t*)(mem+dst) = (uint64_t)(src2) / *(uint64_t*)(mem+src1); return;
+		default : return;
+		}
+
+	case UDIVAI :
+		switch (size)
+		{
+		case 1 : *( uint8_t*)(mem+dst) = *( uint8_t*)(mem+src1) / ( uint8_t)(src2); return;
+		case 2 : *(uint16_t*)(mem+dst) = *(uint16_t*)(mem+src1) / (uint16_t)(src2); return;
+		case 4 : *(uint32_t*)(mem+dst) = *(uint32_t*)(mem+src1) / (uint32_t)(src2); return;
+		case 8 : *(uint64_t*)(mem+dst) = *(uint64_t*)(mem+src1) / (uint64_t)(src2); return;
+		default : return;
+		}
+
+	case SREM :
+		switch (size)
+		{
+		case 1 : *( int8_t*)(mem+dst) = *( int8_t*)(mem+src1) % *( int8_t*)(mem+src2); return;
+		case 2 : *(int16_t*)(mem+dst) = *(int16_t*)(mem+src1) % *(int16_t*)(mem+src2); return;
+		case 4 : *(int32_t*)(mem+dst) = *(int32_t*)(mem+src1) % *(int32_t*)(mem+src2); return;
+		case 8 : *(int64_t*)(mem+dst) = *(int64_t*)(mem+src1) % *(int64_t*)(mem+src2); return;
+		default : return;
+		}
+
+	case SREMIA :
+		switch (size)
+		{
+		case 1 : *( int8_t*)(mem+dst) = ( int8_t)(src2) % *( int8_t*)(mem+src1); return;
+		case 2 : *(int16_t*)(mem+dst) = (int16_t)(src2) % *(int16_t*)(mem+src1); return;
+		case 4 : *(int32_t*)(mem+dst) = (int32_t)(src2) % *(int32_t*)(mem+src1); return;
+		case 8 : *(int64_t*)(mem+dst) = (int64_t)(src2) % *(int64_t*)(mem+src1); return;
+		default : return;
+		}
+
+	case SREMAI :
+		switch (size)
+		{
+		case 1 : *( int8_t*)(mem+dst) = *( int8_t*)(mem+src1) % ( int8_t)(src2); return;
+		case 2 : *(int16_t*)(mem+dst) = *(int16_t*)(mem+src1) % (int16_t)(src2); return;
+		case 4 : *(int32_t*)(mem+dst) = *(int32_t*)(mem+src1) % (int32_t)(src2); return;
+		case 8 : *(int64_t*)(mem+dst) = *(int64_t*)(mem+src1) % (int64_t)(src2); return;
+		default : return;
+		}
+
+	case UREM :
+		switch (size)
+		{
+		case 1 : *( uint8_t*)(mem+dst) = *( uint8_t*)(mem+src1) % *( uint8_t*)(mem+src2); return;
+		case 2 : *(uint16_t*)(mem+dst) = *(uint16_t*)(mem+src1) % *(uint16_t*)(mem+src2); return;
+		case 4 : *(uint32_t*)(mem+dst) = *(uint32_t*)(mem+src1) % *(uint32_t*)(mem+src2); return;
+		case 8 : *(uint64_t*)(mem+dst) = *(uint64_t*)(mem+src1) % *(uint64_t*)(mem+src2); return;
+		default : return;
+		}
+
+	case UREMIA :
+		switch (size)
+		{
+		case 1 : *( uint8_t*)(mem+dst) = ( uint8_t)(src2) % *( uint8_t*)(mem+src1); return;
+		case 2 : *(uint16_t*)(mem+dst) = (uint16_t)(src2) % *(uint16_t*)(mem+src1); return;
+		case 4 : *(uint32_t*)(mem+dst) = (uint32_t)(src2) % *(uint32_t*)(mem+src1); return;
+		case 8 : *(uint64_t*)(mem+dst) = (uint64_t)(src2) % *(uint64_t*)(mem+src1); return;
+		default : return;
+		}
+
+	case UREMAI :
+		switch (size)
+		{
+		case 1 : *( uint8_t*)(mem+dst) = *( uint8_t*)(mem+src1) % ( uint8_t)(src2); return;
+		case 2 : *(uint16_t*)(mem+dst) = *(uint16_t*)(mem+src1) % (uint16_t)(src2); return;
+		case 4 : *(uint32_t*)(mem+dst) = *(uint32_t*)(mem+src1) % (uint32_t)(src2); return;
+		case 8 : *(uint64_t*)(mem+dst) = *(uint64_t*)(mem+src1) % (uint64_t)(src2); return;
+		default : return;
+		}
+
+
+	//case FDIV :
+	//case FREM : return "FIXME";
+
+	case OR :
+		switch (size)
+		{
+		case 1 : *( uint8_t*)(mem+dst) = *( uint8_t*)(mem+src1) | *( uint8_t*)(mem+src2); return;
+		case 2 : *(uint16_t*)(mem+dst) = *(uint16_t*)(mem+src1) | *(uint16_t*)(mem+src2); return;
+		case 4 : *(uint32_t*)(mem+dst) = *(uint32_t*)(mem+src1) | *(uint32_t*)(mem+src2); return;
+		case 8 : *(uint64_t*)(mem+dst) = *(uint64_t*)(mem+src1) | *(uint64_t*)(mem+src2); return;
+		default : return;
+		}
+
+	case ORI :
+		switch (size)
+		{
+		case 1 : *( uint8_t*)(mem+dst) = *( uint8_t*)(mem+src1) | ( uint8_t)(src2); return;
+		case 2 : *(uint16_t*)(mem+dst) = *(uint16_t*)(mem+src1) | (uint16_t)(src2); return;
+		case 4 : *(uint32_t*)(mem+dst) = *(uint32_t*)(mem+src1) | (uint32_t)(src2); return;
+		case 8 : *(uint64_t*)(mem+dst) = *(uint64_t*)(mem+src1) | (uint64_t)(src2); return;
+		default : return;
+		}
+
+	case AND :
+		switch (size)
+		{
+		case 1 : *( uint8_t*)(mem+dst) = *( uint8_t*)(mem+src1) & *( uint8_t*)(mem+src2); return;
+		case 2 : *(uint16_t*)(mem+dst) = *(uint16_t*)(mem+src1) & *(uint16_t*)(mem+src2); return;
+		case 4 : *(uint32_t*)(mem+dst) = *(uint32_t*)(mem+src1) & *(uint32_t*)(mem+src2); return;
+		case 8 : *(uint64_t*)(mem+dst) = *(uint64_t*)(mem+src1) & *(uint64_t*)(mem+src2); return;
+		default : return;
+		}
+
+	case ANDI :
+		switch (size)
+		{
+		case 1 : *( uint8_t*)(mem+dst) = *( uint8_t*)(mem+src1) & ( uint8_t)(src2); return;
+		case 2 : *(uint16_t*)(mem+dst) = *(uint16_t*)(mem+src1) & (uint16_t)(src2); return;
+		case 4 : *(uint32_t*)(mem+dst) = *(uint32_t*)(mem+src1) & (uint32_t)(src2); return;
+		case 8 : *(uint64_t*)(mem+dst) = *(uint64_t*)(mem+src1) & (uint64_t)(src2); return;
+		default : return;
+		}
+
+	case XOR :
+		switch (size)
+		{
+		case 1 : *( uint8_t*)(mem+dst) = *( uint8_t*)(mem+src1) ^ *( uint8_t*)(mem+src2); return;
+		case 2 : *(uint16_t*)(mem+dst) = *(uint16_t*)(mem+src1) ^ *(uint16_t*)(mem+src2); return;
+		case 4 : *(uint32_t*)(mem+dst) = *(uint32_t*)(mem+src1) ^ *(uint32_t*)(mem+src2); return;
+		case 8 : *(uint64_t*)(mem+dst) = *(uint64_t*)(mem+src1) ^ *(uint64_t*)(mem+src2); return;
+		default : return;
+		}
+
+	case XORI :
+		switch (size)
+		{
+		case 1 : *( uint8_t*)(mem+dst) = *( uint8_t*)(mem+src1) ^ ( uint8_t)(src2); return;
+		case 2 : *(uint16_t*)(mem+dst) = *(uint16_t*)(mem+src1) ^ (uint16_t)(src2); return;
+		case 4 : *(uint32_t*)(mem+dst) = *(uint32_t*)(mem+src1) ^ (uint32_t)(src2); return;
+		case 8 : *(uint64_t*)(mem+dst) = *(uint64_t*)(mem+src1) ^ (uint64_t)(src2); return;
+		default : return;
+		}
+
+	case SEXT :
+		switch (src2)
+		{
+		case 2 :
+			*(int16_t*)(mem+dst) = *(int8_t*)(mem+src1);
+			return;
+		case 4 :
+			if (size & 1)
+				*(int32_t*)(mem+dst) = *(int8_t*)(mem+src1);
+			else
+				*(int32_t*)(mem+dst) = *(int16_t*)(mem+src1);
+			return;
+		case 8 :
+			if (size & 1)
+			{
+				*(int64_t*)(mem+dst) = *(int8_t*)(mem+src1);
+			}
+			else if (size & 2)
+			{
+				*(int64_t*)(mem+dst) = *(int16_t*)(mem+src1);
+			}
+			else
+			{
+				*(int64_t*)(mem+dst) = *(int32_t*)(mem+src1);
+			}
+			return;
+		default :
+			return;
+		}
+
+	case ZEXT :
+		switch (src2)
+		{
+		case 2 :
+			*(uint16_t*)(mem+dst) = *(uint8_t*)(mem+src1);
+			return;
+		case 4 :
+			if (size & 1)
+				*(uint32_t*)(mem+dst) = *(uint8_t*)(mem+src1);
+			else
+				*(uint32_t*)(mem+dst) = *(uint16_t*)(mem+src1);
+			return;
+		case 8 :
+			if (size & 1)
+			{
+				*(uint64_t*)(mem+dst) = *(uint8_t*)(mem+src1);
+			}
+			else if (size & 2)
+			{
+				*(uint64_t*)(mem+dst) = *(uint16_t*)(mem+src1);
+			}
+			else
+			{
+				*(uint64_t*)(mem+dst) = *(uint32_t*)(mem+src1);
+			}
+			return;
+		default :
+			return;
+		}
+
+
+	case LOCK :
+		// lock is locked iff mem[dst] is true
+		if (* (uint32_t*) (mem+dst)) return;
+		* (uint32_t*) (mem+dst) = 1;
+		return;
+	case UNLOCK :
+		* (uint32_t*) (mem+dst) = 0;
+		return;
+
+	case PRINTF :
+		switch (size)
+		{
+		case 1 :
+			printf ((char*)mem+dst, *( uint8_t*)(mem+src1), *( uint8_t*)(mem+src2));
+			return;
+		case 2 :
+			printf ((char*)mem+dst, *(uint16_t*)(mem+src1), *(uint16_t*)(mem+src2));
+			return;
+		case 4 :
+			printf ((char*)mem+dst, *(uint32_t*)(mem+src1), *(uint32_t*)(mem+src2));
+			return;
+		case 8 :
+			printf ((char*)mem+dst, *(uint64_t*)(mem+src1), *(uint64_t*)(mem+src2));
+			return;
+		default :
+			return;
+		}
+	}
+}

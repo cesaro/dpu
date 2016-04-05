@@ -553,7 +553,6 @@ int readIR( llvm::Module* mod ) {
 
 int main(int argc, char** argv) {
     int rc;
-
    
     if (argc < 2) {
         std::cerr << "Expected arguments" << std::endl;
@@ -563,14 +562,21 @@ int main(int argc, char** argv) {
 
     llvm::LLVMContext &context = llvm::getGlobalContext();
     llvm::SMDiagnostic err;
-    llvm::Module *mod = llvm::ParseIRFile(argv[1], err, context);
-
+#if LLVM_VERSION_MINOR <= 5
+	 llvm::Module * mod= llvm::ParseIRFile(argv[1], err, context);
     if (!mod) {
         err.print( argv[0], errs() );
         return 1;
     }
-
     rc = readIR( mod );
+#else
+    auto mod = llvm::parseIRFile(argv[1], err, context);
+    if (! mod.get ()) {
+        err.print( argv[0], errs() );
+        return 1;
+    }
+    rc = readIR( mod.get () );
+#endif
     
     std::cout << "Exiting happily" << std::endl;
     

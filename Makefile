@@ -60,16 +60,6 @@ clean :
 distclean : clean
 	@rm -f $(DEPS)
 	@rm -Rf dist/
-	@find examples/ -name '*.cnf' -exec rm '{}' ';'
-	@find examples/ -name '*.mci' -exec rm '{}' ';'
-	@find examples/ -name '*.bc' -exec rm '{}' ';'
-	@find examples/ -name '*.r' -exec rm '{}' ';'
-	@find examples/ -name '*.cuf' -exec rm '{}' ';'
-	@find examples/ -name '*.dot' -exec rm '{}' ';'
-	@find examples/ -name '*.pdf' -exec rm '{}' ';'
-	@find examples/ -name '*.tr' -exec rm '{}' ';'
-	@find examples/ -name '*.pt' -exec rm '{}' ';'
-	@#rm -f test/nets/{plain,cont,pr}/{small,med,large,huge}/*.{cnf,mci,bc,r,cuf,dot,pdf}
 	@echo Mr. Proper done.
 
 dist : all

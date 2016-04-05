@@ -19,7 +19,7 @@ EXEC = sa
 
 TESTFILE = test_thread3
 
-all: $(EXEC)
+all: $(EXEC) run
 #all: run
 
 $(EXEC): $(SAOBJ)
@@ -30,6 +30,9 @@ $(EXEC): $(SAOBJ)
 
 $(TESTFILE): $(TESTFILE).c
 	$(CC) -o $@ $<
+
+tags : $(SRCS)
+	ctags -R --c++-kinds=+p --fields=+K --extra=+q . $(shell llvm-config --includedir)
 
 %.ll : %.c
 	$(CC) -S -emit-llvm $(CFLAGS) $< -o $@

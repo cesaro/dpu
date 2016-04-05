@@ -500,7 +500,7 @@ void Event::compute_combi(unsigned int i, const std::vector<std::vector<Event *>
                if (newevt->idx == c.unf.evt.back().idx)
                {
                   this->dicfl.push_back(newevt);
-                 // newevt->dicfl.push_back(this);
+                  newevt->dicfl.push_back(this);
                }
                printf("\n");
             }
@@ -1153,7 +1153,7 @@ Event & Unfolding:: add_to_unf(Event * temp)
       }
 
    evt.push_back(*temp);
-   evt.back().update_parents(); // to make sure conflict
+   evt.back().update_parents(); // to make sure of conflict
    count++;
    DEBUG("   new event: id: %s \n ", evt.back().str().c_str());
    return evt.back();

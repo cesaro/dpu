@@ -183,6 +183,9 @@ bool isLive( std::string name, llvm::Function* fun  ){
  * Returns two integers:
  * - size in bits of each field
  * - number of blocks
+ *
+ * FIXME -- arrays of more than 1 dimension !!!
+ *
  */
 
 std::pair<unsigned, unsigned> getAllocaInfo( llvm::Instruction* ins ) {

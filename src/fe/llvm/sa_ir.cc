@@ -103,25 +103,25 @@ void outputCall( llvm::Module* , llvm::Instruction* ins, machine_t* machine, llv
     std::string type = typeToStr(fun->getFunctionType()->getReturnType() );
       /* Which function is called? */
   
-   if(  0 == safeCompareFname( LOCK, fun->getName().str() ) ) {
+   if(  0 == safeCompareFname( "pthread_lock", fun->getName().str() ) ) {
         val = ins->getOperand( 0 );
         lockMutex( machine, val );
     }
-    if(  0 == safeCompareFname( UNLOCK, fun->getName().str() ) ) {
+    if(  0 == safeCompareFname( "pthread_mutex_unlock", fun->getName().str() ) ) {
         val = ins->getOperand( 0 );
         unlockMutex( machine, val );
     }
-    if(  0 == safeCompareFname( PRINTF, fun->getName().str() ) ) {
+    if(  0 == safeCompareFname( "printf", fun->getName().str() ) ) {
         val = ins->getOperand( 0 );
         std::string toprint = (val->hasName()) ? val->getName().str() : getShortValueName( val );
         std::cout << "PRINTF " << type << " " << ret << " " << toprint;
     }
-    if(  0 == safeCompareFname( PTHREADCREATE, fun->getName().str() ) ) {
+    if(  0 == safeCompareFname( "pthread_create", fun->getName().str() ) ) {
         /* Thread creation. Unlock the thread */
         val = ins->getOperand( 0 );
         startThread( machine, val );
     }
-    if(  0 == safeCompareFname( PTHREADJOIN, fun->getName().str() ) ) {
+    if(  0 == safeCompareFname( "pthread_join", fun->getName().str() ) ) {
         /* Thread creation. Unlock the thread */
         val = ins->getOperand( 0 );
         joinThread( machine, val );

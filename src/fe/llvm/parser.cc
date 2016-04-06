@@ -1,8 +1,11 @@
-#include "util.hh"
-#include "util.tpp"
-#include "sa_ir.h"
 
-#include "parser.hh"
+#include "fe/llvm/util.hh"
+#include "fe/llvm/util.tpp"
+#include "fe/llvm/sa_ir.h"
+#include "fe/llvm/parser.hh"
+
+#include "fe/ir.hh"
+#include "misc.hh"
 
 /** 
  * - get the names of all the global variables
@@ -15,7 +18,250 @@ namespace fe {
 namespace llvm {
 
 using namespace std;
-using namespace llvm;
+
+bool compliantFunCalls( llvm::Module* mod );
+bool compliantAlloca( llvm::Module* mod );
+std::vector<std::string> getSymbolsFun (llvm::Function* fun);
+
+class Parser
+{
+public:
+	Parser (llvm::Module & m) : mod (&m), p (0), nbThreads (0) {}
+	~Parser ();
+
+	void parse ();
+
+	bool got_errors () { return errors; }
+	std::string get_errmsg () { return errmsg; }
+	ir::Program * get_program () { ir::Program * pp = p; p = 0; return pp; }
+
+private:
+	llvm::Module * mod;
+	ir::Program * p;
+	bool errors;
+	std::string errmsg;
+
+	std::vector<const llvm::GlobalVariable*> globalVariables;
+	std::map<llvm::Value*, llvm::Function*> threadCreations;
+	std::vector<symbol_t>  localSymbols;
+    int nbThreads;
+
+	int checkcompliance ();
+	void getGlobalVariables ();
+    void numberOfThreads ();
+	void functionThreadCreation ();
+	void getLocalSymbols ();
+    void mapSymbols ();
+};
+
+Parser::~Parser ()
+{
+	delete p;
+}
+
+void Parser::parse ()
+{
+	int ret;
+
+	errors = false;
+
+    ret = checkcompliance ();
+	SHOW (ret, "d");
+
+    if (ret != 0) {
+        errors = true;
+		errmsg = "The file does not comply with our limitations";
+        return;
+    }
+
+	DEBUG2 ("here");
+    
+    /* Count the number of threads */
+    numberOfThreads ();
+	DEBUG2 ("%d thread creations", nbThreads);
+
+    /* create the program container */
+    p = new ir::Program (nbThreads);
+
+    /* Which are the functions called when threads are created? */
+    /* the map contains:
+     * - a pair: symbol, thread id
+     * - its address in our machine
+     */
+    functionThreadCreation ();
+    for (auto & pp : threadCreations)
+    {
+    	std::string s = fmt ("%p_%s", pp.first, pp.second->getName().str().c_str());
+		ir::Function * f = p->add_thread (s);
+		SHOW (f->name.c_str (), "s");
+    }
+
+    /* Get the names of the global variables of the module and local registers per function */
+    getGlobalVariables ();
+    getLocalSymbols ();
+
+	/* allocate memory space in the program container for all LLVM symbols */
+    mapSymbols ();
+#if 0
+
+    /* Reverse map, for debugging purpose */
+    
+    machine_inverse_t inversemap =  mapSymbolsInverse( machinememory );
+
+    /* Last phase: transform the code */
+
+    IRpass( mod, &machinememory );
+
+    /* Dump the state of the machine (debugging) */
+
+    // dumpMachine( &machinememory );
+    
+    return 0;
+#endif
+}
+
+
+int Parser::checkcompliance ()
+{
+    bool rc;
+    
+    if( !(rc = compliantFunCalls (mod))) {
+        return -1;
+    }
+
+    if( !(rc = compliantAlloca (mod))){
+        return -1;
+    }
+
+    return 0;
+}
+
+void Parser::getGlobalVariables ()
+{
+    globalVariables.clear ();
+    const llvm::Module::GlobalListType &globalList = mod->getGlobalList();
+    for(auto i = globalList.begin(); i != globalList.end(); i ++) {
+        const llvm::GlobalVariable* var = &(*i);
+        globalVariables.push_back( var );
+    }
+}
+
+void Parser::numberOfThreads ()
+{
+    // TODO: support thread creation in loops
+    int cnt = 0;
+
+    llvm::StringRef n( "pthread_create" );
+    llvm::Function* func = mod->getFunction( n );
+    for( auto ui = func->use_begin(); ui != func->use_end(); ui++ ) {
+        cnt++;
+    }
+        
+    nbThreads = cnt;
+}
+
+void Parser::functionThreadCreation ()
+{
+    llvm::Value* key;
+    llvm::Function* value;
+
+    llvm::StringRef n( "pthread_create" );
+    llvm::Function* func = mod->getFunction( n );
+
+	threadCreations.clear ();
+
+    /* Get the uses of this function */
+    for( auto ui = func->use_begin(); ui != func->use_end(); ui++ ) {
+        /* Get the operands, which are actually the arguments passed 
+           to the function */
+        llvm::User* v = ui->getUser();
+        /* arg 0 -> thread name
+           arg 2 -> function name */
+        key = v->getOperand( 0 );
+        /* For arg2 we get a Value which is a pointer to the Function:
+           dereference the pointer and get the Function, 
+           which is a subclass of Value, therefore we can cast it */
+      llvm::Value* tmpval = v->getOperand( 2 );
+      llvm::GetElementPtrInst* ptr = static_cast<llvm::GetElementPtrInst*>( tmpval );
+      llvm::Value* ptrOp = ptr->getPointerOperand();
+      value = static_cast<llvm::Function*>( ptrOp );
+
+       threadCreations[key] = value;
+    }
+}
+
+void Parser::getLocalSymbols ()
+{
+	localSymbols.clear ();
+
+    llvm::Function *mainfun = mod->getFunction( llvm::StringRef( "main" ) );
+    std::vector<std::string> s = getSymbolsFun( mainfun );
+    for( auto si = s.begin() ; si != s.end() ; si++ ) {
+        localSymbols.emplace_back( *si, nullptr );
+    }
+    std::cerr << localSymbols.size() << " symbols in the main function" << std::endl;
+    
+    for( auto ti = threadCreations.begin() ; ti != threadCreations.end() ; ti++ ) {
+        std::vector<std::string> s = getSymbolsFun( ti->second );
+        int cnt = 0;
+        for( auto si = s.begin() ; si != s.end() ; si++ ) {
+            localSymbols.emplace_back ( *si, ti->first );
+            cnt++;            
+        }
+        std::cerr << cnt << " symbols in function " << ti->second->getName().str() <<std::endl;
+    }
+}
+
+void Parser::mapSymbols ()
+{
+#if 0
+    machine_t machine;
+
+    /* Save some space for the program counters of the threads
+       and the main function */
+    
+    unsigned idx = nbthreads+1;
+
+    /* thread creation/destruction is a SYNC on specific lock */
+
+     for( auto ti = threadfunctions.begin() ; ti != threadfunctions.end() ; ti++ ) {
+         symbol_t p( "thread", ti->first );
+         machine[p] = idx;
+         idx++;
+     }
+
+    /* global variables */
+
+    for( auto v = globVar.begin() ; v != globVar.end() ; v++ ) {
+        symbol_t p( (*v)->getName().str(), NULL );
+        machine[p] = idx;
+        std::cerr << "Global variable: " << (*v)->getName().str() << " at idx " << idx << std::endl;
+        idx++;
+   }
+
+    /* Local variables of each thread */
+
+    for( auto v = locVar.begin() ; v != locVar.end() ; v++ ) {
+        machine[*v] = idx;        
+        std::cerr << "Local variable: " << (*v).first;
+        if( NULL != (*v).second ) {
+            std::cerr << " on thread " << (*v).second->getName().str() << " at idx " << idx  << std::endl;;
+        } else {
+            std::cerr << " on the main thread at idx " << idx  << std::endl;
+        }
+        idx++;
+    }
+
+    return machine;
+#endif
+}
+
+// xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+// xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+// xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+// xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+
 
 /* Returns the number of threads created in a module 
 */
@@ -24,7 +270,7 @@ int numberOfThreads( llvm::Module* mod ) {
     // TODO: support thread creation in loops
     int cnt = 0;
 
-    llvm::StringRef n( PTHREADCREATE );
+    llvm::StringRef n( "pthread_create" );
     llvm::Function* func = mod->getFunction( n );
     for( auto ui = func->use_begin(); ui != func->use_end(); ui++ ) {
         cnt++;
@@ -42,7 +288,7 @@ std::map<llvm::Value*, llvm::Function*> functionThreadCreation(  llvm::Module* m
     llvm::Value* key;
     llvm::Function* value;
 
-    llvm::StringRef n( PTHREADCREATE );
+    llvm::StringRef n( "pthread_create" );
     llvm::Function* func = mod->getFunction( n );
 
     /* Get the uses of this function */
@@ -72,7 +318,7 @@ std::map<llvm::Value*, llvm::Function*> functionThreadCreation(  llvm::Module* m
 
 std::vector<const llvm::GlobalVariable*> getVariables( llvm::Module* mod ) {
     std::vector<const llvm::GlobalVariable*> vec;
-    const Module::GlobalListType &globalList = mod->getGlobalList();
+    const llvm::Module::GlobalListType &globalList = mod->getGlobalList();
     for(auto i = globalList.begin(); i != globalList.end(); i ++) {
         const llvm::GlobalVariable* var = &(*i);
         vec.push_back( var );
@@ -141,7 +387,7 @@ bool compliantAlloca( llvm::Module* mod ) {
 
 void parseInstruction( llvm::Module* mod, machine_t* machine, llvm::Instruction* ins, llvm::Value* tid ) {
     /* look at the operands of the instruction */
-    ins->print( errs() );
+    ins->print( llvm::errs() );
     std::cerr << "\n";
     std::cerr << "Op code " << ins->getOpcode() << " " << ins->getOpcodeName() << std::endl;
 
@@ -238,7 +484,7 @@ void parseBasicBlock(llvm::Module* mod, machine_t* machine, llvm::BasicBlock* bl
         line++;
     }
 
-    TerminatorInst *term = block->getTerminator();
+    llvm::TerminatorInst *term = block->getTerminator();
     int numsucc = term->getNumSuccessors();
     std::cerr << "Terminator:" << std::endl;
     std::cerr << "\tI have " << numsucc << " successors" << std::endl;
@@ -289,6 +535,8 @@ std::vector<std::string>  getSymbolsFun( llvm::Function* fun ) {
        the allocations are made in the first block */
     
     //    llvm::BasicBlock* entryBlock = fun->begin();
+
+	DEBUG ("getSymbolsFun: at '%s'", fun->getName().str().c_str());
      
     std::vector<llvm::BasicBlock*> visitedblocks = blocklist( fun ) ;
     
@@ -304,6 +552,9 @@ std::vector<std::string>  getSymbolsFun( llvm::Function* fun ) {
             switch( i->getOpcode() ) { /*  TODO: needs to be completed wit other operations */
             case opcodes.LoadInst:
             case opcodes.CallInst:
+			case opcodes.StoreInst:
+			case opcodes.ReturnInst:
+			case opcodes.BranchInst:
             case opcodes.ICmpInst:
                 break;
             case opcodes.AllocaInst: // case when no name in this case: %1 %2 %3 allocated for argc and argv
@@ -323,6 +574,12 @@ std::vector<std::string>  getSymbolsFun( llvm::Function* fun ) {
                 }
                break;
           default:
+		  		std::string s;
+		  		llvm::raw_string_ostream os (s);
+		  		i->print (os);
+				os.flush ();
+				DEBUG ("Unsupported instruction when extracting local symbols: '%s'", s.c_str ());
+		  		ASSERT (0);
                 name = "";
                 break;
             }
@@ -342,7 +599,7 @@ std::vector<std::string>  getSymbolsFun( llvm::Function* fun ) {
 
 /* Get the symbols used by all the functions */
 
-std::vector<symbol_t>  getSymbols( llvm::Module* mod ) {
+std::vector<symbol_t>  getLocalSymbols( llvm::Module* mod ) {
     
     std::vector<symbol_t> symb;
 
@@ -502,9 +759,10 @@ bool checkcompliance( llvm::Module* mod ){
     return true;
 }
 
-
-int readIR( llvm::Module* mod ) {
+std::unique_ptr<ir::Program> translate (llvm::Module* mod )
+{
     bool rc;
+    //return std::unique_ptr<ir::Program> (new ir::Program (2));
 
     /* Check the file complies with our limitations */
     
@@ -514,7 +772,7 @@ int readIR( llvm::Module* mod ) {
         std::cout << "The file is compliant. Continue \\o/" << std::endl;
     } else {
         std::cerr << "The file does not comply with our limitations. Terminating." << std::endl;
-        return -1;    
+        return 0;
     }
     
     /* Get the names of the global variables of the module */
@@ -522,17 +780,21 @@ int readIR( llvm::Module* mod ) {
     auto globVar = getVariables( mod );
     
     /* Count the number of threads */
-    
     int nbThreads =  numberOfThreads( mod );
     std::cout << nbThreads << " thread creations" << std::endl;
 
+    /* create the program container */
+    std::unique_ptr<ir::Program> p (new ir::Program (nbThreads));
+
     /* Which are the functions called when threads are created? */
-    
     std::map<llvm::Value*, llvm::Function*> threadCreations = functionThreadCreation( mod );
+    for (auto & pp : threadCreations)
+    {
+    	std::string s = fmt ("%p_%s", pp.first, pp.second->getName().str().c_str());
+    }
 
     /* Get the local variables used by each thread */
-    
-    std::vector<symbol_t> symbols = getSymbols( mod );
+    std::vector<symbol_t> symbols = getLocalSymbols( mod );
 
     /* the map contains:
      * - a pair: symbol, thread id
@@ -556,40 +818,42 @@ int readIR( llvm::Module* mod ) {
     return 0;
 }
 
-} } } // namespace dpu::fe::llvm
-
-
-#if 0
-int main(int argc, char** argv) {
-    int rc;
-   
-    if (argc < 2) {
-        std::cerr << "Expected arguments" << std::endl;
-        std::cerr << "\t" << argv[0] << "  <IR file>" << std::endl;
-        return EXIT_FAILURE;
-    }
-
+std::unique_ptr<ir::Program> parse (const std::string & filename, std::string & errors)
+{
+    // get a context
     llvm::LLVMContext &context = llvm::getGlobalContext();
     llvm::SMDiagnostic err;
+
+    // parse the .ll file and get a Module out of it
 #if LLVM_VERSION_MINOR <= 5
-	 llvm::Module * mod= llvm::ParseIRFile(argv[1], err, context);
-    if (!mod) {
-        err.print( argv[0], llvm::errs() );
-        return 1;
-    }
-    rc = dpu::fe::llvm::readIR( mod );
+    std::unique_ptr<llvm::Module> mod = llvm::ParseIRFile (path, err, context);
 #else
-    auto mod = llvm::parseIRFile(argv[1], err, context);
+    std::unique_ptr<llvm::Module> mod = llvm::parseIRFile (filename, err, context);
+#endif
+
+    // if errors found, write them to errors and return
     if (! mod.get ()) {
-        err.print( argv[0], llvm::errs() );
-        return 1;
+        llvm::raw_string_ostream os (errors);
+        err.print (filename.c_str(), os);
+        os.flush ();
+        return 0;
     }
-    rc = dpu::fe::llvm::readIR( mod.get () );
-#endif
-    
-    std::cout << "Exiting happily" << std::endl;
-    
-    return EXIT_SUCCESS;
+
+	//SHOW (mod.get (), "p");
+	//mod.get()->dump ();
+
+	// traslate the LLVM module into our 3 address code
+	Parser p (*mod.get ());
+	p.parse ();
+	if (p.got_errors ())
+	{
+		DEBUG2 ("here");
+		SHOW (p.get_errmsg ().c_str(), "s");
+		errors = p.get_errmsg ();
+		return 0;
+	}
+	return std::unique_ptr<ir::Program> (p.get_program ());
 }
-#endif
+
+} } } // namespace dpu::fe::llvm
 

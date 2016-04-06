@@ -8,6 +8,12 @@
 #include <algorithm>
 #include <sys/stat.h>
 
+#include "llvm/IRReader/IRReader.h"
+#include "llvm/IR/LLVMContext.h"
+#include "llvm/IR/Module.h"
+#include "llvm/Support/SourceMgr.h"
+#include "llvm/Support/raw_ostream.h"
+
 #include "test.hh"
 #include "ir.hh"
 #include "pes.hh"
@@ -15,6 +21,7 @@
 #include "verbosity.h"
 
 #include "fe/ir.hh"
+#include "fe/llvm/parser.hh"
 
 using namespace dpu;
 
@@ -1431,3 +1438,19 @@ void test19()
    DEBUG("stop");
 
 }
+
+void test20()
+{
+   std::string path = "benchmarks/camille/test_thread3.ll";
+   std::string errors;
+   
+   auto p = fe::llvm::parse (path, errors);
+   if (p.get () == 0)
+   {
+      printf ("%s\n", errors.c_str ());
+      return;
+   }
+   p->dump ();
+   printf ("Exiting happily\n");
+}
+

@@ -1,22 +1,16 @@
-typedef unsigned long int pthread_t;
-typedef union {
-            char __size[56]; long int __align;
-        } pthread_attr_t;
-
-int pthread_create(pthread_t *thread, const pthread_attr_t *attr, void *(*start_routine)(void*), void *arg);
-int pthread_join(pthread_t thread, void **arg);
-int printf(const char * restrict format, ...);
+#include <pthread.h>
+#include <stdio.h>
     
 int x=0;
 
 void *p(){
     x = 1;
-    return NULL;
+    return 0;
 }
 
 void *q(){
     x = 2;
-    return NULL;
+    return 0;
 }
 
 int main(){
@@ -25,12 +19,12 @@ int main(){
     pthread_t q_t;
 
     /* create the threads and execute */
-    pthread_create(&p_t, NULL, p, NULL);
-    pthread_create(&q_t, NULL, q, NULL);
+    pthread_create(&p_t, 0, p, 0);
+    pthread_create(&q_t, 0, q, 0);
 
     /* wait for the threads to finish */
-    pthread_join(p_t, NULL);
-    pthread_join(q_t, NULL);
+    pthread_join(p_t, 0);
+    pthread_join(q_t, 0);
 
 
     /* show the results  */
@@ -38,6 +32,3 @@ int main(){
 
     return 0;
 }
-//int printf(const char * restrict format, ...);
-
-//int main(){printf("Hello world\n");return 0;}

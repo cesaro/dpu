@@ -1,4 +1,5 @@
-#include "pthread.h"    
+
+#include <pthread.h>
 #define N 2
 
 int c=0;
@@ -12,6 +13,7 @@ void *p(){
     c = l+1;
     l =0;
   }
+  return 0;
 }
 
 void *q(){
@@ -22,6 +24,7 @@ void *q(){
     c = l+1;
     l =0;
   }
+  return 0;
 }
 
 void *r(){
@@ -32,6 +35,7 @@ void *r(){
     c = l+1;
     l =0;
   }
+  return 0;
 }
 
 int main(){
@@ -53,8 +57,6 @@ int main(){
     /* show the results  */
     //    printf("x: %d\n", x);
 
-    // return 0;
+    return 0;
 }
-//int printf(const char * restrict format, ...);
 
-//int main(){printf("Hello world\n");return 0;}

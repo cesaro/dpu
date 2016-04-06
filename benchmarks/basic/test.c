@@ -1,11 +1,5 @@
-typedef unsigned long int pthread_t;
-typedef union {
-            char __size[56]; long int __align;
-        } pthread_attr_t;
-
-int pthread_create(pthread_t *thread, const pthread_attr_t *attr, void *(*start_routine)(void*), void *arg);
-int pthread_join(pthread_t thread, void **arg);
-int printf(const char * restrict format, ...);
+#include <pthread.h>
+#include <stdio.h>
     
 int x=0;
 int y=0;

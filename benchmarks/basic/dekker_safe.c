@@ -1,7 +1,8 @@
 /* Testcase from Threader's distribution. For details see:
    http://www.model.in.tum.de/~popeea/research/threader
 */
-#include "pthread.h"
+#include <pthread.h>
+#include <assert.h>
 
 int flag1 = 0;
 int flag2 = 0; // boolean flags
@@ -21,12 +22,12 @@ void *thr1() {
   }
   // begin: critical section
   x = 0;
-  //assert(x<=0);
+  assert(x<=0);
   // end: critical section
   turn = 1;
   flag1 = 0;
   
-  // return NULL; poet
+  return NULL;
 }
 
 void *thr2() {
@@ -42,12 +43,12 @@ void *thr2() {
   }
   // begin: critical section
   x = 1;
-  // assert(x>=1);
+  assert(x>=1);
   // end: critical section
   turn = 0;
   flag2 = 0;
   
-  // return NULL; // poet
+  return NULL;
 }
 
 int main() {
@@ -61,10 +62,10 @@ int main() {
   __CPROVER_ASYNC_1: thr2();
   */
 
-  pthread_create(t1, NULL, thr1, NULL); // poet modified
-  pthread_create(t2, NULL, thr2, NULL); // poet modified
+  pthread_create(&t1, NULL, thr1, NULL); // poet modified
+  pthread_create(&t2, NULL, thr2, NULL); // poet modified
   pthread_join(t1, NULL); // poet modified
   pthread_join(t2, NULL); // poet modified
 
-  // return 0; // poet modified
+  return 0;
 }

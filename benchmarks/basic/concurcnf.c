@@ -6,18 +6,22 @@ int y=0;
 
 void *p(){
   x=1;
+  return 0;
 }
 
 void *q(){
   x=2;
+  return 0;
 }
 
 void *r(){
   y=1;
+  return 0;
 }
 
 void *s(){
   y=2;
+  return 0;
 }
 
 int main(){
@@ -38,4 +42,5 @@ int main(){
     pthread_join(q_t, NULL);
     pthread_join(r_t, NULL);
     pthread_join(s_t, NULL);
+    return 0;
 }

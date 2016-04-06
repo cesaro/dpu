@@ -1,11 +1,11 @@
-#include "pthread.h"
+#include <pthread.h>
 
 int i=1;
 int j=1;
 
 #define NUM 5
 
-void *t1()
+void *t1 (void * arg)
 {
   int k1 = 0;
 
@@ -17,7 +17,7 @@ void *t1()
   return NULL;
 }
 
-void *t2()
+void *t2 (void * arg)
 {
   int k2 = 0;
 
@@ -33,11 +33,11 @@ void *t2()
 int
 main(int argc, char **argv)
 {
-    pthread_t id1;
-    pthread_t id2;
+  pthread_t id1;
+  pthread_t id2;
 
-  pthread_create(&id1, NULL, t1, NULL);
-  pthread_create(&id2, NULL, t2, NULL);
+  pthread_create (&id1, NULL, t1, NULL);
+  pthread_create (&id2, NULL, t2, NULL);
 
   if (i >= 144 || j >= 144) {
       return -1;

@@ -2,7 +2,8 @@
    http://www.model.in.tum.de/~popeea/research/threader
 */
 
-#include "pthread.h"
+#include <pthread.h>
+#include <assert.h>
 
 int x;
 int y;
@@ -32,12 +33,12 @@ void *thr1() {
   }
   // begin: critical section
   X = 0;
-  //assert(X <= 0);
+  assert(X <= 0);
   // end: critical section
   y = 0;
   b1 = 0;
   
-  return NULL;
+  return 0;
 }
 
 void *thr2() {
@@ -62,12 +63,12 @@ void *thr2() {
   }
   // begin: critical section
   X = 1;
-  //assert(X >= 1);
+  assert(X >= 1);
   // end: critical section
   y = 0;
   b2 = 0;
 
-  return NULL;
+  return 0;
 }
 
 int main() {

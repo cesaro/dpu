@@ -1,36 +1,32 @@
-//#include <pthread.h>
-//#include <stdio.h>
 
-typedef unsigned long int pthread_t;
-typedef union {
-            char __size[56]; long int __align;
-        } pthread_attr_t;
+#include <pthread.h>
+#include <stdio.h>
 
-int pthread_create(pthread_t *thread, const pthread_attr_t *attr, void *(*start_routine)(void*), void *arg);
-int pthread_join(pthread_t, void **);
-int printf(const char * restrict format, ...);
-    
 int x, y, z = 0;
 
-void *p(){
+void *p (void * arg)
+{
     x = 1;
-    return NULL;
+    return 0;
 }
 
-void *q(){
+void *q (void * arg)
+{
     y = 1;
-    return NULL;
+    return 0;
 }
 
-void *r(){
+void *r (void * arg)
+{
     int m = y;
     if (m == 0){
         z = 1;
     }
-    return NULL;
+    return 0;
 }
 
-void *s(){
+void *s (void * arg)
+{
     int n = z;
     int l = y;
     if (n == 1){
@@ -38,7 +34,7 @@ void *s(){
             x = 2;
         }
     }
-    return NULL;
+    return 0;
 }
 
 int main(){
@@ -46,16 +42,16 @@ int main(){
     pthread_t p_t, q_t, r_t, s_t;
 
     /* create the threads and execute */
-    pthread_create(&p_t, NULL, p, NULL);
-    pthread_create(&q_t, NULL, q, NULL);
-    pthread_create(&r_t, NULL, r, NULL);
-    pthread_create(&s_t, NULL, s, NULL);
+    pthread_create(&p_t, 0, p, 0);
+    pthread_create(&q_t, 0, q, 0);
+    pthread_create(&r_t, 0, r, 0);
+    pthread_create(&s_t, 0, s, 0);
 
     /* wait for the threads to finish */
-    pthread_join(p_t, NULL);
-    pthread_join(q_t, NULL);
-    pthread_join(r_t, NULL);
-    pthread_join(s_t, NULL);
+    pthread_join(p_t, 0);
+    pthread_join(q_t, 0);
+    pthread_join(r_t, 0);
+    pthread_join(s_t, 0);
 
 
     /* show the results  */

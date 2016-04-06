@@ -1,7 +1,11 @@
+
 #include "pthread.h"
+#include <assert.h>
     
-int main(){
+int main ()
+{
   int x = 10;
-  if (x < 5) __poet_fail ();
+  assert (x >= 5);
+  return 0;
 }
 

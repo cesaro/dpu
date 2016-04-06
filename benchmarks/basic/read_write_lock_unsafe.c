@@ -6,15 +6,15 @@
    by Cormac Flanagan, Stephen Freund, Shaz Qadeer.
 */
 
-#include "pthread.h"
+#include <pthread.h>
+#include <assert.h>
 
 int w=0;
 int r=0;
 int x; 
 int y;
 
-
-void *writer0() { //writer
+void * writer (void * arg) { //writer
   //__VERIFIER_atomic_take_write_lock();  
   if(w ==0)
     if(r ==0)
@@ -23,68 +23,33 @@ void *writer0() { //writer
   x = 3;
   w = 0;
   
-  //return NULL;
+  return 0;
 }
 
-void *writer1() { //writer
-  //__VERIFIER_atomic_take_write_lock();  
-  if(w ==0)
-    if(r ==0)
-      w = 1;
-  
-  x = 3;
-  w = 0;
-    
-  // return NULL;
-}
-
-void *reader0() { //reader
-  int l0;
+void * reader (void * arg) { //reader
   //__VERIFIER_atomic_take_read_lock();
-  int t; 
   if(w==0){
-    t = r; 
-    r = t+1;
+    r++;
   }
-  t = x;
-  y = t;
-  //assert(y == x);
-  l0 = r-1;
-  r = l0;
-  
-  //  return NULL;
+  y = x;
+  assert (y == x);
+  r--;
+ 
+  return 0;
 }
 
-void *reader1() { //reader
-  int l1;
-  //__VERIFIER_atomic_take_read_lock();
-  int t; 
-  if(w==0){
-    t = r; 
-    r = t+1;
-  }
-  t = x;
-  y = t;
-  //assert(y == x);
-  l1 = r-1;
-  r = l1;
-  
-  //return NULL;
-}
+int main (int argc, char** argv) {
+    pthread_t tids[4];
 
-int main() {
-    pthread_t t1;
-    pthread_t t2;
-    pthread_t t3;
-    pthread_t t4;
-    pthread_create(t1, 0, writer0, 0);
-    pthread_create(t2, 0, reader0, 0);
-    pthread_create(t3, 0, writer1, 0);
-    pthread_create(t4, 0, reader1, 0);
-    pthread_join(t1, 0);
-    pthread_join(t2, 0);
-    pthread_join(t3, 0);
-    pthread_join(t4, 0);
+    pthread_create (tids + 0, 0, writer, 0);
+    pthread_create (tids + 1, 0, writer, 0);
+    pthread_create (tids + 2, 0, reader, 0);
+    pthread_create (tids + 3, 0, reader, 0);
+
+    pthread_join (tids[0], 0);
+    pthread_join (tids[1], 0);
+    pthread_join (tids[2], 0);
+    pthread_join (tids[3], 0);
     
     return 0;
 }

@@ -2,8 +2,8 @@ CC=clang
 CXX=clang++
 
 CPPFLAGS=
-CFLAGS=-Wall -std=c11
-CXXFLAGS=-Wall -std=c++11
+CFLAGS=-Wall -O1
+CXXFLAGS=-Wall -O1
 LDLIBS=-lpthread
 
 SRCS:=$(wildcard *.c)
@@ -15,11 +15,11 @@ clean :
 	rm -f $(TARGETS)
 
 %.ll : %.c
-	$(CC) -S -emit-llvm $(CFLAGS_) $< -o $@
+	$(CC) -S -emit-llvm -include __dpu.h $(CFLAGS) $< -o $@
 %.bc : %.c
-	$(CC) -c -emit-llvm $(CFLAGS_) $< -o $@
+	$(CC) -c -emit-llvm -include __dpu.h $(CFLAGS) $< -o $@
 %.ll : %.cc
-	$(CC) -S -emit-llvm $(CXXFLAGS_) $< -o $@
+	$(CC) -S -emit-llvm -include __dpu.h $(CXXFLAGS) $< -o $@
 %.bc : %.cc
-	$(CC) -c -emit-llvm $(CXXFLAGS_) $< -o $@
+	$(CC) -c -emit-llvm -include __dpu.h $(CXXFLAGS) $< -o $@
 

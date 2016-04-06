@@ -38,17 +38,19 @@ Event::Event (Unfolding & u)
    , color(0)
 {
    unsigned numprocs = u.m.procs.size();
-   unsigned mem = u.m.memsize - numprocs;
-   pre_readers.reserve(numprocs);
+   //unsigned mem = u.m.memsize - numprocs;
+
+   //   pre_readers.reserve(numprocs);
+   //   post_proc.reserve(numprocs);
+   //   post_rws.reserve(mem);
+   //   post_wr.reserve(numprocs);
+   //   dicfl.reserve(u.m.trans.size());
    post_mem.reserve(numprocs);
-   post_proc.reserve(numprocs);
-   post_rws.reserve(mem);
-   post_wr.reserve(numprocs);
-   dicfl.reserve(u.m.trans.size());
-   clock.reserve(numprocs);
+   //clock.reserve(numprocs);
 
    // create numprocs vectors for storing event pointers
-   post_mem.resize(numprocs);
+   //post_mem.resize(numprocs);
+
    // initialize vector clock
    for (unsigned i = 0; i < numprocs; i++)
          clock.push_back(0);
@@ -79,6 +81,47 @@ Event::Event (const Trans & t, Unfolding & u)
    clock.reserve(numprocs);
    for (unsigned i = 0; i < numprocs; i++)
       clock.push_back(0);
+   DEBUG ("  %p: Event.ctor: t %p: '%s'", this, &t, t.str().c_str());
+}
+
+Event::Event (const ir::Trans & t, Event * ep, Event * em, Unfolding & u)
+   : idx(u.count)
+   , pre_proc(ep)
+   , pre_mem(em)
+   , val(0)
+   , localvals(0)
+   , trans(&t)
+   , color(0)
+
+{
+   assert(u.count < u.evt.capacity());
+   unsigned numprocs = u.m.procs.size();
+   post_mem.resize(numprocs);
+   clock.reserve(numprocs);
+   for (unsigned i = 0; i < numprocs; i++)
+      clock.push_back(0);
+   DEBUG ("  %p: Event.ctor: t %p: '%s'", this, &t, t.str().c_str());
+}
+
+Event::Event (const ir::Trans & t, Event * ep, Event * em, std::vector<Event *> pr, Unfolding & u)
+   : idx(u.count)
+   , pre_proc(ep)
+   , pre_mem(nullptr)
+   , val(0)
+   , localvals(0)
+   , trans(&t)
+   , color(0)
+
+{
+   assert(u.count < u.evt.capacity());
+   unsigned numprocs = u.m.procs.size();
+   post_mem.resize(numprocs);
+   clock.reserve(numprocs);
+   for (unsigned i = 0; i < numprocs; i++)
+   {
+      clock.push_back(0);
+      pre_readers.push_back(pr[i]);
+   }
    DEBUG ("  %p: Event.ctor: t %p: '%s'", this, &t, t.str().c_str());
 }
 
@@ -282,236 +325,6 @@ void Event::update_parents()
    }
    return ;
 }
-/*
- *  compute conflict extension for a RD event
- */
-void Event:: RD_cex(Config & c)
-{
-   DEBUG(" %p, id:%d: RD conflicting extension", this, this->idx);
-   Event * ep, * em;
-   Event * temp;
-   const Trans & t = *trans;
-   ep = this->pre_proc;
-   em = this->pre_mem;
-
-   while ((em->is_bottom() != true) && (ep->in_history(em) == false))
-   {
-      temp = new Event(t, c.unf);
-      temp->pre_proc = ep;
-      //temp->pre_readers.clear();
-
-      if (em->trans->type == ir::Trans::RD)
-      {
-         temp->pre_mem  = em;
-         em             = em->pre_mem;
-      }
-      else
-      {
-         temp->pre_mem  = em->pre_readers[this->trans->proc.id];
-         em             = em->pre_readers[this->trans->proc.id];
-      }
-
-      /* Need to check the event's history before adding it to the unf
-       * Don't add events which are already in the unf
-       */
-      Event * newevt = &c.unf.add_to_unf(temp);
-      c.add_to_cex(newevt);
-
-      // update direct conflicting set for both events
-      if (newevt->idx == c.unf.evt.back().idx)
-      {
-         this->dicfl.push_back(newevt);
-         // newevt->dicfl.push_back(this);
-      }
-
-#if 0
-      bool in_unf = false, in_cex = false;
-      for (auto & ee :c.unf.evt)
-      {
-         if ( temp->is_same(ee) == true )
-         {
-            in_unf = true;
-            DEBUG("   Already in the unf as %s", ee.str().c_str());
-            // if it is in cex -> don't add
-            for (auto ce : c.cex1)
-               if (ee.idx == ce->idx)
-               {
-                  in_cex = true;
-                  DEBUG("Event already in the cex");
-                  break;
-               }
-
-            if (in_cex == false)
-            {
-               c.cex1.push_back(&ee);
-               this->dicfl.push_back(&ee);
-            }
-
-            break;
-         }
-      } // end for
-
-      if (in_unf == false)
-      {
-            DEBUG(" Temp doesn't exist in evt");
-            c.unf.evt.push_back(*temp);
-            c.unf.evt.back().update_parents();
-            c.unf.count++;
-            c.cex1.push_back(&c.unf.evt.back());
-            this->dicfl.push_back(&c.unf.evt.back());
-            DEBUG("   Unf.evt.back: id: %s \n ", c.unf.evt.back().str().c_str());
-      }
-#endif
-   } // end while
-}
-
-/*
- *  compute conflict events for a SYN event
- */
-void Event:: SYN_cex(Config & c)
-{
-   DEBUG(" %p, id:%d: SYN conflicting extension", this, this->idx);
-   Event * ep, * em, * temp;
-   const Trans & t = *trans;
-   ep = this->pre_proc;
-   em = this->pre_mem;
-
-   while ((em->in_history(ep) == false) && (em->is_bottom() != true))
-   {
-      temp = new Event(t, c.unf);
-
-      /* make temp's history */
-      temp->pre_proc = ep;
-      temp->pre_mem  = em;
-      DEBUG("  Event created: %s ", temp->str().c_str());
-
-      /*
-       * Check if temp already exists in unf before adding
-       */
-      Event * newevt = &c.unf.add_to_unf(temp);
-      c.add_to_cex(newevt);
-
-      // update direct conflicting set for both events
-      if (newevt->idx == c.unf.evt.back().idx)
-      {
-         this->dicfl.push_back(newevt);
-         // newevt->dicfl.push_back(this);
-      }
-
-      em = em->pre_mem;
-
-   } // end while
-}
-/*
- * Compute conflicting event for a WR event
- */
-void Event:: WR_cex(Config & c)
-{
-   DEBUG(" %p: id:%d WR cex computing", this, this->idx);
-   Event * ep, * ew, * temp;
-   unsigned numprocs = c.unf.m.procs.size();
-   std::vector<std::vector<Event *> > spikes(numprocs);
-   spikes.resize(numprocs);
-
-   ep = this->pre_proc;
-   ew = this;
-   int count = 0;
-
-   while ((ew->is_bottom() == false) && (ep->in_history(ew)) == false )
-   {
-      for (unsigned k = 0; k < numprocs; k++)
-         spikes[k].clear(); // clear all spikes for storing new elements
-
-      DEBUG("  Comb #%d (%d spikes): ", count++, numprocs);
-      for (unsigned i = 0; i < ew->pre_readers.size(); i++)
-      {
-         temp = ew->pre_readers[i];
-         while ((temp->is_bottom() == false) && (temp->trans->type != ir::Trans::WR))
-         {
-            spikes[i].push_back(temp);
-            temp = temp->pre_mem;
-         }
-
-         spikes[i].push_back(temp); // add the last WR or bottom to the spike
-      }
-      /* show the comb */
-      //DEBUG("   Show the comb");
-      for (unsigned i = 0; i < spikes.size(); i++)
-      {
-         printf("    ");
-         for (unsigned j = 0; j < spikes[i].size(); j++)
-            printf("%d ", spikes[i][j]->idx);
-         printf("\n");
-      }
-
-      ew = spikes[0].back();
-      /*
-       * if ew is a event which is inside ep's history,
-       * remove from the comb ew itself and all RD events that are also in the history
-       * should think about bottom!!!
-       */
-      if (ep->in_history(ew) == true)
-      {
-         for (int unsigned i = 0; i < spikes.size(); i++)
-            while (ep->in_history(spikes[i].back()) == true)
-               spikes[i].pop_back(); // WR event at the back and its predecessors have an order backward
-      }
-
-      /*
-       * Compute all possible combinations c(s1,s2,..sn) from the spikes to produce new conflicting events
-       */
-      std::vector<Event *> combi;
-      combi.reserve(numprocs);
-      this->compute_combi(0, spikes, combi,c);
-   }
-}
-/*
- * compute all combinations of set s
- * c is vector to store a combination
- */
-void Event::compute_combi(unsigned int i, const std::vector<std::vector<Event *>> & s, std::vector<Event *> combi, Config & c)
-{
-   Event * newevt;
-   const Trans & t = *trans;
-   for (unsigned j = 0; j < s[i].size(); j++ )
-      {
-         if (j < s[i].size())
-         {
-            combi.push_back(s[i][j]);
-            if (i == s.size() - 1)
-            {
-               printf("   Combination:");
-               for (unsigned k = 0; k < combi.size(); k++)
-                  printf("%d ", combi[k]->idx);
-
-               Event * temp = new Event(t, c.unf);
-               temp->pre_proc    = this->pre_proc;
-               temp->pre_readers = combi;
-               temp->pre_mem     = combi.back(); // the previous WR - at the end of combination
-
-               /* if an event is already in the unf, it must have all necessary relations including causality and conflict.
-                * That means it is in cex, so don't need to check if old event is in cex or not. It's surely in cex.
-                */
-
-               newevt = &c.unf.add_to_unf(temp);
-               c.add_to_cex(newevt);
-
-               // update direct conflicting set for both events, but only for new added event.
-
-               if (newevt->idx == c.unf.evt.back().idx)
-               {
-                  this->dicfl.push_back(newevt);
-                  newevt->dicfl.push_back(this);
-               }
-               printf("\n");
-            }
-            else
-               compute_combi(i+1, s, combi, c);
-         }
-         combi.pop_back();
-      }
-}
-
 /*
  * Check if e is in this event's history or not
  * If this and e are in the same process, check their source
@@ -866,8 +679,8 @@ void Config::__update_encex (Event & e )
   //Event * pe;
    DEBUG ("%p: Config.__update_encex(%p)", this, &e);
 
-   //std::vector<ir::Trans> & trans    = unf.m.trans; // set of transitions in the model
-   //std::vector <ir::Process> & procs = unf.m.procs; // set of processes in the model
+   std::vector<ir::Trans> & trans    = unf.m.trans; // set of transitions in the model
+   std::vector <ir::Process> & procs = unf.m.procs; // set of processes in the model
 
    assert(trans.size() > 0);
    assert(procs.size() > 0);
@@ -933,13 +746,13 @@ void Config::compute_cex ()
          switch (p->trans->type)
          {
             case ir::Trans::RD:
-               p->RD_cex(*this);
+               this->RD_cex(p);
                break;
             case ir::Trans::SYN:
-               p->SYN_cex(*this);
+               this->SYN_cex(p);
                break;
             case ir::Trans::WR:
-               p->WR_cex(*this);
+               this->WR_cex(p);
                break;
             case ir::Trans::LOC:
                DEBUG(" %p, id:%d: No conflict for a LOC", p, p->idx);
@@ -951,7 +764,207 @@ void Config::compute_cex ()
 
    this->__print_cex();
 }
+/*
+ *  compute conflict extension for a RD event
+ */
+void Config:: RD_cex(Event * e)
+{
+   DEBUG(" %p, id:%d: RD conflicting extension", e, e->idx);
+   Event * ep, * em, *pr_mem; //pr_mem: pre_mem
+   const Trans & t = *(e->trans);
+   ep = e->pre_proc;
+   em = e->pre_mem;
 
+   while ((em->is_bottom() != true) && (ep->in_history(em) == false))
+   {
+      if (em->trans->type == ir::Trans::RD)
+      {
+         pr_mem   = em;
+         em       = em->pre_mem;
+      }
+      else
+      {
+         pr_mem   = em->pre_readers[e->trans->proc.id];
+         em       = em->pre_readers[e->trans->proc.id];
+      }
+
+      /* Need to check the event's history before adding it to the unf
+       * Don't add events which are already in the unf
+       */
+
+      Event * newevt = &unf.find_or_add(t,ep,pr_mem);
+      add_to_cex(newevt);
+
+      // they are not in direct conflict, so don't add to dicfl
+#if 0
+      if (newevt->idx == c.unf.evt.back().idx)
+      {
+         this->dicfl.push_back(newevt);
+         // newevt->dicfl.push_back(this);
+      }
+#endif
+#if 0
+      bool in_unf = false, in_cex = false;
+      for (auto & ee :c.unf.evt)
+      {
+         if ( temp->is_same(ee) == true )
+         {
+            in_unf = true;
+            DEBUG("   Already in the unf as %s", ee.str().c_str());
+            // if it is in cex -> don't add
+            for (auto ce : c.cex1)
+               if (ee.idx == ce->idx)
+               {
+                  in_cex = true;
+                  DEBUG("Event already in the cex");
+                  break;
+               }
+
+            if (in_cex == false)
+            {
+               c.cex1.push_back(&ee);
+               this->dicfl.push_back(&ee);
+            }
+
+            break;
+         }
+      } // end for
+
+      if (in_unf == false)
+      {
+            DEBUG(" Temp doesn't exist in evt");
+            c.unf.evt.push_back(*temp);
+            c.unf.evt.back().update_parents();
+            c.unf.count++;
+            c.cex1.push_back(&c.unf.evt.back());
+            this->dicfl.push_back(&c.unf.evt.back());
+            DEBUG("   Unf.evt.back: id: %s \n ", c.unf.evt.back().str().c_str());
+      }
+#endif
+   } // end while
+}
+
+/*
+ *  compute conflict events for a SYN event
+ */
+void Config:: SYN_cex(Event * e)
+{
+
+}
+/*
+ * Compute conflicting event for a WR event
+ */
+void Config:: WR_cex(Event * e)
+{
+   DEBUG(" %p: id:%d WR cex computing", e, e->idx);
+   Event * ep, * ew, * temp;
+   unsigned numprocs = unf.m.procs.size();
+   std::vector<std::vector<Event *> > spikes(numprocs);
+   spikes.resize(numprocs);
+
+   ep = e->pre_proc;
+   ew = e;
+   int count = 0;
+
+   while ((ew->is_bottom() == false) && (ep->in_history(ew)) == false )
+   {
+      for (unsigned k = 0; k < numprocs; k++)
+         spikes[k].clear(); // clear all spikes for storing new elements
+
+      DEBUG("  Comb #%d (%d spikes): ", count++, numprocs);
+      for (unsigned i = 0; i < ew->pre_readers.size(); i++)
+      {
+         temp = ew->pre_readers[i];
+         while ((temp->is_bottom() == false) && (temp->trans->type != ir::Trans::WR))
+         {
+            spikes[i].push_back(temp);
+            temp = temp->pre_mem;
+         }
+
+         spikes[i].push_back(temp); // add the last WR or bottom to the spike
+      }
+      /* show the comb */
+      //DEBUG("   Show the comb");
+      for (unsigned i = 0; i < spikes.size(); i++)
+      {
+         printf("    ");
+         for (unsigned j = 0; j < spikes[i].size(); j++)
+            printf("%d ", spikes[i][j]->idx);
+         printf("\n");
+      }
+
+      ew = spikes[0].back();
+      /*
+       * if ew is a event which is inside ep's history,
+       * remove from the comb ew itself and all RD events that are also in the history
+       * should think about bottom!!!
+       */
+      if (ep->in_history(ew) == true)
+      {
+         for (int unsigned i = 0; i < spikes.size(); i++)
+            while (ep->in_history(spikes[i].back()) == true)
+               spikes[i].pop_back(); // WR event at the back and its predecessors have an order backward
+      }
+
+      /*
+       * Compute all possible combinations c(s1,s2,..sn) from the spikes to produce new conflicting events
+       */
+      std::vector<Event *> combi;
+      combi.reserve(numprocs);
+      compute_combi(0, spikes, combi,temp);
+   }
+}
+/*
+ * compute all combinations of set s
+ * c is vector to store a combination
+ */
+void Config::compute_combi(unsigned int i, const std::vector<std::vector<Event *>> & s, std::vector<Event *> combi, Event * e)
+{
+   Event * newevt;
+   const ir::Trans & t = *(e->trans);
+   for (unsigned j = 0; j < s[i].size(); j++ )
+      {
+         if (j < s[i].size())
+         {
+            combi.push_back(s[i][j]);
+            if (i == s.size() - 1)
+            {
+               printf("   Combination:");
+               for (unsigned k = 0; k < combi.size(); k++)
+                  printf("%d ", combi[k]->idx);
+
+               /*
+               Event * temp = new Event(t, c.unf);
+               temp->pre_proc    = pre_proc;
+               temp->pre_readers = combi;
+               temp->pre_mem     = combi.back(); // the previous WR - at the end of combination
+                */
+               /* if an event is already in the unf, it must have all necessary relations including causality and conflict.
+                * That means it is in cex, so don't need to check if old event is in cex or not. It's surely in cex.
+                */
+
+               newevt = &unf.find_or_addWR(t,e->pre_proc, combi.back(),combi);
+               add_to_cex(newevt);
+
+               // update direct conflicting set for both events, but only for new added event.
+#if 0
+               if (newevt->idx == unf.evt.back().idx)
+               {
+                  this->dicfl.push_back(newevt);
+                  newevt->dicfl.push_back(this);
+               }
+#endif
+               printf("\n");
+            }
+            else
+               compute_combi(i+1, s, combi, e);
+         }
+         combi.pop_back();
+      }
+}
+
+
+// check if ee is in the cex or not. if not, add it to cex.
 void Config:: add_to_cex(Event * ee)
 {
    for (auto ce : cex1)
@@ -1099,7 +1112,8 @@ void Unfolding::__create_bottom ()
    assert (evt.size () == 0);
    /* create an "bottom" event with all empty */
    e = new Event(*this);
-   evt.push_back(*e);
+   //evt.push_back(*e);
+   evt.push_back(Event(*this));
    count++;
 
    bottom = &evt.back(); // using = operator
@@ -1139,20 +1153,40 @@ void Unfolding::create_event(ir::Trans & t, Config & c)
 }
 
 // check if temp is already in the unfolding. If not, add it to unf.
-Event & Unfolding:: add_to_unf(Event * temp)
+Event & Unfolding:: find_or_add(const ir::Trans & t, Event * ep, Event * pr_mem)
 {
    /* Need to check the event's history before adding it to the unf
     * Don't add events which are already in the unf
     */
 
-   for (auto & ee :this->evt)
-      if ( temp->is_same(ee) == true )
+   for (auto & ee: this->evt)
+      if ((ee.trans == &t) and (ee.pre_proc == ep) and (ee.pre_mem == pr_mem) )
       {
          DEBUG("   already in the unf as event with idx = %d", ee.idx);
          return ee;
       }
 
-   evt.push_back(*temp);
+   evt.push_back(Event(t, ep, pr_mem, *this));
+   evt.back().update_parents(); // to make sure of conflict
+   count++;
+   DEBUG("   new event: id: %s \n ", evt.back().str().c_str());
+   return evt.back();
+}
+
+Event & Unfolding:: find_or_addWR(const ir::Trans & t, Event * ep, Event * pr_mem, std::vector<Event *> combi)
+{
+   /* Need to check the event's history before adding it to the unf
+    * Don't add events which are already in the unf
+    */
+
+   for (auto & ee: this->evt)
+      if ((ee.trans == &t) and (ee.pre_proc == ep) and (ee.pre_mem == pr_mem) and (ee.pre_readers == combi) )
+      {
+         DEBUG("   already in the unf as event with idx = %d", ee.idx);
+         return ee;
+      }
+
+   evt.push_back(Event(t, ep, pr_mem, combi, *this));
    evt.back().update_parents(); // to make sure of conflict
    count++;
    DEBUG("   new event: id: %s \n ", evt.back().str().c_str());
@@ -1303,7 +1337,7 @@ void Unfolding::explore_rnd_config ()
    }
    //c.cprint_debug();
    c.compute_cex();
-   //uprint_debug();
+   uprint_debug();
    c.cprint_dot();
    uprint_dot();
 

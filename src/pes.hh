@@ -62,10 +62,7 @@ public:
    bool is_bottom () const;
    bool is_same(Event &);
    bool in_history(Event * e);
-   void RD_cex(Config & c);
-   void SYN_cex(Config & c);
-   void WR_cex(Config & c);
-   void compute_combi(unsigned int i, const std::vector<std::vector<Event *>> & s, std::vector<Event *> combi, Config & c);
+
 
 
    friend Unfolding;
@@ -74,6 +71,8 @@ private:
    Event ();
    Event (Unfolding & u);
    Event (const ir::Trans & t, Unfolding & u);
+   Event (const ir::Trans & t, Event * ep, Event * em, Unfolding & u);
+   Event (const ir::Trans & t, Event * ep, Event *em, std::vector<Event *>, Unfolding & u);
 
 }; // end of class Event
 
@@ -112,6 +111,10 @@ public:
    void add_any ();
    void compute_cex ();
    void add_to_cex(Event * temp);
+   void RD_cex(Event * e);
+   void SYN_cex(Event * e);
+   void WR_cex(Event * e);
+   void compute_combi(unsigned int i, const std::vector<std::vector<Event *>> & s, std::vector<Event *> combi, Event * e);
 
    void cprint_debug () const;
    void cprint_dot(std::string &, std::string &);
@@ -135,7 +138,8 @@ public:
 
    Unfolding (ir::Machine & ma);
    void create_event(ir::Trans & t, Config &);
-   Event & add_to_unf(Event * temp);
+   Event & find_or_add(const ir::Trans & t, Event * ep, Event * pr_mem);
+   Event & find_or_addWR(const ir::Trans & t, Event * ep, Event * pr_mem, std::vector<Event *> combi);
 
    void uprint_debug();
    void uprint_dot();

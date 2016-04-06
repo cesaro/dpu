@@ -567,7 +567,7 @@ std::vector<std::pair<std::string, llvm::Value*>>  getSymbolsFun( llvm::Function
         for( auto i = (*bb)->begin() ; i != (*bb)->end() ; i++ ) {
             std::pair<unsigned, unsigned> allo;
             std::string name;
-            int nb;
+            //int nb;
             name = (i->hasName()) ? i->getName().str() : getShortValueName( i );
             switch( i->getOpcode() ) { /*  TODO: needs to be completed wit other operations */
 			case opcodes.StoreInst:
@@ -592,7 +592,7 @@ std::vector<std::pair<std::string, llvm::Value*>>  getSymbolsFun( llvm::Function
                 /* Here we need to allocate to memory blocks:
                    one for the allocated memory itself, one for the pointer */
                 allo = getAllocaInfo( &(*i) );
-                nb = std::ceil( allo.first / 32 );
+                //nb = std::ceil( allo.first / 32 );
                 //           std::cerr << " allocated size: " << allo.second << " elements of size " << allo.first << " in " << nb << " blocks each" << std::endl;
                 /* pointer */
                 symbols.emplace_back( name, &(*i) );
@@ -846,9 +846,9 @@ std::unique_ptr<ir::Program> parse (const std::string & filename, std::string & 
 
     // parse the .ll file and get a Module out of it
 #if LLVM_VERSION_MINOR <= 5
-    std::unique_ptr<llvm::Module> mod = llvm::ParseIRFile (path, err, context);
+    std::unique_ptr<llvm::Module> mod (llvm::ParseIRFile (filename, err, context));
 #else
-    std::unique_ptr<llvm::Module> mod = llvm::parseIRFile (filename, err, context);
+    std::unique_ptr<llvm::Module> mod (llvm::parseIRFile (filename, err, context));
 #endif
 
     // if errors found, write them to errors and return

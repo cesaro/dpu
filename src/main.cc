@@ -8,5 +8,4 @@ int main (int, char **)
 {
    test14();
    return 0;
-
 }

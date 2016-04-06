@@ -93,7 +93,7 @@ std::vector<llvm::BasicBlock*> blocklist( llvm::Function* fun ) {
 /* http://www.cs.cmu.edu/~15745/assignment2/Dataflow/available-support.cpp
  */
 
-std::string getShortValueName( llvm::Value * v ) {
+std::string getShortValueName( const llvm::Value * v ) {
     if( v->hasName() &&  v->getName().str().length() > 0) {
         return "%" + v->getName().str();
     }
@@ -113,7 +113,7 @@ std::string getShortValueName( llvm::Value * v ) {
             }
         } 
         else{
-            llvm::ConstantInt *cint = llvm::dyn_cast<llvm::ConstantInt>(v);
+            const llvm::ConstantInt *cint = llvm::dyn_cast<llvm::ConstantInt>(v);
             if( cint ) {
                 std::string s = "";
 					 llvm::raw_string_ostream * strm = new llvm::raw_string_ostream(s);

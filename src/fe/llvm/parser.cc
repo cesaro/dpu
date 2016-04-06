@@ -21,12 +21,12 @@ using namespace std;
 
 bool compliantFunCalls( llvm::Module* mod );
 bool compliantAlloca( llvm::Module* mod );
-std::vector<std::string> getSymbolsFun (llvm::Function* fun);
+std::vector<std::pair<std::string, llvm::Value*>>  getSymbolsFun( llvm::Function* fun );
 
 class Parser
 {
 public:
-	Parser (llvm::Module & m) : mod (&m), p (0), nbThreads (0) {}
+	Parser (llvm::Module & m) : mod (&m), p (0), errors (false), nbThreads (0) {}
 	~Parser ();
 
 	void parse ();
@@ -43,7 +43,9 @@ private:
 
 	std::vector<const llvm::GlobalVariable*> globalVariables;
 	std::map<llvm::Value*, llvm::Function*> threadCreations;
-	std::vector<symbol_t>  localSymbols;
+	std::map<llvm::Value*, ir::Function*>   pid2irfun;
+	std::map<llvm::Value*, ir::Symbol*>     pid2lock;
+    std::map<symbol_t, llvm::Value*>        localSymbols;
     int nbThreads;
 
 	int checkcompliance ();
@@ -52,6 +54,8 @@ private:
 	void functionThreadCreation ();
 	void getLocalSymbols ();
     void mapSymbols ();
+
+	unsigned val2datasize (const llvm::Value * v);
 };
 
 Parser::~Parser ()
@@ -64,24 +68,19 @@ void Parser::parse ()
 	int ret;
 
 	errors = false;
-
     ret = checkcompliance ();
-	SHOW (ret, "d");
-
     if (ret != 0) {
         errors = true;
 		errmsg = "The file does not comply with our limitations";
         return;
     }
 
-	DEBUG2 ("here");
-    
     /* Count the number of threads */
     numberOfThreads ();
-	DEBUG2 ("%d thread creations", nbThreads);
+	DEBUG2 ("%d thread creations", nbThreads + 1);
 
     /* create the program container */
-    p = new ir::Program (nbThreads);
+    p = new ir::Program (nbThreads + 1);
 
     /* Which are the functions called when threads are created? */
     /* the map contains:
@@ -93,12 +92,24 @@ void Parser::parse ()
     {
     	std::string s = fmt ("%p_%s", pp.first, pp.second->getName().str().c_str());
 		ir::Function * f = p->add_thread (s);
-		SHOW (f->name.c_str (), "s");
+		pid2irfun[pp.first] = f;
     }
+	pid2irfun[nullptr] = p->add_thread ("0x0_main");
 
     /* Get the names of the global variables of the module and local registers per function */
+	DEBUG2 ("here");
     getGlobalVariables ();
+	DEBUG2 ("here");
     getLocalSymbols ();
+
+#if 0
+	for (auto & it = globalVariables.begin(); it != globalVariables.end(); ++it)
+	{
+		DEBUG
+	}
+#endif
+
+	DEBUG2 ("here");
 
 	/* allocate memory space in the program container for all LLVM symbols */
     mapSymbols ();
@@ -195,65 +206,74 @@ void Parser::getLocalSymbols ()
 	localSymbols.clear ();
 
     llvm::Function *mainfun = mod->getFunction( llvm::StringRef( "main" ) );
-    std::vector<std::string> s = getSymbolsFun( mainfun );
+    auto s = getSymbolsFun( mainfun );
     for( auto si = s.begin() ; si != s.end() ; si++ ) {
-        localSymbols.emplace_back( *si, nullptr );
+		localSymbols[ symbol_t (si->first, nullptr)] = si->second;
     }
     std::cerr << localSymbols.size() << " symbols in the main function" << std::endl;
     
     for( auto ti = threadCreations.begin() ; ti != threadCreations.end() ; ti++ ) {
-        std::vector<std::string> s = getSymbolsFun( ti->second );
+        auto s = getSymbolsFun( ti->second );
         int cnt = 0;
         for( auto si = s.begin() ; si != s.end() ; si++ ) {
-            localSymbols.emplace_back ( *si, ti->first );
+			localSymbols[ symbol_t (si->first, ti->first)] = si->second;
             cnt++;            
         }
         std::cerr << cnt << " symbols in function " << ti->second->getName().str() <<std::endl;
     }
 }
 
+unsigned Parser::val2datasize (const llvm::Value * v)
+{
+	unsigned s = v->getType()->getPrimitiveSizeInBits ();
+	return s == 0 ? 4 : s / 8;
+}
+
 void Parser::mapSymbols ()
 {
-#if 0
-    machine_t machine;
-
     /* Save some space for the program counters of the threads
        and the main function */
     
-    unsigned idx = nbthreads+1;
-
     /* thread creation/destruction is a SYNC on specific lock */
-
-     for( auto ti = threadfunctions.begin() ; ti != threadfunctions.end() ; ti++ ) {
-         symbol_t p( "thread", ti->first );
-         machine[p] = idx;
-         idx++;
-     }
-
-    /* global variables */
-
-    for( auto v = globVar.begin() ; v != globVar.end() ; v++ ) {
-        symbol_t p( (*v)->getName().str(), NULL );
-        machine[p] = idx;
-        std::cerr << "Global variable: " << (*v)->getName().str() << " at idx " << idx << std::endl;
-        idx++;
-   }
-
-    /* Local variables of each thread */
-
-    for( auto v = locVar.begin() ; v != locVar.end() ; v++ ) {
-        machine[*v] = idx;        
-        std::cerr << "Local variable: " << (*v).first;
-        if( NULL != (*v).second ) {
-            std::cerr << " on thread " << (*v).second->getName().str() << " at idx " << idx  << std::endl;;
-        } else {
-            std::cerr << " on the main thread at idx " << idx  << std::endl;
-        }
-        idx++;
+    for( auto ti = threadCreations.begin() ; ti != threadCreations.end() ; ti++ ) {
+        std::string s = fmt ("__thr_lock_%s_%p", ti->second->getName().str().c_str(), ti->first);
+        ir::Symbol * sym = p->module.allocate (s.c_str(), 4, 4, 1);
+        pid2lock[ti->first] = sym;
     }
 
-    return machine;
-#endif
+    /* global variables */
+    for( auto v = globalVariables.begin() ; v != globalVariables.end() ; v++ ) {
+		SHOW (*v, "p");
+        std::string s = fmt ("glo_%s", (*v)->getName().str().c_str());
+		unsigned ds = val2datasize (*v);
+		// FIXME -- initial value for global symbols !!!
+		#if 0
+		std::string st = v->getName().str();
+		if( st == "" ) {
+		    st = getShortValueName(*v);
+			        p->module.allocate (s.c_str(), ds, ds); , std::stoi( getShortValueName(*v)) );
+
+		}
+        SHOW (getShortValueName(*v).c_str(), "s");
+		#endif
+		SHOW (s.c_str(), "s");
+        p->module.allocate (s.c_str(), ds, ds);
+		DEBUG2 ("allocate: global '%s' init '%lld'", 
+				(*v)->getName().str().c_str(), 0);
+    }
+
+    /* Local variables of each thread */
+    for(auto pp = localSymbols.begin() ; pp != localSymbols.end() ; pp++ ) {
+        std::string s = fmt ("%s_%p", pp->first.first.c_str(), pp->first.second);
+		unsigned ds = val2datasize (pp->second);
+		// FIXME -- initial value for local symbols !!!
+        p->module.allocate (s.c_str(), ds, ds);
+
+		DEBUG2 ("allocate: register '%s' pid '%p' fun '%s'", 
+				pp->first.first.c_str(), 
+				pp->first.second, 
+				pid2irfun[pp->second]->name.c_str());
+    }
 }
 
 // xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
@@ -526,9 +546,9 @@ void IRpass( llvm::Module* mod, machine_t* machine ) {
 
 /* Get the symbols used by a function */
 
-std::vector<std::string>  getSymbolsFun( llvm::Function* fun ) {
+std::vector<std::pair<std::string, llvm::Value*>>  getSymbolsFun( llvm::Function* fun ) {
 
-    std::vector<std::string>  symbols;
+	std::vector<std::pair<std::string, llvm::Value*>> symbols;
     
     /* Get the first blocks used */
     /* Only the first one, because we assert that all
@@ -550,13 +570,24 @@ std::vector<std::string>  getSymbolsFun( llvm::Function* fun ) {
             int nb;
             name = (i->hasName()) ? i->getName().str() : getShortValueName( i );
             switch( i->getOpcode() ) { /*  TODO: needs to be completed wit other operations */
-            case opcodes.LoadInst:
-            case opcodes.CallInst:
 			case opcodes.StoreInst:
 			case opcodes.ReturnInst:
 			case opcodes.BranchInst:
+				// zero registers to handle
+				break;
+
             case opcodes.ICmpInst:
+            case opcodes.CallInst:
+            case opcodes.LoadInst:
+				// one register to handle
+                /* Is this variable live? */
+                if( isLive( name, fun ) ) {
+                    symbols.emplace_back( name, &(*i) );
+                } /*else {
+                    std::cerr << name << " is dead" << std::endl;
+                    }*/
                 break;
+
             case opcodes.AllocaInst: // case when no name in this case: %1 %2 %3 allocated for argc and argv
                 /* Here we need to allocate to memory blocks:
                    one for the allocated memory itself, one for the pointer */
@@ -564,16 +595,11 @@ std::vector<std::string>  getSymbolsFun( llvm::Function* fun ) {
                 nb = std::ceil( allo.first / 32 );
                 //           std::cerr << " allocated size: " << allo.second << " elements of size " << allo.first << " in " << nb << " blocks each" << std::endl;
                 /* pointer */
-                symbols.push_back( name );
-                /* allocated mem */
-                for( ssize_t i = 0 ; i < (nb*allo.second) ; i++ ) {
-                    if( 0 == i )
-                        symbols.push_back( "*" + name );
-                    else
-                        symbols.push_back( "" );
-                }
+                symbols.emplace_back( name, &(*i) );
+				symbols.emplace_back( "*" + name, &(*i) );
+
                break;
-          default:
+			default:
 		  		std::string s;
 		  		llvm::raw_string_ostream os (s);
 		  		i->print (os);
@@ -582,14 +608,6 @@ std::vector<std::string>  getSymbolsFun( llvm::Function* fun ) {
 		  		ASSERT (0);
                 name = "";
                 break;
-            }
-            if( name != "" ) {
-                /* Is this variable live? */
-                if( isLive( name, fun ) ) {
-                    symbols.push_back( name );
-                } /*else {
-                    std::cerr << name << " is dead" << std::endl;
-                    }*/
             }
         }
     }
@@ -602,6 +620,7 @@ std::vector<std::string>  getSymbolsFun( llvm::Function* fun ) {
 std::vector<symbol_t>  getLocalSymbols( llvm::Module* mod ) {
     
     std::vector<symbol_t> symb;
+#if 0
 
     llvm::Function *mainfun = mod->getFunction( llvm::StringRef( "main" ) );
     std::vector<std::string> s = getSymbolsFun( mainfun );
@@ -623,6 +642,7 @@ std::vector<symbol_t>  getLocalSymbols( llvm::Module* mod ) {
         std::cerr << cnt << " symbols in function " << ti->second->getName().str() <<std::endl;
     }
 
+#endif
     return symb;
 }
 

@@ -19,7 +19,7 @@ include defs.mk
 
 all : compile
 
-compile: $(TARGETS) tags
+compile: $(TARGETS)
 
 r run: compile
 	./src/main | tee out

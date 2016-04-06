@@ -17,7 +17,8 @@
 #LLVMCXXFLAGS=-I$(shell llvm-config --includedir)
 LLVMCXXFLAGS=$(shell llvm-config --cppflags)
 LLVMLDFLAGS=$(shell llvm-config --ldflags)
-LLVMLIBS=$(shell llvm-config --libs --system-libs)
+#LLVMLIBS=$(shell llvm-config --libs --system-libs)
+LLVMLIBS=$(shell llvm-config --libs all) -lz -lpthread -lffi -ltinfo -ldl -lm
 
 # traditional variables
 #CFLAGS:=-Wall -Wextra -std=c11 -pg

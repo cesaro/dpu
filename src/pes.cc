@@ -866,8 +866,8 @@ void Config::__update_encex (Event & e )
   //Event * pe;
    DEBUG ("%p: Config.__update_encex(%p)", this, &e);
 
-   std::vector<ir::Trans> & trans    = unf.m.trans; // set of transitions in the model
-   std::vector <ir::Process> & procs = unf.m.procs; // set of processes in the model
+   //std::vector<ir::Trans> & trans    = unf.m.trans; // set of transitions in the model
+   //std::vector <ir::Process> & procs = unf.m.procs; // set of processes in the model
 
    assert(trans.size() > 0);
    assert(procs.size() > 0);

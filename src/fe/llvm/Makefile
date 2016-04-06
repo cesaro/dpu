@@ -13,17 +13,17 @@ STDDEF = -std=c++11
 CPPFLAGS =
 CLFAGS =
 
-SASRC = sa.cc sa_utils.cc sa_ir.cc
+SASRC = parser.cc util.cc sa_ir.cc
 SAOBJ = $(SASRC:.cc=.o)
-EXEC = sa
+EXEC = parse
 
 TESTFILE = test_thread3
 
-all: $(EXEC) run
+all: $(EXEC)
 #all: run
 
 $(EXEC): $(SAOBJ)
-	@$(LD) $(LDFLAGS) -o $@ $(SAOBJ) $(LIBDIR)  $(LDLINK)
+	$(LD) $(LDFLAGS) -o $@ $(SAOBJ) $(LIBDIR)  $(LDLINK)
 
 %.o: %.cc
 	$(CPP) $(CPPFLAGS) -c $< $(LLVMCXXFLAGS) $(STDDEF) 
@@ -49,4 +49,4 @@ run: $(EXEC) $(TESTFILE).ll
 	./$(EXEC) $(TESTFILE).ll
 
 clean:
-	@rm -f test sa *.o *.ll
+	@rm -f test parse *.o *.ll

@@ -15,7 +15,7 @@
 
 include defs.mk
 
-.PHONY: fake all g test clean distclean prof dist compile
+.PHONY: fake all g test clean distclean prof dist compile tags
 
 all : compile
 
@@ -26,7 +26,7 @@ r run: compile
 
 $(TARGETS) : % : %.o $(OBJS)
 	@echo "LD  $@"
-	@$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
+	@$(CXX) $(LDFLAGS) -o $@ $^ $(LDLIBS)
 
 #$(MINISAT)/build/release/lib/libminisat.a :
 #	cd $(MINISAT); make lr
@@ -36,14 +36,14 @@ prof : $(TARGETS)
 	src/main /tmp/ele4.ll_net
 
 tags : $(SRCS)
-	@#ctags -R --c++-kinds=+p --fields=+K --extra=+q /usr/include/llvm-3.6/ .
-	ctags -R --c++-kinds=+p --fields=+K --extra=+q ./src
+	ctags -R --c++-kinds=+p --fields=+K --extra=+q . $(shell llvm-config --includedir)
 
 g gdb : $(TARGETS)
 	gdb ./src/main
 
 vars :
 	@echo CC $(CC)
+	@echo CXX $(CXX)
 	@echo CXX $(CXX)
 	@echo SRCS $(SRCS)
 	@echo MSRCS $(MSRCS)
@@ -60,16 +60,6 @@ clean :
 distclean : clean
 	@rm -f $(DEPS)
 	@rm -Rf dist/
-	@find examples/ -name '*.cnf' -exec rm '{}' ';'
-	@find examples/ -name '*.mci' -exec rm '{}' ';'
-	@find examples/ -name '*.bc' -exec rm '{}' ';'
-	@find examples/ -name '*.r' -exec rm '{}' ';'
-	@find examples/ -name '*.cuf' -exec rm '{}' ';'
-	@find examples/ -name '*.dot' -exec rm '{}' ';'
-	@find examples/ -name '*.pdf' -exec rm '{}' ';'
-	@find examples/ -name '*.tr' -exec rm '{}' ';'
-	@find examples/ -name '*.pt' -exec rm '{}' ';'
-	@#rm -f test/nets/{plain,cont,pr}/{small,med,large,huge}/*.{cnf,mci,bc,r,cuf,dot,pdf}
 	@echo Mr. Proper done.
 
 dist : all

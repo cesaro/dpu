@@ -146,6 +146,7 @@ struct Instr
 	uint64_t     cast_val (uint64_t v);
 	uint64_t     cast_imm () { return cast_val (src2); }
 	bool         has_imm ();
+   void         exec (uint8_t * mem);
 };
 
 struct Instruction : Instr
@@ -244,8 +245,7 @@ private :
 	std::map<uint32_t, Symbol*>    addrtab;
 	unsigned                       mark;
 
-	void        __validate_2c_2d_2e (Instruction *i, uint32_t min, uint32_t max);
-	std::string __quoted_str        (const char * str) const;
+	void __validate_2c_2d_2e (Instruction *i, uint32_t min, uint32_t max) const;
 
 	friend class Builder;
 };

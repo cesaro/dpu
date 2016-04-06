@@ -109,7 +109,7 @@ xor     T DST SRC1 SRC2     Bitwise logical xor; expects integers
 sext    T1 T2 DST SRC       Signed extension from type T1 to T2; expects integer
 zext    T1 T2 DST SRC       Zero extends SRC from type T1 to T2; expects integer
 =========================== ====================================================
-lock    T SRC               Locks a mutex; expects address of integer operand
+lock    T SRC               Locks a mutex; expects address of 32 bit operand
 unlock  T SRC               Unlocks a mutex; expects address of integer operand
 printf  T FMT SRC1 SRC2     Printf, where FMT admits 0, 1 or 2 "%d"
 =========================== ====================================================
@@ -213,8 +213,9 @@ RET       T     -     SRC   -        ret T [SRC]
 RETI      T     -     -     IMM      ret T IMM                     
 MOVE      T     DST   SRC   -        move T [DST] [SRC]
 MOVEI     T     DST   -     IMM      move T [DST] IMM
-MOVIS     T     DST   SRC   -        imov T [DST] [[SRC]]
-MOVID     T     DST   SRC   -        imov T [[DST]] [SRC]
+MOVIS     T     DST   SRC   -        movi T [DST] [[SRC]]
+MOVID     T     DST   SRC   -        movi T [[DST]] [SRC]
+==MOVIDI    T     DST   -     IMM      movi T [[DST]] IMM
 ========= ===== ===== ===== ======== ============================= =================================
 CMP_EQ    T     DST   SRC1  SRC2     cmp eq T [DST] [SRC1] [SRC2]  SRCx size T; DST is i32
 CMP_EQI   T     DST   SRC   IMM      cmp eq T [DST] [SRC] IMM      
@@ -227,7 +228,7 @@ BRNZ      4     -     SRC   -        brz i32 [SRC] LAB             SRC interpret
 ADD       T     DST   SRC1  SRC2     add T [DST] [SRC1] [SRC2]
 ADDI      T     DST   SRC   IMM      add T [DST] [SRC] IMM        
 -> similarly for mul, or, and, xor
-SUB       T     DST   SRC1  SRC2     sub T [DST] [SRC1] [SRC2]
+SUB       T     DST   SRC1  SRC2     sub T [DST] [SRC1] [SRC2]     DST = SRC1 - SRC2
 SUBI      T     DST   SRC   IMM      sub T [DST] IMM [SRC]         DST = IMM - SRC
 SDIV      T     DST   SRC1  SRC2     sdiv T [DST] [SRC1] [SRC2]    DST = SRC1 / SRC2 (signed)
 SDIVIA    T     DST   SRC   IMM      sdiv T [DST] IMM [SRC]        DST = IMM / SRC   (signed)
@@ -245,8 +246,8 @@ UREMAI    T     DST   SRC   IMM      urem T [DST] [SRC] IMM        DST = SRC % I
 SEXT      T1    DST   SRC   T2       sext T1 to T2 [DST] [SRC]     1 <= T1 < T2 <= 8
 -> similarly for zext
 ========= ===== ===== ===== ======== ============================= =================================
-LOCK      4     DST   -     -        lock [DST]   
-UNLOCK    4     DST   -     -        lock [DST]   
+LOCK      4     DST   -     -        lock [DST]                    Expects i32
+UNLOCK    4     DST   -     -        lock [DST]                    Expects i32
 PRINTF    T     FMT   FMT   FMT      printf [FMT]                  FMT has no %d
 PRINTF    T     FMT   SRC   SRC      printf [FMT] T [SRC]          FMT has only one %d
 PRINTF    T     FMT   SRC1  SRC2     printf [FMT] T [SRC1] [SRC2]  FMT has 2 %d, both SRCs size T

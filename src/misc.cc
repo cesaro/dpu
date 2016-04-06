@@ -41,3 +41,31 @@ std::string operator * (std::string lhs, int i)
 	return lhs;
 }
 
+std::string quoted_str (const char * str)
+{
+	std::string s;
+
+	s.reserve (strlen (str));
+	for (const char * c = str; *c; ++c)
+	{
+		switch (*c)
+		{
+		case '\t' :
+			s.append ("\\t");
+			break;
+		case '\r' :
+			s.append ("\\r");
+			break;
+		case '\n' :
+			s.append ("\\n");
+			break;
+		case '\0' : // unreachable
+			s.append ("\\0");
+			break;
+		default :
+			s.push_back (*c);
+		}
+	}
+	return s;
+}
+

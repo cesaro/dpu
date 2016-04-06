@@ -7,11 +7,12 @@
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Constants.h"
 
-#include "sa_utils.tpp"
-#include "sa_utils.h"
+#include "util.tpp"
+#include "util.hh"
 
-using namespace std;
-using namespace llvm;
+namespace dpu {
+namespace fe {
+namespace llvm {
 
 /* Compares two function names:
  * s1 is a hard-defined name
@@ -34,7 +35,7 @@ int safeCompareFname( const char* s1, std::string s2 ){
 
 void dumpBlock( llvm::BasicBlock* bb ) {
     for( auto ins = bb->begin() ; ins != bb->end() ; ins++ ) {
-        ins->print( errs() );
+        ins->print( llvm::errs() );
         std::cerr << "\n";
     }
 }
@@ -92,14 +93,14 @@ std::vector<llvm::BasicBlock*> blocklist( llvm::Function* fun ) {
 /* http://www.cs.cmu.edu/~15745/assignment2/Dataflow/available-support.cpp
  */
 
-std::string getShortValueName( llvm::Value * v ) {
+std::string getShortValueName( const llvm::Value * v ) {
     if( v->hasName() &&  v->getName().str().length() > 0) {
         return "%" + v->getName().str();
     }
     else{
-        if (isa<Instruction>(v)) {
+        if (llvm::isa<llvm::Instruction>(v)) {
             std::string s = "";
-            raw_string_ostream * strm = new raw_string_ostream(s);
+				llvm::raw_string_ostream * strm = new llvm::raw_string_ostream(s);
             v->print(*strm);
             std::string inst = strm->str();
             size_t idx1 = inst.find("%");
@@ -112,15 +113,15 @@ std::string getShortValueName( llvm::Value * v ) {
             }
         } 
         else{
-            llvm::ConstantInt *cint = dyn_cast<llvm::ConstantInt>(v);
+            const llvm::ConstantInt *cint = llvm::dyn_cast<llvm::ConstantInt>(v);
             if( cint ) {
                 std::string s = "";
-                raw_string_ostream * strm = new raw_string_ostream(s);
+					 llvm::raw_string_ostream * strm = new llvm::raw_string_ostream(s);
                 cint->getValue().print(*strm,true);
             return strm->str();
             } else {
                 std::string s = "";
-                raw_string_ostream * strm = new raw_string_ostream(s);
+					 llvm::raw_string_ostream * strm = new llvm::raw_string_ostream(s);
                 v->print(*strm);
                 std::string inst = strm->str();
                 return "\"" + inst + "\"";
@@ -136,7 +137,7 @@ std::vector<std::string> getOperands( llvm::Instruction* ins ) {
         llvm::Value* val = op->get();
         std::string name;
         switch( ins->getOpcode() ) { /*  TODO: needs to be completed wit other operations */
-        case opcodes.LoadInst:
+		  case opcodes.LoadInst:
         case opcodes.CallInst:
         case opcodes.AllocaInst: // case when no name in this case: %1 %2 %3 allocated for argc and argv
         case opcodes.ICmpInst:
@@ -202,7 +203,7 @@ std::pair<unsigned, unsigned> getAllocaInfo( llvm::Instruction* ins ) {
     llvm::Value* size = aa->getArraySize();
     std::string s_size =  (size->hasName()) ? size->getName().str() : getShortValueName( size );
     info.second = std::stoi( s_size );
-
+    
     return info;
 }
 
@@ -241,14 +242,14 @@ int foo( int t ){
 
 
 bool isGlobal( llvm::Module* mod, llvm::StringRef name ){
-    GlobalVariable* var = mod->getGlobalVariable( name );
-    return (var == NULL ) ? false:true;
+	llvm::GlobalVariable* var = mod->getGlobalVariable( name );
+	return (var == NULL ) ? false:true;
 }
 
 /* Puts the type of a value into a string 
  */
 
-std::string typeToStr( Type* ty ) {
+std::string typeToStr( llvm::Type* ty ) {
     std::string s;
     /* Type */
     if( ty->isIntegerTy() ) {
@@ -274,10 +275,13 @@ std::string typeToStr( Type* ty ) {
  */
 
 void printLineNb( int line, llvm::BasicBlock* block, llvm::Value* tid ) {
-    std::cout << setfill(' ') << setw(3) << line << " " << block << " ";
+    std::cout << std::setfill(' ') << std::setw(3) << line << " " << block << " ";
     if( NULL == tid ) {
         std::cout << "main      | ";
     } else {
             std::cout << tid << " | ";
     }
 }
+
+} } } // namespace dpu::fe::llvm
+

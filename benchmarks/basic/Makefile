@@ -7,12 +7,14 @@ CXXFLAGS=-Wall -O1
 LDLIBS=-lpthread
 
 SRCS:=$(wildcard *.c)
-TARGETS:=$(SRCS:.c=)
+BINS:=$(SRCS:.c=)
+LLS:=$(SRCS:.c=.ll)
 
-all: $(TARGETS)
+all: $(LLS)
+all-bins : $(BINS)
 
 clean :
-	rm -f $(TARGETS)
+	rm -f $(BINS) $(LLS)
 
 %.ll : %.c
 	$(CC) -S -emit-llvm -include __dpu.h $(CFLAGS) $< -o $@

@@ -124,8 +124,8 @@ int main()
       i+=1;
   }
 
-  pthread_create(&tids[0], 0,  t1, 0);
-  pthread_create(&tids[1], 0,  t2, 0);
+  pthread_create(&tids[0], 0, t1, 0);
+  pthread_create(&tids[1], 0, t2, 0);
 
   pthread_join(tids[0], 0);
   pthread_join(tids[1], 0);

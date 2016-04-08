@@ -13,6 +13,13 @@
 #include "llvm/IR/Module.h"
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/raw_ostream.h"
+#include "llvm/Support/TargetSelect.h"
+#include "llvm/ADT/APInt.h"
+
+#include "llvm/ExecutionEngine/ExecutionEngine.h"
+#include "llvm/ExecutionEngine/SectionMemoryManager.h"
+//#include "llvm/ExecutionEngine/MCJIT.h"
+#include "llvm/ExecutionEngine/Interpreter.h"
 
 #include "test.hh"
 #include "ir.hh"
@@ -22,6 +29,8 @@
 
 #include "fe/ir.hh"
 #include "fe/llvm/parser.hh"
+
+#include "fe2/Interpreter.h"
 
 using namespace dpu;
 
@@ -1077,199 +1086,199 @@ void test15()
 
 void test16()
 {
-	using namespace fe::ir;
+   using namespace fe::ir;
 
-	Function * f;
+   Function * f;
 
-	Program p (1);
+   Program p (1);
 
-	// add 1 thread
-	f = p.add_thread ("main");
-	p.main = f;
+   // add 1 thread
+   f = p.add_thread ("main");
+   p.main = f;
 
-	// allocate 5 symbols of 32 bits
-	Symbol * x = p.module.allocate ("x", 4, 4, 4);
-	Symbol * y = p.module.allocate ("y", 4, 4, 20);
-	//Symbol * i = p.module.allocate ("i", 4, 4, 128);
-	//Symbol * acc = p.module.allocate ("acc", 4, 4);
-	//Symbol * cnd = p.module.allocate ("cnd", 4, 4);
-	p.module.allocate ("xx", 5, 8, 0x1234);
-	p.module.allocate ("yy", 10, 16, 0x12345678);
-	Symbol * fmt = p.module.allocate ("fmt", 16, 1, "hello world %d");
+   // allocate 5 symbols of 32 bits
+   Symbol * x = p.module.allocate ("x", 4, 4, 4);
+   Symbol * y = p.module.allocate ("y", 4, 4, 20);
+   //Symbol * i = p.module.allocate ("i", 4, 4, 128);
+   //Symbol * acc = p.module.allocate ("acc", 4, 4);
+   //Symbol * cnd = p.module.allocate ("cnd", 4, 4);
+   p.module.allocate ("xx", 5, 8, 0x1234);
+   p.module.allocate ("yy", 10, 16, 0x12345678);
+   Symbol * fmt = p.module.allocate ("fmt", 16, 1, "hello world %d");
 
-	p.dump ();
+   p.dump ();
 
-	Instr ins;
-	ins.op = Opcode::RET;
-	ins.size = 1;
-	ins.src1 = Addr (*x) + 0x1;
-	//ins.src2 = 0x0123456789abcef;
-	ins.src2 = 0x0123;
-	std::cout << p.module.print_instr (&ins) << "\n";
+   Instr ins;
+   ins.op = Opcode::RET;
+   ins.size = 1;
+   ins.src1 = Addr (*x) + 0x1;
+   //ins.src2 = 0x0123456789abcef;
+   ins.src2 = 0x0123;
+   std::cout << p.module.print_instr (&ins) << "\n";
 
-	ins.op = Opcode::MOVE;
-	ins.size = 1;
-	ins.dst = Addr (*y) + 0x5;
-	ins.src1 = 0x1;
-	ins.src2 = 0x7; // ignored, illegal
-	std::cout << p.module.print_instr (&ins) << "\n";
+   ins.op = Opcode::MOVE;
+   ins.size = 1;
+   ins.dst = Addr (*y) + 0x5;
+   ins.src1 = 0x1;
+   ins.src2 = 0x7; // ignored, illegal
+   std::cout << p.module.print_instr (&ins) << "\n";
 
-	ins.op = Opcode::MOVEI;
-	ins.size = 8;
-	ins.dst = 0x5;
-	ins.src2 = 0x5566;
-	std::cout << p.module.print_instr (&ins) << "\n";
+   ins.op = Opcode::MOVEI;
+   ins.size = 8;
+   ins.dst = 0x5;
+   ins.src2 = 0x5566;
+   std::cout << p.module.print_instr (&ins) << "\n";
 
-	ins.op = Opcode::PRINTF;
-	ins.size = 4;
-	ins.dst = Addr (*fmt);
-	ins.src1 = Addr (*y);
-	ins.src2 = 0;
-	std::cout << p.module.print_instr (&ins) << "\n";
+   ins.op = Opcode::PRINTF;
+   ins.size = 4;
+   ins.dst = Addr (*fmt);
+   ins.src1 = Addr (*y);
+   ins.src2 = 0;
+   std::cout << p.module.print_instr (&ins) << "\n";
 
-	return;
+   return;
 }
 
 void test17 ()
 {
-	using namespace fe::ir;
+   using namespace fe::ir;
 
-	Function * f;
+   Function * f;
 
-	Program p (1);
+   Program p (1);
 
-	// add 1 thread
-	f = p.add_thread ("main");
-	p.main = f;
+   // add 1 thread
+   f = p.add_thread ("main");
+   p.main = f;
 
-	// create an instruction builder attached to the main function
-	Builder b (f);
+   // create an instruction builder attached to the main function
+   Builder b (f);
 
-	// allocate 5 symbols, 32 bits each one
-	Symbol * x = p.module.allocate ("x", 4, 4, 4);
-	Symbol * y = p.module.allocate ("y", 4, 4, 20);
-	Symbol * i = p.module.allocate ("i", 4, 4);
-	Symbol * acc = p.module.allocate ("acc", 4, 4);
+   // allocate 5 symbols, 32 bits each one
+   Symbol * x = p.module.allocate ("x", 4, 4, 4);
+   Symbol * y = p.module.allocate ("y", 4, 4, 20);
+   Symbol * i = p.module.allocate ("i", 4, 4);
+   Symbol * acc = p.module.allocate ("acc", 4, 4);
 
-	// generate some instructions
-	b.mk_error ();
-	b.set_comment ("error instructions");
+   // generate some instructions
+   b.mk_error ();
+   b.set_comment ("error instructions");
 
-	b.mk_ret (I16, Addr (0x2));
-	b.set_comment ("return instructions");
-	b.mk_ret (I32, Imm (0x1234));
+   b.mk_ret (I16, Addr (0x2));
+   b.set_comment ("return instructions");
+   b.mk_ret (I32, Imm (0x1234));
 
-	b.mk_move (I32, *x, Imm (2));
-	b.set_comment ("instructions for moving data");
-	b.mk_move (I32, *y, *i);
-	b.mk_movis (I64, *acc, *x);
-	b.mk_movid (I64, *acc, *x);
+   b.mk_move (I32, *x, Imm (2));
+   b.set_comment ("instructions for moving data");
+   b.mk_move (I32, *y, *i);
+   b.mk_movis (I64, *acc, *x);
+   b.mk_movid (I64, *acc, *x);
 
-	b.mk_cmp_eq (I16, *acc, *x, *y);
-	b.set_comment ("comparison instructions");
-	b.mk_cmp_eq (I16, *acc, *x, Imm (129));
+   b.mk_cmp_eq (I16, *acc, *x, *y);
+   b.set_comment ("comparison instructions");
+   b.mk_cmp_eq (I16, *acc, *x, Imm (129));
 
-	b.mk_cmp_ne (I16, *acc, *x, *y);
-	b.mk_cmp_ne (I16, *acc, *x, Imm (129));
-	b.mk_cmp_ugt (I16, *acc, *x, *y);
-	b.mk_cmp_ugt (I16, *acc, *x, Imm (129));
-	b.mk_cmp_uge (I16, *acc, *x, *y);
-	b.mk_cmp_uge (I16, *acc, *x, Imm (129));
-	b.mk_cmp_ult (I16, *acc, *x, *y);
-	b.mk_cmp_ult (I16, *acc, *x, Imm (129));
-	b.mk_cmp_ule (I16, *acc, *x, *y);
-	b.mk_cmp_ule (I16, *acc, *x, Imm (129));
-	b.mk_cmp_sgt (I16, *acc, *x, *y);
-	b.mk_cmp_sgt (I16, *acc, *x, Imm (129));
-	b.mk_cmp_sge (I16, *acc, *x, *y);
-	b.mk_cmp_sge (I16, *acc, *x, Imm (129));
-	b.mk_cmp_slt (I16, *acc, *x, *y);
-	b.mk_cmp_slt (I16, *acc, *x, Imm (129));
-	b.mk_cmp_sle (I16, *acc, *x, *y);
-	b.mk_cmp_sle (I16, *acc, *x, Imm (129));
+   b.mk_cmp_ne (I16, *acc, *x, *y);
+   b.mk_cmp_ne (I16, *acc, *x, Imm (129));
+   b.mk_cmp_ugt (I16, *acc, *x, *y);
+   b.mk_cmp_ugt (I16, *acc, *x, Imm (129));
+   b.mk_cmp_uge (I16, *acc, *x, *y);
+   b.mk_cmp_uge (I16, *acc, *x, Imm (129));
+   b.mk_cmp_ult (I16, *acc, *x, *y);
+   b.mk_cmp_ult (I16, *acc, *x, Imm (129));
+   b.mk_cmp_ule (I16, *acc, *x, *y);
+   b.mk_cmp_ule (I16, *acc, *x, Imm (129));
+   b.mk_cmp_sgt (I16, *acc, *x, *y);
+   b.mk_cmp_sgt (I16, *acc, *x, Imm (129));
+   b.mk_cmp_sge (I16, *acc, *x, *y);
+   b.mk_cmp_sge (I16, *acc, *x, Imm (129));
+   b.mk_cmp_slt (I16, *acc, *x, *y);
+   b.mk_cmp_slt (I16, *acc, *x, Imm (129));
+   b.mk_cmp_sle (I16, *acc, *x, *y);
+   b.mk_cmp_sle (I16, *acc, *x, Imm (129));
 
-	b.mk_br (*acc);
-	b.set_comment ("branch instruction");
-	b.push ();
+   b.mk_br (*acc);
+   b.set_comment ("branch instruction");
+   b.push ();
 
-	// we continue generating instruction on the non-zero branch
-	b.set_branch (1);
+   // we continue generating instruction on the non-zero branch
+   b.set_branch (1);
 
-	b.mk_add (I8, *i, *x, *y);
-	b.set_label (); // target of a branch needs a label
-	b.set_comment ("arithmetic instructions with 2 addresses");
-	b.mk_sub (I8, *i, *x, *y);
-	b.mk_mul (I8, *i, *x, *y);
-	b.mk_sdiv (I8, *i, *x, *y);
-	b.mk_udiv (I8, *i, *x, *y);
-	b.mk_srem (I8, *i, *x, *y);
-	b.mk_urem (I8, *i, *x, *y);
+   b.mk_add (I8, *i, *x, *y);
+   b.set_label (); // target of a branch needs a label
+   b.set_comment ("arithmetic instructions with 2 addresses");
+   b.mk_sub (I8, *i, *x, *y);
+   b.mk_mul (I8, *i, *x, *y);
+   b.mk_sdiv (I8, *i, *x, *y);
+   b.mk_udiv (I8, *i, *x, *y);
+   b.mk_srem (I8, *i, *x, *y);
+   b.mk_urem (I8, *i, *x, *y);
 
-	b.mk_add (I8, *i, *x, Imm (26));
-	b.set_comment ("arithmetic instructions with one immediate value");
-	b.set_comment ("i = x + 26");
-	b.mk_sub (I8, *i, Imm (26), *x);
-	b.set_comment ("i = 2 - x");
-	b.mk_add (I8, *i, *x, Imm ((uint8_t) -2));
-	b.set_comment ("i = x - 2");
-	b.mk_mul (I16, *i, *x, Imm ((uint16_t) -2));
-	b.set_comment ("i = x * -2");
+   b.mk_add (I8, *i, *x, Imm (26));
+   b.set_comment ("arithmetic instructions with one immediate value");
+   b.set_comment ("i = x + 26");
+   b.mk_sub (I8, *i, Imm (26), *x);
+   b.set_comment ("i = 2 - x");
+   b.mk_add (I8, *i, *x, Imm ((uint8_t) -2));
+   b.set_comment ("i = x - 2");
+   b.mk_mul (I16, *i, *x, Imm ((uint16_t) -2));
+   b.set_comment ("i = x * -2");
 
-	b.mk_sdiv (I8, *i, *x, Imm ((uint8_t) -1));
-	b.set_comment ("i = x / -1");
-	b.mk_sdiv (I64, *i, Imm ((uint8_t) -1), *x);
-	b.set_comment ("i = -1 / x");
-	b.mk_udiv (I8, *i, *x, Imm ((uint8_t) 32));
-	b.set_comment ("i = x / 32");
-	b.mk_udiv (I8, *i, Imm ((uint8_t) 32), *x);
-	b.set_comment ("i = 32 / x");
+   b.mk_sdiv (I8, *i, *x, Imm ((uint8_t) -1));
+   b.set_comment ("i = x / -1");
+   b.mk_sdiv (I64, *i, Imm ((uint8_t) -1), *x);
+   b.set_comment ("i = -1 / x");
+   b.mk_udiv (I8, *i, *x, Imm ((uint8_t) 32));
+   b.set_comment ("i = x / 32");
+   b.mk_udiv (I8, *i, Imm ((uint8_t) 32), *x);
+   b.set_comment ("i = 32 / x");
 
-	b.mk_srem (I8, *i, *x, Imm ((uint8_t) -2));
-	b.set_comment ("i = x % -2");
-	b.mk_srem (I8, *i, Imm ((uint8_t) -2), *x);
-	b.set_comment ("i = -2 % x");
-	b.mk_urem (I8, *i, *x, Imm ((uint8_t) 32));
-	b.set_comment ("i = x % 32");
-	b.mk_urem (I8, *i, Imm ((uint8_t) 32), *x);
-	b.set_comment ("i = 32 % x");
+   b.mk_srem (I8, *i, *x, Imm ((uint8_t) -2));
+   b.set_comment ("i = x % -2");
+   b.mk_srem (I8, *i, Imm ((uint8_t) -2), *x);
+   b.set_comment ("i = -2 % x");
+   b.mk_urem (I8, *i, *x, Imm ((uint8_t) 32));
+   b.set_comment ("i = x % 32");
+   b.mk_urem (I8, *i, Imm ((uint8_t) 32), *x);
+   b.set_comment ("i = 32 % x");
 
-	b.mk_ret (I64, Imm (0));
+   b.mk_ret (I64, Imm (0));
 
-	b.pop (); // continue at the last branch instruction pushed
-	b.set_branch (0); // continue adding instructions in zero branch
+   b.pop (); // continue at the last branch instruction pushed
+   b.set_branch (0); // continue adding instructions in zero branch
 
-	b.mk_and (I64, *i, *x, *y);
-	b.set_label (); // target of a BR instruction always needs a label
-	b.set_comment ("bitwise logic instructions");
-	b.mk_and (I64, *i, *x, Imm (0xff0800));
-	b.mk_or (I64, *i, *x, *y);
-	b.mk_or (I64, *i, *x, Imm (0xff0800));
-	b.mk_xor (I64, *i, *x, *y);
-	b.mk_xor (I64, *i, *x, Imm (0xff0800));
+   b.mk_and (I64, *i, *x, *y);
+   b.set_label (); // target of a BR instruction always needs a label
+   b.set_comment ("bitwise logic instructions");
+   b.mk_and (I64, *i, *x, Imm (0xff0800));
+   b.mk_or (I64, *i, *x, *y);
+   b.mk_or (I64, *i, *x, Imm (0xff0800));
+   b.mk_xor (I64, *i, *x, *y);
+   b.mk_xor (I64, *i, *x, Imm (0xff0800));
 
-	b.mk_sext (I8, I16, *i, *x);
-	b.set_comment ("sign extension");
-	b.mk_zext (I16, I32, *i, *x);
+   b.mk_sext (I8, I16, *i, *x);
+   b.set_comment ("sign extension");
+   b.mk_zext (I16, I32, *i, *x);
 
-	b.mk_lock (*acc);
-	b.set_comment ("miscellaneous instructions");
-	b.mk_unlock (*acc);
-	b.mk_printf ("hello world without arguments");
-	b.mk_printf ("format with one 32bit arg %d", I32, *x);
-	b.mk_printf ("format with two 64bit args %ld and %ld", I64, *x, *y);
+   b.mk_lock (*acc);
+   b.set_comment ("miscellaneous instructions");
+   b.mk_unlock (*acc);
+   b.mk_printf ("hello world without arguments");
+   b.mk_printf ("format with one 32bit arg %d", I32, *x);
+   b.mk_printf ("format with two 64bit args %ld and %ld", I64, *x, *y);
 
-	p.dump ();
+   p.dump ();
 }
 
 void test18 ()
 {
-	// build the following program:
-	//
-	// This is almost the same as the one described in the example section of
-	// doc/internals/3addr-ir.rst
-	//
+   // build the following program:
+   //
+   // This is almost the same as the one described in the example section of
+   // doc/internals/3addr-ir.rst
+   //
    //  int y = 5;
-	//
+   //
    //  int main ()
    //  {
    //    int x = 2;
@@ -1279,99 +1288,99 @@ void test18 ()
    //    for (i = 0; i < y; i++) acc += y
    // 
    //    assert (acc == x * y);
-	//    printf ("x is %d, y is %d\n", x, y);
-	//    printf ("acc is %d\n", I32, acc);
-	//    return 0;
+   //    printf ("x is %d, y is %d\n", x, y);
+   //    printf ("acc is %d\n", I32, acc);
+   //    return 0;
    //  }
    //
    //  int thr1 ()
    //  {
    //    y = 6;
-	//    return 0;
+   //    return 0;
    //  }
 
-	using namespace fe::ir;
+   using namespace fe::ir;
 
-	Function * f;
-	Instruction * ins1;
-	Instruction * ins2;
+   Function * f;
+   Instruction * ins1;
+   Instruction * ins2;
 
-	Program p (2); // 2 is the final number of threads that we will have
+   Program p (2); // 2 is the final number of threads that we will have
 
-	// add 1 thread
-	f = p.add_thread ("main");
-	p.main = f;
+   // add 1 thread
+   f = p.add_thread ("main");
+   p.main = f;
 
-	// create an instruction builder attached to the main function
-	Builder b (f);
+   // create an instruction builder attached to the main function
+   Builder b (f);
 
-	// allocate 5 symbols, 32 bits each one
-	Symbol * x = p.module.allocate ("x", 4, 4, 4);
-	Symbol * y = p.module.allocate ("y", 4, 4, 20);
-	Symbol * i = p.module.allocate ("i", 4, 4);
-	Symbol * acc = p.module.allocate ("acc", 4, 4);
-	Symbol * cnd = p.module.allocate ("cnd", 4, 4);
+   // allocate 5 symbols, 32 bits each one
+   Symbol * x = p.module.allocate ("x", 4, 4, 4);
+   Symbol * y = p.module.allocate ("y", 4, 4, 20);
+   Symbol * i = p.module.allocate ("i", 4, 4);
+   Symbol * acc = p.module.allocate ("acc", 4, 4);
+   Symbol * cnd = p.module.allocate ("cnd", 4, 4);
 
-	b.mk_move (I32, *x, Imm (2));
-	b.set_label ("entry");
-	b.mk_move (I32, *y, Imm (5));
-	b.mk_move (I32, *i, Imm (0));
+   b.mk_move (I32, *x, Imm (2));
+   b.set_label ("entry");
+   b.mk_move (I32, *y, Imm (5));
+   b.mk_move (I32, *i, Imm (0));
 
-	ins1 = b.mk_cmp_slt (I32, *cnd, *i, *y);
-	b.set_label ("loopend");
+   ins1 = b.mk_cmp_slt (I32, *cnd, *i, *y);
+   b.set_label ("loopend");
 
-	// branch instruction
-	b.mk_br (*cnd);
-	b.push ();
-	b.set_branch (1); // we continue emitting instruction in the non-zero branch
+   // branch instruction
+   b.mk_br (*cnd);
+   b.push ();
+   b.set_branch (1); // we continue emitting instruction in the non-zero branch
 
-	b.mk_add (I32, *acc, *acc, *x);
-	b.set_label ("loophead");
-	ins2 = b.mk_add (I32, *i, *i, Imm (1));
-	ins2->set_next (ins1); // next instruction is ins1, above
+   b.mk_add (I32, *acc, *acc, *x);
+   b.set_label ("loophead");
+   ins2 = b.mk_add (I32, *i, *i, Imm (1));
+   ins2->set_next (ins1); // next instruction is ins1, above
 
-	// at the branch instruction again, continue with the zero branch
-	b.pop ();
-	b.set_branch (0);
+   // at the branch instruction again, continue with the zero branch
+   b.pop ();
+   b.set_branch (0);
 
-	b.mk_mul (I32, *i, *x, *y);
-	b.set_label ("loopexit");
-	b.mk_cmp_ne (I32, *cnd, *acc, *i);
-	b.mk_br (*cnd);
+   b.mk_mul (I32, *i, *x, *y);
+   b.set_label ("loopexit");
+   b.mk_cmp_ne (I32, *cnd, *acc, *i);
+   b.mk_br (*cnd);
 
-	// push BR instruction, continue with NZ branch
-	b.push ();
-	b.set_branch (1);
+   // push BR instruction, continue with NZ branch
+   b.push ();
+   b.set_branch (1);
 
-	b.mk_error ();
-	b.set_label ();
+   b.mk_error ();
+   b.set_label ();
 
-	// continue with Z branch
-	b.pop ();
-	b.set_branch (0);
-	b.mk_printf ("x is %d, y is %d\n", I32, *x, *y);
-	b.mk_printf ("acc is %d\n", I32, *acc);
-	b.mk_ret (I32, Imm (0));
-	b.set_label ();
+   // continue with Z branch
+   b.pop ();
+   b.set_branch (0);
+   b.mk_printf ("x is %d, y is %d\n", I32, *x, *y);
+   b.mk_printf ("acc is %d\n", I32, *acc);
+   b.mk_ret (I32, Imm (0));
+   b.set_label ();
 
 
 
-	// add a second thread
-	f = p.add_thread ("thr1");
-	b.attach (f);
+   // add a second thread
+   f = p.add_thread ("thr1");
+   b.attach (f);
 
-	b.mk_move (I32, *y, Imm (6));
-	b.mk_ret (I32, Imm (0));
+   b.mk_move (I32, *y, Imm (6));
+   b.mk_ret (I32, Imm (0));
 
-	p.dump ();
-	//for (auto f : p.module) f->dump2 ();
-	p.validate ();
+   p.dump ();
+   //for (auto f : p.module) f->dump2 ();
+   p.validate ();
 
-	for (auto f : p.module) SHOW (f, "p");
-	for (auto s = p.module.sym_begin(); s != p.module.sym_end(); ++s)
-	{
-		DEBUG ("Symbol '%s' addr %lu size %lu", (*s)->name.c_str(), (*s)->addr, (*s)->size);
-	}
+   for (auto f : p.module) SHOW (f, "p");
+   for (auto s = p.module.sym_begin(); s != p.module.sym_end(); ++s)
+   {
+      DEBUG ("Symbol '%s' addr %lu size %lu", (*s)->name.c_str(), (*s)->addr, (*s)->size);
+   }
 }
 
 void combi(unsigned int i, std::vector<std::vector<int>> s, std::vector<int> c)
@@ -1454,3 +1463,118 @@ void test20()
    printf ("Exiting happily\n");
 }
 
+void test21 ()
+{
+   // ?
+   llvm::InitializeNativeTarget();
+   llvm::InitializeNativeTargetAsmPrinter();
+   llvm::InitializeNativeTargetAsmParser();
+
+   // get a context
+   llvm::LLVMContext &context = llvm::getGlobalContext();
+   llvm::SMDiagnostic err;
+
+   std::string path = "benchmarks/basic/hello.ll";
+
+   // parse the .ll file and get a Module out of it
+#if (LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR <= 5)
+   std::unique_ptr<llvm::Module> mod (llvm::ParseIRFile (path, err, context));
+#else
+   std::unique_ptr<llvm::Module> mod (llvm::parseIRFile (path, err, context));
+#endif
+   llvm::Module * m = mod.get();
+
+   // if errors found, write them to errors and return
+   if (! mod.get ()) {
+      std::string errors;
+      llvm::raw_string_ostream os (errors);
+      err.print (path.c_str(), os);
+      os.flush ();
+      printf ("Error: %s\n", errors.c_str());
+      return;
+   }
+
+   printf ("========== functions\n");
+   for (auto & f : mod->functions()) DEBUG ("function %p name %s", &f, f.getName ());
+   printf ("========== module\n");
+   fflush (stdout);
+   m->dump ();
+
+   std::string errors;
+   llvm::EngineBuilder b (std::move (mod));
+   llvm::ExecutionEngine * e;
+
+   b.setErrorStr (&errors);
+   b.setEngineKind (llvm::EngineKind::Interpreter);
+   //b.setMCJITMemoryManager (llvm::make_unique<llvm::SectionMemoryManager>());
+
+   e = b.create ();
+   if (! e) {
+      DEBUG2 ("Could not create execution engine: %s\n", errors.c_str());
+   }
+
+   llvm::Function * f = m->getFunction ("main");
+   e->finalizeObject ();
+
+   const char * envp[2] = {"VAR=value", 0};
+   int ret = e->runFunctionAsMain (f, {"a", "b", "c"}, envp);
+   printf ("ret %d\n", ret);
+}
+
+void test22 ()
+{
+   // get a context
+   llvm::LLVMContext &context = llvm::getGlobalContext();
+   llvm::SMDiagnostic err;
+
+   // file to load and execute
+   std::string path = "benchmarks/basic/hello.ll";
+
+   // parse the .ll file and get a Module out of it
+#if (LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR <= 5)
+   std::unique_ptr<llvm::Module> mod (llvm::ParseIRFile (path, err, context));
+#else
+   std::unique_ptr<llvm::Module> mod (llvm::parseIRFile (path, err, context));
+#endif
+   llvm::Module * m = mod.get();
+
+   // if errors found, write them to errors and return
+   if (! mod.get ()) {
+      std::string errors;
+      llvm::raw_string_ostream os (errors);
+      err.print (path.c_str(), os);
+      os.flush ();
+      printf ("Error: %s\n", errors.c_str());
+      return;
+   }
+
+   printf ("functions in the module:\n");
+   for (auto & f : m->functions()) DEBUG ("- fun %p name %s", &f, f.getName ());
+   fflush (stdout);
+
+   // create an interpreter (src/fe2/Interpreter.hh)
+   llvm::Interpreter interp (std::move (mod));
+
+   // find the main function
+   llvm::Function * f = m->getFunction ("main");
+
+   // build arguments of main
+   std::vector<llvm::GenericValue> args;
+   // argc
+   llvm::GenericValue v;
+   v.IntVal = llvm::APInt (32, 3); // i32 3
+   args.push_back (v);
+   // argv
+   const char *argv[3] = {"a", "b", "c"};
+   args.push_back (llvm::GenericValue (&argv)); // pointer to array of pointers
+
+   // run function main
+   v = interp.runFunction (f, args);
+   std::cout.flush ();
+   fflush (stdout);
+
+   // print returned integer
+   printf ("ret %ld\n", v.IntVal.getZExtValue ());
+   fflush (stdout);
+   return;
+}

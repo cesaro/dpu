@@ -15,7 +15,7 @@
 
 include defs.mk
 
-.PHONY: fake all g test clean distclean prof dist compile tags
+.PHONY: fake all g test clean distclean prof dist compile tags run
 
 all : compile
 
@@ -36,7 +36,7 @@ prof : $(TARGETS)
 	src/main /tmp/ele4.ll_net
 
 tags : $(SRCS)
-	ctags -R --c++-kinds=+p --fields=+K --extra=+q . $(shell llvm-config --includedir)
+	ctags -R --c++-kinds=+p --fields=+K --extra=+q src/ $(shell llvm-config --includedir)
 
 g gdb : $(TARGETS)
 	gdb ./src/main

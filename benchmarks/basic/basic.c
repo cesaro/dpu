@@ -39,7 +39,9 @@ int main(){
     pthread_join(r_t, 0);
 
     /* show the results  */
-    printf("x: %d\n", x);
+    printf(" x: %d\n", x);
+    printf("lq: %d\n", lq);
+    printf("lr: %d\n", lr);
 
     assert (lq == 1 || lq == 2);
     assert (x <= 2);

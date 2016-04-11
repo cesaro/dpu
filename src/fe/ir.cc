@@ -2046,8 +2046,7 @@ void Instr::exec (uint8_t * mem)
 		}
 
 	case ZEXT :
-		switch (src2)
-		{
+		switch (src2) {
 		case 2 :
 			*(uint16_t*)(mem+dst) = *(uint8_t*)(mem+src1);
 			return;
@@ -2058,16 +2057,11 @@ void Instr::exec (uint8_t * mem)
 				*(uint32_t*)(mem+dst) = *(uint16_t*)(mem+src1);
 			return;
 		case 8 :
-			if (size & 1)
-			{
+			if (size & 1) {
 				*(uint64_t*)(mem+dst) = *(uint8_t*)(mem+src1);
-			}
-			else if (size & 2)
-			{
+			} else if (size & 2) {
 				*(uint64_t*)(mem+dst) = *(uint16_t*)(mem+src1);
-			}
-			else
-			{
+			} else {
 				*(uint64_t*)(mem+dst) = *(uint32_t*)(mem+src1);
 			}
 			return;
@@ -2086,8 +2080,7 @@ void Instr::exec (uint8_t * mem)
 		return;
 
 	case PRINTF :
-		switch (size)
-		{
+		switch (size) {
 		case 1 :
 			printf ((char*)mem+dst, *( uint8_t*)(mem+src1), *( uint8_t*)(mem+src2));
 			return;

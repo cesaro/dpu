@@ -17,7 +17,8 @@ clean :
 	rm -f $(BINS) $(LLS)
 
 %.ll : %.c
-	$(CC) -S -emit-llvm -include __dpu.h $(CFLAGS) $< -o $@
+	#$(CC) -S -emit-llvm -include __dpu.h $(CFLAGS) $< -o $@
+	$(CC) -S -emit-llvm $(CFLAGS) $< -o $@
 %.bc : %.c
 	$(CC) -c -emit-llvm -include __dpu.h $(CFLAGS) $< -o $@
 %.ll : %.cc

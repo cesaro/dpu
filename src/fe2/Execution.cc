@@ -42,6 +42,19 @@ static void SetValue(Value *V, GenericValue Val, ExecutionContext &SF) {
   SF.Values[V] = Val;
 }
 
+GenericValue Interpreter::getOperandValue(Value *V, ExecutionContext &SF) {
+  if (ConstantExpr *CE = dyn_cast<ConstantExpr>(V)) {
+    return getConstantExprValue(CE, SF);
+  } else if (Constant *CPV = dyn_cast<Constant>(V)) {
+    return getConstantValue(CPV);
+  } else if (GlobalValue *GV = dyn_cast<GlobalValue>(V)) {
+    return PTOGV(getPointerToGlobal(GV));
+  } else {
+    dbgs () << "  ** '" << *V << "' = " << SF.Values[V].IntVal << " " << SF.Values[V].PointerVal << "\n";
+    return SF.Values[V];
+  }
+}
+
 //===----------------------------------------------------------------------===//
 //                    Binary Instruction Implementations
 //===----------------------------------------------------------------------===//
@@ -2053,18 +2066,6 @@ GenericValue Interpreter::getConstantExprValue (ConstantExpr *CE,
   return Dest;
 }
 
-GenericValue Interpreter::getOperandValue(Value *V, ExecutionContext &SF) {
-  if (ConstantExpr *CE = dyn_cast<ConstantExpr>(V)) {
-    return getConstantExprValue(CE, SF);
-  } else if (Constant *CPV = dyn_cast<Constant>(V)) {
-    return getConstantValue(CPV);
-  } else if (GlobalValue *GV = dyn_cast<GlobalValue>(V)) {
-    return PTOGV(getPointerToGlobal(GV));
-  } else {
-    return SF.Values[V];
-  }
-}
-
 //===----------------------------------------------------------------------===//
 //                        Dispatch and Execution Code
 //===----------------------------------------------------------------------===//
@@ -2110,7 +2111,10 @@ void Interpreter::callFunction(Function *F,
 }
 
 
+#include <iostream>
+
 void Interpreter::run() {
+  int counter = 1;
   while (!ECStack.empty()) {
     // Interpret a single instruction & increment the "PC".
     ExecutionContext &SF = ECStack.back();  // Current stack frame
@@ -2121,6 +2125,37 @@ void Interpreter::run() {
 
     DEBUG(dbgs() << "About to interpret: " << I);
     visit(I);   // Dispatch to one of the visit* methods...
+
+    fprintf (stderr, "%03d. %p: ", counter++, &I); I.dump();
+    fprintf (stderr, "      name '%s'",
+          I.hasName() ? I.getValueName()->first().data() : 0);
+    fprintf (stderr, "      type ");
+    I.getType()->dump();
+    if (! ECStack.empty ())
+    {
+       ExecutionContext & fr = ECStack.back ();
+       fprintf (stderr, "      value ");
+       fr.Values[&I].IntVal.dump();
+       fprintf (stderr, "\n");
+#if 0
+       for (auto & p : fr.Values)
+       {
+          std::string s1;
+          std::string s2;
+          llvm::raw_string_ostream os1 (s1);
+          p.first->print (os1);
+          os1.flush ();
+          llvm::raw_string_ostream os2 (s2);
+          p.second.IntVal.print (os2, false);
+          os2.flush ();
+
+          fprintf (stderr, "'%s': %s ", s1.c_str(), s2.c_str());
+       }
+       fprintf (stderr, "\n");
+#endif
+    }
+
+
 #if 0
     // This is not safe, as visiting the instruction could lower it and free I.
 DEBUG(

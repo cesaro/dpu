@@ -59,6 +59,9 @@ Interpreter::Interpreter(std::unique_ptr<Module> M)
   emitGlobals();
 
   IL = new IntrinsicLowering(TD);
+
+  // won't work EEState is private :(
+  //for (auto &it : EEState.getGlobalAddressMap()) SHOW (&(*it), "p");
 }
 
 Interpreter::~Interpreter() {

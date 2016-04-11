@@ -23,6 +23,7 @@
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/MathExtras.h"
+#include "llvm/Support/raw_ostream.h"
 #include <algorithm>
 #include <cmath>
 using namespace llvm;
@@ -40,19 +41,6 @@ static cl::opt<bool> PrintVolatile("interpreter-print-volatile", cl::Hidden,
 
 static void SetValue(Value *V, GenericValue Val, ExecutionContext &SF) {
   SF.Values[V] = Val;
-}
-
-GenericValue Interpreter::getOperandValue(Value *V, ExecutionContext &SF) {
-  if (ConstantExpr *CE = dyn_cast<ConstantExpr>(V)) {
-    return getConstantExprValue(CE, SF);
-  } else if (Constant *CPV = dyn_cast<Constant>(V)) {
-    return getConstantValue(CPV);
-  } else if (GlobalValue *GV = dyn_cast<GlobalValue>(V)) {
-    return PTOGV(getPointerToGlobal(GV));
-  } else {
-    dbgs () << "  ** '" << *V << "' = " << SF.Values[V].IntVal << " " << SF.Values[V].PointerVal << "\n";
-    return SF.Values[V];
-  }
 }
 
 //===----------------------------------------------------------------------===//
@@ -328,7 +316,7 @@ void Interpreter::visitICmpInst(ICmpInst &I) {
 
 #define IMPLEMENT_VECTOR_FCMP(OP)                                   \
   case Type::VectorTyID:                                            \
-    if(dyn_cast<VectorType>(Ty)->getElementType()->isFloatTy()) {   \
+    if (cast<VectorType>(Ty)->getElementType()->isFloatTy()) {      \
       IMPLEMENT_VECTOR_FCMP_T(OP, Float);                           \
     } else {                                                        \
         IMPLEMENT_VECTOR_FCMP_T(OP, Double);                        \
@@ -375,7 +363,7 @@ static GenericValue executeFCMP_OEQ(GenericValue Src1, GenericValue Src2,
 
 #define MASK_VECTOR_NANS(TY, X,Y, FLAG)                                     \
   if (TY->isVectorTy()) {                                                   \
-    if (dyn_cast<VectorType>(TY)->getElementType()->isFloatTy()) {          \
+    if (cast<VectorType>(TY)->getElementType()->isFloatTy()) {              \
       MASK_VECTOR_NANS_T(X, Y, Float, FLAG)                                 \
     } else {                                                                \
       MASK_VECTOR_NANS_T(X, Y, Double, FLAG)                                \
@@ -477,14 +465,14 @@ static GenericValue executeFCMP_OGT(GenericValue Src1, GenericValue Src2,
     return Dest;                                                         \
   }
 
-#define IMPLEMENT_VECTOR_UNORDERED(TY, X,Y, _FUNC)                       \
-  if (TY->isVectorTy()) {                                                \
-    GenericValue DestMask = Dest;                                        \
-    Dest = _FUNC(Src1, Src2, Ty);                                        \
-      for( size_t _i=0; _i<Src1.AggregateVal.size(); _i++)               \
-        if (DestMask.AggregateVal[_i].IntVal == true)                    \
-          Dest.AggregateVal[_i].IntVal = APInt(1,true);                  \
-      return Dest;                                                       \
+#define IMPLEMENT_VECTOR_UNORDERED(TY, X, Y, FUNC)                             \
+  if (TY->isVectorTy()) {                                                      \
+    GenericValue DestMask = Dest;                                              \
+    Dest = FUNC(Src1, Src2, Ty);                                               \
+    for (size_t _i = 0; _i < Src1.AggregateVal.size(); _i++)                   \
+      if (DestMask.AggregateVal[_i].IntVal == true)                            \
+        Dest.AggregateVal[_i].IntVal = APInt(1, true);                         \
+    return Dest;                                                               \
   }
 
 static GenericValue executeFCMP_UEQ(GenericValue Src1, GenericValue Src2,
@@ -548,7 +536,7 @@ static GenericValue executeFCMP_ORD(GenericValue Src1, GenericValue Src2,
   if(Ty->isVectorTy()) {
     assert(Src1.AggregateVal.size() == Src2.AggregateVal.size());
     Dest.AggregateVal.resize( Src1.AggregateVal.size() );
-    if(dyn_cast<VectorType>(Ty)->getElementType()->isFloatTy()) {
+    if (cast<VectorType>(Ty)->getElementType()->isFloatTy()) {
       for( size_t _i=0;_i<Src1.AggregateVal.size();_i++)
         Dest.AggregateVal[_i].IntVal = APInt(1,
         ( (Src1.AggregateVal[_i].FloatVal ==
@@ -579,7 +567,7 @@ static GenericValue executeFCMP_UNO(GenericValue Src1, GenericValue Src2,
   if(Ty->isVectorTy()) {
     assert(Src1.AggregateVal.size() == Src2.AggregateVal.size());
     Dest.AggregateVal.resize( Src1.AggregateVal.size() );
-    if(dyn_cast<VectorType>(Ty)->getElementType()->isFloatTy()) {
+    if (cast<VectorType>(Ty)->getElementType()->isFloatTy()) {
       for( size_t _i=0;_i<Src1.AggregateVal.size();_i++)
         Dest.AggregateVal[_i].IntVal = APInt(1,
         ( (Src1.AggregateVal[_i].FloatVal !=
@@ -725,10 +713,10 @@ void Interpreter::visitBinaryOperator(BinaryOperator &I) {
     // Macros to choose appropriate TY: float or double and run operation
     // execution
 #define FLOAT_VECTOR_OP(OP) {                                         \
-  if (dyn_cast<VectorType>(Ty)->getElementType()->isFloatTy())        \
+  if (cast<VectorType>(Ty)->getElementType()->isFloatTy())            \
     FLOAT_VECTOR_FUNCTION(OP, FloatVal)                               \
   else {                                                              \
-    if (dyn_cast<VectorType>(Ty)->getElementType()->isDoubleTy())     \
+    if (cast<VectorType>(Ty)->getElementType()->isDoubleTy())         \
       FLOAT_VECTOR_FUNCTION(OP, DoubleVal)                            \
     else {                                                            \
       dbgs() << "Unhandled type for OP instruction: " << *Ty << "\n"; \
@@ -757,12 +745,12 @@ void Interpreter::visitBinaryOperator(BinaryOperator &I) {
     case Instruction::FMul:  FLOAT_VECTOR_OP(*) break;
     case Instruction::FDiv:  FLOAT_VECTOR_OP(/) break;
     case Instruction::FRem:
-      if (dyn_cast<VectorType>(Ty)->getElementType()->isFloatTy())
+      if (cast<VectorType>(Ty)->getElementType()->isFloatTy())
         for (unsigned i = 0; i < R.AggregateVal.size(); ++i)
           R.AggregateVal[i].FloatVal = 
           fmod(Src1.AggregateVal[i].FloatVal, Src2.AggregateVal[i].FloatVal);
       else {
-        if (dyn_cast<VectorType>(Ty)->getElementType()->isDoubleTy())
+        if (cast<VectorType>(Ty)->getElementType()->isDoubleTy())
           for (unsigned i = 0; i < R.AggregateVal.size(); ++i)
             R.AggregateVal[i].DoubleVal = 
             fmod(Src1.AggregateVal[i].DoubleVal, Src2.AggregateVal[i].DoubleVal);
@@ -2066,6 +2054,18 @@ GenericValue Interpreter::getConstantExprValue (ConstantExpr *CE,
   return Dest;
 }
 
+GenericValue Interpreter::getOperandValue(Value *V, ExecutionContext &SF) {
+  if (ConstantExpr *CE = dyn_cast<ConstantExpr>(V)) {
+    return getConstantExprValue(CE, SF);
+  } else if (Constant *CPV = dyn_cast<Constant>(V)) {
+    return getConstantValue(CPV);
+  } else if (GlobalValue *GV = dyn_cast<GlobalValue>(V)) {
+    return PTOGV(getPointerToGlobal(GV));
+  } else {
+    return SF.Values[V];
+  }
+}
+
 //===----------------------------------------------------------------------===//
 //                        Dispatch and Execution Code
 //===----------------------------------------------------------------------===//
@@ -2073,13 +2073,12 @@ GenericValue Interpreter::getConstantExprValue (ConstantExpr *CE,
 //===----------------------------------------------------------------------===//
 // callFunction - Execute the specified function...
 //
-void Interpreter::callFunction(Function *F,
-                               const std::vector<GenericValue> &ArgVals) {
+void Interpreter::callFunction(Function *F, ArrayRef<GenericValue> ArgVals) {
   assert((ECStack.empty() || !ECStack.back().Caller.getInstruction() ||
           ECStack.back().Caller.arg_size() == ArgVals.size()) &&
          "Incorrect number of arguments passed into function call!");
   // Make a new stack frame... and fill it in.
-  ECStack.push_back(ExecutionContext());
+  ECStack.emplace_back();
   ExecutionContext &StackFrame = ECStack.back();
   StackFrame.CurFunction = F;
 
@@ -2110,8 +2109,6 @@ void Interpreter::callFunction(Function *F,
   StackFrame.VarArgs.assign(ArgVals.begin()+i, ArgVals.end());
 }
 
-
-#include <iostream>
 
 void Interpreter::run() {
   int counter = 1;

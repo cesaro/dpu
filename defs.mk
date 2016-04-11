@@ -14,11 +14,12 @@
 # this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-#LLVMCXXFLAGS=-I$(shell llvm-config-3.6 --includedir)
-LLVMCXXFLAGS=$(shell llvm-config-3.6 --cppflags)
-LLVMLDFLAGS=$(shell llvm-config-3.6 --ldflags)
-#LLVMLIBS=$(shell llvm-config-3.6 --libs --system-libs)
-LLVMLIBS=$(shell llvm-config-3.6 --libs all) -lz -lpthread -lffi -lncurses -ldl -lm
+LLVMVERS=3.7
+#LLVMCXXFLAGS=-I$(shell llvm-config-$(LLVMVERS) --includedir)
+LLVMCXXFLAGS=$(shell llvm-config-$(LLVMVERS) --cppflags)
+LLVMLDFLAGS=$(shell llvm-config-$(LLVMVERS) --ldflags)
+#LLVMLIBS=$(shell llvm-config-$(LLVMVERS) --libs --system-libs)
+LLVMLIBS=$(shell llvm-config-$(LLVMVERS) --libs all) -lz -lpthread -lffi -lncurses -ldl -lm
 
 # traditional variables
 #CFLAGS:=-Wall -Wextra -std=c11 -pg

@@ -16,16 +16,19 @@
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/ADT/APInt.h"
 
+
 #include "llvm/ExecutionEngine/ExecutionEngine.h"
 #include "llvm/ExecutionEngine/SectionMemoryManager.h"
 //#include "llvm/ExecutionEngine/MCJIT.h"
 #include "llvm/ExecutionEngine/Interpreter.h"
 
+#undef DEBUG // exported by ExecutionEngine.h
+#include "verbosity.h"
+
 #include "test.hh"
 #include "ir.hh"
 #include "pes.hh"
 #include "statement.hh"
-#include "verbosity.h"
 
 #include "fe/ir.hh"
 #include "fe/llvm/parser.hh"
@@ -1495,13 +1498,21 @@ void test21 ()
    }
 
    printf ("========== functions\n");
+#if (LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR <= 5)
+   for (auto & f : mod->getFunctionList()) DEBUG ("function %p name %s", &f, f.getName ());
+#else
    for (auto & f : mod->functions()) DEBUG ("function %p name %s", &f, f.getName ());
+#endif
    printf ("========== module\n");
    fflush (stdout);
    m->dump ();
 
    std::string errors;
+#if (LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR <= 5)
+   llvm::EngineBuilder b (mod.get ());
+#else
    llvm::EngineBuilder b (std::move (mod));
+#endif
    llvm::ExecutionEngine * e;
 
    b.setErrorStr (&errors);
@@ -1549,7 +1560,11 @@ void test22 ()
    }
 
    printf ("functions in the module:\n");
+#if (LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR <= 5)
+   for (auto & f : m->getFunctionList()) DEBUG ("function %p name %s", &f, f.getName ());
+#else
    for (auto & f : m->functions()) DEBUG ("- fun %p name %s", &f, f.getName ());
+#endif
    fflush (stdout);
 
    // create an interpreter (src/fe2/Interpreter.hh)

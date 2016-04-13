@@ -36,7 +36,7 @@ prof : $(TARGETS)
 	src/main /tmp/ele4.ll_net
 
 tags : $(SRCS)
-	ctags -R --c++-kinds=+p --fields=+K --extra=+q src/ $(shell llvm-config --includedir)
+	ctags -R --c++-kinds=+p --fields=+K --extra=+q src/ $(shell llvm-config-$(LLVMVERS) --includedir)
 
 g gdb : $(TARGETS)
 	gdb ./src/main

@@ -13,5 +13,4 @@
 *.pdftex
 *.pdftex_t
 tags
-src/cunf/cunf
-src/pep2dot
+benchmarks/basic/*.ll

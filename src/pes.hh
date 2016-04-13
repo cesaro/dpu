@@ -54,6 +54,7 @@ public:
    std::string  str           () const;
    std::string dotstr         () const;
 
+   Event (const ir::Trans & t, Config & c); // make it public to use emplace_back(). Consider to a new allocator if constructors are private
    Event (const Event & e);
    void mk_history (const Config & c);
    void update_parents();
@@ -68,11 +69,11 @@ public:
    friend Unfolding;
 
 private:
-   Event ();
+   Event() = default;
    Event (Unfolding & u);
    Event (const ir::Trans & t, Unfolding & u);
    Event (const ir::Trans & t, Event * ep, Event * em, Unfolding & u);
-   Event (const ir::Trans & t, Event * ep, Event *em, std::vector<Event *>, Unfolding & u);
+   Event (const ir::Trans & t, Event * ep, std::vector<Event *> pr, Unfolding & u);
 
 }; // end of class Event
 
@@ -139,7 +140,7 @@ public:
    Unfolding (ir::Machine & ma);
    void create_event(ir::Trans & t, Config &);
    Event & find_or_add(const ir::Trans & t, Event * ep, Event * pr_mem);
-   Event & find_or_addWR(const ir::Trans & t, Event * ep, Event * pr_mem, std::vector<Event *> combi);
+   Event & find_or_addWR(const ir::Trans & t, Event * ep, std::vector<Event *> combi);
 
    void uprint_debug();
    void uprint_dot();

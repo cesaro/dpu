@@ -1,6 +1,9 @@
 
 #include <stdio.h>
 #include <assert.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <string.h>
 
 int main (int argc, char ** argv)
 {
@@ -9,5 +12,9 @@ int main (int argc, char ** argv)
    {
       printf ("i %d argv '%s'\n", i, argv[i]);
    }
-   return argc;
+
+   char * ptr = malloc  (128);
+   strcpy (ptr, "hello world\n");
+
+   return argc + strlen (ptr);
 }

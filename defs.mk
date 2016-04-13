@@ -14,11 +14,12 @@
 # this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-#LLVMCXXFLAGS=-I$(shell llvm-config --includedir)
-LLVMCXXFLAGS=$(shell llvm-config --cppflags)
-LLVMLDFLAGS=$(shell llvm-config --ldflags)
-#LLVMLIBS=$(shell llvm-config --libs --system-libs)
-LLVMLIBS=$(shell llvm-config --libs all) -lz -lpthread -lffi -ltinfo -ldl -lm
+LLVMVERS=3.7
+#LLVMCXXFLAGS=-I$(shell llvm-config-$(LLVMVERS) --includedir)
+LLVMCXXFLAGS=$(shell llvm-config-$(LLVMVERS) --cppflags)
+LLVMLDFLAGS=$(shell llvm-config-$(LLVMVERS) --ldflags)
+#LLVMLIBS=$(shell llvm-config-$(LLVMVERS) --libs --system-libs)
+LLVMLIBS=$(shell llvm-config-$(LLVMVERS) --libs all) -lz -lpthread -lffi -lncurses -ldl -lm
 
 # traditional variables
 #CFLAGS:=-Wall -Wextra -std=c11 -pg
@@ -58,7 +59,7 @@ DEPS:=$(patsubst %.o,%.d,$(OBJS) $(MOBJS))
 
 # define the toolchain
 CROSS:=
-#VERS:=-5
+#VERS:=-3.6
 VERS:=
 
 LD:=$(CROSS)ld$(VERS)

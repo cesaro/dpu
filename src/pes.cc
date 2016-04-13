@@ -283,7 +283,7 @@ void Event::update_parents()
       case ir::Trans::WR:
          pre_proc->post_proc.push_back(this);
          /* update pre_mem */
-         pre_mem->post_wr.push_back(this); // need to consider its necessary
+         pre_mem->post_wr.push_back(this); // need to consider its necessity
          for (unsigned i = 0; i < pre_readers.size(); i++)
          {
             if ( (pre_readers[i]->is_bottom() == true) || (pre_readers[i]->trans->type == ir::Trans::WR)  )
@@ -393,8 +393,6 @@ bool Event::check_cfl( const Event & e ) const
    if (this->is_bottom() || e.is_bottom() || (*this == e) )
       return false;
 
-   if (this->pre_proc == e.pre_proc) return true;
-
 #if 0
    /* 2 LOC in the same process: consume the same PC (same source) or wirte and read the same localvar */
       if ((this->trans->type == ir::Trans::LOC) && (e.trans->type == ir::Trans::LOC) && (this->trans->proc.id == e.trans->proc.id) && (this->trans->src == e.trans->src))
@@ -402,6 +400,7 @@ bool Event::check_cfl( const Event & e ) const
       else
          return false;
 #endif
+
    /*
     *  a LOC event has no conflict with any other transition.
     * "2 LOC trans sharing a localvar" doesn't matter because it depends on the PC of process.
@@ -424,6 +423,11 @@ bool Event::check_cfl( const Event & e ) const
   	   }
 	   return false;
    }
+
+
+   // let's think about 2 events have the same pre_proc. They are in conflict except the case their parent is bottom.
+   //   if (this->pre_proc == e.pre_proc) return true;
+
 
    const ir::Trans & pa_tr = *(parent->trans);
    switch (pa_tr.type)

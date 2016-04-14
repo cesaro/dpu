@@ -42,9 +42,6 @@ Event::Event (const Trans & t, Config & c)
    unsigned numprocs = c.unf.m.procs.size();
    if (t.type == ir::Trans::WR)
    {
-      pre_readers.reserve(numprocs);
-      post_mem.reserve(numprocs);
-
       std::vector<Event *> temp;
       for (unsigned i = 0; i < numprocs; i++)
          post_mem.push_back(temp);
@@ -67,12 +64,9 @@ Event::Event (Unfolding & u)
    , trans(nullptr)
    , color(0)
 {
+   // this is for bottom event only
    unsigned numprocs = u.m.procs.size();
    //unsigned mem = u.m.memsize - numprocs;
-
-   // for bottom event only
-   pre_readers.reserve(numprocs);
-   post_mem.reserve(numprocs);
 
    std::vector<Event *> temp;
    for (unsigned i = 0; i < numprocs; i++)
@@ -84,7 +78,9 @@ Event::Event (Unfolding & u)
 
    DEBUG ("  %p: Event.ctor:", this);
 }
-
+/*
+ * for all events
+ */
 Event::Event (const Trans & t, Unfolding & u)
    : idx(u.count)
    , pre_proc(nullptr)
@@ -97,15 +93,15 @@ Event::Event (const Trans & t, Unfolding & u)
 {
    assert(u.count < u.evt.capacity());
    unsigned numprocs = u.m.procs.size();
-   pre_readers.reserve(numprocs);
-   post_mem.reserve(numprocs);
+
    clock.reserve(numprocs);
    for (unsigned i = 0; i < numprocs; i++)
       clock.push_back(0);
 
    DEBUG ("  %p: Event.ctor: t %p: '%s'", this, &t, t.str().c_str());
 }
-// for RD, SYN event
+
+// for create RD, SYN event when compute cex
 Event::Event (const ir::Trans & t, Event * ep, Event * em, Unfolding & u)
    : idx(u.count)
    , pre_proc(ep)
@@ -118,13 +114,21 @@ Event::Event (const ir::Trans & t, Event * ep, Event * em, Unfolding & u)
 {
    assert(u.count < u.evt.capacity());
    unsigned numprocs = u.m.procs.size();
-   clock.reserve(numprocs);
+
    for (unsigned i = 0; i < numprocs; i++)
       clock.push_back(0);
+
    DEBUG ("  %p: Event.ctor: t %p: '%s'", this, &t, t.str().c_str());
 }
 
-// for WR event
+/*
+ *  for WR event:
+ *  - t: transition
+ *  - ep: pre_proc
+ *  - pr: pre_readers
+ *  - u: unfolding to add
+ */
+
 Event::Event (const ir::Trans & t, Event * ep, std::vector<Event *> pr, Unfolding & u)
    : idx(u.count)
    , pre_proc(ep)
@@ -139,19 +143,16 @@ Event::Event (const ir::Trans & t, Event * ep, std::vector<Event *> pr, Unfoldin
    assert(u.count < u.evt.capacity());
    unsigned numprocs = u.m.procs.size();
 
-   if (t.type == ir::Trans::WR)
-   {
-      post_mem.reserve(numprocs);
-      std::vector<Event *> temp;
-      for (unsigned i = 0; i < numprocs; i++)
-         post_mem.push_back(temp);
-   }
+   assert(t.type == Trans::WR);
 
-   clock.reserve(numprocs);
+   std::vector<Event *> temp;
+   for (unsigned i = 0; i < numprocs; i++)
+      post_mem.push_back(temp);
+
    for (unsigned i = 0; i < numprocs; i++)
       clock.push_back(0);
 
-   DEBUG ("  %p: Event.ctor: t %p: '%s'", this, &t, t.str().c_str());
+   DEBUG ("  %p: Event.ctor: t %p: '", this, &t);
 }
 
 Event::Event (const Event & e)
@@ -170,8 +171,6 @@ Event::Event (const Event & e)
    , clock(e.clock)
 {
 }
-   //DEBUG ("%p: Event.ctor: other %p (copy)", this, &e);
-
 
 bool Event::is_bottom () const
 {
@@ -276,8 +275,8 @@ void Event::mk_history(const Config & c)
 
       case ir::Trans::WR:
          std::vector<unsigned> temp;
-         // find out the max elements among those of all pre_readers.
 
+         // find out the max elements among those of all pre_readers.
          for (unsigned i = 0; i < procs.size(); i++)
          {
             /* put all elements j of pre_readers to a vector temp */
@@ -428,22 +427,24 @@ bool Event::check_cfl( const Event & e ) const
    if (this->is_bottom() || e.is_bottom() || (*this == e) )
       return false;
 
-#if 0
-   /* 2 LOC in the same process: consume the same PC (same source) or wirte and read the same localvar */
-      if ((this->trans->type == ir::Trans::LOC) && (e.trans->type == ir::Trans::LOC) && (this->trans->proc.id == e.trans->proc.id) && (this->trans->src == e.trans->src))
-         return true;
-      else
-         return false;
-#endif
+   /*
+    * Check pre_proc: if they have the same pre_proc and in the same process -> conflict
+    * It is true for the case where pre_proc is bottom
+    */
+
+   if ((this->pre_proc == e.pre_proc) && (this->trans->proc.id == e.trans->proc.id))
+      return true;
 
    /*
     *  a LOC event has no conflict with any other transition.
     * "2 LOC trans sharing a localvar" doesn't matter because it depends on the PC of process.
+    * Here, it means they don't have same pre_proc --> any LOC is in no conflict with others.
     */
    if ((this->trans->type == ir::Trans::LOC)  || (e.trans->type == ir::Trans::LOC))
       return false;
 
-   Event * parent = pre_mem;
+   // different pre_procs => check pre_mem or pre_readers
+   Event * parent = pre_mem; // for RD, SYN, WR events
    std::vector<Event *>::iterator this_idx, e_idx;
 
    // special case when parent is bottom, bottom as a WR, but not exactly a WR
@@ -459,13 +460,7 @@ bool Event::check_cfl( const Event & e ) const
 	   return false;
    }
 
-
-   // let's think about 2 events have the same pre_proc. They are in conflict except the case their parent is bottom.
-   //   if (this->pre_proc == e.pre_proc) return true;
-
-
-   const ir::Trans & pa_tr = *(parent->trans);
-   switch (pa_tr.type)
+   switch (parent->trans->type)
    {
       case ir::Trans::RD:
          this_idx    = std::find(parent->post_rws.begin(), parent->post_rws.end(),this);
@@ -620,9 +615,9 @@ Config::Config (Unfolding & u)
    DEBUG ("%p: Config.ctor", this);
    // reserve the capacity of en and cex is square root of number of trans.
 	// FIXME is this necessary ? -- Cesar
-   en.reserve(u.m.trans.size()*10);
-   cex.reserve(u.m.trans.size()*10);
-   cex1.reserve(u.m.trans.size()*10);
+   //en.reserve(u.m.trans.size()*10);
+   //cex.reserve(u.m.trans.size()*10);
+   //cex1.reserve(u.m.trans.size()*10);
 
    // compute enable set for a configuration with the only event "bottom"
    __update_encex (*unf.bottom);
@@ -848,7 +843,7 @@ void Config:: RD_cex(Event * e)
       Event * newevt = &unf.find_or_add(t,ep,pr_mem);
       add_to_cex(newevt);
 
-      // add to set of direct conflict dicfl
+      // add event to set of direct conflict dicfl if it is new one.
       if (newevt->idx == unf.evt.back().idx)
       {
          e->dicfl.push_back(newevt);
@@ -901,7 +896,39 @@ void Config:: RD_cex(Event * e)
  */
 void Config:: SYN_cex(Event * e)
 {
+   DEBUG(" %p, id:%d: RD conflicting extension", e, e->idx);
+   Event * ep, * em, *pr_mem; //pr_mem: pre_mem
+   const Trans & t = *(e->trans);
+   ep = e->pre_proc;
+   em = e->pre_mem;
 
+   while (!(em->is_bottom()) and (ep->in_history(em) == false))
+   {
+      if (em->trans->type == ir::Trans::RD)
+      {
+         pr_mem   = em;
+         em       = em->pre_mem;
+      }
+      else
+      {
+         pr_mem   = em->pre_readers[e->trans->proc.id];
+         em       = em->pre_readers[e->trans->proc.id];
+      }
+
+      /* Need to check the event's history before adding it to the unf
+       * Don't add events which are already in the unf
+       */
+
+      Event * newevt = &unf.find_or_add(t,ep,pr_mem);
+      add_to_cex(newevt);
+
+      // add event to set of direct conflict dicfl if it is new one.
+      if (newevt->idx == unf.evt.back().idx)
+      {
+         e->dicfl.push_back(newevt);
+         newevt->dicfl.push_back(e);
+      }
+   }
 }
 /*
  * Compute conflicting event for a WR event
@@ -962,7 +989,7 @@ void Config:: WR_cex(Event * e)
        */
       std::vector<Event *> combi;
       combi.reserve(numprocs);
-      compute_combi(0, spikes, combi,temp);
+      compute_combi(0, spikes, combi,e);
    }
 }
 /*
@@ -987,19 +1014,17 @@ void Config::compute_combi(unsigned int i, const std::vector<std::vector<Event *
                /* if an event is already in the unf, it must have all necessary relations including causality and conflict.
                 * That means it is in cex, so don't need to check if old event is in cex or not. It's surely in cex.
                 */
-               DEBUG("Den day chua?");
-               newevt = &unf.find_or_addWR(t,e->pre_proc,combi);
-               DEBUG("Cho nay den chua?");
+               newevt = &unf.find_or_addWR(t, e->pre_proc, combi);
                add_to_cex(newevt);
 
                // update direct conflicting set for both events, but only for new added event.
-#if 0
-               if (newevt->idx == unf.evt.back().idx)
+
+               if (newevt->idx == unf.evt.back().idx) // new added event at back of evt
                {
-                  this->dicfl.push_back(newevt);
-                  newevt->dicfl.push_back(this);
+                  e->dicfl.push_back(newevt);
+                  newevt->dicfl.push_back(e);
                }
-#endif
+
                printf("\n");
             }
             else
@@ -1013,13 +1038,13 @@ void Config::compute_combi(unsigned int i, const std::vector<std::vector<Event *
 // check if ee is in the cex or not. if not, add it to cex.
 void Config:: add_to_cex(Event * ee)
 {
-   for (auto ce : cex1)
+   for (auto ce : cex)
       if (ee->idx == ce->idx)
       {
          DEBUG("Event already in the cex");
          return;
       }
-   cex1.push_back(ee);
+   cex.push_back(ee);
    return;
 }
 /*
@@ -1133,8 +1158,8 @@ void Config::__print_en() const
  */
 void Config::__print_cex() const
 {
-   DEBUG ("\nConflicting set of config %p: size: %zu", this, cex1.size());
-      for (auto & e : cex1)
+   DEBUG ("\nConflicting set of config %p: size: %zu", this, cex.size());
+      for (auto & e : cex)
          e->eprint_debug();
 }
 
@@ -1217,10 +1242,16 @@ Event & Unfolding:: find_or_add(const ir::Trans & t, Event * ep, Event * pr_mem)
    DEBUG("   new event: id: %s \n ", evt.back().str().c_str());
    return evt.back();
 }
-
+/*
+ * create a WR with:
+ * - t : transition
+ * - ep: pre_proc event
+ * - combi: set of pre_readers
+ */
 Event & Unfolding:: find_or_addWR(const ir::Trans & t, Event * ep, std::vector<Event *> combi)
 {
-   /* Need to check the event's history before adding it to the unf
+   /*
+    * Need to check if there is some event with the same transition, pre_proc and pre_readers in the unf
     * Don't add events which are already in the unf
     */
 
@@ -1231,6 +1262,7 @@ Event & Unfolding:: find_or_addWR(const ir::Trans & t, Event * ep, std::vector<E
          return ee;
       }
 
+   DEBUG("Addr of t: %p", &t);
    evt.push_back(Event(t, ep, combi, *this));
 
    evt.back().update_parents(); // to make sure of conflict
@@ -1266,7 +1298,7 @@ void Unfolding:: uprint_dot()
    }
 
    std::ofstream fs("output/unf.dot", std::fstream::out);
-   std::string caption = "Unfolding";
+   std::string caption = "Concur example";
    printf(" Unfolding is exported to dot file: \"dpu/output/unf.dot\"");
    fs << "Digraph RGraph {\n";
    fs << "label = \"Unfolding: " << caption <<"\"";
@@ -1386,7 +1418,7 @@ void Unfolding::explore_rnd_config ()
    uprint_debug();
    c.cprint_dot();
    uprint_dot();
-   //c.compute_cex();
+   c.compute_cex();
 
    return;
 }

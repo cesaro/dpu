@@ -1,5 +1,6 @@
-CC=clang
-CXX=clang++
+VERS=3.7
+CC=clang-$(VERS)
+CXX=clang++-$(VERS)
 
 CPPFLAGS=
 CFLAGS=-Wall -O1

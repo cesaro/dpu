@@ -496,3 +496,5 @@ void Interpreter::initializeExternalFunctions() {
   (*FuncNames)["lle_X_memset"]       = lle_X_memset;
   (*FuncNames)["lle_X_memcpy"]       = lle_X_memcpy;
 }
+
+// vim:ts=2 sw=2 et:

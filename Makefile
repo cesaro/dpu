@@ -21,7 +21,7 @@ all : compile
 
 compile: $(TARGETS)
 
-r run: compile
+r run: compile benchmarks/basic/hello.ll
 	./src/main | tee out
 
 $(TARGETS) : % : %.o $(OBJS)
@@ -42,15 +42,17 @@ g gdb : $(TARGETS)
 	gdb ./src/main
 
 vars :
-	@echo CC $(CC)
-	@echo CXX $(CXX)
-	@echo CXX $(CXX)
-	@echo SRCS $(SRCS)
-	@echo MSRCS $(MSRCS)
-	@echo OBJS $(OBJS)
-	@echo MOBJS $(MOBJS)
-	@echo TARGETS $(TARGETS)
-	@echo DEPS $(DEPS)
+	@echo "CC       $(CC)"
+	@echo "CXX      $(CXX)"
+	@echo "CFLAGS   $(CFLAGS)"
+	@echo "CPPFLAGS $(CPPFLAGS)"
+	@echo "CXXFLAGS $(CXXFLAGS)"
+	@echo "TARGETS  $(TARGETS)"
+	@echo "MSRCS    $(MSRCS)"
+	@echo "MOBJS    $(MOBJS)"
+	@echo "SRCS     $(SRCS)"
+	@echo "OBJS     $(OBJS)"
+	@echo "DEPS     $(DEPS)"
 
 clean :
 	@rm -f $(TARGETS) $(MOBJS) $(OBJS)

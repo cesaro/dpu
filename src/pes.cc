@@ -47,12 +47,14 @@ Event::Event (const Trans & t, Config & c)
          post_mem.push_back(temp);
    }
 
-   clock.reserve(numprocs);
+   // clock.reserve(numprocs);
    for (unsigned i = 0; i < numprocs; i++)
       clock.push_back(0);
 
    DEBUG ("  %p: Event.ctor: t %p: '%s'", this, &t, t.str().c_str());
    mk_history(c);
+   /* set up vector clock */
+   set_vclock();
 }
 
 Event::Event (Unfolding & u)
@@ -79,7 +81,7 @@ Event::Event (Unfolding & u)
    DEBUG ("  %p: Event.ctor:", this);
 }
 /*
- * for all events
+ * for all events. Don't use any more
  */
 Event::Event (const Trans & t, Unfolding & u)
    : idx(u.count)
@@ -94,7 +96,7 @@ Event::Event (const Trans & t, Unfolding & u)
    assert(u.count < u.evt.capacity());
    unsigned numprocs = u.m.procs.size();
 
-   clock.reserve(numprocs);
+   // clock.reserve(numprocs);
    for (unsigned i = 0; i < numprocs; i++)
       clock.push_back(0);
 
@@ -151,7 +153,8 @@ Event::Event (const ir::Trans & t, Event * ep, std::vector<Event *> pr, Unfoldin
 
    for (unsigned i = 0; i < numprocs; i++)
       clock.push_back(0);
-
+   /* set up vector clock */
+   set_vclock();
    DEBUG ("  %p: Event.ctor: t %p: '", this, &t);
 }
 
@@ -249,52 +252,53 @@ void Event::mk_history(const Config & c)
    }
 
    DEBUG("   Make history: %s ",this->str().c_str());
-
-   /* set up vector clock */
-
+}
+void Event::set_vclock()
+{
+   Process & p = this->trans->proc;
    switch (this->trans->type)
-   {
-      case ir::Trans::LOC:
-         clock = pre_proc->clock;
-         clock[p.id]++;
-         break;
+     {
+        case ir::Trans::LOC:
+           clock = pre_proc->clock;
+           clock[p.id]++;
+           break;
 
-      case ir::Trans::SYN:
-         for (unsigned i = 0; i < procs.size(); i++)
-            clock[i] = std::max(pre_mem->clock[i], pre_proc->clock[i]);
+        case ir::Trans::SYN:
+           for (unsigned i = 0; i < clock.size(); i++)
+              clock[i] = std::max(pre_mem->clock[i], pre_proc->clock[i]);
 
-         clock[p.id]++;
-         break;
+           clock[p.id]++;
+           break;
 
-      case ir::Trans::RD:
-         for (unsigned i = 0; i < procs.size(); i++)
-            clock[i] = std::max(pre_mem->clock[i], pre_proc->clock[i]);
+        case ir::Trans::RD:
+           for (unsigned i = 0; i < clock.size(); i++)
+              clock[i] = std::max(pre_mem->clock[i], pre_proc->clock[i]);
 
-         clock[p.id]++;
-         break;
+           clock[p.id]++;
+           break;
 
-      case ir::Trans::WR:
-         std::vector<unsigned> temp;
+        case ir::Trans::WR:
+           std::vector<unsigned> temp;
 
-         // find out the max elements among those of all pre_readers.
-         for (unsigned i = 0; i < procs.size(); i++)
-         {
-            /* put all elements j of pre_readers to a vector temp */
-            for (unsigned j = 0; j < procs.size(); j++)
-               temp.push_back(pre_readers[j]->clock[i]);
+           // find out the max elements among those of all pre_readers.
+           for (unsigned i = 0; i < clock.size(); i++)
+           {
+              /* put all elements j of pre_readers to a vector temp */
+              for (unsigned j = 0; j < clock.size(); j++)
+                 temp.push_back(pre_readers[j]->clock[i]);
 
-            std::vector<unsigned>::iterator it = std::max_element(temp.begin(), temp.end()); // find out the largest element
-            clock[i] = *it; // put it to the back of clock
-            temp.clear();
-            // take the max value between pre_proc and pre_reader[p.id] to make sure the value is maximum
-            for (unsigned i = 0; i < clock.size(); i++)
-               if (clock[i] < this->pre_proc->clock[i])
-                  clock[i] = this->pre_proc->clock[i];
-         }
+              std::vector<unsigned>::iterator it = std::max_element(temp.begin(), temp.end()); // find out the largest element
+              clock[i] = *it; // put it to the back of clock
+              temp.clear();
+              // take the max value between pre_proc and pre_reader[p.id] to make sure the value is maximum
+              for (unsigned i = 0; i < clock.size(); i++)
+                 if (clock[i] < this->pre_proc->clock[i])
+                    clock[i] = this->pre_proc->clock[i];
+           }
 
-         clock[p.id]++;
-         break;
-   }
+           clock[p.id]++;
+           break;
+     }
 
 }
 /*
@@ -613,11 +617,6 @@ Config::Config (Unfolding & u)
 {
    /* with the unf containing only bottom event */
    DEBUG ("%p: Config.ctor", this);
-   // reserve the capacity of en and cex is square root of number of trans.
-	// FIXME is this necessary ? -- Cesar
-   //en.reserve(u.m.trans.size()*10);
-   //cex.reserve(u.m.trans.size()*10);
-   //cex1.reserve(u.m.trans.size()*10);
 
    // compute enable set for a configuration with the only event "bottom"
    __update_encex (*unf.bottom);
@@ -727,11 +726,8 @@ void Config::__update_encex (Event & e )
   //Event * pe;
    DEBUG ("%p: Config.__update_encex(%p)", this, &e);
 
-   // std::vector<ir::Trans> & trans    = unf.m.trans; // set of transitions in the model
-   // std::vector <ir::Process> & procs = unf.m.procs; // set of processes in the model
-
-   assert(trans.size() > 0);
-   assert(procs.size() > 0);
+   assert(unf.m.trans.size() > 0);
+   assert(unf.m.procs.size() > 0);
 
    std::vector<Trans*> enable;
 
@@ -785,7 +781,7 @@ void Config::remove_cfl(Event & e)
  */
 void Config::compute_cex ()
 {
-   DEBUG("%p: Config.compute_cex: ");
+   DEBUG("%p: Config.compute_cex: ",this);
    for (auto e : latest_proc)
    {
       Event * p = e;
@@ -951,6 +947,7 @@ void Config:: WR_cex(Event * e)
          spikes[k].clear(); // clear all spikes for storing new elements
 
       DEBUG("  Comb #%d (%d spikes): ", count++, numprocs);
+
       for (unsigned i = 0; i < ew->pre_readers.size(); i++)
       {
          temp = ew->pre_readers[i];
@@ -988,7 +985,6 @@ void Config:: WR_cex(Event * e)
        * Compute all possible combinations c(s1,s2,..sn) from the spikes to produce new conflicting events
        */
       std::vector<Event *> combi;
-      combi.reserve(numprocs);
       compute_combi(0, spikes, combi,e);
    }
 }
@@ -1001,37 +997,37 @@ void Config::compute_combi(unsigned int i, const std::vector<std::vector<Event *
    Event * newevt;
    const ir::Trans & t = *(e->trans);
    for (unsigned j = 0; j < s[i].size(); j++ )
+   {
+      if (j < s[i].size())
       {
-         if (j < s[i].size())
+         combi.push_back(s[i][j]);
+         if (i == s.size() - 1)
          {
-            combi.push_back(s[i][j]);
-            if (i == s.size() - 1)
+            printf("   Combination:");
+            for (unsigned k = 0; k < combi.size(); k++)
+               printf("%d ", combi[k]->idx);
+
+            /* if an event is already in the unf, it must have all necessary relations including causality and conflict.
+             * That means it is in cex, so don't need to check if old event is in cex or not. It's surely in cex.
+             */
+            newevt = &unf.find_or_addWR(t, e->pre_proc, combi);
+            add_to_cex(newevt);
+
+            // update direct conflicting set for both events, but only for new added event.
+
+            if (newevt->idx == unf.evt.back().idx) // new added event at back of evt
             {
-               printf("   Combination:");
-               for (unsigned k = 0; k < combi.size(); k++)
-                  printf("%d ", combi[k]->idx);
-
-               /* if an event is already in the unf, it must have all necessary relations including causality and conflict.
-                * That means it is in cex, so don't need to check if old event is in cex or not. It's surely in cex.
-                */
-               newevt = &unf.find_or_addWR(t, e->pre_proc, combi);
-               add_to_cex(newevt);
-
-               // update direct conflicting set for both events, but only for new added event.
-
-               if (newevt->idx == unf.evt.back().idx) // new added event at back of evt
-               {
-                  e->dicfl.push_back(newevt);
-                  newevt->dicfl.push_back(e);
-               }
-
-               printf("\n");
+               e->dicfl.push_back(newevt);
+               newevt->dicfl.push_back(e);
             }
-            else
-               compute_combi(i+1, s, combi, e);
+
+            printf("\n");
          }
-         combi.pop_back();
+         else
+            compute_combi(i+1, s, combi, e);
       }
+      combi.pop_back();
+   }
 }
 
 
@@ -1194,18 +1190,11 @@ void Unfolding::__create_bottom ()
  */
 void Unfolding::create_event(ir::Trans & t, Config & c)
 {
-  // Event * e = new Event(t,c);
-   //DEBUG("  Create new event: %s ", e->str().c_str());
-
-   // create an history for new event
-   //e->mk_history(c);
-
    /* Need to check the event's history before adding it to the unf
     * Only add events that are really enabled at the current state of config.
     * Don't add events already in the unf (enalbed at the previous state)
     */
 
-   // evt.push_back(*e);
    evt.emplace_back(t, c);
 
    for (auto ee :c.en)
@@ -1453,6 +1442,62 @@ void Unfolding::explore_driven_config ()
    c.cprint_dot();
    uprint_dot();
    return;
+}
+/*
+ * Find all alternatives J after C and conflict with D
+ */
+void Unfolding:: alternative(Config & C, std::vector<Event *> D)
+{
+   std::vector<std::vector<Event *>> spikes;
+   for (auto e: D)
+   {
+      // check if e in cex(C). If yes, remove from D
+      for (unsigned i = 0; i < C.cex.size(); i++)
+      {
+         if (e == C.cex[i])
+         {
+            e = D.back();
+            D.pop_back();
+         }
+      }
+   }
+
+   /*
+    *  D now contains only events which is in en(C).
+    *  D is a comb whose each spike is a list of conflict events D[i].dicfl
+    */
+
+      for (unsigned i = 0; i < D.size(); i++)
+         spikes.push_back(D[i]->dicfl);
+
+   std::vector<Event *> combi;
+   compute_alt(0, spikes, combi);
+}
+
+
+void Unfolding:: compute_alt(unsigned int i, const std::vector<std::vector<Event *>> & s, std::vector<Event *> combi)
+{
+   for (unsigned j = 0; j < s[i].size(); j++ )
+     {
+        if (j < s[i].size())
+        {
+           combi.push_back(s[i][j]);
+           if (i == s.size() - 1)
+           {
+              printf("   Combination:");
+              for (unsigned k = 0; k < combi.size(); k++)
+                 printf("%d ", combi[k]->idx);
+
+              /*
+               * Do something here
+               */
+              printf("\n");
+           }
+           else
+              compute_alt(i+1, s, combi);
+        }
+        combi.pop_back();
+     }
 }
 
 } // end of namespace

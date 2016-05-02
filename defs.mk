@@ -108,8 +108,8 @@ YACC:=bison
 	@echo "DOT $<"
 	@dot -T jpg < $< > $@
 
-CFLAGS_:=-Wall -Wextra -std=c11
-CXXFLAGS_:=-Wall -Wextra -std=c++11
+CFLAGS_:=-Wall -Wextra -std=c11 -O3
+CXXFLAGS_:=-Wall -Wextra -std=c++11 -O3
 
 %.ll : %.c
 	$(CC) -S -emit-llvm $(CFLAGS_) $< -o $@
@@ -119,4 +119,10 @@ CXXFLAGS_:=-Wall -Wextra -std=c++11
 	$(CC) -S -emit-llvm $(CXXFLAGS_) $< -o $@
 %.bc : %.cc
 	$(CC) -c -emit-llvm $(CXXFLAGS_) $< -o $@
+%.bc : %.ll
+	llvm-as-$(LLVMVERS) $< -o $@
+%.ll : %.bc
+	llvm-dis-$(LLVMVERS) $< -o $@
+%.s : %.bc
+	llc-$(LLVMVERS) $< -o $@
 

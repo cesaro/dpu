@@ -22,7 +22,7 @@ all : compile
 compile: $(TARGETS)
 
 r run: compile benchmarks/basic/hello.ll
-	./src/main | tee out
+	./src/main
 
 $(TARGETS) : % : %.o $(OBJS)
 	@echo "LD  $@"

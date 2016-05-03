@@ -358,6 +358,7 @@ For each event $e \in C$ such that \verb!e->trans == t!, repeat the following:
 \item Goto 3.
 \item End.
 \end{enumerate}
+
 \caption{Conflicting extesions associated to \texttt{SYN} transitions.}
 \label{a:cex_syn}
 \end{algorithm}
@@ -409,49 +410,62 @@ Given a configuration $C \subset U$ and a set of events $D \subset U$, an altern
 \item for all event $e \in D$ , there is some $e'\in C \cup J$ such that $e' \in  \icfl{e}$
 \end{itemize}
 
-We have $\forall e \in D: $ $e \in cex(C)$ or $e \in en(C) $ or $e \in en(C')$ with $C'\subset C$
+We have $\forall e \in D: $ $e \in cex(C)$ or $e \in en(C)$.
 
 If  $e \in cex(C)$, there exists an event $e' \in C: e'\icfl\{e\}$. So, it shouldn't be taken into account.
  
 If $e \in en(C)$. Do as the followings to find out all possible J.
+
 \begin{itemize}
 \item 
-	A is a set of $e \in D: e \in en(C)$. 
+	$A = \{e_i \in D: e_i \in en(C)\}$. 
 	Set up a \emph{comb} (over A) of size $n \in \N$  is an $n$-tuple
 	$c \eqdef \tup{s_1, \ldots, s_n}$ of sequences $s_i \in A^*$
 	over~$A$ (n is the number of elements in A)
 	Each sequence $s_i$ of the $n$-tuple is called a \emph{spike} 
-	which contains all events that are in immediate conflict with $e_{i} \in A$. (Each event has a attribute to store all its immediately-conflicting events) \\
-	Given a comb $c$ of size~$n$,
+	which contains all events that are in immediate conflict with $e_{i} \in A$. (Each event has a attribute to store all its immediately-conflicting events).
+	If a spike is empty ($e_i$ has no conflicting event), there is no J.
+	
+	Given a comb $c$ of size~$n$, witout any empty spike.
 	a \emph{combination} of $c$ is any $n$-tuple $\tup{a_1, \ldots, a_n} \in A^n$
 	such that $a_i \in A$ is one of the elements of the sequence $s_i \in A^*$, for
 	$i \in \set{1, \ldots, n}$.
 \item
-	If there exists any two events in conflict, discard the combination
+	If $\exists e_i$: $e_c \cup C$ is not a configuration (1), discard the combination
+	If there exists any two events in $[e_i]$ in conflict, discard the combination
 \item
 	If $\tup{a_1, \ldots, a_n}$ is conflict free (there does not exist any pair of events which are in conflict)
-	J will be the union of all their local configuration: $ J = \cup [e'_i]$
+	J will be the union of all their local configuration: $ J = \cup [e'_i]$ (2)
+
 \end{itemize}
 
-If $e \in en(C')$ with $C'\subset C$: ????
+How to check if two events e and e' are in conflict.
+\begin{itemize}
+	\item e and e' are in the same process: $p(e) = p(e')$ -> use Alg.05
+	\item e and e' are in different processes: $p(e)\neq p(e')$
+		\begin{itemize}
+			\item touch the same variable: $v(e) = v(e')$ and $ type(e) = type(e') = WR$ -> use Alg.05
+			\item touch the same variable: $v(e) = v(e')$ and $ type(e) = type(e') = SYN$ -> use Alg.05
+			\item touch the same variable: $v(e) = v(e')$ and $ type(e) = RD$ and $type(e') = WR$ or reverse
+				Find closet WR of event e. Check conflict betweem two WRs using Alg.05
+			\item touch different variables.
+			
+		\end{itemize}
+\end{itemize}
 
-How to achive J from merging local configurations of n events.
-$J = \emptyset$
+\begin{algorithm}{check }
 
-For each event e, go back to its parents including $e.pre_proc$, $e.pre_mem$ (for RD and SYN event) and $e.pre_readers$ (for WR event)
-
-If its parent $e_pr$ is in C then go to End. If not, add that one to J and continue $e = e_pr$.
-
-(All events has a bit to imply that it is visited by C or not. Check that bit to know if an event is in C or not)
+\label{cfl_check}	
+\end{algorithm}
 
 
 \begin{algorithm}
 \noindent
-For each event $e \in D$ repeat the following:
+For each event $e_i \in D$ repeat the following:
 \begin{enumerate}
 \item
-	Let $c \eqdef \tup{s_1, \ldots, s_n}$ be the comb associated to $A \subseteq D$ . 
-	c is computed by adding all events in $e_i.dicfl$ to its corresponding spike.
+	Let $c \eqdef \tup{s_1, \ldots, s_n}$ be the comb associated to A . 
+	c is computed by adding all events in $e_i->dicfl$ to its corresponding spike.
 \item
 	Enumerate all combinations $\tup{e_1, \ldots, e_n}$ of $c$.
 \item

@@ -8,77 +8,6 @@
 #include <inttypes.h>
 #include <ctype.h>
 
-void dpu_rt_header ()
-{
-   printf ("what             addr            value\n");
-   printf ("==== ================ ================\n");
-}
-
-const char *dpu_rt_quote (char c)
-{
-   static char str[5];
-
-   if (c == '\n') return "\\n";
-   if (c == '\0') return "\\0";
-   if (c == '\r') return "\\r";
-   if (c == '\t') return "\\t";
-   if (isprint (c))
-   {
-      str[0] = c;
-      str[1] = 0;
-      return str;
-   }
-   sprintf (str, "\\x%02x", c);
-   return str;
-}
-
-void dpu_rt_load8 (uint8_t *addr, uint8_t v)
-{
-   printf ("ld8  %16p %16x '%s'\n", addr, v, dpu_rt_quote (v));
-}
-void dpu_rt_load16 (uint16_t *addr, uint16_t v)
-{
-   printf ("ld16 %16p %16"PRIx16"\n", addr, v);
-}
-void dpu_rt_load32 (uint32_t *addr, uint32_t v)
-{
-   printf ("ld32 %16p %16"PRIx32"\n", addr, v);
-}
-void dpu_rt_load64 (uint64_t *addr, uint64_t v)
-{
-   printf ("ld64 %16p %16"PRIx64"\n", addr, v);
-}
-
-void dpu_rt_store8 (uint8_t *addr, uint8_t v)
-{
-   printf ("st8  %16p %16x '%s'\n", addr, v, dpu_rt_quote (v));
-}
-void dpu_rt_store16 (uint16_t *addr, uint16_t v)
-{
-   printf ("st16 %16p %16"PRIx16"\n", addr, v);
-}
-void dpu_rt_store32 (uint32_t *addr, uint32_t v)
-{
-   printf ("st32 %16p %16"PRIx32"\n", addr, v);
-}
-void dpu_rt_store64 (uint64_t *addr, uint64_t v)
-{
-   printf ("st64 %16p %16"PRIx64"\n", addr, v);
-}
-
-void dpu_rt_alloca (uint8_t *addr, uint32_t size)
-{
-   printf ("allo %16p %16x (stack)\n", addr, size);
-}
-void dpu_rt_malloc (uint8_t *addr, uint32_t size)
-{
-   printf ("mllo %16p %16x (heap)\n", addr, size);
-}
-void dpu_rt_ret (uint32_t id)
-{
-   printf ("ret                   %16d\n", id);
-}
-
 uint16_t g = 123;
 long long l = 123;
 char buff[128];
@@ -140,11 +69,10 @@ void test2 ()
 int main (int argc, char **argv)
 {
    int x;
-   x -= x;
-   printf ("xxxxxxxx %d xxxxxxxxx %p xxxxxxxx\n", x, &x);
-   return 123;
+   x -= x; // undefined behaviour !
+   printf ("xxxxxxxx %d xxxxxxxxx %p xxxxxxxx\n", x, 0);
+   //return 123;
 
-   
    uint32_t i = 0x10121314;
    uint32_t j = 10;
    uint64_t rbp = 0x123; // current stack frame
@@ -163,7 +91,7 @@ int main (int argc, char **argv)
    printf ("j %0x\n", i);
    printf ("rbp %0lx\n", rbp);
    printf ("rsp %0lx\n", rsp);
-   return 7;
+   //return 7;
 
 
    printf ("argc %d &argc %p\n", argc, &argc);
@@ -190,26 +118,5 @@ int main (int argc, char **argv)
    printf ("test done\n");
 
    return argc + mystrlen (ptr);
-}
-
-//int __user_main (int argc, char **argv);
-
-int dpu_rt_start (int argc, char **argv)
-{
-   // instrumented main coming from the rt
-   int ret;
-
-   // copy arguments into the stack
-   int myargc = argc;
-   char *myargv[argc];
-   for (int i = 0; i < argc; i++) myargv[i] = argv[i];
-
-   // call main
-   printf ("rt: calling main...\n");
-   dpu_rt_header ();
-   ret = main (myargc, myargv);
-   printf ("================\n");
-   printf ("rt: main returned %d...\n", ret);
-   return ret;
 }
 

@@ -29,7 +29,7 @@
 #include "verbosity.h"
 
 #include "fe3/test.hh"
-#include "fe3/rt.h"
+#include "rt/rt.h"
 
 using namespace dpu::fe3;
 
@@ -301,7 +301,7 @@ void fe3_test1 ()
    llvm::SMDiagnostic err;
 
    // file to load and execute
-   std::string path = "benchmarks/basic/hello.ll";
+   std::string path = "input.ll";
 
    // parse the .ll file and get a Module out of it
    std::unique_ptr<llvm::Module> mod (llvm::parseIRFile (path, err, context));
@@ -357,7 +357,6 @@ int callit (void *ptr)
 
 void fe3_test2 ()
 {
-
    // related to the JIT engine
    llvm::InitializeNativeTarget();
    llvm::InitializeNativeTargetAsmPrinter();
@@ -369,7 +368,7 @@ void fe3_test2 ()
    std::string errors;
 
    // file to load and execute
-   std::string path = "benchmarks/basic/hello.ll";
+   std::string path = "input.ll";
    //std::string path = "cunf.ll";
    //std::string path = "invalid.ll";
 
@@ -421,21 +420,23 @@ void fe3_test2 ()
 
    // execute it
    ee->finalizeObject ();
-   void * ptr = ee->getPointerToFunction (instrm.get_entry ());
-   int (*entry) (int,char**) = (int (*) (int, char**)) ptr;
+   void * ptr = (void *) ee->getFunctionAddress ("dpu_rt_start");
+   int (*entry) (int,char**,char**) = (int (*) (int, char**, char**)) ptr;
    char argv0[] = "a";
    char argv1[] = "b";
    char argv2[] = "c";
    char *argv[3] = { argv0, argv1, argv2 };
+   //char *env[1] = { 0 };
 
    DEBUG ("first time xxxxxxxxxxxxxxxxxxx");
-   int ret1 = entry (3, argv);
-   DEBUG ("second time xxxxxxxxxxxxxxxxxxx");
-   int ret2 = entry (3, argv);
+   int ret1 = entry (3, argv, argv);
+   //DEBUG ("second time xxxxxxxxxxxxxxxxxxx");
+   //int ret2 = entry (3, argv);
    //int ret2 = callit (ptr);
    DEBUG ("done xxxxxxxxxxxxxxxxxxx");
 
-   DEBUG ("dpu: entry returned %d %d", ret1, ret2);
+   //DEBUG ("dpu: entry returned %d %d", ret1, ret2);
+   DEBUG ("dpu: entry returned %d", ret1);
 }
 
 void dpu::fe3::test ()

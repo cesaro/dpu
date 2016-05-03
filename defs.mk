@@ -112,13 +112,13 @@ CFLAGS_:=-Wall -Wextra -std=c11 -O3
 CXXFLAGS_:=-Wall -Wextra -std=c++11 -O3
 
 %.ll : %.c
-	$(CC) -S -emit-llvm $(CFLAGS_) $< -o $@
+	$(CC) $(CFLAGS) $(CPPFLAGS) -S -flto $< -o $@
 %.bc : %.c
-	$(CC) -c -emit-llvm $(CFLAGS_) $< -o $@
+	$(CC) $(CFLAGS) $(CPPFLAGS) -c -flto $< -o $@
 %.ll : %.cc
-	$(CC) -S -emit-llvm $(CXXFLAGS_) $< -o $@
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -S -flto $< -o $@
 %.bc : %.cc
-	$(CC) -c -emit-llvm $(CXXFLAGS_) $< -o $@
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -c -flto $< -o $@
 %.bc : %.ll
 	llvm-as-$(LLVMVERS) $< -o $@
 %.ll : %.bc

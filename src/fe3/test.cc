@@ -29,14 +29,16 @@
 #include "verbosity.h"
 
 #include "fe3/test.hh"
+#include "fe3/executor.hh"
 #include "rt/rt.h"
 
 using namespace dpu::fe3;
+using namespace dpu;
 
 void ir_write_ll (const llvm::Module *m, const char *filename)
 {
    int fd = open (filename, O_WRONLY | O_TRUNC | O_CREAT, 0644);
-   assert (fd >= 0);
+   ASSERT (fd >= 0);
    llvm::raw_fd_ostream f (fd, true);
    f << *m;
 }
@@ -44,7 +46,7 @@ void ir_write_ll (const llvm::Module *m, const char *filename)
 void ir_write_bc (const llvm::Module *m, const char *filename)
 {
    int fd = open (filename, O_WRONLY | O_TRUNC | O_CREAT, 0644);
-   assert (fd >= 0);
+   ASSERT (fd >= 0);
    llvm::raw_fd_ostream f (fd, true);
    llvm::WriteBitcodeToFile (m, f);
 }
@@ -291,7 +293,7 @@ public:
    }
 
    // visit(M) in parent class should never be called ;)
-   void visitModule (llvm::Module &m) { assert (0); }
+   void visitModule (llvm::Module &m) { ASSERT (0); }
 };
 
 void fe3_test1 ()
@@ -417,6 +419,7 @@ void fe3_test2 ()
    // write code to file
    ir_write_ll (m, "out.ll");
    DEBUG ("dpu: module saved to 'out.ll'");
+   return;
 
    // execute it
    ee->finalizeObject ();
@@ -439,9 +442,69 @@ void fe3_test2 ()
    DEBUG ("dpu: entry returned %d", ret1);
 }
 
+void fe3_test3 ()
+{
+   // related to the JIT engine
+   llvm::InitializeNativeTarget();
+   llvm::InitializeNativeTargetAsmPrinter();
+   llvm::InitializeNativeTargetAsmParser();
+
+   // get a context
+   llvm::LLVMContext &context = llvm::getGlobalContext();
+   llvm::SMDiagnostic err;
+   std::string errors;
+
+   // file to load and execute
+   std::string path = "input.ll";
+   //std::string path = "cunf.ll";
+   //std::string path = "invalid.ll";
+
+   // parse the .ll file and get a Module out of it
+   std::unique_ptr<llvm::Module> mod (llvm::parseIRFile (path, err, context));
+   llvm::Module * m = mod.get();
+
+   // if errors found, report and terminate
+   if (! mod.get ()) {
+      llvm::raw_string_ostream os (errors);
+      err.print (path.c_str(), os);
+      os.flush ();
+      printf ("Error: %s\n", errors.c_str());
+      return;
+   }
+
+   printf ("functions in the module:\n");
+   for (auto & f : *m)
+      DEBUG ("- m %p fun %p decl %d name %s", m, &f, f.isDeclaration(), f.getName().str().c_str());
+   fflush (stdout);
+   printf ("globals in the module:\n");
+   for (auto & g : m->globals()) llvm::errs() << "- g " << &g << " dump " << g << "\n";
+   fflush (stdout);
+
+   // prepare an executor
+   ExecutorConfig conf;
+   conf.memsize = 1 << 30; // 1G
+   conf.stacksize = 16 << 20; // 16M
+   conf.tracesize = 8 << 20; // 8M events (x 11 bytes per event)
+   Executor e (std::move (mod), conf);
+   e.initialize ();
+
+   // write code to file
+   ir_write_ll (m, "out.ll");
+   DEBUG ("dpu: module saved to 'out.ll'");
+
+   // prepare arguments for the program
+   e.argv.push_back ("prog");
+   e.envp.push_back ("HOME=/home/cesar");
+   e.envp.push_back (nullptr);
+
+   e.run ();
+   DEBUG ("dpu: exitcode %d", e.exitcode);
+   return;
+}
+
 void dpu::fe3::test ()
 {
-   fe3_test2 ();
+   fe3_test3 ();
    fflush (stdout);
    llvm::outs().flush ();
    llvm::errs().flush ();

@@ -70,7 +70,7 @@ int main (int argc, char **argv)
 {
    int x;
    x -= x; // undefined behaviour !
-   printf ("xxxxxxxx %d xxxxxxxxx %p xxxxxxxx\n", x, 0);
+   printf ("xxxxxxxx %d xxxxxxxxx %p xxxxxxxx\n", x, &x);
    //return 123;
 
    uint32_t i = 0x10121314;

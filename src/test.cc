@@ -35,6 +35,8 @@
 
 #include "fe2/Interpreter.h"
 
+#include "fe3/test.hh"
+
 using namespace dpu;
 
 //#include "boost/filesystem.hpp"
@@ -1646,3 +1648,9 @@ void test23 ()
    fflush (stdout);
    return;
 }
+
+void test24 ()
+{
+   fe3::test ();
+}
+

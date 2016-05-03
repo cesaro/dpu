@@ -21,8 +21,16 @@ all : compile
 
 compile: $(TARGETS)
 
-r run: compile benchmarks/basic/hello.ll
-	./src/main | tee out
+r run: compile input.ll
+	./src/main
+
+input.ll : benchmarks/basic/hello.ll src/rt/rtv.ll
+	llvm-link-$(LLVMVERS) -S $^ -o $@
+
+src/rt/rtv.ll : src/rt/start.s src/rt/rt.bc
+	./utils/as2c.py < src/rt/start.s > /tmp/start.c
+	make /tmp/start.bc
+	llvm-link-$(LLVMVERS) -S src/rt/rt.bc /tmp/start.bc -o $@
 
 $(TARGETS) : % : %.o $(OBJS)
 	@echo "LD  $@"
@@ -56,7 +64,8 @@ vars :
 
 clean :
 	@rm -f $(TARGETS) $(MOBJS) $(OBJS)
-	@rm -f src/cna/spec_lexer.cc src/cna/spec_parser.cc src/cna/spec_parser.h
+	@rm -f src/rt/rt.ll
+	@rm -f src/rt/rtv.ll
 	@echo Cleaning done.
 
 distclean : clean

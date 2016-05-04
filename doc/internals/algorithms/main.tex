@@ -441,14 +441,20 @@ If $e \in en(C)$. Do as the followings to find out all possible J.
 
 How to check if two events e and e' are in conflict.
 \begin{itemize}
-	\item e and e' are in the same process: $p(e) = p(e')$ -> use Alg.05
+	\item e and e' are in the same process: $p(e) = p(e')$ , apply Alg.05
 	\item e and e' are in different processes: $p(e)\neq p(e')$
 		\begin{itemize}
-			\item touch the same variable: $v(e) = v(e')$ and $ type(e) = type(e') = WR$ -> use Alg.05
-			\item touch the same variable: $v(e) = v(e')$ and $ type(e) = type(e') = SYN$ -> use Alg.05
+			\item touch the same variable: $v(e) = v(e')$ and $ type(e) = type(e') = WR$ , apply Alg.05
+			\item touch the same variable: $v(e) = v(e')$ and $ type(e) = type(e') = SYN$ , apply Alg.05
 			\item touch the same variable: $v(e) = v(e')$ and $ type(e) = RD$ and $type(e') = WR$ or reverse
 				Find closet WR of event e. Check conflict betweem two WRs using Alg.05
-			\item touch different variables.
+			\item touch different variables. 
+			\begin{itemize}
+				\item For each event e, use a vector of size n for n variables in the model.
+					  Each element is the latest event in e's local configuration touching corresponding variable.
+				\item Apply Alg.05 to check conflict for pairs of 	  
+			\end{itemize}
+				
 			
 		\end{itemize}
 \end{itemize}

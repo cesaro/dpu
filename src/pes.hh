@@ -36,11 +36,10 @@ public:
    std::vector< std::vector<Event *> >   post_mem; // size = numprocs x mem
    std::vector< Event * >                pre_readers; // only for WR events
 
-   // WR children of a WR trans
-   std::vector<Event * > post_wr; // size = numprocs
+   std::vector<Event * > post_wr; // WR children of a WR trans
 
    //only for RD and SYN events
-   std::vector <Event *>                 post_rws; // for RD, WR, and SYN events, size = number of variables
+   std::vector <Event *>                 post_rws; // any operation after a RD, SYN
 
    uint32_t              val; //??? value for global variable?
    std::vector<uint32_t> localvals; //???

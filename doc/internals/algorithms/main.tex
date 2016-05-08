@@ -438,8 +438,8 @@ If $e \in en(C)$. Do as the followings to find out all possible J.
 \item
 	If $\tup{a_1, \ldots, a_n}$ is conflict free (there does not exist any pair of events which are in conflict)
 	J will be the union of all their local configuration: $ J = \cup [e'_i]$ (2)
-
 \end{itemize}
+
 \subsubsection{Check conflict between two arbitrary events}
 
 How to check if two events e and e' are in conflict.
@@ -520,6 +520,7 @@ A tree of events in the same process or touching the same variable where events 
 
 Using the idea of skip list to go fast from the current node to target (see \ref{fig:trees}. In Node, a list of its parents in internal trees $ InterParents = (i_1, i_2,..,i_m)$ stored, while $i_j$ $(j=1..m)$ is the node's parent in $k^{j}$ tree, k (k > 1) is a constant choosen to skip nodes in trees, and a $k^{j}$ tree is a tree where a unit of depth is $k^{j}$
 
+
 \verb!Store vector interparents!:
 e is an event about to add to unfolding.
 \begin{itemize}
@@ -537,6 +538,7 @@ For each event $e_i \in D$ repeat the following:
 \item
 	Let $c \eqdef \tup{s_1, \ldots, s_n}$ be the comb 				associated to A . 
 	c is computed by adding all events in $e_i->dicfl$ to its 		corresponding spike.
+
 \item
 	Enumerate all combinations $\tup{e_1, \ldots, e_n}$ of $c$.
 \item

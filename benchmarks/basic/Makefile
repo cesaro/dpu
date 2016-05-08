@@ -1,5 +1,6 @@
-CC=clang
-CXX=clang++
+VERS=3.7
+CC=clang-$(VERS)
+CXX=clang++-$(VERS)
 
 CPPFLAGS=
 CFLAGS=-Wall -O1
@@ -25,4 +26,5 @@ clean :
 	$(CC) -S -emit-llvm -include __dpu.h $(CXXFLAGS) $< -o $@
 %.bc : %.cc
 	$(CC) -c -emit-llvm -include __dpu.h $(CXXFLAGS) $< -o $@
-
+%.s : %.bc
+	llc-$(VERS) $< -o $@

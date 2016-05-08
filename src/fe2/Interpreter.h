@@ -32,6 +32,10 @@ class ConstantExpr;
 typedef generic_gep_type_iterator<User::const_op_iterator> gep_type_iterator;
 
 
+/// Printing generic values
+raw_ostream &operator<<(raw_ostream &s, const std::pair<GenericValue*,Type*> &v);
+
+
 // AllocaHolder - Object to track all of the blocks of memory allocated by
 // alloca.  When the function returns, this object is popped off the execution
 // stack, which causes the dtor to be run, which frees all the alloca'd memory.
@@ -66,8 +70,8 @@ struct ExecutionContext {
   Function             *CurFunction;// The currently executing function
   BasicBlock           *CurBB;      // The currently executing BB
   BasicBlock::iterator  CurInst;    // The next instruction to execute
-  CallSite             Caller;     // Holds the call that called subframes.
-                                   // NULL if main func or debugger invoked fn
+  CallSite              Caller;     // Holds the call that called subframes.
+                                    // NULL if main func or debugger invoked fn
   std::map<Value *, GenericValue> Values; // LLVM values used in this invocation
   std::vector<GenericValue>  VarArgs; // Values passed through an ellipsis
   AllocaHolder Allocas;            // Track memory allocated by alloca
@@ -91,6 +95,22 @@ struct ExecutionContext {
   }
 };
 
+struct GlobalState {
+  std::vector<uint8_t> buff; // global variables, no heap
+
+  size_t size() { return buff.size(); }
+  void *offsetToProgramAddr (size_t offset) { return (char*) 16 + offset; }
+  bool isProgramGlobalAddr (void *ptr) { return ptr < (char*) 16 + buff.size(); }
+  void *translateGlobalProgramAddr (void *ptr) { return buff.data() + (size_t) ptr - 16; }
+};
+
+struct LocalState {
+  std::vector<ExecutionContext> ecstack; // stack frames, top is current sf
+  std::vector<uint8_t>          locals;  // memory obtained through allocas
+
+  // mimic addGlobalMapping and getMemoryForGV
+};
+
 // Interpreter - This class represents the entirety of the interpreter.
 //
 class Interpreter : public ExecutionEngine, public InstVisitor<Interpreter> {
@@ -98,9 +118,11 @@ class Interpreter : public ExecutionEngine, public InstVisitor<Interpreter> {
   DataLayout TD;
   IntrinsicLowering *IL;
 
-  // The runtime stack of executing code.  The top of the stack is the current
-  // function record.
-  std::vector<ExecutionContext> ECStack;
+  GlobalState *gs;
+  LocalState  *ls;
+
+
+  std::vector<ExecutionContext> ECStack; // stack frames, top is current sf
 
   // AtExitHandlers - List of functions to call when the program exits,
   // registered with the atexit() library function.
@@ -134,6 +156,13 @@ public:
     // FIXME: not implemented.
     return nullptr;
   }
+
+  void addModule(std::unique_ptr<Module> M) override {
+    report_fatal_error ("Interpreter: this class only accepts 1 module");
+  }
+
+  void StoreValueToMemory(const GenericValue &Val, GenericValue *Ptr, Type *Ty);
+  void LoadValueFromMemory(GenericValue &Result, GenericValue *Ptr, Type *Ty);
 
   // Methods used to execute code:
   // Place a call on the stack
@@ -245,12 +274,19 @@ private:  // Helper functions
                                    ExecutionContext &SF);
   GenericValue executeBitCastInst(Value *SrcVal, Type *DstTy,
                                   ExecutionContext &SF);
+#if 0
   GenericValue executeCastOperation(Instruction::CastOps opcode, Value *SrcVal, 
                                     Type *Ty, ExecutionContext &SF);
+#endif
   void popStackAndReturnValueToCaller(Type *RetTy, GenericValue Result);
 
+
+  void relocateGlobalVariables ();
+  void *translateProgramAddr (void *ptr);
 };
 
 } // End llvm namespace
 
 #endif
+
+// vim:ts=2 sw=2 et:

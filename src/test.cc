@@ -35,6 +35,8 @@
 
 #include "fe2/Interpreter.h"
 
+#include "fe3/test.hh"
+
 using namespace dpu;
 
 //#include "boost/filesystem.hpp"
@@ -1593,3 +1595,62 @@ void test22 ()
    fflush (stdout);
    return;
 }
+
+void test23 ()
+{
+   // get a context
+   llvm::LLVMContext &context = llvm::getGlobalContext();
+   llvm::SMDiagnostic err;
+
+   // file to load and execute
+   std::string path = "benchmarks/basic/hello.ll";
+
+   // parse the .ll file and get a Module out of it
+   std::unique_ptr<llvm::Module> mod (llvm::parseIRFile (path, err, context));
+   llvm::Module * m = mod.get();
+
+   // if errors found, write them to errors and return
+   if (! mod.get ()) {
+      std::string errors;
+      llvm::raw_string_ostream os (errors);
+      err.print (path.c_str(), os);
+      os.flush ();
+      printf ("Error: %s\n", errors.c_str());
+      return;
+   }
+
+   printf ("functions in the module:\n");
+   for (auto & f : m->functions()) DEBUG ("- m %p fun %p name %s", m, &f, f.getName ());
+   fflush (stdout);
+
+   // create an interpreter (src/fe2/Interpreter.hh)
+   llvm::Interpreter interp (std::move (mod));
+
+   // find the main function
+   llvm::Function * f = m->getFunction ("main");
+
+   // build arguments of main
+   std::vector<llvm::GenericValue> args;
+   // argc
+   llvm::GenericValue v;
+   v.IntVal = llvm::APInt (32, 3); // i32 3
+   args.push_back (v);
+   // argv
+   const char *argv[3] = {"a", "b", "c"};
+   args.push_back (llvm::GenericValue (&argv)); // pointer to array of pointers
+
+   // run function main
+   v = interp.runFunction (f, args);
+   llvm::outs().flush ();
+
+   // print returned integer
+   printf ("ret %ld\n", v.IntVal.getZExtValue ());
+   fflush (stdout);
+   return;
+}
+
+void test24 ()
+{
+   fe3::test ();
+}
+

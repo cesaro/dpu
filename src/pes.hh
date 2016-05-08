@@ -62,6 +62,7 @@ public:
    bool is_bottom () const;
    bool is_same(Event &);
    bool in_history(Event * e);
+   void set_vclock();
 
 
 
@@ -99,7 +100,7 @@ public:
 
    std::vector<Event*>              en;
    std::vector<Event*>              cex;
-   std::vector<Event*>              cex1;
+   //std::vector<Event*>              cex1;
 
 
 
@@ -147,6 +148,8 @@ public:
    void explore(Config & C, std::vector<Event *> D, std::vector<Event *> A);
    void explore_rnd_config ();
    void explore_driven_config ();
+   void alternative(Config & C, std::vector<Event *> D);
+   void compute_alt(unsigned int i, const std::vector<std::vector<Event *>> & s, std::vector<Event *> combi);
    friend Event;
 
 private :

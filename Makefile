@@ -21,8 +21,16 @@ all : compile
 
 compile: $(TARGETS)
 
-r run: compile
-	./src/main | tee out
+r run: compile input.ll
+	./src/main
+
+input.ll : benchmarks/basic/hello.ll src/rt/rtv.ll
+	llvm-link-$(LLVMVERS) -S $^ -o $@
+
+src/rt/rtv.ll : src/rt/start.s src/rt/rt.bc
+	./utils/as2c.py < src/rt/start.s > /tmp/start.c
+	make /tmp/start.bc
+	llvm-link-$(LLVMVERS) -S src/rt/rt.bc /tmp/start.bc -o $@
 
 $(TARGETS) : % : %.o $(OBJS)
 	@echo "LD  $@"
@@ -42,19 +50,22 @@ g gdb : $(TARGETS)
 	gdb ./src/main
 
 vars :
-	@echo CC $(CC)
-	@echo CXX $(CXX)
-	@echo CXX $(CXX)
-	@echo SRCS $(SRCS)
-	@echo MSRCS $(MSRCS)
-	@echo OBJS $(OBJS)
-	@echo MOBJS $(MOBJS)
-	@echo TARGETS $(TARGETS)
-	@echo DEPS $(DEPS)
+	@echo "CC       $(CC)"
+	@echo "CXX      $(CXX)"
+	@echo "CFLAGS   $(CFLAGS)"
+	@echo "CPPFLAGS $(CPPFLAGS)"
+	@echo "CXXFLAGS $(CXXFLAGS)"
+	@echo "TARGETS  $(TARGETS)"
+	@echo "MSRCS    $(MSRCS)"
+	@echo "MOBJS    $(MOBJS)"
+	@echo "SRCS     $(SRCS)"
+	@echo "OBJS     $(OBJS)"
+	@echo "DEPS     $(DEPS)"
 
 clean :
 	@rm -f $(TARGETS) $(MOBJS) $(OBJS)
-	@rm -f src/cna/spec_lexer.cc src/cna/spec_parser.cc src/cna/spec_parser.h
+	@rm -f src/rt/rt.ll
+	@rm -f src/rt/rtv.ll
 	@echo Cleaning done.
 
 distclean : clean

@@ -24,6 +24,7 @@
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/MathExtras.h"
 #include "llvm/Support/raw_ostream.h"
+#include "llvm/Support/Format.h"
 #include <algorithm>
 #include <cmath>
 using namespace llvm;
@@ -41,6 +42,18 @@ static cl::opt<bool> PrintVolatile("interpreter-print-volatile", cl::Hidden,
 
 static void SetValue(Value *V, GenericValue Val, ExecutionContext &SF) {
   SF.Values[V] = Val;
+}
+
+GenericValue Interpreter::getOperandValue(Value *V, ExecutionContext &SF) {
+  if (ConstantExpr *CE = dyn_cast<ConstantExpr>(V)) {
+    return getConstantExprValue(CE, SF);
+  } else if (Constant *CPV = dyn_cast<Constant>(V)) {
+    return getConstantValue(CPV);
+  } else if (GlobalValue *GV = dyn_cast<GlobalValue>(V)) {
+    return PTOGV(getPointerToGlobal(GV));
+  } else {
+    return SF.Values[V];
+  }
 }
 
 //===----------------------------------------------------------------------===//
@@ -1104,6 +1117,17 @@ void Interpreter::visitCallSite(CallSite CS) {
       return;
     }
 
+  // To handle indirect calls, we must get the pointer value from the argument
+  // and treat it as a function pointer.
+  GenericValue SRC = getOperandValue(CS.getCalledValue(), SF);
+  F = (Function*) GVTOP (SRC);
+  bool ext = F->isDeclaration();
+
+  outs() << "visitCallSite: f " << F;
+  outs() << " CS ";
+  CS.getInstruction()->print (outs());
+  outs() << " isDeclaration " << ext;
+  outs() << "\n";
 
   SF.Caller = CS;
   std::vector<GenericValue> ArgVals;
@@ -1113,13 +1137,17 @@ void Interpreter::visitCallSite(CallSite CS) {
   for (CallSite::arg_iterator i = SF.Caller.arg_begin(),
          e = SF.Caller.arg_end(); i != e; ++i, ++pNum) {
     Value *V = *i;
-    ArgVals.push_back(getOperandValue(V, SF));
+
+    // for external functions we need to translate pointers from the interpreted
+    // program's address space to ours
+    if (ext and V->getType()->isPointerTy()) {
+      ArgVals.push_back(PTOGV(translateProgramAddr(getOperandValue(V, SF).PointerVal)));
+    } else {
+      ArgVals.push_back(getOperandValue(V, SF));
+    }
   }
 
-  // To handle indirect calls, we must get the pointer value from the argument
-  // and treat it as a function pointer.
-  GenericValue SRC = getOperandValue(SF.Caller.getCalledValue(), SF);
-  callFunction((Function*)GVTOP(SRC), ArgVals);
+  callFunction(F, ArgVals);
 }
 
 // auxiliary function for shift operations
@@ -2054,18 +2082,6 @@ GenericValue Interpreter::getConstantExprValue (ConstantExpr *CE,
   return Dest;
 }
 
-GenericValue Interpreter::getOperandValue(Value *V, ExecutionContext &SF) {
-  if (ConstantExpr *CE = dyn_cast<ConstantExpr>(V)) {
-    return getConstantExprValue(CE, SF);
-  } else if (Constant *CPV = dyn_cast<Constant>(V)) {
-    return getConstantValue(CPV);
-  } else if (GlobalValue *GV = dyn_cast<GlobalValue>(V)) {
-    return PTOGV(getPointerToGlobal(GV));
-  } else {
-    return SF.Values[V];
-  }
-}
-
 //===----------------------------------------------------------------------===//
 //                        Dispatch and Execution Code
 //===----------------------------------------------------------------------===//
@@ -2120,38 +2136,45 @@ void Interpreter::run() {
     // Track the number of dynamic instructions executed.
     ++NumDynamicInsts;
 
-    DEBUG(dbgs() << "About to interpret: " << I);
     visit(I);   // Dispatch to one of the visit* methods...
 
-    fprintf (stderr, "%03d. %p: ", counter++, &I); I.dump();
-    fprintf (stderr, "      name '%s'",
-          I.hasName() ? I.getValueName()->first().data() : 0);
-    fprintf (stderr, "      type ");
-    I.getType()->dump();
-    if (! ECStack.empty ())
+
+    outs() << format ("%04d.", counter++);
+    I.print (outs());
+    outs() << format ("  (%p)\n", &I);
+    if (false)
     {
-       ExecutionContext & fr = ECStack.back ();
-       fprintf (stderr, "      value ");
-       fr.Values[&I].IntVal.dump();
-       fprintf (stderr, "\n");
-#if 0
-       for (auto & p : fr.Values)
-       {
-          std::string s1;
-          std::string s2;
-          llvm::raw_string_ostream os1 (s1);
-          p.first->print (os1);
-          os1.flush ();
-          llvm::raw_string_ostream os2 (s2);
-          p.second.IntVal.print (os2, false);
-          os2.flush ();
-
-          fprintf (stderr, "'%s': %s ", s1.c_str(), s2.c_str());
-       }
-       fprintf (stderr, "\n");
-#endif
+      outs() << "     load or store!!\n";
     }
+    else
+    {
+      outs() << "       ";
+      I.printAsOperand (outs(), false);
+      outs() << " := ";
+      if (ECStack.empty()) {
+        outs() << "(no stack frame)";
+      } else {
+        ExecutionContext &sf = ECStack.back();
+        auto it = sf.Values.find (&I);
+        if (it != sf.Values.end())
+          outs() << std::make_pair (&it->second, I.getType()) << "\n";
+        else
+          outs() << "(not found)\n";
+      }
+    }
+    outs() << "\n";
 
+    if (! ECStack.empty()) {
+      ExecutionContext &sf = ECStack.back();
+      for (auto & it : sf.Values) {
+        outs () << format ("reg %p addr %p\n", it.first, &it.second);
+        outs () << "    ";
+        it.first->printAsOperand (outs());
+        outs () << " is '";
+        outs() << std::make_pair (&it.second, it.first->getType());
+        outs () << "'\n";
+      }
+    }
 
 #if 0
     // This is not safe, as visiting the instruction could lower it and free I.
@@ -2177,3 +2200,5 @@ DEBUG(
 #endif
   }
 }
+
+// vim:ts=2 sw=2 et:

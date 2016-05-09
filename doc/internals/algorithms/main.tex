@@ -406,44 +406,58 @@ For each event $e \in C$ such that \verb!e->trans == t!, repeat the following:
 \end{algorithm}
 
 \subsection{Alternatives}
+\begin{definition}
 Given a configuration $C \subset U$ and a set of events $D \subset U$, an alternative to D after C is an configuration $J \subset U $ such that:
 \begin{itemize}
-\item $C \cup J$ is a configuration
-\item for all event $e \in D$ , there is some $e'\in C \cup J$ such that $e' \in  \icfl{e}$
+\item 
+	$C \cup J$ is a configuration
+\item
+	for all event $e \in D$ , there is some $e'\in C \cup J$ such that $e' \in  \icfl{e}$
 \end{itemize}
+\end{definition}
 
+
+\noindent
 We have $\forall e \in D: $ $e \in cex(C)$ or $e \in en(C)$.
-
-If  $e \in cex(C)$, there exists an event $e' \in C: e'\icfl\{e\}$. So, it shouldn't be taken into account.
- 
-If $e \in en(C)$. Do as the followings to find out all possible J.
+\begin{enumerate}
+\item
+	If  $e \in cex(C)$, there exists an event $e' \in C: e' \icfl e$. So, it shouldn't be taken into account.
+\item
+	If $e \in en(C)$, do as the followings to find out all possible J:
+\end{enumerate}
 
 \begin{itemize}
 \item 
 	$A = \{e_i \in D: e_i \in en(C)\}$. 
-	Set up a \emph{comb} (over A) of size $n \in \N$  is an $n$-tuple
+	Set up a \emph{comb} (over A), an $n$-tuple
 	$c \eqdef \tup{s_1, \ldots, s_n}$ of sequences $s_i \in A^*$
-	over~$A$ (n is the number of elements in A)
-	Each sequence $s_i$ of the $n$-tuple is called a \emph{spike} 
-	which contains all events that are in immediate conflict with $e_{i} \in A$. (Each event has a attribute to store all its immediately-conflicting events).
-	If a spike is empty ($e_i$ has no conflicting event), there is no J.
+	(n is the number of elements in A).
+	\begin{itemize}
+	\item
+		Each sequence $s_i$ of the $n$-tuple is called a \emph{spike} which contains all events that are in immediate conflict with $e_{i} \in A$. (Each event has a attribute to store all its immediately-conflicting events).
+	\item
+		If a spike is empty ($e_i$ has no conflicting event), there is no J.
+	\end{itemize}
 	
-	Given a comb $c$ of size~$n$, witout any empty spike.
-	a \emph{combination} of $c$ is any $n$-tuple $\tup{a_1, \ldots, a_n} \in A^n$
-	such that $a_i \in A$ is one of the elements of the sequence $s_i \in A^*$, for
+\item
+	Given a comb $c$ witout any empty spike, a \emph{combination} of $c$ is any $n$-tuple $\tup{a_1, \ldots, a_n} \in A^n		$ such that $a_i \in A$ is one of the elements of the sequence $s_i \in A^*$, for
 	$i \in \set{1, \ldots, n}$.
 \item
-	If $\exists e_i$: $e_c \cup C$ is not a configuration (1), discard the combination
-	If there exists any two events in $[e_i]$ in conflict, discard the combination
-\item
-	If $\tup{a_1, \ldots, a_n}$ is conflict free (there does not exist any pair of events which are in conflict)
-	J will be the union of all their local configuration: $ J = \cup [e'_i]$ (2)
+	\begin{itemize}
+	\item
+		If $\exists e_i$: $e_c \cup C$ is not a configuration, condition (1) is not satisfied, then discard the 					combination
+	\item
+		If there exists any two events in $[e_i]$ in conflict, discard the combination.
+	\item
+		If $\tup{a_1, \ldots, a_n}$ is conflict free (there does not exist any pair of events which are in conflict)
+		J will be the union of all their local configuration: $ J = \cup [e'_i]$. Condition (2) is satisfied.
+	\end{itemize}
 \end{itemize}
 
 \subsubsection{Check conflict between two arbitrary events}
-
-How to check if two events e and e' are in conflict.
-\begin{itemize}
+\noindent
+Given two arbitrary events $e$ and $e'$ in the unfolding, decide if they are in conflict or not.
+\begin{enumerate}
 	\item e and e' are in the same process: $p(e) = p(e')$ , apply \cref{a:layer_tree} for tree of events in same process
 	\item e and e' are in different processes: $p(e)\neq p(e')$
 		\begin{itemize}
@@ -459,11 +473,9 @@ How to check if two events e and e' are in conflict.
 				and $ !\exists e_i' \in \left[ e \right] : v(e_i') = v_i$ 
 				and $e_i < e_i'$ .
 				\item Apply \cref{a:layer_tree} to check conflict for all pairs of events $(e_i, e_i')$ with $e_i \in v, e_i'\in v'$
-			\end{itemize}
-				
-			
+			\end{itemize}	
 		\end{itemize}
-\end{itemize}
+\end{enumerate}
 \noindent
 \textbf{Data structure:}
 Using template struct \verb!Node:!
@@ -490,9 +502,9 @@ Each \verb!MultiNode! has the following attributes:
 	If d > k, $m = log_k(e.depth)$
  	\begin{itemize}
  	\item
- 		 If  $m \in N$, repeate $e" := e.InterParent[m-1]					$ until $e".depth = e'.depth$
+ 		 If  $m \in \N$, repeate $e" := e.InterParent[m-1]					$ until $e".depth = e'.depth$
 	\item 
-		If $m \notin N$, repeate $e":= e \rightarrow pre$ until 		$log_k(e".depth) \in N$. Apply the same algorithm as $m 		\in N$ to e" until $e".depth = e'.depth$
+		If $m \notin \N$, repeate $e":= e \rightarrow pre$ until 		$log_k(e".depth) \in \N$. Apply the same algorithm as $m 		\in N$ to e" until $e".depth = e'.depth$
  	\end{itemize} 
 \item 
 	If $e" = e'$ then $e'< e$ else $e'\neq e$	 
@@ -501,6 +513,7 @@ Each \verb!MultiNode! has the following attributes:
 \label{a:layer_tree}	
 \end{algorithm}
 
+\iffalse
 \begin{figure}
 \subfloat[original tree]{
 \includegraphics[scale=0.2]{tree.png}
@@ -514,6 +527,7 @@ Each \verb!MultiNode! has the following attributes:
 \label{fig:trees}
 \caption{Trees with k=2}
 \end{figure}
+\fi
 
 \subsubsection{Layered tree:}
 A tree of events in the same process or touching the same variable where events at the same depth have the same transition. That means they are in conflict.
@@ -525,9 +539,9 @@ Using the idea of skip list to go fast from the current node to target (see \ref
 e is an event about to add to unfolding.
 \begin{itemize}
 \item 
-	If $log_k(e.depth) \notin N$, $e.InterParents$ is 				empty.
+	If $log_k(e.depth) \notin N$, $e.InterParents$ is empty.
 \item 
-	If $m = log_k(e.depth) \in N$, repeate $e' = e					\rightarrow pre$ k times.
+	If $m = log_k(e.depth) \in N$, repeate $e' = e \rightarrow pre$ k times.
 	Assign $e.InterParents[0] = e'$
 \end{itemize}
 

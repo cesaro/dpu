@@ -911,7 +911,8 @@ void Config:: SYN_cex(Event * e)
          em       = em->pre_readers[e->trans->proc.id];
       }
 
-      /* Need to check the event's history before adding it to the unf
+      /*
+       *  Need to check the event's history before adding it to the unf
        * Don't add events which are already in the unf
        */
 
@@ -1331,26 +1332,9 @@ void Unfolding:: uprint_dot()
 
       /* print conflicting edge */
       for (unsigned i = 0; i < e.dicfl.size(); i++)
-         if (e.dicfl[i]->idx > e.idx ) // don't repeat the relation
+         if (e.dicfl[i]->idx > e.idx ) // don't repeat drawing the same conflict
             fs << e.idx << "->" << e.dicfl[i]->idx << "[dir=none, color=red, style=dashed]\n";
    }
-
-#if 0
-   /*
-    * don't use set of conflict in Event class
-    * browse all events in the unfolding and decide if it is in conflict with the rest -> impossible
-    * because of it depends on the order an event added to the folding.
-    */
-
-   for (unsigned i = 0; i < evt.size()-1; i++) // except bottom event
-      {
-         for (unsigned j = i + 1; j < evt.size(); j++)
-         {
-            if (evt[j].check_cfl(evt[i]) == true)
-               fs << evt[i].idx << "->" << evt[j].idx <<"[dir=none, color=red, style=dashed]\n";
-         }
-      }
-#endif
 
    fs << "}";
    fs.close();

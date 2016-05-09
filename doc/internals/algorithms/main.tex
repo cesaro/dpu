@@ -423,7 +423,7 @@ We have $\forall e \in D: $ $e \in cex(C)$ or $e \in en(C)$.
 \item
 	If  $e \in cex(C)$, there exists an event $e' \in C: e' \icfl e$. So, it shouldn't be taken into account.
 \item
-	If $e \in en(C)$, do as the followings to find out all possible J:
+	If $e \in en(C)$, do the followings to find out all possible J:
 \end{enumerate}
 
 \begin{itemize}
@@ -481,8 +481,9 @@ Given two arbitrary events $e$ and $e'$ in the unfolding, decide if they are in 
 Using template struct \verb!Node:!
 \begin{itemize}
 	\item \textit{depth}: the distance from the root
-	\item \textit{*pre}: according to the type of tree, it points to a predecessor in the same process or touching the same 					  variable.
-	\item \textit{interparents}: list of its parents in different internal trees
+	\item \textit{*pre}: according to the type of tree, it points to a predecessor in the same process or 					touching the same variable.
+	\item \textit{skip\_pres}: list of its k-skip predecessors.
+	
 \end{itemize}
 
 \noindent
@@ -494,7 +495,7 @@ Each \verb!MultiNode! has the following attributes:
 
 \begin{algorithm}
 \noindent
- Assume e.depth > e'.depth, d = e.depth - e'.depth, do as the following:
+ Assume e.depth > e'.depth, d = e.depth - e'.depth, do as follows:
 \begin{enumerate}
 \item
 	If d < k then from $e$, repeat going back d times by the 			pointer $pre$ to find $e": e".depth = e'.depth$ and $ e" < e' $
@@ -502,12 +503,12 @@ Each \verb!MultiNode! has the following attributes:
 	If d > k, $m = log_k(e.depth)$
  	\begin{itemize}
  	\item
- 		 If  $m \in \N$, repeate $e" := e.InterParent[m-1]					$ until $e".depth = e'.depth$
+ 		 If  $m \in \N$, repeate $e" := e.skip_pres[m-1]					$ until $e".depth = e'.depth$
 	\item 
 		If $m \notin \N$, repeate $e":= e \rightarrow pre$ until 		$log_k(e".depth) \in \N$. Apply the same algorithm as $m 		\in N$ to e" until $e".depth = e'.depth$
  	\end{itemize} 
 \item 
-	If $e" = e'$ then $e'< e$ else $e'\neq e$	 
+	If $e" = e'$ then $e'< e$ else $e'\icfl e$	 
 \end{enumerate}
 \caption{Decide the conflict between e and e' in the same tree}
 \label{a:layer_tree}	
@@ -530,19 +531,19 @@ Each \verb!MultiNode! has the following attributes:
 \fi
 
 \subsubsection{Layered tree:}
-A tree of events in the same process or touching the same variable where events at the same depth have the same transition. That means they are in conflict.
+A tree of events in the same process or touching the same variable where events at the same depth are in conflict.
 
-Using the idea of skip list to go fast from the current node to target (see \ref{fig:trees}. In Node, a list of its parents in internal trees $ InterParents = (i_1, i_2,..,i_m)$ stored, while $i_j$ $(j=1..m)$ is the node's parent in $k^{j}$ tree, k (k > 1) is a constant choosen to skip nodes in trees, and a $k^{j}$ tree is a tree where a unit of depth is $k^{j}$
+Using the idea of skip list to go fast from the current node to target (see \ref{fig:trees}. In Node, a list of its skip predecessors $ skip_pres = (i_1, i_2,..,i_m)$ are stored, while $i_j$ $(j \in [1,m] )$ is the node's predecessor in $k^{j}$ tree, k (k > 1) is a constant choosen to skip nodes in trees, and a $k^{j}$ tree is a tree where a unit of depth is $k^{j}$
 
 
-\verb!Store vector interparents!:
+\verb!Store a list of skip predecessors!:
 e is an event about to add to unfolding.
 \begin{itemize}
 \item 
-	If $log_k(e.depth) \notin N$, $e.InterParents$ is empty.
+	If $log_k(e.depth) \notin N$, $e.skip_pres$ is empty.
 \item 
 	If $m = log_k(e.depth) \in N$, repeate $e' = e \rightarrow pre$ k times.
-	Assign $e.InterParents[0] = e'$
+	Assign $e.skip_pres[0] = e'$
 \end{itemize}
 
 \begin{algorithm}

@@ -454,98 +454,6 @@ We have $\forall e \in D: $ $e \in cex(C)$ or $e \in en(C)$.
 	\end{itemize}
 \end{itemize}
 
-\subsubsection{Check conflict between two arbitrary events}
-\noindent
-Given two arbitrary events $e$ and $e'$ in the unfolding, decide if they are in conflict or not.
-\begin{enumerate}
-	\item e and e' are in the same process: $p(e) = p(e')$ , apply \cref{a:layer_tree} for tree of events in same process
-	\item e and e' are in different processes: $p(e)\neq p(e')$
-		\begin{itemize}
-			\item touch the same variable: $v(e) = v(e')$ and $ type(e) = type(e') = WR$ , apply \cref{a:layer_tree} for 						tree of WR events 
-			\item touch the same variable: $v(e) = v(e')$ and $ type(e) = type(e') = SYN$ , apply \cref{a:layer_tree} for 						tree of SYN
-			\item touch the same variable: $v(e) = v(e')$ and $ type(e) = RD$ and $type(e') = WR$ or reverse
-			or touch different variables: $v(e) \neq v(e')$, store more information:	
-			\begin{itemize}
-				\item For each event e, use a vector $v = (e_1, e_2...,e_n)$  (n is number of variables in the model)
-				with $e_i$ is the maximal event (RD, SYN, WR) touching the $v_i$ variable in e's local configuration:
-				
-				$e_i \in  \left[ e \right]: v(e_i) = v_i$ 
-				and $ !\exists e_i' \in \left[ e \right] : v(e_i') = v_i$ 
-				and $e_i < e_i'$ .
-				\item Apply \cref{a:layer_tree} to check conflict for all pairs of events $(e_i, e_i')$ with $e_i \in v, e_i'\in v'$
-			\end{itemize}	
-		\end{itemize}
-\end{enumerate}
-\noindent
-\textbf{Data structure:}
-Using template struct \verb!Node:!
-\begin{itemize}
-	\item \textit{depth}: the distance from the root
-	\item \textit{*pre}: according to the type of tree, it points to a predecessor in the same process or 					touching the same variable.
-	\item \textit{skip\_pres}: list of its k-skip predecessors.
-	
-\end{itemize}
-
-\noindent
-Each \verb!MultiNode! has the following attributes:
-\begin{itemize}
-	\item list of two \verb!Node! (first one for process, second one for variable)
-	\item a template function $pred()$ to locate the predecessor corresponding to type of \verb!Node!
-\end{itemize}
-
-\begin{algorithm}
-\noindent
- Assume e.depth > e'.depth, d = e.depth - e'.depth, do as follows:
-\begin{enumerate}
-\item
-	If d < k then from $e$, repeat going back d times by the 			pointer $pre$ to find $e": e".depth = e'.depth$ and $ e" < e' $
-\item 
-	If d > k, $m = log_k(e.depth)$
- 	\begin{itemize}
- 	\item
- 		 If  $m \in \N$, repeate $e" := e.skip_pres[m-1]					$ until $e".depth = e'.depth$
-	\item 
-		If $m \notin \N$, repeate $e":= e \rightarrow pre$ until 		$log_k(e".depth) \in \N$. Apply the same algorithm as $m 		\in N$ to e" until $e".depth = e'.depth$
- 	\end{itemize} 
-\item 
-	If $e" = e'$ then $e'< e$ else $e'\icfl e$	 
-\end{enumerate}
-\caption{Decide the conflict between e and e' in the same tree}
-\label{a:layer_tree}	
-\end{algorithm}
-
-\iffalse
-\begin{figure}
-\subfloat[original tree]{
-\includegraphics[scale=0.2]{tree.png}
-}
-\subfloat[$k^{1}$ tree]{
-\includegraphics[scale=0.3]{tree1.png}
-}
-\subfloat[$k^{2}$ tree]{
-\includegraphics[scale=0.3]{tree2.png}
-}
-\label{fig:trees}
-\caption{Trees with k=2}
-\end{figure}
-\fi
-
-\subsubsection{Layered tree:}
-A tree of events in the same process or touching the same variable where events at the same depth are in conflict.
-
-Using the idea of skip list to go fast from the current node to target (see \ref{fig:trees}. In Node, a list of its skip predecessors $ skip_pres = (i_1, i_2,..,i_m)$ are stored, while $i_j$ $(j \in [1,m] )$ is the node's predecessor in $k^{j}$ tree, k (k > 1) is a constant choosen to skip nodes in trees, and a $k^{j}$ tree is a tree where a unit of depth is $k^{j}$
-
-
-\verb!Store a list of skip predecessors!:
-e is an event about to add to unfolding.
-\begin{itemize}
-\item 
-	If $log_k(e.depth) \notin N$, $e.skip_pres$ is empty.
-\item 
-	If $m = log_k(e.depth) \in N$, repeate $e' = e \rightarrow pre$ k times.
-	Assign $e.skip_pres[0] = e'$
-\end{itemize}
-
 \begin{algorithm}
 \noindent
 For each event $e_i \in D$ repeat the following:
@@ -568,6 +476,110 @@ For each event $e_i \in D$ repeat the following:
 \caption{Computing all alternatives J for D after C}
 \label{a:alter}
 \end{algorithm}
+
+\subsubsection{Checking conflict between two arbitrary events:}
+Given two arbitrary events $e$ and $e'$ in the unfolding, decide if they are in conflict or not.
+\begin{enumerate}
+	\item e and e' are in the same process: $p(e) = p(e')$ , apply \cref{a:layer_tree} for tree of events in same process
+	\item e and e' are in different processes: $p(e)\neq p(e')$
+		\begin{itemize}
+			\item touch the same variable: $v(e) = v(e')$ and $ type(e) = type(e') = WR$ , apply \cref{a:layer_tree} for 						tree of WR events 
+			\item touch the same variable: $v(e) = v(e')$ and $ type(e) = type(e') = SYN$ , apply \cref{a:layer_tree} for 						tree of SYN
+			\item touch the same variable: $v(e) = v(e')$ and $ type(e) = RD$ and $type(e') = WR$ or reverse
+			or touch different variables: $v(e) \neq v(e')$, store more information:	
+			\begin{itemize}
+				\item For each event e, use a vector $v = (e_1, e_2...,e_n)$  (n is number of variables in the model)
+				with $e_i$ is the maximal event (RD, SYN, WR) touching the $v_i$ variable in e's local configuration:
+				
+				$e_i \in  \left[ e \right]: v(e_i) = v_i$ 
+				and $ !\exists e_i' \in \left[ e \right] : v(e_i') = v_i$ 
+				and $e_i < e_i'$ .
+				\item Apply \cref{a:layer_tree} to check conflict for all pairs of events $(e_i, e_i')$ with $e_i \in v, e_i'\in v'$
+			\end{itemize}	
+		\end{itemize}
+\end{enumerate}
+
+\begin{figure}
+\subfloat[original tree]{
+\includegraphics[scale=0.2]{tree.png}
+}
+\subfloat[$k^{1}$ tree]{
+\includegraphics[scale=0.3]{tree1.png}
+}
+\subfloat[$k^{2}$ tree]{
+\includegraphics[scale=0.3]{tree2.png}
+}
+\label{fig:trees}
+\caption{Trees with k=2}
+\end{figure}
+
+\subsubsection{Checking conflict between two events in the same tree}
+Tree are divided into layers where events have the same depth and are in immediate conflict.
+e and e' are in the same tree at different depths, assume depth(e) >depth(e'). If e' is one of e's causal predecessors, they are in causality, else they are in conflict.
+To quickly go through the tree, we use idea of skip list(see \ref{fig:trees}. Accordingly, a list of event's skip predecessors $ skip_preds = (i_1, i_2,..,i_m)$ are stored, where $i_j$ $(j \in [1,m] )$ is the node's predecessor in $k^{j}$ distance of depth, k (k > 1) is a constant choosen to skip.
+
+\verb!Initialize a list of skip predecessors! $skip_preds$:
+e is new event added to the unfolding. Firstly, we need to define the size of vector $skip\_preds$
+\begin{itemize}
+\item 
+	If $(e.depth) \% k \neq 0$, size($e.skip\_pres$) is 1.
+\item 
+	If $m = log_k(e.depth) \in \N$, repeate $e' = e \rightarrow pre$ k times.
+	Assign $e.skip\_pres[0] = e'$
+\end{itemize}
+$e.skip\_preds[i]$ is a predecessor which is in a depth distance of $k^{j}$ with e.
+\begin{itemize}
+\item
+	$e.skip\_preds[0]$ is its immediate predecessor is $pre\_proc$ (in case, it is tree of events in the same process) or $pre\_mem$ (in 			case, it is tree of events touching the same variable).
+\item 
+	$e.skip\_preds[1]$ is the predecessor which is found by going back k times with the pointer $pre\_proc$ or $pre\_mem$
+\end{itemize}
+
+
+\begin{algorithm}
+\noindent
+ Assume e.depth > e'.depth, d = e.depth - e'.depth, do as follows:
+\begin{enumerate}
+\item
+	If d < k then from $e$, repeat going back d times by the 			pointer $pre$ to find $e": e".depth = e'.depth$ and $ e" < e' $
+\item 
+	If d > k, $m = log_k(e.depth)$
+ 	\begin{itemize}
+ 	\item
+ 		 If  $m \in \N$, repeate $e" := e.skip_pres[m-1]					$ until $e".depth = e'.depth$
+	\item 
+		If $m \notin \N$, repeate $e":= e \rightarrow pre$ until 		$log_k(e".depth) \in \N$. Apply the same algorithm as $m 		\in N$ to e" until $e".depth = e'.depth$
+ 	\end{itemize} 
+\item 
+	If $e" = e'$ then $e'< e$ else $e'\icfl e$	 
+\end{enumerate}
+\caption{Decide the conflict between e and e' in the same tree}
+\label{a:layer_tree}	
+\end{algorithm}
+
+\noindent
+\textbf{Data structure:}
+Using template struct \verb!Node:!
+\begin{itemize}
+	\item \textit{depth}: the distance from the root
+	\item \textit{*pre}: according to the type of tree, it points to a predecessor in the same process or 					touching the same variable.
+	\item \textit{skip\_pres}: list of its k-skip predecessors.
+	
+\end{itemize}
+
+\noindent
+Each \verb!MultiNode! has the following attributes:
+\begin{itemize}
+	\item list of two \verb!Node! (first one for process, second one for variable)
+	\item a template function $pred()$ to locate the predecessor corresponding to type of \verb!Node!
+\end{itemize}
+
+
+
+
+
+
+
 
 
 \section{LLVM Frontend}

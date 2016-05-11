@@ -514,16 +514,53 @@ Given two arbitrary events $e$ and $e'$ in the unfolding, decide if they are in 
 \end{figure}
 
 \subsubsection{Checking conflict between two events in the same tree}
-Tree are divided into layers where events have the same depth and are in immediate conflict.
-e and e' are in the same tree at different depths, assume depth(e) >depth(e'). If e' is one of e's causal predecessors, they are in causality, else they are in conflict.
-To quickly go through the tree, we use idea of skip list(see \ref{fig:trees}. Accordingly, a list of event's skip predecessors $ skip_preds = (i_1, i_2,..,i_m)$ are stored, where $i_j$ $(j \in [1,m] )$ is the node's predecessor in $k^{j}$ distance of depth, k (k > 1) is a constant choosen to skip.
+Tree are divided into layers whose events have the same depth and are in immediate conflict.
+e and e' are two events in that tree at depths $e.depth$ and $e'.depth$ respectively.
+\begin{itemize}
+\item
+	If $e.depth = e'.depth$, then $e \icfl e'$
+\item
+	If $e.depth \neq e'.depth$, without loss of any generality, assume $ depth(e) > depth(e')$ . Find an event $e": e" < e$ and $e".depth = e'.depth$ . If $e" \equiv e'$, then $e'$ and $e$ are in causality, else they are in conflict.
+\end{itemize}
+	
+To quickly find $e"$ through the tree, we use the idea of skip list (see \ref{fig:trees}. Accordingly, in each node, a list of skip predecessors $ skip_preds = (i_1, i_2,..,i_m)$ are stored, where $i_j$ $(j \in [1,m] )$ is the node's predecessor in $k^{j}$ distance of depth, k (k > 1) is a constant distance in depth choosen to skip.
 
-\verb!Initialize a list of skip predecessors! $skip_preds$:
-e is new event added to the unfolding. Firstly, we need to define the size of vector $skip\_preds$
+\noindent
+\textbf{Data structure:}
+Using template struct \verb!Node<T>:!
+\begin{itemize}
+	\item \textit{depth}: the distance from the root
+	\item \textit{*pre}: according to the type of tree, it points to node of T which is immediate predecessor
+	\item \textit{skip\_pres}: list of pointers to its k-skip predecessors of type T.	
+(T can be an event in the same process or touching the same variable)
+\end{itemize}
+
+To apply the algorithm of skip list to both tree of events in the same process and those touching the same variable, we use a template class \verb!MultiNode<T,S>!(T is Event and S is an integer) which has the following attributes:
+\begin{itemize}
+	\item list of two \verb!Node! (first one for process, second one for variable)
+	\item a template function $pred()$ to locate the predecessor corresponding to type of \verb!Node!
+\end{itemize}
+ 
+ Class Event inherits \verb!MultiNode<T,S>! and has two template function indicating which type of Node to take into account.
+\begin{itemize}
+\item	
+	\verb!Node<Event> &proc!: return node[0] equivalant to variable tree
+\item	
+	\verb!Node<Event> &var!: return node[1] equivalant to variable tree 	
+\end{itemize}
+
+\noindent
+\textbf{Initialize a list of skip predecessors} $skip\_preds$:
+Firstly, we need to define the size of vector $skip\_preds$ of a node
 \begin{itemize}
 \item 
 	If $(e.depth) \% k \neq 0$, size($e.skip\_pres$) is 1.
 \item 
+	If $(e.depth) \% k = 0 $, compute $m = \left[ log_k(e.depth)\right]$ (floor), size of list is $s \in [1,m]: e.depth \% kˆ{s} = 0 $ 
+\end{itemize}
+After that, add all elements.
+\begin{itemize}
+\item
 	If $m = log_k(e.depth) \in \N$, repeate $e' = e \rightarrow pre$ k times.
 	Assign $e.skip\_pres[0] = e'$
 \end{itemize}
@@ -557,22 +594,7 @@ $e.skip\_preds[i]$ is a predecessor which is in a depth distance of $k^{j}$ with
 \label{a:layer_tree}	
 \end{algorithm}
 
-\noindent
-\textbf{Data structure:}
-Using template struct \verb!Node:!
-\begin{itemize}
-	\item \textit{depth}: the distance from the root
-	\item \textit{*pre}: according to the type of tree, it points to a predecessor in the same process or 					touching the same variable.
-	\item \textit{skip\_pres}: list of its k-skip predecessors.
-	
-\end{itemize}
 
-\noindent
-Each \verb!MultiNode! has the following attributes:
-\begin{itemize}
-	\item list of two \verb!Node! (first one for process, second one for variable)
-	\item a template function $pred()$ to locate the predecessor corresponding to type of \verb!Node!
-\end{itemize}
 
 
 

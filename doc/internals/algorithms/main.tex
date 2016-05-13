@@ -5,6 +5,7 @@
 \usepackage[noadjust,nosort]{cite}
 \usepackage{amsmath}
 \usepackage{amsfonts}
+\usepackage{amssymb}
 %\usepackage{MnSymbol}
 %\usepackage{thmtools}
 %\usepackage{thm-restate}
@@ -484,19 +485,30 @@ Given two arbitrary events $e$ and $e'$ in the unfolding, decide if they are in 
 		\begin{itemize}
 			\item touch the same variable: $v(e) = v(e')$ and $ type(e) = type(e') = WR$ , apply \cref{a:layer_tree} for 						tree of WR events 
 			\item touch the same variable: $v(e) = v(e')$ and $ type(e) = type(e') = SYN$ , apply \cref{a:layer_tree} for 						tree of SYN
-			\item touch the same variable: $v(e) = v(e')$ and $ type(e) = RD$ and $type(e') = WR$ or reverse
-			or touch different variables: $v(e) \neq v(e')$, store more information:	
+			\item Other cases (touch the same variable: $v(e) = v(e')$ and (RD,WR) (WR,RD) (RD, RD) or two events touching different variables: $v(e) \neq v(e')$), store more information:	
 			\begin{itemize}
-				\item For each event e, use a vector $v = (e_1, e_2...,e_n)$  (n is number of variables in the model)
-				with $e_i$ is the maximal event (RD, SYN, WR) touching the $v_i$ variable in e's local configuration:
+				\item For each event e, use a vector $maxevt = (e_1, e_2...,e_n)$  (n is number of variables in the model)
+				with $e_i$ is the maximal event (RD, SYN, WR) in e's local configuration which touches $v_i$ variable :
 				
 				$e_i \in  \left[ e \right]: v(e_i) = v_i$ 
-				and $ !\exists e_i' \in \left[ e \right] : v(e_i') = v_i$ 
+				and $ \nexists e_i' \in \left[ e \right] : v(e_i') = v_i$ 
 				and $e_i < e_i'$ .
 				\item Apply \cref{a:layer_tree} to check conflict for all pairs of events $(e_i, e_i')$ with $e_i \in v, e_i'\in v'$
 			\end{itemize}	
 		\end{itemize}
 \end{enumerate}
+
+\noindent
+\textbf{Data Structure}
+
+In Event class, add a vector \verb!maxevt! of size n where n is the number of global variables.
+
+\noindent
+\textbf{Initialize the vector of maximal events:}
+
+
+
+
 
 
 \subsubsection{Checking conflict between two events in the same tree}

@@ -501,13 +501,33 @@ Given two arbitrary events $e$ and $e'$ in the unfolding, decide if they are in 
 \noindent
 \textbf{Data Structure}
 
-In Event class, add a vector \verb!maxevt! of size n where n is the number of global variables.
+In Event class, there is a vector \verb!maxevt! $maxevt = (e_1, e_2...,e_n)$ (n is the number of global variables) which stores pointers to maximal events for all global variables $v\_i$.
 
 \noindent
 \textbf{Initialize the vector of maximal events:}
-
-
-
+For an event e:
+\begin{itemize}
+\item
+	If e is a LOC: \verb!e.maxevt = e.pre_proc.maxevt!
+\item
+	If e is a RD or SYN touching $x$ variable: 
+	\begin{itemize}
+	\item
+		\verb!e.maxevt(x) = e!
+	\item	
+		$\forall y \neq x$: \verb!e.maxevt(y) = max(e.pre_proc.maxevt(y), e.pre_mem.maxevt(y) )!
+	\end{itemize}
+\item
+	If e is a WR: 
+	\begin{itemize}
+	\item
+		\verb!e.maxevt(x) = e!
+	\item	
+		$\forall y \neq x$: \verb! e.maxevt(y) = max(e.pre_proc.maxevt(y), max(e.pre_readers[i])(y))!
+		$pre\_readers[i]$ is the previous reader corresponding to process i 
+		
+	\end{itemize}
+\end{itemize}
 
 
 
@@ -563,21 +583,21 @@ To apply the algorithm of skip list to layered trees, we use a template class \v
 \end{itemize}
 
 \noindent
-\textbf{Initialize a list of skip predecessors} $skip\_preds$:
-Firstly, we need to define the size $s$ of vector $skip\_preds$ of a node
+\textbf{Initialize a list of skip predecessors} \verb!skip_preds:!
+Firstly, we need to define the size $s$ of vector \verb!skip_preds! of a node
 \begin{itemize}
 \item 
 	If $e.depth \mod k \neq 0$,  then $s = 1$.
 \item 
-	If $e.depth \mod k = 0 $, compute $m = \left \lfloor log_k(e.depth) \right\rfloor$, size of list is $s = max(i): i \in [1,m]: e.depth \mod k^{i} = 0 $ 
+	If $e.depth \mod k = 0 $, compute $m = \left \lfloor log_k(e.depth) \right\rfloor$, size of the list is $s = max(i): i \in [1,m]: e.depth \mod k^{i} = 0 $ 
 \end{itemize}
 Next, compute the entire list of skip predecessors for e. For every node, $e.skip\_preds[i]$ is a predecessor which is in a depth distance of $k^{i}$ with e, so that:
 \begin{itemize}
 \item
-	The first element of the list $skip\_preds[0]$ indicates the predecessor which is in a depthh distance of $k^0 = 1$. It is actually $pre\_proc$ or $pre\_mem$ of corresponding event. 
+	The first element of the list \verb!skip_preds[0]! indicates the predecessor which is in a depthh distance of $k^0 = 1$. It is actually \verb!pre_proc! or \verb!pre_mem! of corresponding event.
 \item
 	For $\forall i \in [1,s]: skip\_preds[i] = max(\{e": e" < e$ and $e".depth \mod k^i = 0\})$ which can be computed by going back k times with $skip\_preds[i-1]$: \\
-	 $e.skip\_preds[i] = e.skip\_preds[i-1]....skip\_preds[i-1]$ (k times) 
+	 \verb!e.skip_preds[i] = e.skip_preds[i-1]....skip_preds[i-1]! (k times) 
 \end{itemize}
 
 

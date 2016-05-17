@@ -7,6 +7,7 @@
 
 #include <cstdint>
 #include <cstdio>
+#include <cmath>
 #include <cassert>
 #include <iostream>
 #include <fstream>
@@ -42,9 +43,19 @@ template<class T> void MultiNode<T> ::print_pred(int idx)
  *  - 0 for process tree
  *  - 1 for variable tree
  */
-template<class T> void MultiNode<T> ::find_pred(int idx, int d)
+template<class T> void MultiNode<T> ::find_pred(int idx, int d, int step)
 {
+   T * next = this->node[idx];
+   int i;
+   while (next->depth > d)
+   {
+      i = log(next->depth - d)/log(step);
+      while (next->depth % pow(step,i) != 0)
+         i--;
+      next = next->skip_preds[i];
+   }
 
+   //return next;
 }
 
 /*

@@ -55,7 +55,8 @@ public:
    Node<T> node[2];
 
    void print_pred (int idx);
-   void find_pred  (int idx, int d);
+
+   void find_pred  (int idx, int d, int step);
 };
 
 class Event: public MultiNode<Event>

@@ -501,7 +501,7 @@ Given two arbitrary events $e$ and $e'$ in the unfolding, decide if they are in 
 \noindent
 \textbf{Data Structure}
 
-In Event class, there is a vector \verb!maxevt! $maxevt = (e_1, e_2...,e_n)$ (n is the number of global variables) which stores pointers to maximal events for all global variables $v\_i$.
+In Event class, there is a vector \verb!maxevt! $maxevt = (e_1, e_2...,e_n)$ (n is the number of global variables) which stores pointers to maximal events for all global variables $v_i$.
 
 \noindent
 \textbf{Initialize the vector of maximal events:}
@@ -564,11 +564,11 @@ Using template struct \verb!Node<T>:!
 \begin{itemize}
 	\item \textit{depth}: the distance from the root
 %	\item \textit{*pre}: according to the type of tree, it points to node of T which is immediate predecessor
-	\item \textit{skip\_pres}: list of pointers to its k-skip predecessors of type T.	
+	\item \textit{skip\_preds}: list of pointers to its k-skip predecessors of type T.	
 (T can be an event in the same process or touching the same variable)
 \end{itemize}
 
-To apply the algorithm of skip list to layered trees, we use a template class \verb!MultiNode<T,S>!(T is Event and S is an integer) which has the following attributes:
+To apply the algorithm of skip list to layered trees, we use a template class \verb!MultiNode<T,S>! (T is Event and S is an integer) which has the following attributes:
 \begin{itemize}
 	\item list of two \verb!Node! (first one for process, second one for variable)
 	\item a template function $pred()$ to locate the predecessor corresponding to type of \verb!Node!
@@ -621,7 +621,10 @@ Assume $e.depth > e'.depth$, and , to reach e', do as follows:
 		\verb!Set! $next = next.skip\_preds[i]$ 
  	\end{itemize} 
 \item 
-	If $next \equiv e'$ then $e'< e$ else $e'\icfl e$	 
+	If $next \equiv e'$ then 
+		$e'< e$ 
+	
+	else $e'\cfl e$	 
 \end{enumerate}
 \caption{Decide the conflict between e and e' in the same tree}
 \label{a:layer_tree}	

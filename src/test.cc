@@ -1426,16 +1426,12 @@ void test19()
 
    for (unsigned int i = 0; i < n; i++)
    {
-     // temp.clear();
       printf("\n m = %d: ", m);
 
       for (unsigned j = 0; j < m ; j++ )
       {
-         //temp.push_back(i+j);
-         //printf("%d ", temp.back());
          s[i].push_back(i+j);
       }
-      //s.push_back(temp);
    }
 
    DEBUG("\nSet of %d sets", s.size());
@@ -1653,4 +1649,5 @@ void test24 ()
 {
    fe3::test ();
 }
+
 

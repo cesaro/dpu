@@ -26,8 +26,31 @@ using namespace ir;
 namespace pes{
 
 /*
+ * Methods for class MultiNode
+ */
+template<class T> void MultiNode<T> ::print_pred(int idx)
+{
+      int i = 1;
+      for (T *n = (T*) this; n; ++i, n = n->node[idx].skip_preds[0])
+      {
+         printf ("%d. n %p depth %d\n", i, n, n->node[idx].depth);
+      }
+}
+
+/*
+ *  find predecessor at the depth of d in the tree idx
+ *  - 0 for process tree
+ *  - 1 for variable tree
+ */
+template<class T> void MultiNode<T> ::find_pred(int idx, int d)
+{
+
+}
+
+/*
  * Methods for class Event
  */
+
 Event::Event (const Trans & t, Config & c)
    : idx(c.unf.count)
    , pre_proc(nullptr)
@@ -55,6 +78,7 @@ Event::Event (const Trans & t, Config & c)
    mk_history(c);
    /* set up vector clock */
    set_vclock();
+   set_maxevt();
 }
 
 Event::Event (Unfolding & u)
@@ -256,50 +280,73 @@ void Event::mk_history(const Config & c)
 void Event::set_vclock()
 {
    Process & p = this->trans->proc;
+   clock = pre_proc->clock;
    switch (this->trans->type)
      {
         case ir::Trans::LOC:
-           clock = pre_proc->clock;
            clock[p.id]++;
            break;
 
         case ir::Trans::SYN:
            for (unsigned i = 0; i < clock.size(); i++)
-              clock[i] = std::max(pre_mem->clock[i], pre_proc->clock[i]);
+              clock[i] = std::max(pre_mem->clock[i], clock[i]);
 
            clock[p.id]++;
            break;
 
         case ir::Trans::RD:
            for (unsigned i = 0; i < clock.size(); i++)
-              clock[i] = std::max(pre_mem->clock[i], pre_proc->clock[i]);
+              clock[i] = std::max(pre_mem->clock[i], clock[i]);
 
            clock[p.id]++;
            break;
 
         case ir::Trans::WR:
-           std::vector<unsigned> temp;
-
            // find out the max elements among those of all pre_readers.
            for (unsigned i = 0; i < clock.size(); i++)
            {
               /* put all elements j of pre_readers to a vector temp */
-              for (unsigned j = 0; j < clock.size(); j++)
-                 temp.push_back(pre_readers[j]->clock[i]);
-
-              std::vector<unsigned>::iterator it = std::max_element(temp.begin(), temp.end()); // find out the largest element
-              clock[i] = *it; // put it to the back of clock
-              temp.clear();
-              // take the max value between pre_proc and pre_reader[p.id] to make sure the value is maximum
-              for (unsigned i = 0; i < clock.size(); i++)
-                 if (clock[i] < this->pre_proc->clock[i])
-                    clock[i] = this->pre_proc->clock[i];
+              for (unsigned j = 0; j < pre_readers.size(); j++)
+                clock[i] = std::max(pre_readers[j]->clock[i], clock[i]);
            }
 
            clock[p.id]++;
            break;
      }
 
+}
+/*
+ * Set up the vector maxevt which stores maximal events in an event's local configuration
+ */
+void Event::set_maxevt()
+{
+   maxevt = pre_proc->maxevt; // initialize maxevt by maxevt(pre_proc)
+   switch (this->trans->type)
+   {
+        case ir::Trans::LOC:
+           //maxevt = pre_proc->maxevt;
+           break;
+
+        case ir::Trans::SYN:
+           for (unsigned i = 0; i < maxevt.size(); i++)
+              maxevt[i] = std::max(pre_mem->maxevt[i], maxevt[i]);
+           break;
+
+        case ir::Trans::RD:
+           for (unsigned i = 0; i < maxevt.size(); i++)
+              maxevt[i] = std::max(pre_mem->maxevt[i], maxevt[i]);
+           break;
+
+        case ir::Trans::WR:
+           // find out the max elements among those of all pre_readers.
+           for (unsigned i = 0; i < maxevt.size(); i++)
+           {
+              for (unsigned j = 0; j < pre_readers.size(); j++)
+                 if ( pre_readers[j]->maxevt[i] > maxevt[i])
+                     maxevt[i] = pre_readers[j]->maxevt[i] ;
+           }
+           break;
+   }
 }
 /*
  * Update all events precede current event, including pre_proc, pre_mem and all pre_readers

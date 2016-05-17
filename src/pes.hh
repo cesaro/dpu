@@ -21,8 +21,44 @@ namespace pes
 class Config;
 class Unfolding;
 
+template <typename T>
+struct Node
+{
+   unsigned depth;
+   T ** skip_preds;
+};
+#if 0
+template <class T, int S>
+class MultiNode
+{
+public:
+   Node<T> node[S];
 
-class Event
+   template<int idx>
+   void print_pred ()
+   {
+      int i = 1;
+      for (T *n = (T*) this; n; ++i, n = n->node[idx].pre)
+      {
+         printf ("%d. n %p depth %d\n", i, n, n->node[idx].depth);
+      }
+   }
+   template<int idx>
+   void find_pred(int d);
+};
+#endif
+
+template <class T>
+class MultiNode
+{
+public:
+   Node<T> node[2];
+
+   void print_pred (int idx);
+   void find_pred  (int idx, int d);
+};
+
+class Event: public MultiNode<Event>
 {
 public:
    unsigned int          idx;
@@ -47,6 +83,7 @@ public:
    int                   color;
    std::vector<Event *>  dicfl;  // set of direct conflicting events
    std::vector <int>     clock; // size = number of processes (to store clock for all its predecessors: pre_proc, pre_mem or pre_readers)
+   std::vector <Event *> maxevt; // size of number of variables, store maximal events in the event's local configuration for all variable
 
    bool         operator ==   (const Event &) const;
    Event & 	    operator =    (const Event &);
@@ -63,6 +100,12 @@ public:
    bool is_same(Event &);
    bool in_history(Event * e);
    void set_vclock();
+   void set_maxevt();
+
+   Node<Event> &proc () { return node[0]; }
+   Node<Event> &var  () { return node[1]; }
+   void proc_print_pred () { print_pred(0); }
+   void var_print_pred  () { print_pred(1); }
 
 
 
@@ -158,6 +201,7 @@ private :
 }; // end of class Unfolding
 
 } // namespace pes
+
 
 #endif
 

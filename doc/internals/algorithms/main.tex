@@ -515,7 +515,9 @@ For an event e:
 	\item
 		\verb!e.maxevt(x) = e!
 	\item	
-		$\forall y \neq x$: \verb!e.maxevt(y) = max(e.pre_proc.maxevt(y), e.pre_mem.maxevt(y) )!
+		$\forall y \neq x$: 
+		
+		$e.maxevt(y) = max(e.pre\_proc.maxevt(y), e.pre\_mem.maxevt(y) )$
 	\end{itemize}
 \item
 	If e is a WR: 
@@ -523,8 +525,11 @@ For an event e:
 	\item
 		\verb!e.maxevt(x) = e!
 	\item	
-		$\forall y \neq x$: \verb! e.maxevt(y) = max(e.pre_proc.maxevt(y), max(e.pre_readers[i])(y))!
-		$pre\_readers[i]$ is the previous reader corresponding to process i 
+		$\forall y \neq x$:
+		
+		$e.maxevt(y) = max(e.pre\_proc.maxevt(y), max(e.pre\_readers[i])(y))$
+		
+		while $pre\_readers[i]$ is the previous reader corresponding to process i 
 		
 	\end{itemize}
 \end{itemize}
@@ -568,13 +573,13 @@ Using template struct \verb!Node<T>:!
 (T can be an event in the same process or touching the same variable)
 \end{itemize}
 
-To apply the algorithm of skip list to layered trees, we use a template class \verb!MultiNode<T,S>! (T is Event and S is an integer) which has the following attributes:
+To apply the algorithm of skip list to layered trees, we use a template class \verb!MultiNode<T>! (T is Event) which has the following attributes:
 \begin{itemize}
 	\item list of two \verb!Node! (first one for process, second one for variable)
 	\item a template function $pred()$ to locate the predecessor corresponding to type of \verb!Node!
 \end{itemize}
  
- Class Event inherits \verb!MultiNode<T,S>! and has two template function indicating which type of Node to take into account.
+ Class Event inherits \verb!MultiNode<T>! and has two template function indicating which type of Node to take into account.
 \begin{itemize}
 \item	
 	\verb!Node<Event> &proc!: return node in equivalant \textit{process} tree
@@ -594,7 +599,7 @@ Firstly, we need to define the size $s$ of vector \verb!skip_preds! of a node
 Next, compute the entire list of skip predecessors for e. For every node, $e.skip\_preds[i]$ is a predecessor which is in a depth distance of $k^{i}$ with e, so that:
 \begin{itemize}
 \item
-	The first element of the list \verb!skip_preds[0]! indicates the predecessor which is in a depthh distance of $k^0 = 1$. It is actually \verb!pre_proc! or \verb!pre_mem! of corresponding event.
+	The first element of the list \verb!skip_preds[0]! indicates the predecessor which is in a depth distance of $k^0 = 1$. It is actually \verb!pre_proc! or \verb!pre_mem! of corresponding event.
 \item
 	For $\forall i \in [1,s]: skip\_preds[i] = max(\{e": e" < e$ and $e".depth \mod k^i = 0\})$ which can be computed by going back k times with $skip\_preds[i-1]$: \\
 	 \verb!e.skip_preds[i] = e.skip_preds[i-1]....skip_preds[i-1]! (k times) 

@@ -55,8 +55,7 @@ public:
    Node<T> node[2];
 
    void print_pred (int idx);
-
-   void find_pred  (int idx, int d, int step);
+   T & find_pred  (int idx, int d, int step);
 };
 
 class Event: public MultiNode<Event>
@@ -83,6 +82,7 @@ public:
    const ir::Trans *     trans;
    int                   color;
    std::vector<Event *>  dicfl;  // set of direct conflicting events
+
    std::vector <int>     clock; // size = number of processes (to store clock for all its predecessors: pre_proc, pre_mem or pre_readers)
    std::vector <Event *> maxevt; // size of number of variables, store maximal events in the event's local configuration for all variable
 
@@ -107,6 +107,8 @@ public:
    Node<Event> &var  () { return node[1]; }
    void proc_print_pred () { print_pred(0); }
    void var_print_pred  () { print_pred(1); }
+   void set_skip_preds(int idx, int step);
+   void print_skip_preds(int idx);
 
 
 

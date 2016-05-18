@@ -29,6 +29,7 @@ namespace pes{
 /*
  * Methods for class MultiNode
  */
+//-----------------------
 template<class T> void MultiNode<T> ::print_pred(int idx)
 {
       int i = 1;
@@ -43,7 +44,7 @@ template<class T> void MultiNode<T> ::print_pred(int idx)
  *  - 0 for process tree
  *  - 1 for variable tree
  */
-template<class T> void MultiNode<T> ::find_pred(int idx, int d, int step)
+template<class T> T & MultiNode<T> ::find_pred(int idx, int d, int step)
 {
    T * next = this->node[idx];
    int i;
@@ -55,8 +56,9 @@ template<class T> void MultiNode<T> ::find_pred(int idx, int d, int step)
       next = next->skip_preds[i];
    }
 
-   //return next;
+   return next;
 }
+
 
 /*
  * Methods for class Event
@@ -359,6 +361,66 @@ void Event::set_maxevt()
            break;
    }
 }
+
+/*
+ * Set up the list of skip predecessors for a Node according to its idx (process or variable tree)
+ */
+void Event:: set_skip_preds(int idx, int step)
+{
+   int size;
+   // decide the size of list
+   if (this->node[idx].depth % step != 0)
+      size = 1;
+   else
+   {
+      size = floor(log(node[idx].depth)/log(step));
+      for (int i = size; i > 0; i--)
+      {
+         if ((node[idx].depth % int(pow(step, i))) == 0)
+         {
+            size = i;
+            break;
+         }
+      }
+   }
+   // set up the first element
+   if (idx == 0) // for process
+   {
+      node[idx].skip_preds[0] = this->pre_proc;
+   }
+   else // for variable tree
+   {
+      node[idx].skip_preds[0] = this->pre_mem;
+   }
+   // set up the rest of the list
+   if (size > 1)
+   {
+      for (int i = 1; i < size; i++)
+      {
+         Event * p;
+         int k = 0;
+         /*
+          * go back k times by pre_mem or pre_proc
+          */
+         while (k < step)
+         {
+            p = node[idx].skip_preds[i-1];
+            k++;
+         }
+         node[idx].skip_preds[i] = p;
+      }
+   }
+}
+
+/*
+ * Print all skip predecessors
+ */
+void Event:: print_skip_preds(int idx)
+{
+  // for (int i = 0; i < node[idx].skip_preds.size(); i++)
+
+}
+
 /*
  * Update all events precede current event, including pre_proc, pre_mem and all pre_readers
  */

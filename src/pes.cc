@@ -553,7 +553,7 @@ bool Event::check_cfl( const Event & e ) const
 
    /*
     * Check pre_proc: if they have the same pre_proc and in the same process -> conflict
-    * It is true for the case where pre_proc is bottom
+    * It is also true for the case where pre_proc is bottom
     */
 
    if ((this->pre_proc == e.pre_proc) && (this->trans->proc.id == e.trans->proc.id))
@@ -587,9 +587,11 @@ bool Event::check_cfl( const Event & e ) const
    switch (parent->trans->type)
    {
       case ir::Trans::RD:
-         this_idx    = std::find(parent->post_rws.begin(), parent->post_rws.end(),this);
+         // post_rws is a vector of all operations succeeding
+         //this_idx = std::find(parent->post_rws.begin(), parent->post_rws.end(),this); // don't need to find, because it is certainly there
          e_idx  = std::find(parent->post_rws.begin(), parent->post_rws.end(),&e);
-    	   if ( (this_idx != parent->post_rws.end()) && (e_idx != parent->post_rws.end()) )
+    	  // if ( (this_idx != parent->post_rws.end()) && (e_idx != parent->post_rws.end()) )
+         if (e_idx != parent->post_rws.end())
     	      return true;
          break;
 
@@ -604,9 +606,11 @@ bool Event::check_cfl( const Event & e ) const
          break;
 
      case ir::Trans::SYN:
-        this_idx = std::find(parent->post_rws.begin(), parent->post_rws.end(),this);
+        // post_rws is a vector of all operations succeeding
+       // this_idx = std::find(parent->post_rws.begin(), parent->post_rws.end(),this); // don't need to find, because it is certainly there
     	  e_idx    = std::find(parent->post_rws.begin(), parent->post_rws.end(),&e);
-    	  if ( (this_idx != parent->post_rws.end()) && (e_idx != parent->post_rws.end()) )
+    	 // if ( (this_idx != parent->post_rws.end()) && (e_idx != parent->post_rws.end()) )
+    	 if (e_idx != parent->post_rws.end())
            return true;
     	  break;
 

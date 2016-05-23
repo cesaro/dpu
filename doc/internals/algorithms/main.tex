@@ -179,10 +179,14 @@ Finally, for \verb!WR! events :
   In this regard, \verb!pre_mem! is a pointer to the node's parent in that
   tree.
 \item
-  \verb!post_mem!: (causal successsor) vector (\verb!std::vector!) of
+	
+  \verb!post_wr!: (causal WR successsor) vector (\verb!std::vector!) of
   pointers to the next \verb!WR! operations on the same variable, in this
   or another thread. These are the children of the aforementionned
-  unfolding-wise tree.
+  unfolding-wise tree.(need re-considered its existence)
+\item
+  \verb!post_mem!: (causal RD, SYN, WR immediate successors) a vector of vectors (\verb!std::vector<std::vecotr>!) of operations on the same variable in differents threads. 
+	
 \item
   \verb!pre_readers!: (immediate and not immediate causal predecessors)
   vector (\verb!std::vector!) of pointers to events (one per thread).
@@ -194,8 +198,24 @@ FIXME - incomplete; look at my notes and fix
 
 
 \subsection{Events in Conflict with an Event}
-
-TBD.
+To determine immediate conflict between two events $e$ and $e'$: 
+\begin{itemize}
+	\item
+		One of them is a LOC, there is no conflict at all.
+	\item
+		If they are in the same process $p(e) = p(e')$ and have the same predecessor $e.pre\_proc = e'.pre\_proc$, they are in immediate conflict.
+	\item
+		If they are in different processes (have different $pre_proc$), look at one event's \verb!parent! \verb!e.pre_mem! (watch out the case where its parent is $bottom$ - a special WR)
+	\begin{itemize}
+		\item
+			\verb!parent! is RD: if we find $e'$ in its \verb!post_rws!, they are in conflict.
+		\item
+			\verb!parent! is SYN: if we find $e'$ in its \verb!post_rws!, they are in conflict.
+		\item
+			\verb!parent! is WR: if we find $e$ and $e'$ in the same vector of \verb!e.post_mem!, they are in conflict (e can be a WR, so it can appear in all vectors of \verb!e.post_mem!, not only the vector of its process)
+	\end{itemize}
+		
+\end{itemize}
 
 \section{Configuration}
 Relevant classes:
@@ -483,9 +503,21 @@ Given two arbitrary events $e$ and $e'$ in the unfolding, decide if they are in 
 	\item e and e' are in the same process: $p(e) = p(e')$ , apply \cref{a:layer_tree} for tree of events in same process
 	\item e and e' are in different processes: $p(e)\neq p(e')$
 		\begin{itemize}
-			\item touch the same variable: $v(e) = v(e')$ and $ type(e) = type(e') = WR$ , apply \cref{a:layer_tree} for 						tree of WR events 
-			\item touch the same variable: $v(e) = v(e')$ and $ type(e) = type(e') = SYN$ , apply \cref{a:layer_tree} for 						tree of SYN
-			\item Other cases (touch the same variable: $v(e) = v(e')$ and (RD,WR) (WR,RD) (RD, RD) or two events touching different variables: $v(e) \neq v(e')$), store more information:	
+			\item touch the same variable: $v(e) = v(e')$ and $ type(e) = type(e') = WR$ , apply \cref{a:layer_tree} for tree of WR events 
+			\item touch the same variable: $v(e) = v(e')$ and $ type(e) = type(e') = SYN$ , apply \cref{a:layer_tree} for tree of SYN
+			\item touch the same variable: $v(e) = v(e')$ and they are (RD, RD). Assume $WR_1$, $WR_2$ are the latest WR events in two local configurations of $e$ and $e'$ respectively. Apply \cref{a:layer_tree} to determine the relation between two WRs: they are either in conflict or in causality.
+			\begin{itemize}
+				\item
+					$WR_1 \cfl WR_2$: we have $e \cfl e'$.  
+				\item
+					$WR_1 < WR_2$, then $e < e'$ or $e \cfl e'$. To determine the case, 
+				
+			\end{itemize}
+			 apply the \cref{a:reads}
+			\item 
+				touch the same variable: $v(e) = v(e')$ and they are a pair of (RD,WR).
+				
+			\item Other cases where two events touching different variables: $v(e) \neq v(e')$) or two LOCs, store more information:	
 			\begin{itemize}
 				\item For each event e, use a vector $maxevt = (e_1, e_2...,e_n)$  (n is number of variables in the model)
 				with $e_i$ is the maximal event (RD, SYN, WR) in e's local configuration which touches $v_i$ variable :
@@ -493,7 +525,7 @@ Given two arbitrary events $e$ and $e'$ in the unfolding, decide if they are in 
 				$e_i \in  \left[ e \right]: v(e_i) = v_i$ 
 				and $ \nexists e_i' \in \left[ e \right] : v(e_i') = v_i$ 
 				and $e_i < e_i'$ .
-				\item Apply \cref{a:layer_tree} to check conflict for all pairs of events $(e_i, e_i')$ with $e_i \in v, e_i'\in v'$
+				\item Apply \cref{a:layer_tree} to check conflict for all pairs of events $(e_i, e_i')$ with $e_i \in e.maxevt, e_i'\in e'.maxevt$
 			\end{itemize}	
 		\end{itemize}
 \end{enumerate}
@@ -501,7 +533,7 @@ Given two arbitrary events $e$ and $e'$ in the unfolding, decide if they are in 
 \noindent
 \textbf{Data Structure}
 
-In Event class, there is a vector \verb!maxevt! $maxevt = (e_1, e_2...,e_n)$ (n is the number of global variables) which stores pointers to maximal events for all global variables $v_i$.
+In Event class, there is a vector \verb!maxevt! $maxevt = (e_1, e_2...,e_n)$ (n is the number of global variables) which stores pointers to maximal events for all global variables $v_i$.\\
 
 \noindent
 \textbf{Initialize the vector of maximal events:}
@@ -534,21 +566,6 @@ For an event e:
 	\end{itemize}
 \end{itemize}
 
-
-
-\subsubsection{Checking conflict between two events in the same tree}
-Tree are divided into layers whose events have the same depth and are in immediate conflict.
-e and e' are two events in that tree at depths $e.depth$ and $e'.depth$ respectively.
-\begin{itemize}
-\item
-	If $e.depth = e'.depth$, then $e \icfl e'$
-\item
-	If $e.depth \neq e'.depth$, without loss of any generality, assume $ depth(e) > depth(e')$ . Find an event $e": e" < e$ and $e".depth = e'.depth$ . If $e" \equiv e'$, then $e'$ and $e$ are in causality, else they are in conflict.
-\end{itemize}
-
-	
-To quickly find $e"$ through the tree, we use the idea of skip list (see \ref{fig:example}. Accordingly, in each node, a list of skip predecessors $ skip\_preds = (i_1, i_2,..,i_m)$ are stored, where $i_j$ $(j \in [1,m] )$ is the node's predecessor in $k^{j}$ distance of depth, k (k > 1) is a constant distance in depth choosen to skip.
-
 \begin{figure}
 \subfloat[original tree]{
 \includegraphics[scale=0.2]{tree.png}
@@ -563,12 +580,25 @@ To quickly find $e"$ through the tree, we use the idea of skip list (see \ref{fi
 \caption{Trees with k=2}
 \end{figure}
 
+\subsubsection{Checking conflict between two events in the same tree}
+Tree are divided into layers whose events have the same depth and are in immediate conflict.
+e and e' are two events in that tree at depths $e.depth$ and $e'.depth$ respectively.
+\begin{itemize}
+\item
+	If $e.depth = e'.depth$, then $e \icfl e'$
+\item
+	If $e.depth \neq e'.depth$, without loss of any generality, assume $ depth(e) > depth(e')$ . Find an event $e": e" < e$ and $e".depth = e'.depth$ . If $e" \equiv e'$, then $e'$ and $e$ are in causality, else they are in conflict.
+\end{itemize}
+
+	
+To quickly find $e"$ through the tree, we use the idea of skip list (see \ref{fig:example}. Accordingly, in each node, a list of skip predecessors $ skip\_preds = (i_1, i_2,..,i_m)$ are stored, where $i_j$ $(j \in [1,m] )$ is the node's predecessor in $k^{j}$ distance of depth, k (k > 1) is a constant distance in depth choosen to skip.\\
+
 \noindent
 \textbf{Data structure:}
 Using template struct \verb!Node<T>:!
 \begin{itemize}
 	\item \textit{depth}: the distance from the root
-%	\item \textit{*pre}: according to the type of tree, it points to node of T which is immediate predecessor
+	\item \textit{*pre}: according to the type of tree, it points to node of T which is immediate predecessor (\verb!pre-proc! or \verb!pre_mem! in Event class)
 	\item \textit{skip\_preds}: list of pointers to its k-skip predecessors of type T.	
 (T can be an event in the same process or touching the same variable)
 \end{itemize}
@@ -589,22 +619,21 @@ To apply the algorithm of skip list to layered trees, we use a template class \v
 
 \noindent
 \textbf{Initialize a list of skip predecessors} \verb!skip_preds:!
-Firstly, we need to define the size $s$ of vector \verb!skip_preds! of a node
-\begin{itemize}
-\item 
-	If $e.depth \mod k \neq 0$,  then $s = 1$.
-\item 
-	If $e.depth \mod k = 0 $, compute $m = \left \lfloor log_k(e.depth) \right\rfloor$, size of the list is $s = max(i): i \in [1,m]: e.depth \mod k^{i} = 0 $ 
-\end{itemize}
-Next, compute the entire list of skip predecessors for e. For every node, $e.skip\_preds[i]$ is a predecessor which is in a depth distance of $k^{i}$ with e, so that:
 \begin{itemize}
 \item
-	The first element of the list \verb!skip_preds[0]! indicates the predecessor which is in a depth distance of $k^0 = 1$. It is actually \verb!pre_proc! or \verb!pre_mem! of corresponding event.
-\item
-	For $\forall i \in [1,s]: skip\_preds[i] = max(\{e": e" < e$ and $e".depth \mod k^i = 0\})$ which can be computed by going back k times with $skip\_preds[i-1]$: \\
-	 \verb!e.skip_preds[i] = e.skip_preds[i-1]....skip_preds[i-1]! (k times) 
-\end{itemize}
+	Firstly, we need to define the size $s$ of vector \verb!skip_preds! of a node. It depends on the depth of the node.
 
+	 $s = max(i \in [1,\infty]: e.depth \mod k^{i} = 0 )$ 
+\item
+	Next, compute the entire list of skip predecessors for e. For every node, $e.skip\_preds[i]$ is a predecessor which is in a depth 			distance of $k^{i}$ with e, so that:
+	\begin{itemize}
+	\item
+		The first element of the list \verb!skip_preds[0]! indicates the predecessor which is in a depth distance of $k^1 = k$. It can 				be reached by backtracking with $pre$ which is actually \verb!pre_proc! or \verb!pre_mem! of corresponding event.
+	\item
+		For $\forall i \in [1,s]: skip\_preds[i] = max(\{e": e" < e$ and $e".depth \mod k^i = 0\})$ which can be computed by going back 			k times with $skip\_preds[i-1]$: \\
+		 \verb!e.skip_preds[i] = e.skip_preds[i-1]....skip_preds[i-1]! (k times) 
+	\end{itemize}
+\end{itemize}
 
 \begin{algorithm}
 \noindent
@@ -618,10 +647,10 @@ Assume $e.depth > e'.depth$, and , to reach e', do as follows:
 	\item
 		\verb!Set d  = next.depth - e'.depth!
 	\item
-		\verb!Set i  =! $ \left \lfloor log_k(d) \right \rfloor$
+		\verb!Set i  = 0!
 	\item
-		\verb!while! ($ next.depth \mod k^{i} \neq 0$)   \space \verb!do!
-		    $i = i - 1$
+		\verb!while! ($ next.depth \mod k^{i} = 0$)   \space \verb!do!
+		    $i = i + 1$
 	\item
 		\verb!Set! $next = next.skip\_preds[i]$ 
  	\end{itemize} 
@@ -635,6 +664,11 @@ Assume $e.depth > e'.depth$, and , to reach e', do as follows:
 \label{a:layer_tree}	
 \end{algorithm}
 
+\begin{algorithm}
+Given two reads $e1$ and $e2$
+\caption{Decide the conflict between two reads}
+\label{a:reads}	
+\end{algorithm}
 
 \section{LLVM Frontend}
 

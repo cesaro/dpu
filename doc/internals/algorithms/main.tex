@@ -510,33 +510,35 @@ Given two arbitrary events $e$ and $e'$ in the unfolding, decide if they are in 
 				\item
 					$w_1 \cfl w_2$: we have $e \cfl e'$.  
 				\item
-					$w_1 < w_2$, then $e < e'$ or $e \cfl e'$. To determine the case (*), find the event WR' which satisfies: $w'< w_2$ and $w'.pre\_mem = w_1 $
+					$w_1 < w_2$, then $e < e'$ or $e \cfl e'$(*)
+				
+				 To determine the case (*), find the WR event $w'$ which satisfies: $w'< w_2$ and $w'.pre\_mem = w_1 $
 				\begin{itemize}
 					\item
-						e < w: $e < e'$
+						If $e < w'$ then $e < e'$
 					\item
-						e is not causal to w': $e \cfl e'$
+						If $e$ is not causal to $w'$ then $e \cfl e'$
 				\end{itemize}					
 				
 			\end{itemize}
 			\item 
-				touch the same variable: $v(e) = v(e')$ and e is a WR and e' is a RD. Find the latest WR predecessor of e', called w'. Apply  \cref{a:layer_tree} for WR tree to determine if e and w' are in conflict or not.
+				touch the same variable: $v(e) = v(e')$ and $e$ is a WR and $e'$ is a RD. Find the latest WR predecessor of $e'$, called $w'$. Apply  \cref{a:layer_tree} for WR tree to determine if $e$ (a WR) and $w'$ are in conflict or not.
 				\begin{itemize}
 					\item
-						If $w'\cfl e$: $e \cfl e'$
+						If $w'\cfl e$ then $e \cfl e'$
 					\item
-						If $ w'< e$ or $e < w'$, do as the case (*) with 2 reads.
+						If $ w'< e$ or $e < w'$, do as the case (*).
 				\end{itemize}
 				
-			\item Other cases where two events touching different variables: $v(e) \neq v(e')$) or two LOCs, store more information:	
+			\item Other cases where two events touch different variables: $v(e) \neq v(e')$) or two LOCs, store more information:	
 			\begin{itemize}
-				\item For each event e, use a vector $maxevt = (e_1, e_2...,e_n)$  (n is number of variables in the model)
-				with $e_i$ is the maximal event (RD, SYN, WR) in e's local configuration which touches $v_i$ variable :
+				\item For each event $e$, use a vector $maxevt = (e_1, e_2...,e_n)$  (n is the number of variables in the model)
+				while $e_i$ is the maximal event (RD, SYN, WR) in $e$'s local configuration which touches $v_i$ variable :
 				
 				$e_i \in  \left[ e \right]: v(e_i) = v_i$ 
 				and $ \nexists e_i' \in \left[ e \right] : v(e_i') = v_i$ 
 				and $e_i < e_i'$ .
-				\item Apply \cref{a:layer_tree} to check conflict for all pairs of events $(e_i, e_i')$ with $e_i \in e.maxevt, e_i'\in e'.maxevt$
+				\item Apply \cref{a:layer_tree} to check conflict for all pairs of events $(e_i, e_i')$ where $e_i \in e.maxevt$ and $e_i'\in e'.maxevt$ touch the same variable $v_i$
 			\end{itemize}	
 		\end{itemize}
 \end{enumerate}

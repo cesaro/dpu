@@ -505,17 +505,28 @@ Given two arbitrary events $e$ and $e'$ in the unfolding, decide if they are in 
 		\begin{itemize}
 			\item touch the same variable: $v(e) = v(e')$ and $ type(e) = type(e') = WR$ , apply \cref{a:layer_tree} for tree of WR events 
 			\item touch the same variable: $v(e) = v(e')$ and $ type(e) = type(e') = SYN$ , apply \cref{a:layer_tree} for tree of SYN
-			\item touch the same variable: $v(e) = v(e')$ and they are (RD, RD). Assume $WR_1$, $WR_2$ are the latest WR events in two local configurations of $e$ and $e'$ respectively. Apply \cref{a:layer_tree} to determine the relation between two WRs: they are either in conflict or in causality.
+			\item touch the same variable: $v(e) = v(e')$ and they are (RD, RD). Assume $w_1$, $w_2$ are the latest WR events in two local configurations of $e$ and $e'$ respectively. Apply \cref{a:layer_tree} to determine the relation between two WRs: they are either in conflict or in causality.
 			\begin{itemize}
 				\item
-					$WR_1 \cfl WR_2$: we have $e \cfl e'$.  
+					$w_1 \cfl w_2$: we have $e \cfl e'$.  
 				\item
-					$WR_1 < WR_2$, then $e < e'$ or $e \cfl e'$. To determine the case, 
+					$w_1 < w_2$, then $e < e'$ or $e \cfl e'$. To determine the case (*), find the event WR' which satisfies: $w'< w_2$ and $w'.pre\_mem = w_1 $
+				\begin{itemize}
+					\item
+						e < w: $e < e'$
+					\item
+						e is not causal to w': $e \cfl e'$
+				\end{itemize}					
 				
 			\end{itemize}
-			 apply the \cref{a:reads}
 			\item 
-				touch the same variable: $v(e) = v(e')$ and they are a pair of (RD,WR).
+				touch the same variable: $v(e) = v(e')$ and e is a WR and e' is a RD. Find the latest WR predecessor of e', called w'. Apply  \cref{a:layer_tree} for WR tree to determine if e and w' are in conflict or not.
+				\begin{itemize}
+					\item
+						If $w'\cfl e$: $e \cfl e'$
+					\item
+						If $ w'< e$ or $e < w'$, do as the case (*) with 2 reads.
+				\end{itemize}
 				
 			\item Other cases where two events touching different variables: $v(e) \neq v(e')$) or two LOCs, store more information:	
 			\begin{itemize}

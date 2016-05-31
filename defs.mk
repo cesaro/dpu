@@ -38,6 +38,7 @@ LDLIBS=$(LLVMLIBS)
 # source code
 SRCS:=$(wildcard src/*.c src/*.cc src/*/*.c src/*/*.cc src/*/*/*.c src/*/*/*.cc)
 SRCS:=$(filter-out $(wildcard src/SA/* src/SA/*/*), $(SRCS))
+SRCS:=$(filter-out $(wildcard src/rt/*), $(SRCS))
 #SRCS:=$(filter-out $(wildcard src/fe/llvm/*), $(SRCS))
 SRCS:=$(SRCS)
 
@@ -108,17 +109,17 @@ YACC:=bison
 	@echo "DOT $<"
 	@dot -T jpg < $< > $@
 
-CFLAGS_:=-Wall -Wextra -std=c11 -O3
+CFLAGS_:=-Wall -Wextra -std=c11
 CXXFLAGS_:=-Wall -Wextra -std=c++11 -O3
 
 %.ll : %.c
-	$(CC) $(CFLAGS) $(CPPFLAGS) -S -flto $< -o $@
+	$(CC) $(CFLAGS_) $(CPPFLAGS) -S -flto $< -o $@
 %.bc : %.c
-	$(CC) $(CFLAGS) $(CPPFLAGS) -c -flto $< -o $@
+	$(CC) $(CFLAGS_) $(CPPFLAGS) -c -flto $< -o $@
 %.ll : %.cc
-	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -S -flto $< -o $@
+	$(CXX) $(CXXFLAGS_) $(CPPFLAGS) -S -flto $< -o $@
 %.bc : %.cc
-	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -c -flto $< -o $@
+	$(CXX) $(CXXFLAGS_) $(CPPFLAGS) -c -flto $< -o $@
 %.bc : %.ll
 	llvm-as-$(LLVMVERS) $< -o $@
 %.ll : %.bc

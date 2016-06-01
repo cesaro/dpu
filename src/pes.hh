@@ -3,6 +3,7 @@
 #define __PES_HH_
 
 #include "ir.hh"
+#include <unordered_map>
 /*
  * Event:
  * - take unf and trans as arguments
@@ -20,59 +21,51 @@ namespace pes
 {
 class Config;
 class Unfolding;
+class Event;
 
-template <typename T>
-struct Node
+template <class T, int SS>
+class Node
 {
+public:
    unsigned depth;
+   T * pre; // immediate predecessor
    T ** skip_preds;
+
+   Node()= default;
+   Node(int idx, Event * pr);
+   void set_up(int idx, Event * pr);
+   int compute_size();
+   void set_skip_preds(int idx);
+   void print_skip_preds();
+
+
 };
-#if 0
-template <class T, int S>
+
+template <class T, int S, int SS> // S: number of trees, SS: skip step
 class MultiNode
 {
 public:
-   Node<T> node[S];
+   Node<T,SS> node[S];
 
-   template<int idx>
-   void print_pred ()
-   {
-      int i = 1;
-      for (T *n = (T*) this; n; ++i, n = n->node[idx].pre)
-      {
-         printf ("%d. n %p depth %d\n", i, n, n->node[idx].depth);
-      }
-   }
-   template<int idx>
-   void find_pred(int d);
+   MultiNode() = default;
+   MultiNode(T * pp, T * pm);
+
 };
-#endif
-
-template <class T>
-class MultiNode
-{
-public:
-   Node<T> node[2];
-
-   void print_pred (int idx);
-   T & find_pred  (int idx, int d, int step);
-};
-
-class Event: public MultiNode<Event>
+//--------class Event------------
+class Event: public MultiNode<Event,2,3> // 2 trees, skip step = 3
 {
 public:
    unsigned int          idx;
    Event *               pre_proc;    // for all events, predecessor in the same process
-   std::vector<Event *>  post_proc;  // set of successors in the same process
-
    Event *               pre_mem;     // parent of the event, for all events except LOCAL,
+
+   std::vector<Event *>  post_proc;  // set of successors in the same process
 
    // only for WR events
    // each vector of children events for a process
-   std::vector< std::vector<Event *> >   post_mem; // size = numprocs x mem
    std::vector< Event * >                pre_readers; // only for WR events
-
-   std::vector<Event * > post_wr; // WR children of a WR trans
+   std::vector< std::vector<Event *> >   post_mem; // size = numprocs x mem
+   std::vector<Event * >                 post_wr; // WR children of a WR trans
 
    //only for RD and SYN events
    std::vector <Event *>                 post_rws; // any operation after a RD, SYN
@@ -103,14 +96,13 @@ public:
    void set_vclock();
    void set_maxevt();
 
-   Node<Event> &proc () { return node[0]; }
-   Node<Event> &var  () { return node[1]; }
-   void proc_print_pred () { print_pred(0); }
-   void var_print_pred  () { print_pred(1); }
-   void set_skip_preds(int idx, int step);
-   void print_skip_preds(int idx);
+   Node<Event,3> &proc () { return node[0]; }
+   Node<Event,3> &var  () { return node[1]; }
+   //void set_skip_preds(int idx, int step);
+   void print_proc_skip_preds();
+   void print_var_skip_preds();
 
-
+   friend class Node<Event,3>;
 
    friend Unfolding;
 
@@ -119,7 +111,7 @@ private:
    Event (Unfolding & u);
    Event (const ir::Trans & t, Unfolding & u);
    Event (const ir::Trans & t, Event * ep, Event * em, Unfolding & u);
-   Event (const ir::Trans & t, Event * ep, std::vector<Event *> pr, Unfolding & u);
+   Event (const ir::Trans & t, Event * ep,  Event * ew, std::vector<Event *> pr, Unfolding & u);
 
 }; // end of class Event
 
@@ -174,19 +166,34 @@ private:
    void remove_cfl (Event & e); // modify e.dicfl
 }; // end of class Config
 
+//----------------
+class EventID
+{
+   /*
+   ir::Trans * trans;
+   Event * pre_proc;
+   Event * pre_mem;
+   std::vector<Event *> pre_readers;
+*/
+   EventID(ir::Trans * t, Event * pp,Event * pm, std::vector<Event*> pr);
+
+};
+//----------------
 class Unfolding
 {
 public:
    static unsigned count; // count number of events.
    std::vector<Event>    evt; // events actually in the unfolding
+ //  std::unordered_map <EventID, Event *> evttab;
    ir::Machine &         m;
    Event *               bottom;
    int                   colorflag;
 
+
    Unfolding (ir::Machine & ma);
    void create_event(ir::Trans & t, Config &);
    Event & find_or_add(const ir::Trans & t, Event * ep, Event * pr_mem);
-   Event & find_or_addWR(const ir::Trans & t, Event * ep, std::vector<Event *> combi);
+   Event & find_or_addWR(const ir::Trans & t, Event * ep, Event * ew, std::vector<Event *> combi);
 
    void uprint_debug();
    void uprint_dot();

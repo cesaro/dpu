@@ -1650,4 +1650,13 @@ void test24 ()
    fe3::test ();
 }
 
+void test25()
+{
+   auto m = build_concur15_example ();
+   DEBUG ("\n%s", m->str().c_str());
 
+   pes::Unfolding u (*m.get ());
+   /* Explore a random configuration */
+   u.explore_rnd_config ();
+   u.evt.back().print_proc_skip_preds();
+}

@@ -27,45 +27,140 @@ using namespace ir;
 namespace pes{
 
 /*
- * Methods for class MultiNode
+ * Methods for class Node
  */
 //-----------------------
-template<class T> void MultiNode<T> ::print_pred(int idx)
+template <class T, int SS >
+Node<T,SS>::Node(int idx, Event * pr)
 {
-      int i = 1;
-      for (T *n = (T*) this; n; ++i, n = n->node[idx].skip_preds[0])
+   pre      = pr;
+   depth    = pre->nodep[idx].depth + 1;
+   //int size = compute_size();
+   // initialize skip_preds here
+   set_skip_preds(idx);
+}
+//-----------------------
+template <class T, int SS >
+void Node<T,SS>:: set_skip_preds(int idx)
+{
+   // including immediate predecessor
+   int size = compute_size();
+   printf(", size: %d", size);
+
+   // initialize the elements
+   if (size == 0) return;
+
+   assert(size > 0);
+
+   // mallocate the skip_preds
+   skip_preds = (Event**) malloc(sizeof(Event*) * size);
+
+   // the first element skip_preds[0]
+   T * p = pre;
+   int k = 1;
+
+   /* go back k times by pre*/
+
+   while ((k < SS) and (p->node[idx].depth > 0))
+   {
+      p = p->node[idx].pre;
+      k++;
+   }
+
+   skip_preds[0] = p;
+
+   // the rest
+   if (size > 1)
+   {
+      for (unsigned i = 1; i < size; i++)
       {
-         printf ("%d. n %p depth %d\n", i, n, n->node[idx].depth);
+         p = skip_preds[i - 1];
+         int k = 1;
+
+         /* go back k times by pre*/
+         while ((k < SS) and (p->node[idx].depth > 0))
+         {
+            p = p->node[idx].skip_preds[i -1];
+            k++;
+         }
+         skip_preds[i] = p;
       }
+   }
+}
+//-----------------------
+template <class T, int SS >
+void Node<T,SS>:: set_up(int idx, Event * pr)
+{
+   pre      = pr;
+   depth    = pre->node[idx].depth + 1;
+   // initialize skip_preds here
+   set_skip_preds(idx);
+}
+//----------------
+template <class T, int SS >
+int Node<T,SS>::compute_size()
+{
+   if (depth == 0) return 0;
+   int temp = 1;
+   int skip = SS;
+   while (depth % skip == 0)
+   {
+      skip = skip * SS;
+      temp++;
+   }
+   return --temp;
+}
+//-------------------
+template <class T, int SS >
+void Node<T,SS>:: print_skip_preds()
+{
+   printf("Node: %p", this);
+   printf(", depth: %d", depth);
+   printf(", Pre: %p", pre);
+   int size = compute_size();
+   if (size == 0)
+   {
+      printf("\nNo skip predecessor");
+      return;
+   }
+   printf("\nSkip_preds: ");
+   for (unsigned i = 0; i < size; i++)
+   {
+      if (i == size-1)
+         printf ("%p", skip_preds[i]);
+      else
+         printf ("%p, ", skip_preds[i]);
+   }
+
+   printf("\n");
 }
 
 /*
- *  find predecessor at the depth of d in the tree idx
- *  - 0 for process tree
- *  - 1 for variable tree
+ * Methods for class MultiNode
  */
-template<class T> T & MultiNode<T> ::find_pred(int idx, int d, int step)
+template <class T, int S, int SS> // S: number of trees, SS: skip step
+MultiNode<T,S,SS> :: MultiNode(T * pp, T * pm)
 {
-   T * next = this->node[idx];
-   int i;
-   while (next->depth > d)
-   {
-      i = log(next->depth - d)/log(step);
-      while (next->depth % pow(step,i) != 0)
-         i--;
-      next = next->skip_preds[i];
-   }
-
-   return next;
+   node[0].set_up(0,pp);
+   node[1].set_up(1,pm);
 }
-
-
 /*
  * Methods for class Event
  */
 
+void Event:: print_proc_skip_preds()
+{
+   proc().print_skip_preds();
+}
+//-------------------
+void Event:: print_var_skip_preds()
+{
+   var().print_skip_preds();
+}
+//-------------------
 Event::Event (const Trans & t, Config & c)
-   : idx(c.unf.count)
+   : MultiNode()
+   , idx(c.unf.count)
    , pre_proc(nullptr)
    , pre_mem(nullptr)
    , val(0)
@@ -95,7 +190,8 @@ Event::Event (const Trans & t, Config & c)
 }
 
 Event::Event (Unfolding & u)
-   : idx(u.count)
+   : MultiNode()
+   , idx(u.count)
    , pre_proc(nullptr)
    , pre_mem(nullptr)
    , val(0)
@@ -117,11 +213,13 @@ Event::Event (Unfolding & u)
 
    DEBUG ("  %p: Event.ctor:", this);
 }
+
 /*
  * for all events. Don't use any more
  */
 Event::Event (const Trans & t, Unfolding & u)
-   : idx(u.count)
+   : MultiNode()
+   , idx(u.count)
    , pre_proc(nullptr)
    , pre_mem(nullptr)
    , val(0)
@@ -142,7 +240,8 @@ Event::Event (const Trans & t, Unfolding & u)
 
 // for create RD, SYN event when compute cex
 Event::Event (const ir::Trans & t, Event * ep, Event * em, Unfolding & u)
-   : idx(u.count)
+   : MultiNode(ep, em)
+   , idx(u.count)
    , pre_proc(ep)
    , pre_mem(em)
    , val(0)
@@ -168,16 +267,15 @@ Event::Event (const ir::Trans & t, Event * ep, Event * em, Unfolding & u)
  *  - u: unfolding to add
  */
 
-Event::Event (const ir::Trans & t, Event * ep, std::vector<Event *> pr, Unfolding & u)
+Event::Event (const ir::Trans & t, Event * ep, Event * ew, std::vector<Event *> pr, Unfolding & u)
    : idx(u.count)
    , pre_proc(ep)
-   , pre_mem(nullptr)
+   , pre_mem(ew)
    , pre_readers(pr)
    , val(0)
    , localvals(0)
    , trans(&t)
    , color(0)
-
 {
    assert(u.count < u.evt.capacity());
    unsigned numprocs = u.m.procs.size();
@@ -192,16 +290,18 @@ Event::Event (const ir::Trans & t, Event * ep, std::vector<Event *> pr, Unfoldin
       clock.push_back(0);
    /* set up vector clock */
    set_vclock();
+   node[0].pre = ep;
+   //node[1].pre = max of pr
    DEBUG ("  %p: Event.ctor: t %p: '", this, &t);
 }
 
 Event::Event (const Event & e)
    : idx(e.idx)
    , pre_proc(e.pre_proc)
-   , post_proc(e.post_proc)
    , pre_mem(e.pre_mem)
-   , post_mem(e.post_mem)
+   , post_proc(e.post_proc)
    , pre_readers(e.pre_readers)
+   , post_mem(e.post_mem)
    , post_wr(e.post_wr)
    , post_rws(e.post_rws)
    , val(e.val)
@@ -362,64 +462,6 @@ void Event::set_maxevt()
    }
 }
 
-/*
- * Set up the list of skip predecessors for a Node according to its idx (process or variable tree)
- */
-void Event:: set_skip_preds(int idx, int step)
-{
-   int size;
-   // decide the size of list
-   if (this->node[idx].depth % step != 0)
-      size = 1;
-   else
-   {
-      size = floor(log(node[idx].depth)/log(step));
-      for (int i = size; i > 0; i--)
-      {
-         if ((node[idx].depth % int(pow(step, i))) == 0)
-         {
-            size = i;
-            break;
-         }
-      }
-   }
-   // set up the first element
-   if (idx == 0) // for process
-   {
-      node[idx].skip_preds[0] = this->pre_proc;
-   }
-   else // for variable tree
-   {
-      node[idx].skip_preds[0] = this->pre_mem;
-   }
-   // set up the rest of the list
-   if (size > 1)
-   {
-      for (int i = 1; i < size; i++)
-      {
-         Event * p;
-         int k = 0;
-         /*
-          * go back k times by pre_mem or pre_proc
-          */
-         while (k < step)
-         {
-            p = node[idx].skip_preds[i-1];
-            k++;
-         }
-         node[idx].skip_preds[i] = p;
-      }
-   }
-}
-
-/*
- * Print all skip predecessors
- */
-void Event:: print_skip_preds(int idx)
-{
-  // for (int i = 0; i < node[idx].skip_preds.size(); i++)
-
-}
 
 /*
  * Update all events precede current event, including pre_proc, pre_mem and all pre_readers
@@ -1052,7 +1094,7 @@ void Config:: SYN_cex(Event * e)
    }
 }
 /*
- * Compute conflicting event for a WR event
+ * Compute conflicting event for a WR event e
  */
 void Config:: WR_cex(Event * e)
 {
@@ -1135,7 +1177,7 @@ void Config::compute_combi(unsigned int i, const std::vector<std::vector<Event *
             /* if an event is already in the unf, it must have all necessary relations including causality and conflict.
              * That means it is in cex, so don't need to check if old event is in cex or not. It's surely in cex.
              */
-            newevt = &unf.find_or_addWR(t, e->pre_proc, combi);
+            newevt = &unf.find_or_addWR(t, e->pre_proc, e->pre_mem, combi);
             add_to_cex(newevt);
 
             // update direct conflicting set for both events, but only for new added event.
@@ -1285,6 +1327,18 @@ void Config::__print_cex() const
 }
 
 /*
+ * Methods for EventID
+ */
+/*
+EventID::EventID(ir::Trans * t, Event * pp,Event * pm, std::vector<Event*> pr)
+: trans(t)
+, pre_proc(pp)
+, pre_mem(pm)
+, pre_readers(pr)
+{
+}
+*/
+/*
  * Methods for class Unfolding
  */
 unsigned Unfolding::count = 0;
@@ -1362,7 +1416,7 @@ Event & Unfolding:: find_or_add(const ir::Trans & t, Event * ep, Event * pr_mem)
  * - ep: pre_proc event
  * - combi: set of pre_readers
  */
-Event & Unfolding:: find_or_addWR(const ir::Trans & t, Event * ep, std::vector<Event *> combi)
+Event & Unfolding:: find_or_addWR(const ir::Trans & t, Event * ep, Event * ew, std::vector<Event *> combi)
 {
    /*
     * Need to check if there is some event with the same transition, pre_proc and pre_readers in the unf
@@ -1377,7 +1431,7 @@ Event & Unfolding:: find_or_addWR(const ir::Trans & t, Event * ep, std::vector<E
       }
 
    DEBUG("Addr of t: %p", &t);
-   evt.push_back(Event(t, ep, combi, *this));
+   evt.push_back(Event(t, ep, ew, combi, *this));
 
    evt.back().update_parents(); // to make sure of conflict
    count++;

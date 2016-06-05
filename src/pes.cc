@@ -1,5 +1,5 @@
 /*
- * pes.cc
+f * pes.cc
  *
  *  Created on: Jan 12, 2016
  *      Author: tnguyen
@@ -29,6 +29,15 @@ namespace pes{
 /*
  * Methods for class Node
  */
+//-----------------------
+template <class T, int SS >
+Node<T,SS>::Node()
+{
+   depth = 0;
+   pre   = nullptr;
+   skip_preds = nullptr;
+}
+
 //-----------------------
 template <class T, int SS >
 Node<T,SS>::Node(int idx, Event * pr)
@@ -134,6 +143,37 @@ void Node<T,SS>:: print_skip_preds()
 
    printf("\n");
 }
+//----------
+int max_expo(int d, int base)
+{
+   int i = 0;
+   int pow = 1;
+   while (d % pow == 0)
+   {
+      pow = base * base;
+      i++;
+   }
+   return i;
+}
+//----------
+template <class T, int SS >
+Event * Node<T,SS>:: find_pred(int d)
+{
+   Event * next;
+   int i, dis = this->depth - d;
+   next    = this->ref;
+   while (dis != 0)
+   {
+      i = max_expo(dis,SS);
+      if (i == 0)
+         next = pre;
+      else
+         next = skip_preds[i-1];
+   }
+
+   return *next;
+}
+//-----------
 
 /*
  * Methods for class MultiNode
@@ -159,8 +199,7 @@ void Event:: print_var_skip_preds()
 }
 //-------------------
 Event::Event (const Trans & t, Config & c)
-   : MultiNode()
-   , idx(c.unf.count)
+   : idx(c.unf.count)
    , pre_proc(nullptr)
    , pre_mem(nullptr)
    , val(0)
@@ -184,6 +223,10 @@ Event::Event (const Trans & t, Config & c)
 
    DEBUG ("  %p: Event.ctor: t %p: '%s'", this, &t, t.str().c_str());
    mk_history(c);
+   // initialize the corresponding nodes
+   this->node[0].pre = pre_proc;
+   this->node[1].pre = pre_mem;
+
    /* set up vector clock */
    set_vclock();
    set_maxevt();
@@ -217,6 +260,7 @@ Event::Event (Unfolding & u)
 /*
  * for all events. Don't use any more
  */
+/*
 Event::Event (const Trans & t, Unfolding & u)
    : MultiNode()
    , idx(u.count)
@@ -237,6 +281,7 @@ Event::Event (const Trans & t, Unfolding & u)
 
    DEBUG ("  %p: Event.ctor: t %p: '%s'", this, &t, t.str().c_str());
 }
+*/
 
 // for create RD, SYN event when compute cex
 Event::Event (const ir::Trans & t, Event * ep, Event * em, Unfolding & u)
@@ -431,32 +476,68 @@ void Event::set_vclock()
 /*
  * Set up the vector maxevt which stores maximal events in an event's local configuration
  */
-void Event::set_maxevt()
+void Event::set_proc_maxevt()
 {
-   maxevt = pre_proc->maxevt; // initialize maxevt by maxevt(pre_proc)
+   proc_maxevt = pre_proc->proc_maxevt; // initialize maxevt by maxevt(pre_proc)
    switch (this->trans->type)
    {
         case ir::Trans::LOC:
-           //maxevt = pre_proc->maxevt;
+          // proc_maxevt = pre_proc->proc_maxevt;
+           proc_maxevt[trans->proc.id] = this;
            break;
 
         case ir::Trans::SYN:
-           for (unsigned i = 0; i < maxevt.size(); i++)
-              maxevt[i] = std::max(pre_mem->maxevt[i], maxevt[i]);
+           for (unsigned i = 0; i < proc_maxevt.size(); i++)
+              proc_maxevt[i] = std::max(pre_mem->proc_maxevt[i], proc_maxevt[i]);
            break;
 
         case ir::Trans::RD:
-           for (unsigned i = 0; i < maxevt.size(); i++)
-              maxevt[i] = std::max(pre_mem->maxevt[i], maxevt[i]);
+           for (unsigned i = 0; i < proc_maxevt.size(); i++)
+              proc_maxevt[i] = std::max(pre_mem->proc_maxevt[i], proc_maxevt[i]);
            break;
 
         case ir::Trans::WR:
            // find out the max elements among those of all pre_readers.
-           for (unsigned i = 0; i < maxevt.size(); i++)
+           for (unsigned i = 0; i < proc_maxevt.size(); i++)
            {
               for (unsigned j = 0; j < pre_readers.size(); j++)
-                 if ( pre_readers[j]->maxevt[i] > maxevt[i])
-                     maxevt[i] = pre_readers[j]->maxevt[i] ;
+                 if ( pre_readers[j]->proc_maxevt[i] > proc_maxevt[i])
+                     proc_maxevt[i] = pre_readers[j]->proc_maxevt[i] ;
+           }
+           break;
+   }
+}
+
+
+/*
+ * Set up the vector maxevt which stores maximal events in an event's local configuration
+ */
+void Event::set_var_maxevt()
+{
+   var_maxevt = pre_proc->var_maxevt; // initialize maxevt by maxevt(pre_proc)
+   switch (this->trans->type)
+   {
+        case ir::Trans::LOC:
+           //var_maxevt = pre_proc->var_maxevt;
+           break;
+
+        case ir::Trans::SYN:
+           for (unsigned i = 0; i < var_maxevt.size(); i++)
+              var_maxevt[i] = std::max(pre_mem->var_maxevt[i], var_maxevt[i]);
+           break;
+
+        case ir::Trans::RD:
+           for (unsigned i = 0; i < var_maxevt.size(); i++)
+              var_maxevt[i] = std::max(pre_mem->var_maxevt[i], var_maxevt[i]);
+           break;
+
+        case ir::Trans::WR:
+           // find out the max elements among those of all pre_readers.
+           for (unsigned i = 0; i < var_maxevt.size(); i++)
+           {
+              for (unsigned j = 0; j < pre_readers.size(); j++)
+                 if ( pre_readers[j]->var_maxevt[i] > var_maxevt[i])
+                     var_maxevt[i] = pre_readers[j]->var_maxevt[i] ;
            }
            break;
    }
@@ -585,10 +666,22 @@ Event & Event:: operator  = (const Event & e)
   return *this;
 }
 /*
- * Two events are in conflict if they both appear in a vector in post_mem of an event
+ * Find the WR event which is the immediate predecessor
+ */
+Event & Event:: find_latest_WR() const
+{
+   Event * temp = this;
+   while (temp->trans->type != ir::Trans::WR)
+      temp = temp->pre_mem;
+   return temp;
+}
+
+/*
+ * Check if two events are in immediate conflict:
+ *    - Two events are in direct conflict if they both appear in a vector in post_mem of an event
  */
 
-bool Event::check_cfl( const Event & e ) const
+bool Event::check_dicfl( const Event & e ) const
 {
    if (this->is_bottom() || e.is_bottom() || (*this == e) )
       return false;
@@ -663,6 +756,102 @@ bool Event::check_cfl( const Event & e ) const
 
    return false;
 }
+/*
+ * Check if two events (this and e) are in conflict
+ */
+bool Event::check_cfl(const Event & e ) const
+{
+   if (trans->proc.id == e.trans->proc.id)
+     return this->check_conflict_same_proc_tree(e);
+   else
+      if (this->trans->var == e.trans->var) // have the same value? How about LOC?
+      {
+        // const Event * temp;
+         switch (this->trans->type)
+         {
+         case ir::Trans::WR:
+            switch (e.trans->type)
+            {
+            case ir::Trans::WR:
+               return this->check_conflict_same_var_tree(e);
+               break;
+            case ir::Trans::RD:
+               const Event & temp = e.find_latest_WR(); //????
+               return this->check_conflict_same_var_tree(temp);
+            }
+
+            break;
+
+         case ir::Trans::SYN:
+            if (e.trans->type == ir::Trans::SYN)
+               return this->check_conflict_same_var_tree(e);
+            else
+               return check_conflict_local_config(e);
+
+         case ir::Trans::RD:
+            switch (e.trans->type)
+            {
+               case ir::Trans::WR:
+                  //const Event & temp = this->find_latest_WR();
+                  return this->check_conflict_same_var_tree(find_latest_WR());
+               case ir::Trans::RD:
+                  return this->check_conflict_same_var_tree(e);
+                  break;
+               default:
+                  return this->check_conflict_local_config(e);//????
+            }
+            break;
+         case ir::Trans::LOC:
+            return this->check_conflict_local_config(e); //???
+           // break;
+         }
+      }
+         //return this->is
+      else
+         // apply case for others
+         return this->check_conflict_local_config(e);
+
+   return false;
+}
+// check conflict between two events in the same process tree
+bool Event:: check_conflict_same_proc_tree(const Event & e) const
+{
+   Event * temp;
+   int d1, d2;
+   d1 = node[0].depth;
+   d2 = e.node[0].depth;
+   if (d1 == d2)
+      return this->check_dicfl(e);
+   if (d1 > d2)
+   {
+      temp = node[0].find_pred(d2);
+      if (e.is_same(temp))
+         return false;
+      else
+         return true;
+   }
+   else
+   {
+      temp = e.node[0].find_pred(d1);
+      if (e.is_same(temp))
+         return false;
+      else
+         return true;
+   }
+
+   return false;
+}
+
+// check conflict between two events in the same variable tree
+bool Event:: check_conflict_same_var_tree(const Event & e) const
+{
+   return false;
+}
+// check conflict between two maximal events for the same variable or process in the event's local configuration
+bool Event:: check_conflict_local_config(const Event & e) const
+{
+   return true;
+}
 
 /* check if 2 events are the same or not */
 bool Event:: is_same(Event & e)
@@ -672,6 +861,9 @@ bool Event:: is_same(Event & e)
    if ( (trans == e.trans) && (pre_proc == e.pre_proc)
          && (pre_mem == e.pre_mem) && (pre_readers == e.pre_readers))
       return true;
+  /*  if (this->evtid == e.evtid) // overload the operator == in class EventID
+       return true;
+  */
 
    return false;
 }
@@ -1636,7 +1828,9 @@ void Unfolding:: alternative(Config & C, std::vector<Event *> D)
    compute_alt(0, spikes, combi);
 }
 
-
+/*
+ *
+ */
 void Unfolding:: compute_alt(unsigned int i, const std::vector<std::vector<Event *>> & s, std::vector<Event *> combi)
 {
    for (unsigned j = 0; j < s[i].size(); j++ )
@@ -1651,7 +1845,8 @@ void Unfolding:: compute_alt(unsigned int i, const std::vector<std::vector<Event
                  printf("%d ", combi[k]->idx);
 
               /*
-               * Do something here
+               * Do something here, check if the combination is conflict-free or not
+               * is_conflict_free();
                */
               printf("\n");
            }

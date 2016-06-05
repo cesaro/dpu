@@ -28,15 +28,17 @@ class Node
 {
 public:
    unsigned depth;
+   T * ref;
    T * pre; // immediate predecessor
    T ** skip_preds;
 
-   Node()= default;
+   Node();
    Node(int idx, Event * pr);
    void set_up(int idx, Event * pr);
    int compute_size();
    void set_skip_preds(int idx);
    void print_skip_preds();
+   Event * find_pred(int d);
 
 
 };
@@ -56,6 +58,7 @@ class Event: public MultiNode<Event,2,3> // 2 trees, skip step = 3
 {
 public:
    unsigned int          idx;
+   EventID               evtid;
    Event *               pre_proc;    // for all events, predecessor in the same process
    Event *               pre_mem;     // parent of the event, for all events except LOCAL,
 
@@ -77,7 +80,10 @@ public:
    std::vector<Event *>  dicfl;  // set of direct conflicting events
 
    std::vector <int>     clock; // size = number of processes (to store clock for all its predecessors: pre_proc, pre_mem or pre_readers)
-   std::vector <Event *> maxevt; // size of number of variables, store maximal events in the event's local configuration for all variable
+   //store maximal events in the event's local configuration for all variables and processes
+   std::vector <Event *> proc_maxevt; // size of number of processes
+   std::vector <Event *> var_maxevt; // size of number of variables
+
 
    bool         operator ==   (const Event &) const;
    Event & 	    operator =    (const Event &);
@@ -88,13 +94,23 @@ public:
    Event (const Event & e);
    void mk_history (const Config & c);
    void update_parents();
-   bool check_cfl(const Event & e) const;
    void eprint_debug() const;
+
+   void set_vclock();
+   void set_proc_maxevt();
+   void set_var_maxevt();
+
+   Event & find_latest_WR() const;
+   bool check_dicfl(const Event & e) const; // check direct conflict
+   bool check_cfl(const Event & e) const; // check conflict
+   bool check_conflict_same_proc_tree(const Event & e) const;
+   bool check_conflict_same_var_tree(const Event & e) const;
+   bool check_conflict_local_config(const Event & e) const;
    bool is_bottom () const;
    bool is_same(Event &);
    bool in_history(Event * e);
-   void set_vclock();
-   void set_maxevt();
+
+
 
    Node<Event,3> &proc () { return node[0]; }
    Node<Event,3> &var  () { return node[1]; }
@@ -103,13 +119,12 @@ public:
    void print_var_skip_preds();
 
    friend class Node<Event,3>;
-
    friend Unfolding;
 
 private:
    Event() = default;
    Event (Unfolding & u);
-   Event (const ir::Trans & t, Unfolding & u);
+  // Event (const ir::Trans & t, Unfolding & u);
    Event (const ir::Trans & t, Event * ep, Event * em, Unfolding & u);
    Event (const ir::Trans & t, Event * ep,  Event * ew, std::vector<Event *> pr, Unfolding & u);
 
@@ -169,13 +184,13 @@ private:
 //----------------
 class EventID
 {
-   /*
    ir::Trans * trans;
    Event * pre_proc;
    Event * pre_mem;
    std::vector<Event *> pre_readers;
-*/
+
    EventID(ir::Trans * t, Event * pp,Event * pm, std::vector<Event*> pr);
+   bool          operator ==  (const EventID eid);
 
 };
 //----------------

@@ -11,7 +11,7 @@
  * -
  * Unfolding:
  * - class friend with Event
- * - call unf.addevent();
+ * - call unf.add_event();
  * - add method: dot_print for config and unf
  * -
  *
@@ -29,7 +29,7 @@ class Node
 {
 public:
    unsigned depth;
-   T * ref;
+   T * ref; // refer to original event
    T * pre; // immediate predecessor
    T ** skip_preds;
 
@@ -52,7 +52,6 @@ public:
 
    MultiNode() = default;
    MultiNode(T * pp, T * pm);
-
 };
 //----------------
 class Ident
@@ -109,13 +108,13 @@ public:
    Event (const Event & e);
    void mk_history (const Config & c);
    void update_parents();
-   void eprint_debug() const;
+   void eprint_debug();
 
    void set_vclock();
    void set_proc_maxevt();
    void set_var_maxevt();
 
-   Event & find_latest_WR()const;
+   const Event & find_latest_WR()const;
    bool check_dicfl(const Event & e); // check direct conflict
    bool check_cfl(const Event & e); // check conflict
    bool check_conflict_same_proc_tree(const Event & e);

@@ -54,7 +54,7 @@ void Node<T,SS>:: set_skip_preds(int idx)
 {
    // including immediate predecessor
    int size = compute_size();
-   printf(", size: %d", size);
+   //printf(", size: %d", size);
 
    // initialize the elements
    if (size == 0) return;
@@ -95,6 +95,7 @@ void Node<T,SS>:: set_skip_preds(int idx)
          skip_preds[i] = p;
       }
    }
+   print_skip_preds();
 }
 //-----------------------
 template <class T, int SS >
@@ -129,10 +130,10 @@ void Node<T,SS>:: print_skip_preds()
    int size = compute_size();
    if (size == 0)
    {
-      printf("\nNo skip predecessor");
+      printf(", No skip predecessor\n");
       return;
    }
-   printf("\nSkip_preds: ");
+   printf(", Skip_preds: ");
    for (unsigned i = 0; i < size; i++)
    {
       if (i == size-1)
@@ -150,7 +151,7 @@ int max_expo(int d, int base)
    int pow = 1;
    while (d % pow == 0)
    {
-      pow = base * base;
+      pow = pow * base;
       i++;
    }
    return i;
@@ -159,9 +160,11 @@ int max_expo(int d, int base)
 template <class T, int SS >
 Event & Node<T,SS>:: find_pred(int d) const
 {
+   printf("Hello");
    Event * next;
    int i, dis = this->depth - d;
    next    = this->ref;
+
    while (dis != 0)
    {
       i = max_expo(dis,SS);
@@ -199,7 +202,8 @@ void Event:: print_var_skip_preds()
 }
 //-------------------
 Event::Event (const Trans & t, Config & c)
-   : idx(c.unf.count)
+   : MultiNode()
+   , idx(c.unf.count)
    , pre_proc(nullptr)
    , pre_mem(nullptr)
    , val(0)
@@ -223,14 +227,21 @@ Event::Event (const Trans & t, Config & c)
 
    DEBUG ("  %p: Event.ctor: t %p: '%s'", this, &t, t.str().c_str());
    mk_history(c);
-   // initialize the corresponding nodes
-   this->node[0].pre = pre_proc;
-   this->node[1].pre = pre_mem;
+   ASSERT (pre_proc != NULL);
+
+   // initialize the corresponding nodes, after setting up the history
+   //node[0].pre = pre_proc;
+   //node[1].pre = pre_mem;
+   node[0].set_up(0, pre_proc);
+   if (t.type != ir::Trans::LOC)
+   {
+      node[1].set_up(1, pre_mem);
+   }
 
    /* set up vector clock */
    set_vclock();
-   set_proc_maxevt();
-   set_var_maxevt();
+   //set_proc_maxevt();
+   //set_var_maxevt();
 }
 
 Event::Event (Unfolding & u)
@@ -314,7 +325,8 @@ Event::Event (const ir::Trans & t, Event * ep, Event * em, Unfolding & u)
  */
 
 Event::Event (const ir::Trans & t, Event * ep, Event * ew, std::vector<Event *> pr, Unfolding & u)
-   : idx(u.count)
+   : MultiNode(ep,ew)
+   , idx(u.count)
    , pre_proc(ep)
    , pre_mem(ew)
    , pre_readers(pr)
@@ -669,16 +681,16 @@ Event & Event:: operator  = (const Event & e)
 /*
  * Find the WR event which is the immediate predecessor
  */
-Event & Event:: find_latest_WR() const
+const Event & Event:: find_latest_WR() const
 {
-   Event * temp;
-   /*
-   Event & temp = *this;
-   while (temp->trans->type != ir::Trans::WR)
-      temp = temp->pre_mem;
-   return temp;
-   */
-   return *temp;
+   const Event * e = this;
+   while (1)
+   {
+      if (e->trans->type != ir::Trans::WR) break;
+      e = e->pre_mem;
+   }
+
+   return *e;
 }
 
 /*
@@ -921,7 +933,7 @@ std::string Event::dotstr () const
 }
 
 /* Print all information of an event */
-void Event::eprint_debug() const
+void Event::eprint_debug()
 {
 	printf ("Event: %s", this->str().c_str());
 	if (pre_readers.size() != 0)
@@ -967,6 +979,8 @@ void Event::eprint_debug() const
       }
       else
          DEBUG(" No post rws");
+   // print corresponding in the process tree
+   node[0].print_skip_preds();
 }
 
 /*
@@ -1765,10 +1779,10 @@ void Unfolding::explore_rnd_config ()
    }
    //c.cprint_debug();
 
-   uprint_debug();
    c.cprint_dot();
-   uprint_dot();
    c.compute_cex();
+   uprint_debug();
+   uprint_dot();
 
    return;
 }

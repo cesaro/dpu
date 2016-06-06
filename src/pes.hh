@@ -22,6 +22,7 @@ namespace pes
 class Config;
 class Unfolding;
 class Event;
+//class Ident;
 
 template <class T, int SS>
 class Node
@@ -38,7 +39,7 @@ public:
    int compute_size();
    void set_skip_preds(int idx);
    void print_skip_preds();
-   Event * find_pred(int d);
+   Event & find_pred(int d) const;
 
 
 };
@@ -53,12 +54,26 @@ public:
    MultiNode(T * pp, T * pm);
 
 };
+//----------------
+class Ident
+{
+   ir::Trans * trans;
+   Event * pre_proc;
+   Event * pre_mem;
+   std::vector<Event *> pre_readers;
+
+public:
+   Ident() = default;
+   Ident(ir::Trans * t, Event * pp,Event * pm, std::vector<Event*> pr);
+   bool          operator ==  (const Ident eid);
+};
+
 //--------class Event------------
 class Event: public MultiNode<Event,2,3> // 2 trees, skip step = 3
 {
 public:
    unsigned int          idx;
-   EventID               evtid;
+   Ident                 evtid;
    Event *               pre_proc;    // for all events, predecessor in the same process
    Event *               pre_mem;     // parent of the event, for all events except LOCAL,
 
@@ -100,14 +115,14 @@ public:
    void set_proc_maxevt();
    void set_var_maxevt();
 
-   Event & find_latest_WR() const;
-   bool check_dicfl(const Event & e) const; // check direct conflict
-   bool check_cfl(const Event & e) const; // check conflict
-   bool check_conflict_same_proc_tree(const Event & e) const;
-   bool check_conflict_same_var_tree(const Event & e) const;
-   bool check_conflict_local_config(const Event & e) const;
+   Event & find_latest_WR()const;
+   bool check_dicfl(const Event & e); // check direct conflict
+   bool check_cfl(const Event & e); // check conflict
+   bool check_conflict_same_proc_tree(const Event & e);
+   bool check_conflict_same_var_tree(const Event & e);
+   bool check_conflict_local_config(const Event & e);
    bool is_bottom () const;
-   bool is_same(Event &);
+   bool is_same(Event &) const;
    bool in_history(Event * e);
 
 
@@ -181,18 +196,6 @@ private:
    void remove_cfl (Event & e); // modify e.dicfl
 }; // end of class Config
 
-//----------------
-class EventID
-{
-   ir::Trans * trans;
-   Event * pre_proc;
-   Event * pre_mem;
-   std::vector<Event *> pre_readers;
-
-   EventID(ir::Trans * t, Event * pp,Event * pm, std::vector<Event*> pr);
-   bool          operator ==  (const EventID eid);
-
-};
 //----------------
 class Unfolding
 {

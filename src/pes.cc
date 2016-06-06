@@ -157,7 +157,7 @@ int max_expo(int d, int base)
 }
 //----------
 template <class T, int SS >
-Event * Node<T,SS>:: find_pred(int d)
+Event & Node<T,SS>:: find_pred(int d) const
 {
    Event * next;
    int i, dis = this->depth - d;
@@ -229,7 +229,8 @@ Event::Event (const Trans & t, Config & c)
 
    /* set up vector clock */
    set_vclock();
-   set_maxevt();
+   set_proc_maxevt();
+   set_var_maxevt();
 }
 
 Event::Event (Unfolding & u)
@@ -670,10 +671,14 @@ Event & Event:: operator  = (const Event & e)
  */
 Event & Event:: find_latest_WR() const
 {
-   Event * temp = this;
+   Event * temp;
+   /*
+   Event & temp = *this;
    while (temp->trans->type != ir::Trans::WR)
       temp = temp->pre_mem;
    return temp;
+   */
+   return *temp;
 }
 
 /*
@@ -681,7 +686,7 @@ Event & Event:: find_latest_WR() const
  *    - Two events are in direct conflict if they both appear in a vector in post_mem of an event
  */
 
-bool Event::check_dicfl( const Event & e ) const
+bool Event::check_dicfl( const Event & e )
 {
    if (this->is_bottom() || e.is_bottom() || (*this == e) )
       return false;
@@ -759,8 +764,9 @@ bool Event::check_dicfl( const Event & e ) const
 /*
  * Check if two events (this and e) are in conflict
  */
-bool Event::check_cfl(const Event & e ) const
+bool Event::check_cfl(const Event & e )
 {
+   Event & temp = *this;
    if (trans->proc.id == e.trans->proc.id)
      return this->check_conflict_same_proc_tree(e);
    else
@@ -776,8 +782,10 @@ bool Event::check_cfl(const Event & e ) const
                return this->check_conflict_same_var_tree(e);
                break;
             case ir::Trans::RD:
-               const Event & temp = e.find_latest_WR(); //????
+               temp = e.find_latest_WR(); //????
                return this->check_conflict_same_var_tree(temp);
+            default:
+               return false; // need reviewing
             }
 
             break;
@@ -814,9 +822,8 @@ bool Event::check_cfl(const Event & e ) const
    return false;
 }
 // check conflict between two events in the same process tree
-bool Event:: check_conflict_same_proc_tree(const Event & e) const
+bool Event:: check_conflict_same_proc_tree(const Event & e)
 {
-   Event * temp;
    int d1, d2;
    d1 = node[0].depth;
    d2 = e.node[0].depth;
@@ -824,7 +831,7 @@ bool Event:: check_conflict_same_proc_tree(const Event & e) const
       return this->check_dicfl(e);
    if (d1 > d2)
    {
-      temp = node[0].find_pred(d2);
+      Event & temp = node[0].find_pred(d2);
       if (e.is_same(temp))
          return false;
       else
@@ -832,7 +839,7 @@ bool Event:: check_conflict_same_proc_tree(const Event & e) const
    }
    else
    {
-      temp = e.node[0].find_pred(d1);
+      Event & temp = e.node[0].find_pred(d1);
       if (e.is_same(temp))
          return false;
       else
@@ -843,18 +850,18 @@ bool Event:: check_conflict_same_proc_tree(const Event & e) const
 }
 
 // check conflict between two events in the same variable tree
-bool Event:: check_conflict_same_var_tree(const Event & e) const
+bool Event:: check_conflict_same_var_tree(const Event & e)
 {
    return false;
 }
 // check conflict between two maximal events for the same variable or process in the event's local configuration
-bool Event:: check_conflict_local_config(const Event & e) const
+bool Event:: check_conflict_local_config(const Event & e)
 {
    return true;
 }
 
 /* check if 2 events are the same or not */
-bool Event:: is_same(Event & e)
+bool Event:: is_same(Event & e) const
 {
    if (this->is_bottom() or e.is_bottom()) return false;
 

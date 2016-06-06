@@ -63,7 +63,7 @@ class Ident
 
 public:
    Ident() = default;
-   Ident(ir::Trans * t, Event * pp,Event * pm, std::vector<Event*> pr);
+   Ident(ir::Trans * t, Event * pp, Event * pm, std::vector<Event*> pr);
    bool          operator ==  (const Ident eid);
 };
 
@@ -114,15 +114,16 @@ public:
    void set_proc_maxevt();
    void set_var_maxevt();
 
-   const Event & find_latest_WR()const;
-   bool check_dicfl(const Event & e); // check direct conflict
-   bool check_cfl(const Event & e); // check conflict
-   bool check_conflict_same_proc_tree(const Event & e);
-   bool check_conflict_same_var_tree(const Event & e);
-   bool check_conflict_local_config(const Event & e);
+   const Event & find_latest_pre_WR ()const;
+   const Event & find_post_WR_of (const Event & e) const;
+   bool check_dicfl (const Event & e); // check direct conflict
+   bool check_cfl (const Event & e); // check conflict
+   bool check_conflict_same_proc_tree (const Event & e);
+   bool check_conflict_same_var_tree (const Event & e);
+   bool check_conflict_local_config (const Event & e);
    bool is_bottom () const;
-   bool is_same(Event &) const;
-   bool in_history(Event * e);
+   bool is_same (Event &) const;
+   bool is_causal_to (Event & e);
 
 
 

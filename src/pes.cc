@@ -624,7 +624,7 @@ void Event::update_parents()
  * If this and e are in the same process, check their source
  * If not, check pre_mem chain of this event to see whether e is inside or not (e can only be a RD, SYN or WR)
  */
-bool Event::in_history(Event * e )
+bool Event::is_causal_to(Event & e )
 {
 #if 0
    for (unsigned int i = 0; i < clock.size(); i++)
@@ -633,7 +633,7 @@ bool Event::in_history(Event * e )
    return true;
 #endif
 
-   if (e->clock < clock)
+   if (e.clock < clock)
         return true;
      return false;
 }
@@ -681,7 +681,7 @@ Event & Event:: operator  = (const Event & e)
 /*
  * Find the WR event which is the immediate predecessor
  */
-const Event & Event:: find_latest_WR() const
+const Event & Event:: find_latest_pre_WR() const
 {
    const Event * e = this;
    while (1)
@@ -691,6 +691,22 @@ const Event & Event:: find_latest_WR() const
    }
 
    return *e;
+}
+/*
+ * Find a WR between two WRs
+ * Find the WR predecesspr of this event which is also the immediate successor of the event e:
+ * w : w < this and w > e and w.pre_mem = e
+ */
+const Event & Event:: find_post_WR_of(const Event & e) const
+{
+   const Event * p = this;
+   while (1)
+   {
+      if ((p->trans->type != ir::Trans::WR) and (*(p->pre_mem) == e)) break;
+      p = p->pre_mem;
+   }
+
+   return *p;
 }
 
 /*
@@ -775,10 +791,12 @@ bool Event::check_dicfl( const Event & e )
 }
 /*
  * Check if two events (this and e) are in conflict
+ *
  */
 bool Event::check_cfl(const Event & e )
 {
-   Event & temp = *this;
+   Event & pre_wr = *this;
+   Event & post_wr = *this;
    if (trans->proc.id == e.trans->proc.id)
      return this->check_conflict_same_proc_tree(e);
    else
@@ -787,20 +805,25 @@ bool Event::check_cfl(const Event & e )
         // const Event * temp;
          switch (this->trans->type)
          {
-         case ir::Trans::WR:
-            switch (e.trans->type)
-            {
-            case ir::Trans::WR:
+         case ir::Trans::WR: // if this is a WR
+           if (e.trans->type == ir::Trans::WR)
                return this->check_conflict_same_var_tree(e);
-               break;
-            case ir::Trans::RD:
-               temp = e.find_latest_WR(); //????
-               return this->check_conflict_same_var_tree(temp);
-            default:
-               return false; // need reviewing
-            }
 
-            break;
+           if (e.trans->type == ir::Trans::RD)
+           {
+              pre_wr = e.find_latest_pre_WR(); //????
+              if  (this->check_conflict_same_var_tree(pre_wr))
+                    return true;
+              else // pre_wr < e or e < pre_wr need to know which precedes
+              {
+                 post_wr = this->find_post_WR_of(pre_wr); // this > pre_wr
+                 if (this->is_causal_to(post_wr))
+                    return false; // not conflict
+                 else
+                    return true;
+              }
+
+           }
 
          case ir::Trans::SYN:
             if (e.trans->type == ir::Trans::SYN)
@@ -813,7 +836,7 @@ bool Event::check_cfl(const Event & e )
             {
                case ir::Trans::WR:
                   //const Event & temp = this->find_latest_WR();
-                  return this->check_conflict_same_var_tree(find_latest_WR());
+                  return this->check_conflict_same_var_tree(find_latest_pre_WR());
                case ir::Trans::RD:
                   return this->check_conflict_same_var_tree(e);
                   break;
@@ -1198,7 +1221,7 @@ void Config:: RD_cex(Event * e)
    ep = e->pre_proc;
    em = e->pre_mem;
 
-   while (!(em->is_bottom()) and (ep->in_history(em) == false))
+   while (!(em->is_bottom()) and (ep->is_causal_to(*em) == false))
    {
       if (em->trans->type == ir::Trans::RD)
       {
@@ -1277,7 +1300,7 @@ void Config:: SYN_cex(Event * e)
    ep = e->pre_proc;
    em = e->pre_mem;
 
-   while (!(em->is_bottom()) and (ep->in_history(em) == false))
+   while (!(em->is_bottom()) and (ep->is_causal_to(*em) == false))
    {
       if (em->trans->type == ir::Trans::RD)
       {
@@ -1321,7 +1344,7 @@ void Config:: WR_cex(Event * e)
    ew = e;
    int count = 0;
 
-   while ((ew->is_bottom() == false) && (ep->in_history(ew)) == false )
+   while ((ew->is_bottom() == false) && (ep->is_causal_to(*ew)) == false )
    {
       for (unsigned k = 0; k < numprocs; k++)
          spikes[k].clear(); // clear all spikes for storing new elements
@@ -1354,10 +1377,10 @@ void Config:: WR_cex(Event * e)
        * remove from the comb ew itself and all RD events that are also in the history
        * should think about bottom!!!
        */
-      if (ep->in_history(ew) == true)
+      if (ep->is_causal_to(*ew) == true)
       {
          for (int unsigned i = 0; i < spikes.size(); i++)
-            while (ep->in_history(spikes[i].back()) == true)
+            while (ep->is_causal_to(*spikes[i].back()) == true)
                spikes[i].pop_back(); // WR event at the back and its predecessors have an order backward
       }
 

@@ -56,14 +56,17 @@ public:
 //----------------
 class Ident
 {
+public:
    ir::Trans * trans;
    Event * pre_proc;
    Event * pre_mem;
    std::vector<Event *> pre_readers;
 
 public:
-   Ident() = default;
+   Ident();
    Ident(ir::Trans * t, Event * pp, Event * pm, std::vector<Event*> pr);
+   Ident(ir::Trans * t, Event * pp, Event * pm);
+   Ident(const ir::Trans & t, const Config & c);
    bool          operator ==  (const Ident eid);
 };
 
@@ -73,14 +76,14 @@ class Event: public MultiNode<Event,2,3> // 2 trees, skip step = 3
 public:
    unsigned int          idx;
    Ident                 evtid;
-   Event *               pre_proc;    // for all events, predecessor in the same process
-   Event *               pre_mem;     // parent of the event, for all events except LOCAL,
+   //Event *               pre_proc;    // for all events, predecessor in the same process
+   //Event *               pre_mem;     // parent of the event, for all events except LOCAL,
+   //std::vector< Event * >                pre_readers; // only for WR events
 
    std::vector<Event *>  post_proc;  // set of successors in the same process
-
    // only for WR events
    // each vector of children events for a process
-   std::vector< Event * >                pre_readers; // only for WR events
+
    std::vector< std::vector<Event *> >   post_mem; // size = numprocs x mem
    std::vector<Event * >                 post_wr; // WR children of a WR trans
 
@@ -105,8 +108,9 @@ public:
    std::string dotstr         () const;
 
    Event (const ir::Trans & t, Config & c); // make it public to use emplace_back(). Consider to a new allocator if constructors are private
+   Event (Unfolding & u, Ident & ident);
    Event (const Event & e);
-   void mk_history (const Config & c);
+   //void mk_history (const Config & c);
    void update_parents();
    void eprint_debug();
 
@@ -210,8 +214,10 @@ public:
 
    Unfolding (ir::Machine & ma);
    void create_event(ir::Trans & t, Config &);
-   Event & find_or_add(const ir::Trans & t, Event * ep, Event * pr_mem);
-   Event & find_or_addWR(const ir::Trans & t, Event * ep, Event * ew, std::vector<Event *> combi);
+   //Event & find_or_add(const ir::Trans & t, Event * ep, Event * pr_mem);
+   //Event & find_or_addWR(const ir::Trans & t, Event * ep, Event * ew, std::vector<Event *> combi);
+   Event & find_or_add(const Event & e);
+
 
    void uprint_debug();
    void uprint_dot();

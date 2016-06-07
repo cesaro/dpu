@@ -187,10 +187,89 @@ MultiNode<T,S,SS> :: MultiNode(T * pp, T * pm)
    node[0].set_up(0,pp);
    node[1].set_up(1,pm);
 }
+//---------------------
+Ident:: Ident()
+: trans (nullptr)
+, pre_proc (nullptr)
+, pre_mem (nullptr)
+{
+}
+//---------------------
+Ident::Ident(const ir::Trans & t, const Config & c)
+{
+   /*
+    * For all events:
+    * - pre_proc    is the latest event of the same process in c
+    * - post_proc, post_mem, and post_rws
+    *               remain empty
+    *
+    * For RD
+    * - pre_mem     is the lastest operation on the same process inside of c
+    * - pre_readers remains empty
+    *
+    * For WR
+    * - pre_mem     is the lastest WR in c
+    * - pre_readers is the lastest OP of ALL processes in c
+    *
+    * For LOC
+    * - pre_mem     is NULL
+    * - pre_readers remains empty
+    */
+
+  // if (this->is_bottom()) return;
+
+   ir::Process & p = this->trans->proc;
+   std::vector<Process> & procs = c.unf.m.procs;
+   int varaddr = trans->var - procs.size();
+
+   /*
+    * e's parent is the latest event of the process
+    * for all events, initialize pre_proc of new event by the latest event of config (in its process)
+    */
+   pre_proc = c.latest_proc[p.id];
+
+   switch (trans->type)
+   {
+      case ir::Trans::RD:
+         pre_mem  = c.latest_op[p.id][varaddr];
+         /* pre_readers stays empty for RD events */
+         break;
+
+      case ir::Trans::WR:
+         pre_mem  = c.latest_wr[varaddr];
+        /*
+         * set pre-readers = set of latest events which use the variable copies of all processes
+         * size of pre-readers is numbers of copies of the variable = number of processes
+         */
+
+         for (unsigned int i = 0; i < procs.size(); i++)
+            pre_readers.push_back(c.latest_op[i][varaddr]);
+
+         break;
+
+      case ir::Trans::SYN:
+         pre_mem  = c.latest_op[p.id][varaddr]; // pre_mem can be latest SYN from another process (same variable)
+         break;
+
+      case ir::Trans::LOC:
+         // nothing to do
+       /*
+        * If a LOC transition RD or WR on a local variable,
+        * its pre_mem is previous event touching that one.
+        * If LOC is a EXIT, no variable touched, no pre_mem
+        * How to solve: v4 = v3 + 1; a RD for v3 but a WR for v4 (local variable)
+        */
+         pre_mem   = nullptr;
+         break;
+   }
+
+  // DEBUG("   Make history: %s ",this->str().c_str());
+}
+
 /*
  * Methods for class Event
  */
-
+//---------------------
 void Event:: print_proc_skip_preds()
 {
    proc().print_skip_preds();
@@ -201,6 +280,46 @@ void Event:: print_var_skip_preds()
    var().print_skip_preds();
 }
 //-------------------
+Event:: Event (Unfolding & u, Ident & ident)
+:  MultiNode()
+,  idx(u.count)
+,  evtid(ident)
+,  val(0)
+,  localvals(0)
+,  color(0)
+{
+   //assert(c.unf.count < c.unf.evt.capacity());
+   unsigned numprocs = u.m.procs.size();
+   if (ident.trans->type == ir::Trans::WR)
+      {
+         std::vector<Event *> temp;
+         for (unsigned i = 0; i < numprocs; i++)
+            post_mem.push_back(temp);
+      }
+
+      // clock.reserve(numprocs);
+      for (unsigned i = 0; i < numprocs; i++)
+         clock.push_back(0);
+
+      DEBUG ("  %p: Event.ctor: t %p: '%s'", this, ident.trans, ident.trans->str().c_str());
+      //mk_history();
+      ASSERT (ident.pre_proc != NULL);
+
+      // initialize the corresponding nodes, after setting up the history
+      node[0].set_up(0, ident.pre_proc);
+      if (ident.trans->type != ir::Trans::LOC)
+      {
+         node[1].set_up(1, ident.pre_mem);
+      }
+
+      /* set up vector clock */
+      set_vclock();
+      //set_proc_maxevt();
+      //set_var_maxevt();
+
+}
+//-------------------
+#if 0
 Event::Event (const Trans & t, Config & c)
    : MultiNode()
    , idx(c.unf.count)
@@ -369,15 +488,17 @@ Event::Event (const Event & e)
    , clock(e.clock)
 {
 }
+#endif
 
 bool Event::is_bottom () const
 {
-   return this->pre_mem == this;
+   return this->evtid.pre_mem == this;
 }
 
 /*
  * set up its history, including 3 attributes: pre_proc, pre_mem and pre_readers
  */
+#if 0
 void Event::mk_history(const Config & c)
 {
    /*
@@ -448,10 +569,12 @@ void Event::mk_history(const Config & c)
 
    DEBUG("   Make history: %s ",this->str().c_str());
 }
+#endif
+
 void Event::set_vclock()
 {
    Process & p = this->trans->proc;
-   clock = pre_proc->clock;
+   clock = evtid.pre_proc->clock;
    switch (this->trans->type)
      {
         case ir::Trans::LOC:
@@ -460,14 +583,14 @@ void Event::set_vclock()
 
         case ir::Trans::SYN:
            for (unsigned i = 0; i < clock.size(); i++)
-              clock[i] = std::max(pre_mem->clock[i], clock[i]);
+              clock[i] = std::max(evtid.pre_mem->clock[i], clock[i]);
 
            clock[p.id]++;
            break;
 
         case ir::Trans::RD:
            for (unsigned i = 0; i < clock.size(); i++)
-              clock[i] = std::max(pre_mem->clock[i], clock[i]);
+              clock[i] = std::max(evtid.pre_mem->clock[i], clock[i]);
 
            clock[p.id]++;
            break;
@@ -477,8 +600,8 @@ void Event::set_vclock()
            for (unsigned i = 0; i < clock.size(); i++)
            {
               /* put all elements j of pre_readers to a vector temp */
-              for (unsigned j = 0; j < pre_readers.size(); j++)
-                clock[i] = std::max(pre_readers[j]->clock[i], clock[i]);
+              for (unsigned j = 0; j < evtid.pre_readers.size(); j++)
+                clock[i] = std::max(evtid.pre_readers[j]->clock[i], clock[i]);
            }
 
            clock[p.id]++;
@@ -491,31 +614,31 @@ void Event::set_vclock()
  */
 void Event::set_proc_maxevt()
 {
-   proc_maxevt = pre_proc->proc_maxevt; // initialize maxevt by maxevt(pre_proc)
+   proc_maxevt = evtid.pre_proc->proc_maxevt; // initialize maxevt by maxevt(pre_proc)
    switch (this->trans->type)
    {
         case ir::Trans::LOC:
           // proc_maxevt = pre_proc->proc_maxevt;
-           proc_maxevt[trans->proc.id] = this;
+           proc_maxevt[evtid.trans->proc.id] = this;
            break;
 
         case ir::Trans::SYN:
            for (unsigned i = 0; i < proc_maxevt.size(); i++)
-              proc_maxevt[i] = std::max(pre_mem->proc_maxevt[i], proc_maxevt[i]);
+              proc_maxevt[i] = std::max(evtid.pre_mem->proc_maxevt[i], proc_maxevt[i]);
            break;
 
         case ir::Trans::RD:
            for (unsigned i = 0; i < proc_maxevt.size(); i++)
-              proc_maxevt[i] = std::max(pre_mem->proc_maxevt[i], proc_maxevt[i]);
+              proc_maxevt[i] = std::max(evtid.pre_mem->proc_maxevt[i], proc_maxevt[i]);
            break;
 
         case ir::Trans::WR:
            // find out the max elements among those of all pre_readers.
            for (unsigned i = 0; i < proc_maxevt.size(); i++)
            {
-              for (unsigned j = 0; j < pre_readers.size(); j++)
-                 if ( pre_readers[j]->proc_maxevt[i] > proc_maxevt[i])
-                     proc_maxevt[i] = pre_readers[j]->proc_maxevt[i] ;
+              for (unsigned j = 0; j < evtid.pre_readers.size(); j++)
+                 if ( evtid.pre_readers[j]->proc_maxevt[i] > proc_maxevt[i])
+                     proc_maxevt[i] = evtid.pre_readers[j]->proc_maxevt[i] ;
            }
            break;
    }
@@ -527,8 +650,8 @@ void Event::set_proc_maxevt()
  */
 void Event::set_var_maxevt()
 {
-   var_maxevt = pre_proc->var_maxevt; // initialize maxevt by maxevt(pre_proc)
-   switch (this->trans->type)
+   var_maxevt = evtid.pre_proc->var_maxevt; // initialize maxevt by maxevt(pre_proc)
+   switch (this->evtid.trans->type)
    {
         case ir::Trans::LOC:
            //var_maxevt = pre_proc->var_maxevt;
@@ -536,21 +659,21 @@ void Event::set_var_maxevt()
 
         case ir::Trans::SYN:
            for (unsigned i = 0; i < var_maxevt.size(); i++)
-              var_maxevt[i] = std::max(pre_mem->var_maxevt[i], var_maxevt[i]);
+              var_maxevt[i] = std::max(evtid.pre_mem->var_maxevt[i], var_maxevt[i]);
            break;
 
         case ir::Trans::RD:
            for (unsigned i = 0; i < var_maxevt.size(); i++)
-              var_maxevt[i] = std::max(pre_mem->var_maxevt[i], var_maxevt[i]);
+              var_maxevt[i] = std::max(evtid.pre_mem->var_maxevt[i], var_maxevt[i]);
            break;
 
         case ir::Trans::WR:
            // find out the max elements among those of all pre_readers.
            for (unsigned i = 0; i < var_maxevt.size(); i++)
            {
-              for (unsigned j = 0; j < pre_readers.size(); j++)
-                 if ( pre_readers[j]->var_maxevt[i] > var_maxevt[i])
-                     var_maxevt[i] = pre_readers[j]->var_maxevt[i] ;
+              for (unsigned j = 0; j < evtid.pre_readers.size(); j++)
+                 if ( evtid.pre_readers[j]->var_maxevt[i] > var_maxevt[i])
+                     var_maxevt[i] = evtid.pre_readers[j]->var_maxevt[i] ;
            }
            break;
    }
@@ -566,52 +689,52 @@ void Event::update_parents()
    if (is_bottom())
       return;
 
-   Process & p  = this->trans->proc;
+   Process & p  = this->evtid.trans->proc;
 
-   switch (this->trans->type)
+   switch (this->evtid.trans->type)
    {
       case ir::Trans::WR:
-         pre_proc->post_proc.push_back(this);
+         evtid.pre_proc->post_proc.push_back(this);
          /* update pre_mem */
          //pre_mem->post_wr.push_back(this); // need to consider its necessary
-         for (unsigned i = 0; i < pre_readers.size(); i++)
+         for (unsigned i = 0; i < evtid.pre_readers.size(); i++)
          {
-            if (pre_readers[i]->is_bottom() || (pre_readers[i]->trans->type == ir::Trans::WR))
+            if (evtid.pre_readers[i]->is_bottom() || (evtid.pre_readers[i]->trans->type == ir::Trans::WR))
             {
                // add to vector of corresponding process in post_mem
-               pre_readers[i]->post_mem[i].push_back(this);
+               evtid.pre_readers[i]->post_mem[i].push_back(this);
             }
             else
             {
-               pre_readers[i]->post_rws.push_back(this);
+               evtid.pre_readers[i]->post_rws.push_back(this);
             }
          }
 
          break;
 
       case ir::Trans::RD:
-         pre_proc->post_proc.push_back(this);
+         evtid.pre_proc->post_proc.push_back(this);
          /* update pre_mem */
-         if ( (pre_mem->is_bottom() == true) || (pre_mem->trans->type == ir::Trans::WR)   )
-            pre_mem->post_mem[p.id].push_back(this);
+         if ( (evtid.pre_mem->is_bottom() == true) || (evtid.pre_mem->trans->type == ir::Trans::WR)   )
+            evtid.pre_mem->post_mem[p.id].push_back(this);
          else
-            pre_mem->post_rws.push_back(this);
+            evtid.pre_mem->post_rws.push_back(this);
          /* no pre_readers -> nothing to do with pre_readers */
 
          break;
 
       case ir::Trans::SYN:
-         pre_proc->post_proc.push_back(this);
+         evtid.pre_proc->post_proc.push_back(this);
          /* update pre_mem */
-         if ( (pre_mem->is_bottom() == true) || (pre_mem->trans->type == ir::Trans::WR)   )
-            pre_mem->post_mem[p.id].push_back(this);
+         if ( (evtid.pre_mem->is_bottom() == true) || (evtid.pre_mem->trans->type == ir::Trans::WR)   )
+            evtid.pre_mem->post_mem[p.id].push_back(this);
          else
-            pre_mem->post_rws.push_back(this);
+            evtid.pre_mem->post_rws.push_back(this);
          /* no pre_readers -> nothing to do with pre_readers */
          break;
 
       case ir::Trans::LOC:
-         pre_proc->post_proc.push_back(this);
+         evtid.pre_proc->post_proc.push_back(this);
          /* update pre_mem */
          /* no pre_readers -> nothing to do with pre_readers */
          break;
@@ -651,13 +774,11 @@ bool Event:: operator == (const Event & e) const
  */
 Event & Event:: operator  = (const Event & e)
 {
-   pre_proc = e.pre_proc;
-   pre_mem = e.pre_mem;
+   evtid = e.evtid;
    val = e.val;
-   trans = e.trans;
 
-   for (unsigned i = 0; i < e.pre_readers.size(); i++)
-         pre_readers.push_back(e.pre_readers[i]);
+   for (unsigned i = 0; i < e.evtid.pre_readers.size(); i++)
+      evtid.pre_readers.push_back(e.evtid.pre_readers[i]);
 
    for (unsigned i = 0; i < e.post_mem.size(); i++)
    {
@@ -686,8 +807,8 @@ const Event & Event:: find_latest_pre_WR() const
    const Event * e = this;
    while (1)
    {
-      if (e->trans->type != ir::Trans::WR) break;
-      e = e->pre_mem;
+      if (e->evtid.trans->type != ir::Trans::WR) break;
+      e = e->evtid.pre_mem;
    }
 
    return *e;
@@ -702,8 +823,8 @@ const Event & Event:: find_post_WR_of(const Event & e) const
    const Event * p = this;
    while (1)
    {
-      if ((p->trans->type != ir::Trans::WR) and (*(p->pre_mem) == e)) break;
-      p = p->pre_mem;
+      if ((p->evtid.trans->type != ir::Trans::WR) and (*(p->evtid.pre_mem) == e)) break;
+      p = p->evtid.pre_mem;
    }
 
    return *p;
@@ -724,7 +845,7 @@ bool Event::check_dicfl( const Event & e )
     * It is also true for the case where pre_proc is bottom
     */
 
-   if ((this->pre_proc == e.pre_proc) && (this->trans->proc.id == e.trans->proc.id))
+   if ((this->evtid.pre_proc == e.evtid.pre_proc) && (this->evtid.trans->proc.id == e.evtid.trans->proc.id))
       return true;
 
    /*
@@ -732,11 +853,11 @@ bool Event::check_dicfl( const Event & e )
     * "2 LOC trans sharing a localvar" doesn't matter because it depends on the PC of process.
     * Here, it means they don't have same pre_proc --> any LOC is in no conflict with others.
     */
-   if ((this->trans->type == ir::Trans::LOC)  || (e.trans->type == ir::Trans::LOC))
+   if ((this->evtid.trans->type == ir::Trans::LOC)  || (e.evtid.trans->type == ir::Trans::LOC))
       return false;
 
    // different pre_procs => check pre_mem or pre_readers
-   Event * parent = pre_mem; // for RD, SYN, WR events
+   Event * parent = evtid.pre_mem; // for RD, SYN, WR events
    std::vector<Event *>::iterator this_idx, e_idx;
 
    // special case when parent is bottom, bottom as a WR, but not exactly a WR
@@ -752,7 +873,7 @@ bool Event::check_dicfl( const Event & e )
 	   return false;
    }
 
-   switch (parent->trans->type)
+   switch (parent->evtid.trans->type)
    {
       case ir::Trans::RD:
          // post_rws is a vector of all operations succeeding
@@ -797,19 +918,19 @@ bool Event::check_cfl(const Event & e )
 {
    Event & pre_wr = *this;
    Event & post_wr = *this;
-   if (trans->proc.id == e.trans->proc.id)
+   if (evtid.trans->proc.id == e.evtid.trans->proc.id)
      return this->check_conflict_same_proc_tree(e);
    else
-      if (this->trans->var == e.trans->var) // have the same value? How about LOC?
+      if (this->evtid.trans->var == e.evtid.trans->var) // have the same value? How about LOC?
       {
         // const Event * temp;
-         switch (this->trans->type)
+         switch (this->evtid.trans->type)
          {
          case ir::Trans::WR: // if this is a WR
-           if (e.trans->type == ir::Trans::WR)
+           if (e.evtid.trans->type == ir::Trans::WR)
                return this->check_conflict_same_var_tree(e);
 
-           if (e.trans->type == ir::Trans::RD)
+           if (e.evtid.trans->type == ir::Trans::RD)
            {
               pre_wr = e.find_latest_pre_WR(); //????
               if  (this->check_conflict_same_var_tree(pre_wr))
@@ -826,13 +947,13 @@ bool Event::check_cfl(const Event & e )
            }
 
          case ir::Trans::SYN:
-            if (e.trans->type == ir::Trans::SYN)
+            if (e.evtid.trans->type == ir::Trans::SYN)
                return this->check_conflict_same_var_tree(e);
             else
                return check_conflict_local_config(e);
 
          case ir::Trans::RD:
-            switch (e.trans->type)
+            switch (e.evtid.trans->type)
             {
                case ir::Trans::WR:
                   //const Event & temp = this->find_latest_WR();
@@ -900,8 +1021,8 @@ bool Event:: is_same(Event & e) const
 {
    if (this->is_bottom() or e.is_bottom()) return false;
 
-   if ( (trans == e.trans) && (pre_proc == e.pre_proc)
-         && (pre_mem == e.pre_mem) && (pre_readers == e.pre_readers))
+   if ( (evtid.trans == e.evtid.trans) && (evtid.pre_proc == e.evtid.pre_proc)
+         && (evtid.pre_mem == e.evtid.pre_mem) && (evtid.pre_readers == e.evtid.pre_readers))
       return true;
   /*  if (this->evtid == e.evtid) // overload the operator == in class EventID
        return true;
@@ -915,26 +1036,26 @@ std::string Event::str () const
 {
   std::string st;
 
-   if (pre_readers.empty())
+   if (evtid.pre_readers.empty())
       st = "None";
    else
    {
-      for (unsigned int i = 0; i < pre_readers.size(); i++)
-         if (i == pre_readers.size() -1)
-            st += std::to_string(pre_readers[i]->idx);
+      for (unsigned int i = 0; i < evtid.pre_readers.size(); i++)
+         if (i == evtid.pre_readers.size() -1)
+            st += std::to_string(evtid.pre_readers[i]->idx);
          else
-            st += std::to_string(pre_readers[i]->idx) + ", ";
+            st += std::to_string(evtid.pre_readers[i]->idx) + ", ";
    }
 
-   const char * code = trans ? trans->code.str().c_str() : "";
-   int proc = trans ? trans->proc.id : -1;
+   const char * code = evtid.trans ? evtid.trans->code.str().c_str() : "";
+   int proc = evtid.trans ? evtid.trans->proc.id : -1;
 
-   if (pre_mem != nullptr)
+   if (evtid.pre_mem != nullptr)
       return fmt ("index: %d, %p: trans %p code: '%s' proc: %d pre_proc: %p pre_mem: %p pre_readers: %s ",
-         idx, this, trans, code, proc, pre_proc, pre_mem, st.c_str());
+         idx, this, evtid.trans, code, proc, evtid.pre_proc, evtid.pre_mem, st.c_str());
    else
 	  return fmt ("index: %d, %p: trans %p code: '%s' proc: %d pre_proc: %p pre_mem(null): %p pre_readers: %s",
-	            idx, this, trans, code, proc, pre_proc, pre_mem, st.c_str());
+	            idx, this, evtid.trans, code, proc, evtid.pre_proc, evtid.pre_mem, st.c_str());
 
 }
 /* represent event's information for dot print */
@@ -959,11 +1080,11 @@ std::string Event::dotstr () const
 void Event::eprint_debug()
 {
 	printf ("Event: %s", this->str().c_str());
-	if (pre_readers.size() != 0)
+	if (evtid.pre_readers.size() != 0)
 	{
 		DEBUG("\n Pre_readers: ");
-		for (unsigned int i = 0; i < pre_readers.size(); i++)
-			DEBUG("  Process %d: %d",i, pre_readers[i]->idx);
+		for (unsigned int i = 0; i < evtid.pre_readers.size(); i++)
+			DEBUG("  Process %d: %d",i, evtid.pre_readers[i]->idx);
 	}
 	else
 	   DEBUG("\n No pre_readers");
@@ -1047,7 +1168,7 @@ void Config::add_any ()
 }
 
 /*
- * add an event identiied by its value
+ * add an event identified by its value
  */
 
 void Config::add (const Event & e)
@@ -1061,7 +1182,7 @@ void Config::add (const Event & e)
 }
 
 /*
- * add an event identiied by its index idx
+ * add an event identified by its index idx
  */
 void Config::add (unsigned idx)
 {
@@ -1074,17 +1195,17 @@ void Config::add (unsigned idx)
    en[idx] = en.back();
    en.pop_back();
 
-   ir::Process & p              = e.trans->proc; // process of the transition of the event
+   ir::Process & p              = e.evtid.trans->proc; // process of the transition of the event
    std::vector<Process> & procs = unf.m.procs; // all processes in the machine
-   int varaddr = e.trans->var - procs.size();
+   int varaddr = e.evtid.trans->var - procs.size();
 
    // update the configuration
-   e.trans->fire (gstate); //move to next state
+   e.evtid.trans->fire (gstate); //move to next state
 
    latest_proc[p.id] = &e; //update latest event of the process containing e.trans
 
    //update other attributes according to the type of transition.
-   switch (e.trans->type)
+   switch (e.evtid.trans->type)
    {
    case ir::Trans::RD:
       latest_op[p.id][varaddr] = &e; // update only latest_op
@@ -1107,7 +1228,7 @@ void Config::add (unsigned idx)
 
    //update local variables in trans
       if (e.trans->localvars.empty() != true)
-         for (auto & i: e.trans->localvars)
+         for (auto & i: e.evtid.trans->localvars)
          {
             latest_op[p.id][i - procs.size()] = &e;
          }
@@ -1204,7 +1325,7 @@ void Config::compute_cex ()
                DEBUG(" %p, id:%d: No conflict for a LOC", p, p->idx);
                break;
          }
-         p = p->pre_proc;
+         p = p->evtid.pre_proc;
       }
    }
 
@@ -1217,28 +1338,28 @@ void Config:: RD_cex(Event * e)
 {
    DEBUG(" %p, id:%d: RD conflicting extension", e, e->idx);
    Event * ep, * em, *pr_mem; //pr_mem: pre_mem
-   const Trans & t = *(e->trans);
-   ep = e->pre_proc;
-   em = e->pre_mem;
+  // const Trans & t = *(e->evtid.trans);
+   ep = e->evtid.pre_proc;
+   em = e->evtid.pre_mem;
 
    while (!(em->is_bottom()) and (ep->is_causal_to(*em) == false))
    {
-      if (em->trans->type == ir::Trans::RD)
+      if (em->evtid.trans->type == ir::Trans::RD)
       {
          pr_mem   = em;
-         em       = em->pre_mem;
+         em       = em->evtid.pre_mem;
       }
       else
       {
-         pr_mem   = em->pre_readers[e->trans->proc.id];
-         em       = em->pre_readers[e->trans->proc.id];
+         pr_mem   = em->evtid.pre_readers[e->evtid.trans->proc.id];
+         em       = em->evtid.pre_readers[e->evtid.trans->proc.id];
       }
 
       /* Need to check the event's history before adding it to the unf
        * Don't add events which are already in the unf
        */
 
-      Event * newevt = &unf.find_or_add(t,ep,pr_mem);
+      Event * newevt = &unf.find_or_add ( Ident(e->evtid.trans,ep,pr_mem) );
       add_to_cex(newevt);
 
       // add event to set of direct conflict dicfl if it is new one.
@@ -1297,20 +1418,20 @@ void Config:: SYN_cex(Event * e)
    DEBUG(" %p, id:%d: RD conflicting extension", e, e->idx);
    Event * ep, * em, *pr_mem; //pr_mem: pre_mem
    const Trans & t = *(e->trans);
-   ep = e->pre_proc;
-   em = e->pre_mem;
+   ep = e->evtid.pre_proc;
+   em = e->evtid.pre_mem;
 
    while (!(em->is_bottom()) and (ep->is_causal_to(*em) == false))
    {
-      if (em->trans->type == ir::Trans::RD)
+      if (em->evtid.trans->type == ir::Trans::RD)
       {
          pr_mem   = em;
-         em       = em->pre_mem;
+         em       = em->evtid.pre_mem;
       }
       else
       {
-         pr_mem   = em->pre_readers[e->trans->proc.id];
-         em       = em->pre_readers[e->trans->proc.id];
+         pr_mem   = em->evtid.pre_readers[e->evtid.trans->proc.id];
+         em       = em->evtid.pre_readers[e->evtid.trans->proc.id];
       }
 
       /*
@@ -1340,7 +1461,7 @@ void Config:: WR_cex(Event * e)
    std::vector<std::vector<Event *> > spikes(numprocs);
    spikes.resize(numprocs);
 
-   ep = e->pre_proc;
+   ep = e->evtid.pre_proc;
    ew = e;
    int count = 0;
 
@@ -1351,13 +1472,13 @@ void Config:: WR_cex(Event * e)
 
       DEBUG("  Comb #%d (%d spikes): ", count++, numprocs);
 
-      for (unsigned i = 0; i < ew->pre_readers.size(); i++)
+      for (unsigned i = 0; i < ew->evtid.pre_readers.size(); i++)
       {
-         temp = ew->pre_readers[i];
-         while ((temp->is_bottom() == false) && (temp->trans->type != Trans::WR))
+         temp = ew->evtid.pre_readers[i];
+         while ((temp->is_bottom() == false) && (temp->evtid.trans->type != Trans::WR))
          {
             spikes[i].push_back(temp);
-            temp = temp->pre_mem;
+            temp = temp->evtid.pre_mem;
          }
 
          spikes[i].push_back(temp); // add the last WR or bottom to the spike
@@ -1413,7 +1534,7 @@ void Config::compute_combi(unsigned int i, const std::vector<std::vector<Event *
             /* if an event is already in the unf, it must have all necessary relations including causality and conflict.
              * That means it is in cex, so don't need to check if old event is in cex or not. It's surely in cex.
              */
-            newevt = &unf.find_or_addWR(t, e->pre_proc, e->pre_mem, combi);
+            newevt = &unf.find_or_addWR(t, e->evtid.pre_proc, e->evtid.pre_mem, combi);
             add_to_cex(newevt);
 
             // update direct conflicting set for both events, but only for new added event.
@@ -1510,29 +1631,29 @@ void Config::cprint_dot()
             {
                case ir::Trans::LOC:
                   fs << p->idx << "[id="<< p->idx << ", label=\" " << p->dotstr() << " \", fillcolor=yellow];\n";
-                  fs << p->pre_proc->idx << "->"<< p->idx << "[color=brown];\n";
+                  fs << p->evtid.pre_proc->idx << "->"<< p->idx << "[color=brown];\n";
                   break;
                case ir::Trans::RD:
                   fs << p->idx << "[id="<< p->idx << ", label=\" " << p->dotstr() << " \", fillcolor=palegreen];\n";
-                  fs << p->pre_mem->idx << "->"<< p->idx << ";\n";
-                  fs << p->pre_proc->idx << "->"<< p->idx << "[fillcolor=brown];\n";
+                  fs << p->evtid.pre_mem->idx << "->"<< p->idx << ";\n";
+                  fs << p->evtid.pre_proc->idx << "->"<< p->idx << "[fillcolor=brown];\n";
                   break;
                case ir::Trans::SYN:
                   fs << p->idx << "[id="<< p->idx << ", label=\" " << p->dotstr() << " \", fillcolor=lightblue];\n";
-                  fs << p->pre_mem->idx << "->"<< p->idx << ";\n";
-                  fs << p->pre_proc->idx << "->"<< p->idx << "[color=brown];\n";
+                  fs << p->evtid.pre_mem->idx << "->"<< p->idx << ";\n";
+                  fs << p->evtid.pre_proc->idx << "->"<< p->idx << "[color=brown];\n";
                   break;
 
                case ir::Trans::WR:
                   fs << p->idx << "[id="<< p->idx << ", label=\" " << p->dotstr() << " \", fillcolor=red];\n";
-                  fs << p->pre_proc->idx << "->"<< p->idx << "[color=brown];\n";
-                  for (auto pr : p->pre_readers)
+                  fs << p->evtid.pre_proc->idx << "->"<< p->idx << "[color=brown];\n";
+                  for (auto pr : p->evtid.pre_readers)
                   {
                      fs << pr->idx << "->"<< p->idx << ";\n";
                   }
                   break;
             }
-            p = p->pre_proc;
+            p = p->evtid.pre_proc;
          }
       }
    }
@@ -1592,11 +1713,11 @@ void Unfolding::__create_bottom ()
 {
    assert (evt.size () == 0);
    /* create an "bottom" event with all empty */
-   evt.push_back(Event(*this));
+   evt.push_back(Event(*this);
    count++;
    bottom = &evt.back(); // using = operator
-   bottom->pre_mem = bottom;
-   bottom->pre_proc = bottom;
+   bottom->evtid.pre_mem = bottom;
+   bottom->evtid.pre_proc = bottom;
 
    DEBUG ("%p: Unfolding.__create_bottom: bottom %p", this, &evt.back());
 }
@@ -1609,8 +1730,10 @@ void Unfolding::create_event(ir::Trans & t, Config & c)
     * Only add events that are really enabled at the current state of config.
     * Don't add events already in the unf (enalbed at the previous state)
     */
+   Ident id;
 
-   evt.emplace_back(t, c);
+
+   evt.emplace_back(id,*this);
 
    for (auto ee :c.en)
       if (evt.back().is_same(*ee))
@@ -1625,7 +1748,7 @@ void Unfolding::create_event(ir::Trans & t, Config & c)
    c.en.push_back(&evt.back());
    DEBUG("   Unf.evt.back: id: %s \n ", evt.back().str().c_str());
 }
-
+#if 0
 // check if temp is already in the unfolding. If not, add it to unf.
 Event & Unfolding:: find_or_add(const ir::Trans & t, Event * ep, Event * pr_mem)
 {
@@ -1634,7 +1757,7 @@ Event & Unfolding:: find_or_add(const ir::Trans & t, Event * ep, Event * pr_mem)
     */
 
    for (auto & ee: this->evt)
-      if ((ee.trans == &t) and (ee.pre_proc == ep) and (ee.pre_mem == pr_mem) )
+      if (evtid == ee.evtid )
       {
          DEBUG("   already in the unf as event with idx = %d", ee.idx);
          return ee;
@@ -1669,6 +1792,27 @@ Event & Unfolding:: find_or_addWR(const ir::Trans & t, Event * ep, Event * ew, s
    DEBUG("Addr of t: %p", &t);
    evt.push_back(Event(t, ep, ew, combi, *this));
 
+   evt.back().update_parents(); // to make sure of conflict
+   count++;
+   DEBUG("   new event: id: %s \n ", evt.back().str().c_str());
+   return evt.back();
+}
+#endif
+//------------
+Event & Unfolding:: find_or_add(const Event & e)
+{
+   /* Need to check the event's history before adding it to the unf
+    * Don't add events which are already in the unf
+    */
+
+   for (auto & ee: this->evt)
+      if (e.evtid == ee.evtid )
+      {
+         DEBUG("   already in the unf as event with idx = %d", ee.idx);
+         return ee;
+      }
+
+   evt.push_back(Event(e.evtid, *this));
    evt.back().update_parents(); // to make sure of conflict
    count++;
    DEBUG("   new event: id: %s \n ", evt.back().str().c_str());

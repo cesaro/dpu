@@ -29,7 +29,6 @@ class Node
 {
 public:
    unsigned depth;
-   T * ref; // refer to original event
    T * pre; // immediate predecessor
    T ** skip_preds;
 
@@ -144,8 +143,8 @@ private:
    Event() = default;
    Event (Unfolding & u);
   // Event (const ir::Trans & t, Unfolding & u);
-   Event (const ir::Trans & t, Event * ep, Event * em, Unfolding & u);
-   Event (const ir::Trans & t, Event * ep,  Event * ew, std::vector<Event *> pr, Unfolding & u);
+  // Event (const ir::Trans & t, Event * ep, Event * em, Unfolding & u);
+  // Event (const ir::Trans & t, Event * ep,  Event * ew, std::vector<Event *> pr, Unfolding & u);
 
 }; // end of class Event
 

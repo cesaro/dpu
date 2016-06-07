@@ -44,7 +44,6 @@ Node<T,SS>::Node(int idx, Event * pr)
 {
    pre      = pr;
    depth    = pre->nodep[idx].depth + 1;
-   //int size = compute_size();
    // initialize skip_preds here
    set_skip_preds(idx);
 }
@@ -61,7 +60,7 @@ void Node<T,SS>:: set_skip_preds(int idx)
 
    assert(size > 0);
 
-   // mallocate the skip_preds
+   /* mallocate the skip_preds */
    skip_preds = (Event**) malloc(sizeof(Event*) * size);
 
    // the first element skip_preds[0]
@@ -69,7 +68,6 @@ void Node<T,SS>:: set_skip_preds(int idx)
    int k = 1;
 
    /* go back k times by pre*/
-
    while ((k < SS) and (p->node[idx].depth > 0))
    {
       p = p->node[idx].pre;
@@ -78,7 +76,7 @@ void Node<T,SS>:: set_skip_preds(int idx)
 
    skip_preds[0] = p;
 
-   // the rest
+   /* initialize the rest */
    if (size > 1)
    {
       for (unsigned i = 1; i < size; i++)
@@ -106,7 +104,7 @@ void Node<T,SS>:: set_up(int idx, Event * pr)
    // initialize skip_preds here
    set_skip_preds(idx);
 }
-//----------------
+//---------------------
 template <class T, int SS >
 int Node<T,SS>::compute_size()
 {
@@ -145,7 +143,7 @@ void Node<T,SS>:: print_skip_preds()
    printf("\n");
 }
 //----------
-int max_expo(int d, int base)
+int max_skip(int d, int base)
 {
    int i = 0;
    int pow = 1;
@@ -160,14 +158,13 @@ int max_expo(int d, int base)
 template <class T, int SS >
 Event & Node<T,SS>:: find_pred(int d) const
 {
-   printf("Hello");
+   //printf("\n This is function to find a node at a specific depth");
    Event * next;
    int i, dis = this->depth - d;
-   next    = this->ref;
 
    while (dis != 0)
    {
-      i = max_expo(dis,SS);
+      i = max_skip(dis,SS);
       if (i == 0)
          next = pre;
       else
@@ -211,6 +208,7 @@ Ident::Ident(Trans * t, Event * ep, Event * em, std::vector<Event *> pr)
 }
 //---------------------
 Ident::Ident(const ir::Trans & t, const Config & c)
+:trans(t)
 {
    /*
     * For all events:
@@ -1374,7 +1372,8 @@ void Config:: RD_cex(Event * e)
        * Don't add events which are already in the unf
        */
 
-      Event * newevt = &unf.find_or_add ( Event(Ident(e->evtid.trans,ep,pr_mem)) );
+      Event * newevt = &unf.find_or_add ( Event(unf, Ident(e->evtid.trans,ep,pr_mem)) );
+
       add_to_cex(newevt);
 
       // add event to set of direct conflict dicfl if it is new one.
@@ -1454,7 +1453,7 @@ void Config:: SYN_cex(Event * e)
        * Don't add events which are already in the unf
        */
 
-      Event * newevt = &unf.find_or_add(t,ep,pr_mem);
+      Event * newevt = &unf.find_or_add(Event(unf, Ident(t,ep,pr_mem)));
       add_to_cex(newevt);
 
       // add event to set of direct conflict dicfl if it is new one.
@@ -1549,7 +1548,7 @@ void Config::compute_combi(unsigned int i, const std::vector<std::vector<Event *
             /* if an event is already in the unf, it must have all necessary relations including causality and conflict.
              * That means it is in cex, so don't need to check if old event is in cex or not. It's surely in cex.
              */
-            newevt = &unf.find_or_addWR(t, e->evtid.pre_proc, e->evtid.pre_mem, combi);
+            newevt = &unf.find_or_add(Event(unf, Ident(t, e->evtid.pre_proc, e->evtid.pre_mem, combi)));
             add_to_cex(newevt);
 
             // update direct conflicting set for both events, but only for new added event.
@@ -1728,7 +1727,7 @@ void Unfolding::__create_bottom ()
 {
    assert (evt.size () == 0);
    /* create an "bottom" event with all empty */
-   evt.push_back(Event(*this);
+   evt.emplace_back(*this);
    count++;
    bottom = &evt.back(); // using = operator
    bottom->evtid.pre_mem = bottom;
@@ -1881,24 +1880,24 @@ void Unfolding:: uprint_dot()
       {
          case ir::Trans::LOC:
             fs << e.idx << "[id="<< e.idx << ", label=\" " << e.dotstr() << " \" fillcolor=yellow];\n";
-            fs << e.pre_proc->idx << "->" << e.idx << "[color=brown]\n";
+            fs << e.evtid.pre_proc->idx << "->" << e.idx << "[color=brown]\n";
             break;
          case ir::Trans::WR:
             fs << e.idx << "[id="<< e.idx << ", label=\" " << e.dotstr() << " \" fillcolor=red];\n";
-            fs << e.pre_proc->idx << "->" << e.idx << "[color=brown]\n";
-            for (auto const & pre : e.pre_readers)
+            fs << e.evtid.pre_proc->idx << "->" << e.idx << "[color=brown]\n";
+            for (auto const & pre : e.evtid.pre_readers)
                fs << pre->idx << " -> " << e.idx << "\n";
             break;
          case ir::Trans::RD:
             fs << e.idx << "[id="<< e.idx << ", label=\" " << e.dotstr() << " \" fillcolor=palegreen];\n";
-            fs << e.pre_proc->idx << "->" << e.idx << "[color=brown]\n";
-            fs << e.pre_mem->idx << "->" << e.idx << "\n";
+            fs << e.evtid.pre_proc->idx << "->" << e.idx << "[color=brown]\n";
+            fs << e.evtid.pre_mem->idx << "->" << e.idx << "\n";
 
             break;
          case ir::Trans::SYN:
             fs << e.idx << "[id="<< e.idx << ", label=\" " << e.dotstr() << " \" color=lightblue];\n";
-            fs << e.pre_proc->idx << "->" << e.idx << "[color=brown]\n";
-            fs << e.pre_mem->idx << "->" << e.idx << "\n";
+            fs << e.evtid.pre_proc->idx << "->" << e.idx << "[color=brown]\n";
+            fs << e.evtid.pre_mem->idx << "->" << e.idx << "\n";
 
             break;
       }

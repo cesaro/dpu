@@ -194,6 +194,21 @@ Ident:: Ident()
 , pre_mem (nullptr)
 {
 }
+//----------------------
+Ident::Ident(Trans * t, Event * ep, Event * em)
+: trans(t)
+, pre_proc(ep)
+, pre_mem(em)
+{
+}
+//---------------------
+Ident::Ident(Trans * t, Event * ep, Event * em, std::vector<Event *> pr)
+: trans(t)
+, pre_proc(ep)
+, pre_mem(em)
+, pre_readers(pr)
+{
+}
 //---------------------
 Ident::Ident(const ir::Trans & t, const Config & c)
 {
@@ -1359,7 +1374,7 @@ void Config:: RD_cex(Event * e)
        * Don't add events which are already in the unf
        */
 
-      Event * newevt = &unf.find_or_add ( Ident(e->evtid.trans,ep,pr_mem) );
+      Event * newevt = &unf.find_or_add ( Event(Ident(e->evtid.trans,ep,pr_mem)) );
       add_to_cex(newevt);
 
       // add event to set of direct conflict dicfl if it is new one.

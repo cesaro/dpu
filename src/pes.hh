@@ -106,8 +106,9 @@ public:
    std::string  str           () const;
    std::string dotstr         () const;
 
-   Event (const ir::Trans & t, Config & c); // make it public to use emplace_back(). Consider to a new allocator if constructors are private
+  // Event (const ir::Trans & t, Config & c); // make it public to use emplace_back(). Consider to a new allocator if constructors are private
    Event (Unfolding & u, Ident & ident);
+   Event (Ident & id);
    Event (const Event & e);
    //void mk_history (const Config & c);
    void update_parents();
@@ -215,7 +216,7 @@ public:
    void create_event(ir::Trans & t, Config &);
    //Event & find_or_add(const ir::Trans & t, Event * ep, Event * pr_mem);
    //Event & find_or_addWR(const ir::Trans & t, Event * ep, Event * ew, std::vector<Event *> combi);
-   Event & find_or_add(const Event & e);
+   Event & find_or_add(Ident & id);
 
 
    void uprint_debug();

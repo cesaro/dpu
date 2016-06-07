@@ -1371,8 +1371,8 @@ void Config:: RD_cex(Event * e)
       /* Need to check the event's history before adding it to the unf
        * Don't add events which are already in the unf
        */
-
-      Event * newevt = &unf.find_or_add ( Event(unf, Ident(e->evtid.trans,ep,pr_mem)) );
+      Ident * id = Ident(e->evtid.trans,ep,pr_mem);
+      Event * newevt = &unf.find_or_add (*id);
 
       add_to_cex(newevt);
 
@@ -1452,8 +1452,8 @@ void Config:: SYN_cex(Event * e)
        *  Need to check the event's history before adding it to the unf
        * Don't add events which are already in the unf
        */
-
-      Event * newevt = &unf.find_or_add(Event(unf, Ident(t,ep,pr_mem)));
+      Ident * id = Ident(t, e->evtid.pre_proc, e->evtid.pre_mem);
+      Event * newevt = &unf.find_or_add(*id);
       add_to_cex(newevt);
 
       // add event to set of direct conflict dicfl if it is new one.
@@ -1548,7 +1548,8 @@ void Config::compute_combi(unsigned int i, const std::vector<std::vector<Event *
             /* if an event is already in the unf, it must have all necessary relations including causality and conflict.
              * That means it is in cex, so don't need to check if old event is in cex or not. It's surely in cex.
              */
-            newevt = &unf.find_or_add(Event(unf, Ident(t, e->evtid.pre_proc, e->evtid.pre_mem, combi)));
+            Ident * id = Ident(t, e->evtid.pre_proc, e->evtid.pre_mem, combi);
+            newevt = &unf.find_or_add(*id);
             add_to_cex(newevt);
 
             // update direct conflicting set for both events, but only for new added event.
@@ -1627,7 +1628,7 @@ void Config::cprint_dot()
       printf("Cannot open the file\n");
 
    fs << "Digraph RGraph {\n node [shape = rectangle, style = filled]";
-   fs << "label =\"A random configuratiton.\"";
+   fs << "label =\"A random configuration.\"";
    fs << "edge [style=filled]";
    /*
     * Maximal events: = subset of latest_proc (latest events having no child)
@@ -1813,20 +1814,20 @@ Event & Unfolding:: find_or_addWR(const ir::Trans & t, Event * ep, Event * ew, s
 }
 #endif
 //------------
-Event & Unfolding:: find_or_add(const Event & e)
+Event & Unfolding:: find_or_add(Ident & id)
 {
    /* Need to check the event's history before adding it to the unf
     * Don't add events which are already in the unf
     */
 
    for (auto & ee: this->evt)
-      if (e.evtid == ee.evtid )
+      if (ee.evtid == id )
       {
          DEBUG("   already in the unf as event with idx = %d", ee.idx);
          return ee;
       }
 
-   evt.push_back(Event(e.evtid, *this));
+   evt.push_back(Event(id, *this));
    evt.back().update_parents(); // to make sure of conflict
    count++;
    DEBUG("   new event: id: %s \n ", evt.back().str().c_str());

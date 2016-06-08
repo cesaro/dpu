@@ -192,14 +192,14 @@ Ident:: Ident()
 {
 }
 //----------------------
-Ident::Ident(Trans * t, Event * ep, Event * em)
+Ident::Ident(const Trans * t, Event * ep, Event * em)
 : trans(t)
 , pre_proc(ep)
 , pre_mem(em)
 {
 }
 //---------------------
-Ident::Ident(Trans * t, Event * ep, Event * em, std::vector<Event *> pr)
+Ident::Ident(const Trans * t, Event * ep, Event * em, std::vector<Event *> pr)
 : trans(t)
 , pre_proc(ep)
 , pre_mem(em)
@@ -208,7 +208,7 @@ Ident::Ident(Trans * t, Event * ep, Event * em, std::vector<Event *> pr)
 }
 //---------------------
 Ident::Ident(const ir::Trans & t, const Config & c)
-:trans(t)
+:trans(&t)
 {
    /*
     * For all events:
@@ -278,7 +278,16 @@ Ident::Ident(const ir::Trans & t, const Config & c)
 
   // DEBUG("   Make history: %s ",this->str().c_str());
 }
-
+/*
+ * Overlap == operator for Ident
+ */
+bool Ident:: operator == (const Ident & id) const
+{
+   if ( (trans == id.trans) && (pre_proc == id.pre_proc)
+           && (pre_mem == id.pre_mem) && (pre_readers == id.pre_readers))
+        return true;
+   return false;
+}
 /*
  * Methods for class Event
  */
@@ -586,9 +595,9 @@ void Event::mk_history(const Config & c)
 
 void Event::set_vclock()
 {
-   Process & p = this->trans->proc;
+   Process & p = evtid.trans->proc;
    clock = evtid.pre_proc->clock;
-   switch (this->trans->type)
+   switch (evtid.trans->type)
      {
         case ir::Trans::LOC:
            clock[p.id]++;
@@ -628,7 +637,7 @@ void Event::set_vclock()
 void Event::set_proc_maxevt()
 {
    proc_maxevt = evtid.pre_proc->proc_maxevt; // initialize maxevt by maxevt(pre_proc)
-   switch (this->trans->type)
+   switch (evtid.trans->type)
    {
         case ir::Trans::LOC:
           // proc_maxevt = pre_proc->proc_maxevt;
@@ -712,7 +721,7 @@ void Event::update_parents()
          //pre_mem->post_wr.push_back(this); // need to consider its necessary
          for (unsigned i = 0; i < evtid.pre_readers.size(); i++)
          {
-            if (evtid.pre_readers[i]->is_bottom() || (evtid.pre_readers[i]->trans->type == ir::Trans::WR))
+            if (evtid.pre_readers[i]->is_bottom() || (evtid.pre_readers[i]->evtid.trans->type == ir::Trans::WR))
             {
                // add to vector of corresponding process in post_mem
                evtid.pre_readers[i]->post_mem[i].push_back(this);
@@ -728,7 +737,7 @@ void Event::update_parents()
       case ir::Trans::RD:
          evtid.pre_proc->post_proc.push_back(this);
          /* update pre_mem */
-         if ( (evtid.pre_mem->is_bottom() == true) || (evtid.pre_mem->trans->type == ir::Trans::WR)   )
+         if ( (evtid.pre_mem->is_bottom() == true) || (evtid.pre_mem->evtid.trans->type == ir::Trans::WR)   )
             evtid.pre_mem->post_mem[p.id].push_back(this);
          else
             evtid.pre_mem->post_rws.push_back(this);
@@ -739,7 +748,7 @@ void Event::update_parents()
       case ir::Trans::SYN:
          evtid.pre_proc->post_proc.push_back(this);
          /* update pre_mem */
-         if ( (evtid.pre_mem->is_bottom() == true) || (evtid.pre_mem->trans->type == ir::Trans::WR)   )
+         if ( (evtid.pre_mem->is_bottom() == true) || (evtid.pre_mem->evtid.trans->type == ir::Trans::WR)   )
             evtid.pre_mem->post_mem[p.id].push_back(this);
          else
             evtid.pre_mem->post_rws.push_back(this);
@@ -1081,10 +1090,10 @@ std::string Event::dotstr () const
       else
          st += std::to_string(clock[i]) + ", ";
 
-   const char * code = (trans != nullptr) ? trans->code.str().c_str() : ""; // pay attention at c_str()
-   int proc = (trans != nullptr) ? trans->proc.id : -1;
-   int src = trans? trans->src : 0;
-   int dst = trans? trans->dst : 0;
+   const char * code = (evtid.trans != nullptr) ? evtid.trans->code.str().c_str() : ""; // pay attention at c_str()
+   int proc = (evtid.trans != nullptr) ? evtid.trans->proc.id : -1;
+   int src = evtid.trans? evtid.trans->src : 0;
+   int dst = evtid.trans? evtid.trans->dst : 0;
 
    return fmt ("id: %d, code: '%s' \n proc: %d , src: %d , dest: %d \n clock:(%s) ", idx, code, proc, src, dst, st.c_str());
 }
@@ -1240,7 +1249,7 @@ void Config::add (unsigned idx)
    }
 
    //update local variables in trans
-      if (e.trans->localvars.empty() != true)
+      if (e.evtid.trans->localvars.empty() != true)
          for (auto & i: e.evtid.trans->localvars)
          {
             latest_op[p.id][i - procs.size()] = &e;
@@ -1323,7 +1332,7 @@ void Config::compute_cex ()
       Event * p = e;
       while (p->is_bottom() != true)
       {
-         switch (p->trans->type)
+         switch (p->evtid.trans->type)
          {
             case ir::Trans::RD:
                this->RD_cex(p);
@@ -1371,7 +1380,7 @@ void Config:: RD_cex(Event * e)
       /* Need to check the event's history before adding it to the unf
        * Don't add events which are already in the unf
        */
-      Ident * id = Ident(e->evtid.trans,ep,pr_mem);
+      Ident * id = new Ident(e->evtid.trans, ep, pr_mem);
       Event * newevt = &unf.find_or_add (*id);
 
       add_to_cex(newevt);
@@ -1431,7 +1440,7 @@ void Config:: SYN_cex(Event * e)
 {
    DEBUG(" %p, id:%d: RD conflicting extension", e, e->idx);
    Event * ep, * em, *pr_mem; //pr_mem: pre_mem
-   const Trans & t = *(e->trans);
+  // const Trans & t = *e->evtid.trans;
    ep = e->evtid.pre_proc;
    em = e->evtid.pre_mem;
 
@@ -1452,8 +1461,8 @@ void Config:: SYN_cex(Event * e)
        *  Need to check the event's history before adding it to the unf
        * Don't add events which are already in the unf
        */
-      Ident * id = Ident(t, e->evtid.pre_proc, e->evtid.pre_mem);
-      Event * newevt = &unf.find_or_add(*id);
+      Ident id(e->evtid.trans, e->evtid.pre_proc, e->evtid.pre_mem);
+      Event * newevt = &unf.find_or_add (id);
       add_to_cex(newevt);
 
       // add event to set of direct conflict dicfl if it is new one.
@@ -1533,7 +1542,7 @@ void Config:: WR_cex(Event * e)
 void Config::compute_combi(unsigned int i, const std::vector<std::vector<Event *>> & s, std::vector<Event *> combi, Event * e)
 {
    Event * newevt;
-   const ir::Trans & t = *(e->trans);
+   //const ir::Trans & t = *(e->evtid.trans);
    for (unsigned j = 0; j < s[i].size(); j++ )
    {
       if (j < s[i].size())
@@ -1548,8 +1557,8 @@ void Config::compute_combi(unsigned int i, const std::vector<std::vector<Event *
             /* if an event is already in the unf, it must have all necessary relations including causality and conflict.
              * That means it is in cex, so don't need to check if old event is in cex or not. It's surely in cex.
              */
-            Ident * id = Ident(t, e->evtid.pre_proc, e->evtid.pre_mem, combi);
-            newevt = &unf.find_or_add(*id);
+            Ident id(e->evtid.trans, e->evtid.pre_proc, e->evtid.pre_mem, combi);
+            newevt = &unf.find_or_add(id);
             add_to_cex(newevt);
 
             // update direct conflicting set for both events, but only for new added event.
@@ -1642,7 +1651,7 @@ void Config::cprint_dot()
          while ( (p->is_bottom() != true) && (p->color == 0) )
          {
             p->color = 1;
-            switch (p->trans->type)
+            switch (p->evtid.trans->type)
             {
                case ir::Trans::LOC:
                   fs << p->idx << "[id="<< p->idx << ", label=\" " << p->dotstr() << " \", fillcolor=yellow];\n";
@@ -1728,7 +1737,8 @@ void Unfolding::__create_bottom ()
 {
    assert (evt.size () == 0);
    /* create an "bottom" event with all empty */
-   evt.emplace_back(*this);
+   Ident id;
+   evt.emplace_back(*this,id); // need reviewing
    count++;
    bottom = &evt.back(); // using = operator
    bottom->evtid.pre_mem = bottom;
@@ -1746,9 +1756,7 @@ void Unfolding::create_event(ir::Trans & t, Config & c)
     * Don't add events already in the unf (enalbed at the previous state)
     */
    Ident id;
-
-
-   evt.emplace_back(id,*this);
+   evt.emplace_back(*this, id);
 
    for (auto ee :c.en)
       if (evt.back().is_same(*ee))
@@ -1827,7 +1835,7 @@ Event & Unfolding:: find_or_add(Ident & id)
          return ee;
       }
 
-   evt.push_back(Event(id, *this));
+   evt.push_back(Event(*this, id));
    evt.back().update_parents(); // to make sure of conflict
    count++;
    DEBUG("   new event: id: %s \n ", evt.back().str().c_str());
@@ -1877,7 +1885,7 @@ void Unfolding:: uprint_dot()
          continue;
       }
 
-      switch (e.trans->type)
+      switch (e.evtid.trans->type)
       {
          case ir::Trans::LOC:
             fs << e.idx << "[id="<< e.idx << ", label=\" " << e.dotstr() << " \" fillcolor=yellow];\n";
@@ -1986,7 +1994,7 @@ void Unfolding::explore_driven_config ()
    while (c.en.empty() == false)
    {
       i = rand() % c.en.size();
-      while ( (c.en[i]->trans->proc.id == 1) && (count < 15)) // set up when we want to add event in proc 1 (e.g: after 21 events in proc 0)
+      while ( (c.en[i]->evtid.trans->proc.id == 1) && (count < 15)) // set up when we want to add event in proc 1 (e.g: after 21 events in proc 0)
       {
          i = rand() % c.en.size();
       }

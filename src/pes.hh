@@ -56,17 +56,17 @@ public:
 class Ident
 {
 public:
-   ir::Trans * trans;
+   const ir::Trans * trans;
    Event * pre_proc;
    Event * pre_mem;
    std::vector<Event *> pre_readers;
 
 public:
    Ident();
-   Ident(ir::Trans * t, Event * pp, Event * pm, std::vector<Event*> pr);
-   Ident(ir::Trans * t, Event * pp, Event * pm);
+   Ident(const ir::Trans * t, Event * pp, Event * pm, std::vector<Event*> pr);
+   Ident(const ir::Trans * t, Event * pp, Event * pm);
    Ident(const ir::Trans & t, const Config & c);
-   bool          operator ==  (const Ident eid);
+   bool operator == (const Ident & id) const;
 };
 
 //--------class Event------------
@@ -91,7 +91,7 @@ public:
 
    uint32_t              val; //??? value for global variable?
    std::vector<uint32_t> localvals; //???
-   const ir::Trans *     trans;
+   //const ir::Trans *     trans;
    int                   color;
    std::vector<Event *>  dicfl;  // set of direct conflicting events
 
@@ -109,7 +109,7 @@ public:
   // Event (const ir::Trans & t, Config & c); // make it public to use emplace_back(). Consider to a new allocator if constructors are private
    Event (Unfolding & u, Ident & ident);
    Event (Ident & id);
-   Event (const Event & e);
+   //Event (const Event & e);
    //void mk_history (const Config & c);
    void update_parents();
    void eprint_debug();

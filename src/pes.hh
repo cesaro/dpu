@@ -39,8 +39,6 @@ public:
    void set_skip_preds(int idx);
    void print_skip_preds();
    Event & find_pred(int d) const;
-
-
 };
 
 template <class T, int S, int SS> // S: number of trees, SS: skip step
@@ -64,7 +62,6 @@ public:
 public:
    Ident();
    Ident(const ir::Trans * t, Event * pp, Event * pm, std::vector<Event*> pr);
-   Ident(const ir::Trans * t, Event * pp, Event * pm);
    Ident(const ir::Trans & t, const Config & c);
    bool operator == (const Ident & id) const;
 };
@@ -75,11 +72,9 @@ class Event: public MultiNode<Event,2,3> // 2 trees, skip step = 3
 public:
    unsigned int          idx;
    Ident                 evtid;
-   //Event *               pre_proc;    // for all events, predecessor in the same process
-   //Event *               pre_mem;     // parent of the event, for all events except LOCAL,
-   //std::vector< Event * >                pre_readers; // only for WR events
 
    std::vector<Event *>  post_proc;  // set of successors in the same process
+
    // only for WR events
    // each vector of children events for a process
 
@@ -96,6 +91,7 @@ public:
    std::vector<Event *>  dicfl;  // set of direct conflicting events
 
    std::vector <int>     clock; // size = number of processes (to store clock for all its predecessors: pre_proc, pre_mem or pre_readers)
+
    //store maximal events in the event's local configuration for all variables and processes
    std::vector <Event *> proc_maxevt; // size of number of processes
    std::vector <Event *> var_maxevt; // size of number of variables
@@ -106,11 +102,13 @@ public:
    std::string  str           () const;
    std::string dotstr         () const;
 
-  // Event (const ir::Trans & t, Config & c); // make it public to use emplace_back(). Consider to a new allocator if constructors are private
+
+   // Constructors
+   Event() = default;
+   Event (Unfolding & u);
    Event (Unfolding & u, Ident & ident);
-   Event (Ident & id);
-   //Event (const Event & e);
-   //void mk_history (const Config & c);
+
+   void mk_history (const Config & c);
    void update_parents();
    void eprint_debug();
 
@@ -133,19 +131,13 @@ public:
 
    Node<Event,3> &proc () { return node[0]; }
    Node<Event,3> &var  () { return node[1]; }
+
    //void set_skip_preds(int idx, int step);
-   void print_proc_skip_preds();
-   void print_var_skip_preds();
+   void print_proc_skip_preds(){ proc().print_skip_preds();}
+   void print_var_skip_preds() { var().print_skip_preds();}
 
    friend class Node<Event,3>;
    friend Unfolding;
-
-private:
-   Event() = default;
-   Event (Unfolding & u);
-  // Event (const ir::Trans & t, Unfolding & u);
-  // Event (const ir::Trans & t, Event * ep, Event * em, Unfolding & u);
-  // Event (const ir::Trans & t, Event * ep,  Event * ew, std::vector<Event *> pr, Unfolding & u);
 
 }; // end of class Event
 
@@ -172,8 +164,6 @@ public:
 
    std::vector<Event*>              en;
    std::vector<Event*>              cex;
-   //std::vector<Event*>              cex1;
-
 
 
    Config (Unfolding & u); // creates an empty configuration

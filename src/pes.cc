@@ -192,12 +192,14 @@ Ident:: Ident()
 {
 }
 //----------------------
+/*
 Ident::Ident(const Trans * t, Event * ep, Event * em)
 : trans(t)
 , pre_proc(ep)
 , pre_mem(em)
 {
 }
+*/
 //---------------------
 Ident::Ident(const Trans * t, Event * ep, Event * em, std::vector<Event *> pr)
 : trans(t)
@@ -206,9 +208,11 @@ Ident::Ident(const Trans * t, Event * ep, Event * em, std::vector<Event *> pr)
 , pre_readers(pr)
 {
 }
-//---------------------
+
+/*
+ * create an identity for events which are labelled by t and enabled at the configuration c
+ */
 Ident::Ident(const ir::Trans & t, const Config & c)
-:trans(&t)
 {
    /*
     * For all events:
@@ -231,6 +235,8 @@ Ident::Ident(const ir::Trans & t, const Config & c)
 
   // if (this->is_bottom()) return;
 
+   trans = &t;
+   //DEBUG("Trans: %s", trans->str().c_str());
    ir::Process & p = this->trans->proc;
    std::vector<Process> & procs = c.unf.m.procs;
    int varaddr = trans->var - procs.size();
@@ -278,6 +284,7 @@ Ident::Ident(const ir::Trans & t, const Config & c)
 
   // DEBUG("   Make history: %s ",this->str().c_str());
 }
+
 /*
  * Overlap == operator for Ident
  */
@@ -285,23 +292,17 @@ bool Ident:: operator == (const Ident & id) const
 {
    if ( (trans == id.trans) && (pre_proc == id.pre_proc)
            && (pre_mem == id.pre_mem) && (pre_readers == id.pre_readers))
-        return true;
+      return true;
+
    return false;
 }
 /*
  * Methods for class Event
  */
-//---------------------
-void Event:: print_proc_skip_preds()
-{
-   proc().print_skip_preds();
-}
-//-------------------
-void Event:: print_var_skip_preds()
-{
-   var().print_skip_preds();
-}
-//-------------------
+
+/*
+ * To create an event with a specific identity in the unfolding u
+ */
 Event:: Event (Unfolding & u, Ident & ident)
 :  MultiNode()
 ,  idx(u.count)
@@ -341,59 +342,14 @@ Event:: Event (Unfolding & u, Ident & ident)
 
 }
 //-------------------
-#if 0
-Event::Event (const Trans & t, Config & c)
-   : MultiNode()
-   , idx(c.unf.count)
-   , pre_proc(nullptr)
-   , pre_mem(nullptr)
-   , val(0)
-   , localvals(0)
-   , trans(&t)
-   , color(0)
-
-{
-   assert(c.unf.count < c.unf.evt.capacity());
-   unsigned numprocs = c.unf.m.procs.size();
-   if (t.type == ir::Trans::WR)
-   {
-      std::vector<Event *> temp;
-      for (unsigned i = 0; i < numprocs; i++)
-         post_mem.push_back(temp);
-   }
-
-   // clock.reserve(numprocs);
-   for (unsigned i = 0; i < numprocs; i++)
-      clock.push_back(0);
-
-   DEBUG ("  %p: Event.ctor: t %p: '%s'", this, &t, t.str().c_str());
-   mk_history(c);
-   ASSERT (pre_proc != NULL);
-
-   // initialize the corresponding nodes, after setting up the history
-   //node[0].pre = pre_proc;
-   //node[1].pre = pre_mem;
-   node[0].set_up(0, pre_proc);
-   if (t.type != ir::Trans::LOC)
-   {
-      node[1].set_up(1, pre_mem);
-   }
-
-   /* set up vector clock */
-   set_vclock();
-   //set_proc_maxevt();
-   //set_var_maxevt();
-}
-
+/* For creating bottom event */
 Event::Event (Unfolding & u)
    : MultiNode()
    , idx(u.count)
-   , pre_proc(nullptr)
-   , pre_mem(nullptr)
    , val(0)
    , localvals(0)
-   , trans(nullptr)
    , color(0)
+
 {
    // this is for bottom event only
    unsigned numprocs = u.m.procs.size();
@@ -410,108 +366,6 @@ Event::Event (Unfolding & u)
    DEBUG ("  %p: Event.ctor:", this);
 }
 
-/*
- * for all events. Don't use any more
- */
-/*
-Event::Event (const Trans & t, Unfolding & u)
-   : MultiNode()
-   , idx(u.count)
-   , pre_proc(nullptr)
-   , pre_mem(nullptr)
-   , val(0)
-   , localvals(0)
-   , trans(&t)
-   , color(0)
-
-{
-   assert(u.count < u.evt.capacity());
-   unsigned numprocs = u.m.procs.size();
-
-   // clock.reserve(numprocs);
-   for (unsigned i = 0; i < numprocs; i++)
-      clock.push_back(0);
-
-   DEBUG ("  %p: Event.ctor: t %p: '%s'", this, &t, t.str().c_str());
-}
-*/
-
-// for create RD, SYN event when compute cex
-Event::Event (const ir::Trans & t, Event * ep, Event * em, Unfolding & u)
-   : MultiNode(ep, em)
-   , idx(u.count)
-   , pre_proc(ep)
-   , pre_mem(em)
-   , val(0)
-   , localvals(0)
-   , trans(&t)
-   , color(0)
-
-{
-   assert(u.count < u.evt.capacity());
-   unsigned numprocs = u.m.procs.size();
-
-   for (unsigned i = 0; i < numprocs; i++)
-      clock.push_back(0);
-
-   DEBUG ("  %p: Event.ctor: t %p: '%s'", this, &t, t.str().c_str());
-}
-
-/*
- *  for WR event:
- *  - t: transition
- *  - ep: pre_proc
- *  - pr: pre_readers
- *  - u: unfolding to add
- */
-
-Event::Event (const ir::Trans & t, Event * ep, Event * ew, std::vector<Event *> pr, Unfolding & u)
-   : MultiNode(ep,ew)
-   , idx(u.count)
-   , pre_proc(ep)
-   , pre_mem(ew)
-   , pre_readers(pr)
-   , val(0)
-   , localvals(0)
-   , trans(&t)
-   , color(0)
-{
-   assert(u.count < u.evt.capacity());
-   unsigned numprocs = u.m.procs.size();
-
-   assert(t.type == Trans::WR);
-
-   std::vector<Event *> temp;
-   for (unsigned i = 0; i < numprocs; i++)
-      post_mem.push_back(temp);
-
-   for (unsigned i = 0; i < numprocs; i++)
-      clock.push_back(0);
-   /* set up vector clock */
-   set_vclock();
-   node[0].pre = ep;
-   //node[1].pre = max of pr
-   DEBUG ("  %p: Event.ctor: t %p: '", this, &t);
-}
-
-Event::Event (const Event & e)
-   : idx(e.idx)
-   , pre_proc(e.pre_proc)
-   , pre_mem(e.pre_mem)
-   , post_proc(e.post_proc)
-   , pre_readers(e.pre_readers)
-   , post_mem(e.post_mem)
-   , post_wr(e.post_wr)
-   , post_rws(e.post_rws)
-   , val(e.val)
-   , localvals(e.localvals)
-   , trans(e.trans)
-   , color(e.color)
-   , clock(e.clock)
-{
-}
-#endif
-
 bool Event::is_bottom () const
 {
    return this->evtid.pre_mem == this;
@@ -520,7 +374,7 @@ bool Event::is_bottom () const
 /*
  * set up its history, including 3 attributes: pre_proc, pre_mem and pre_readers
  */
-#if 0
+
 void Event::mk_history(const Config & c)
 {
    /*
@@ -544,37 +398,37 @@ void Event::mk_history(const Config & c)
 
    if (this->is_bottom()) return;
 
-   ir::Process & p = this->trans->proc;
+   ir::Process & p = this->evtid.trans->proc;
    std::vector<Process> & procs = c.unf.m.procs;
-   int varaddr = trans->var - procs.size();
+   int varaddr = evtid.trans->var - procs.size();
 
    /*
     * e's parent is the latest event of the process
     * for all events, initialize pre_proc of new event by the latest event of config (in its process)
     */
-   pre_proc = c.latest_proc[p.id];
+   evtid.pre_proc = c.latest_proc[p.id];
 
-   switch (trans->type)
+   switch (evtid.trans->type)
    {
       case ir::Trans::RD:
-         pre_mem  = c.latest_op[p.id][varaddr];
+         evtid.pre_mem  = c.latest_op[p.id][varaddr];
          /* pre_readers stays empty for RD events */
          break;
 
       case ir::Trans::WR:
-         pre_mem  = c.latest_wr[varaddr];
+         evtid.pre_mem  = c.latest_wr[varaddr];
         /*
          * set pre-readers = set of latest events which use the variable copies of all processes
          * size of pre-readers is numbers of copies of the variable = number of processes
          */
 
          for (unsigned int i = 0; i < procs.size(); i++)
-            pre_readers.push_back(c.latest_op[i][varaddr]);
+            evtid.pre_readers.push_back(c.latest_op[i][varaddr]);
 
          break;
 
       case ir::Trans::SYN:
-         pre_mem  = c.latest_op[p.id][varaddr]; // pre_mem can be latest SYN from another process (same variable)
+         evtid.pre_mem  = c.latest_op[p.id][varaddr]; // pre_mem can be latest SYN from another process (same variable)
          break;
 
       case ir::Trans::LOC:
@@ -585,13 +439,13 @@ void Event::mk_history(const Config & c)
     	  * If LOC is a EXIT, no variable touched, no pre_mem
     	  * How to solve: v4 = v3 + 1; a RD for v3 but a WR for v4 (local variable)
     	  */
-         pre_mem   = nullptr;
+         evtid.pre_mem   = nullptr;
          break;
    }
 
    DEBUG("   Make history: %s ",this->str().c_str());
 }
-#endif
+
 
 void Event::set_vclock()
 {
@@ -1043,12 +897,8 @@ bool Event:: is_same(Event & e) const
 {
    if (this->is_bottom() or e.is_bottom()) return false;
 
-   if ( (evtid.trans == e.evtid.trans) && (evtid.pre_proc == e.evtid.pre_proc)
-         && (evtid.pre_mem == e.evtid.pre_mem) && (evtid.pre_readers == e.evtid.pre_readers))
+   if ( e.evtid == evtid)
       return true;
-  /*  if (this->evtid == e.evtid) // overload the operator == in class EventID
-       return true;
-  */
 
    return false;
 }
@@ -1268,7 +1118,7 @@ void Config::add (unsigned idx)
  */
 void Config::__update_encex (Event & e )
 {
-  //Event * pe;
+  // Actually we don't use e any more!!!
    DEBUG ("%p: Config.__update_encex(%p)", this, &e);
 
    assert(unf.m.trans.size() > 0);
@@ -1308,12 +1158,13 @@ void Config::remove_cfl(Event & e)
 
    while (i < en.size())
    {
-      if (e.check_cfl(*en[i]) == true)
+      if (e.check_dicfl(*en[i]) == true)
       {
          printf ("  %p ", en[i]);
          e.dicfl.push_back(en[i]); // add en[i] to direct conflicting set of e
          en[i]->dicfl.push_back(&e); // add e to direct conflict set of en[i]
          cex.push_back(en[i]);
+         /* remove en[i] */
          en[i] = en.back();
          en.pop_back();
       }
@@ -1380,7 +1231,7 @@ void Config:: RD_cex(Event * e)
       /* Need to check the event's history before adding it to the unf
        * Don't add events which are already in the unf
        */
-      Ident * id = new Ident(e->evtid.trans, ep, pr_mem);
+      Ident * id = new Ident(e->evtid.trans, ep, pr_mem, std::vector<Event *> ());
       Event * newevt = &unf.find_or_add (*id);
 
       add_to_cex(newevt);
@@ -1461,7 +1312,7 @@ void Config:: SYN_cex(Event * e)
        *  Need to check the event's history before adding it to the unf
        * Don't add events which are already in the unf
        */
-      Ident id(e->evtid.trans, e->evtid.pre_proc, e->evtid.pre_mem);
+      Ident id(e->evtid.trans, e->evtid.pre_proc, e->evtid.pre_mem, std::vector<Event *>());
       Event * newevt = &unf.find_or_add (id);
       add_to_cex(newevt);
 
@@ -1737,8 +1588,7 @@ void Unfolding::__create_bottom ()
 {
    assert (evt.size () == 0);
    /* create an "bottom" event with all empty */
-   Ident id;
-   evt.emplace_back(*this,id); // need reviewing
+   evt.emplace_back(*this); // need reviewing
    count++;
    bottom = &evt.back(); // using = operator
    bottom->evtid.pre_mem = bottom;
@@ -1753,22 +1603,25 @@ void Unfolding::create_event(ir::Trans & t, Config & c)
 {
    /* Need to check the event's history before adding it to the unf
     * Only add events that are really enabled at the current state of config.
-    * Don't add events already in the unf (enalbed at the previous state)
+    * Don't add events already in the unf (enabled at the previous state)
     */
-   Ident id;
-   evt.emplace_back(*this, id);
+   Ident id(t, c);
+   Event e(*this, id);
 
-   for (auto ee :c.en)
-      if (evt.back().is_same(*ee))
+   for (auto ee :evt) // check if it exists in the evt
+      if (e.is_same(ee))
       {
-         printf("   Already in the unf as %s", ee->str().c_str());
-         evt.pop_back(); // remove from the evt
+         printf("   Already in the unf as %s", ee.str().c_str());
          return;
       }
 
+   DEBUG("Not the same");
+   evt.push_back(e);
+
+   // need carefully considering
    evt.back().update_parents();
    count++;
-   c.en.push_back(&evt.back());
+   c.en.push_back(&evt.back()); // do we need to check its existence
    DEBUG("   Unf.evt.back: id: %s \n ", evt.back().str().c_str());
 }
 #if 0

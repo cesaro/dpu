@@ -4,6 +4,8 @@
 
 #include "ir.hh"
 #include <unordered_map>
+#include <functional>
+
 /*
  * Event:
  * - take unf and trans as arguments
@@ -22,8 +24,8 @@ namespace pes
 class Config;
 class Unfolding;
 class Event;
-//class Ident;
 
+//-------template class Node ---------
 template <class T, int SS>
 class Node
 {
@@ -40,7 +42,7 @@ public:
    void print_skip_preds();
    Event & find_pred(int d) const;
 };
-
+//-------template class MultiNode------
 template <class T, int S, int SS> // S: number of trees, SS: skip step
 class MultiNode
 {
@@ -50,7 +52,7 @@ public:
    MultiNode() = default;
    MultiNode(T * pp, T * pm);
 };
-//----------------
+//-----Ident class-------------
 class Ident
 {
 public:
@@ -65,6 +67,17 @@ public:
    Ident(const ir::Trans & t, const Config & c);
    bool operator == (const Ident & id) const;
 };
+//--------struct IdHasher--------
+template <class T> struct IdHasher;
+template<> struct IdHasher<Ident>
+{
+   std::size_t operator()(const Ident& k) const
+   {
+      std::size_t h1 = std::hash<std::unique_ptr<ir::Trans *>>() (k.trans);
+      std::size_t h2 = std::hash<std::unique_ptr<Event *>>() (k.pre_proc);
+
+   }
+};
 
 //--------class Event------------
 class Event: public MultiNode<Event,2,3> // 2 trees, skip step = 3
@@ -72,12 +85,14 @@ class Event: public MultiNode<Event,2,3> // 2 trees, skip step = 3
 public:
    unsigned int          idx;
    Ident                 evtid;
+   std::unordered_map<int, Event *, IdHasher>    evt_map;
 
    std::vector<Event *>  post_proc;  // set of successors in the same process
 
-   // only for WR events
-   // each vector of children events for a process
-
+   /*
+    *  Only for WR events
+    *  Each vector of children events for a process
+    */
    std::vector< std::vector<Event *> >   post_mem; // size = numprocs x mem
    std::vector<Event * >                 post_wr; // WR children of a WR trans
 
@@ -225,7 +240,6 @@ private :
 }; // end of class Unfolding
 
 } // namespace pes
-
 
 #endif
 

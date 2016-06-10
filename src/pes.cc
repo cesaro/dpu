@@ -14,6 +14,10 @@ f * pes.cc
 #include <string>
 #include <algorithm>
 #include <sys/stat.h>
+//#include <functional>
+//#include <boost/functional/hash.hpp>
+
+
 
 #include "pes.hh"
 #include "misc.hh"
@@ -23,7 +27,13 @@ using std::vector;
 using std::fstream;
 using std::string;
 using namespace ir;
-
+using std::size_t;
+using std::hash;
+/*
+using boost::hash_range;
+using boost::hash_value;
+using boost::hash_combine;
+*/
 namespace pes{
 
 /*
@@ -290,12 +300,17 @@ Ident::Ident(const ir::Trans & t, const Config & c)
  */
 bool Ident:: operator == (const Ident & id) const
 {
+   /*
    if ( (trans == id.trans) && (pre_proc == id.pre_proc)
            && (pre_mem == id.pre_mem) && (pre_readers == id.pre_readers))
       return true;
 
    return false;
+   */
+   return ((trans == id.trans) and (pre_proc == id.pre_proc)
+         and (pre_mem == id.pre_mem) and (pre_readers == id.pre_readers));
 }
+
 /*
  * Methods for class Event
  */

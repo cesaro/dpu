@@ -67,17 +67,32 @@ public:
    Ident(const ir::Trans & t, const Config & c);
    bool operator == (const Ident & id) const;
 };
+//-------template hash function for pointer----
+template<typename Tval>
+struct MyTemplatePointerHash {
+    size_t operator()(const Tval* val) const
+    {
+       static const size_t shift = (size_t)log2(1 + sizeof(Tval));
+       return (size_t)(val) >> shift;
+    }
+};
+
 //--------struct IdHasher--------
 template <class T> struct IdHasher;
 template<> struct IdHasher<Ident>
 {
-   std::size_t operator()(const Ident& k) const
+   std::size_t operator() (const Ident& k) const
    {
-      std::size_t h1 = std::hash<std::unique_ptr<ir::Trans *>>() (k.trans);
-      std::size_t h2 = std::hash<std::unique_ptr<Event *>>() (k.pre_proc);
+      std::size_t h1 = MyTemplatePointerHash<ir::Trans>() (k.trans);
+      std::size_t h2 = MyTemplatePointerHash<Event>() (k.pre_proc);
+      std::size_t h3 = MyTemplatePointerHash<Event>() (k.pre_mem);
+      std::size_t h2 =  Event() (k.pre_readers);
+
+      return h2;
 
    }
 };
+
 
 //--------class Event------------
 class Event: public MultiNode<Event,2,3> // 2 trees, skip step = 3
@@ -85,7 +100,7 @@ class Event: public MultiNode<Event,2,3> // 2 trees, skip step = 3
 public:
    unsigned int          idx;
    Ident                 evtid;
-   std::unordered_map<int, Event *, IdHasher>    evt_map;
+   std::unordered_map <Event *, IdHasher<Ident> >    evt_map;
 
    std::vector<Event *>  post_proc;  // set of successors in the same process
 
@@ -153,6 +168,18 @@ public:
 
    friend class Node<Event,3>;
    friend Unfolding;
+
+   //-----hash function-------
+   //size_t operator() (const Event * val) const { return (size_t)val;}
+   size_t operator() (std::vector<const Event *> v) const
+   {
+      size_t it = (size_t) v[0] >> 3;
+      for (int i = 1; i < v.size(); i++)
+      {
+         it = it ^ ((size_t) v[i] >> 3);// shift a bit to the right, 3 for 64 bit, 1 for 32 bit
+      }
+      return it;
+   }
 
 }; // end of class Event
 

@@ -508,18 +508,19 @@ Given two arbitrary events $e$ and $e'$ in the unfolding, decide if they are in 
 			\item touch the same variable: $v(e) = v(e')$ and they are (RD, RD). Assume $w_1$, $w_2$ are the latest WR events in two local configurations of $e$ and $e'$ respectively. Apply \cref{a:layer_tree} to determine the relation between two WRs: they are either in conflict or in causality.
 			\begin{itemize}
 				\item
-					$w_1 \cfl w_2$: we have $e \cfl e'$.  
+					If $w_1 = w_2$, then $e \co e'$ (which implies that $\lnot (e \cfl e')$).
 				\item
-					$w_1 < w_2$, then $e < e'$ or $e \cfl e'$(*)
-				
-				 To determine the case (*), find the WR event $w'$ which satisfies: $w'< w_2$ and $w'.pre\_mem = w_1 $
-				\begin{itemize}
-					\item
-						If $e < w'$ then $e < e'$
-					\item
-						If $e$ is not causal to $w'$ then $e \cfl e'$
-				\end{itemize}					
-				
+					I $w_1 \cfl w_2$, then necessarily we have $e \cfl e'$.
+				\item
+					If not, then either $w_1 < w_2$ or $w_2 < w_1$; \wlogg, let's assume that $w_1 < w_2$.
+					Two cases are possible: either (a) $e < w_2$ or (b) $\lnot (e < w_2)$, which implies that $e \cfl w_2$
+					(and then $e \cfl e'$).
+					
+					To check wether (a) or (b) holds, we find $w'$,
+					the only writer event at depth $\depth{w_1} + 1$ that is a causal predecessor of $w_2$.
+					Let $r_1$ be the reader event 
+					\verb!w'->pre_readers[e->trans->proc.id]!. Events $r_1$ and $e$ are events in the same process.
+					If $r_1 < e$, then we are at case (b), otherwise $e < r_1$, and we are at case (a).
 			\end{itemize}
 			\item 
 				touch the same variable: $v(e) = v(e')$ and $e$ is a WR and $e'$ is a RD. Find the latest WR predecessor of $e'$, called $w'$. Apply  \cref{a:layer_tree} for WR tree to determine if $e$ (a WR) and $w'$ are in conflict or not.

@@ -65,6 +65,8 @@ public:
    Ident();
    Ident(const ir::Trans * t, Event * pp, Event * pm, std::vector<Event*> pr);
    Ident(const ir::Trans & t, const Config & c);
+   Ident(const Ident & id);
+   std::string str() const;
    bool operator == (const Ident & id) const;
 };
 //-------template hash function for pointer----
@@ -76,7 +78,20 @@ struct MyTemplatePointerHash {
        return (size_t)(val) >> shift;
     }
 };
+template <typename V>
+struct MyVectorHash
+{
+   size_t operator() (const std::vector<V *> v) const
+   {
+      if (v.empty())
+         return (size_t) 0;
 
+      size_t it = (size_t) v[0] >> 3;
+      for (int i = 1; i < v.size(); i++)
+         it = it ^ ((size_t) v[i] >> 3);// shift a bit to the right, 3 for 64 bit, 1 for 32 bi
+      return it;
+    }
+};
 //--------struct IdHasher--------
 template <class T> struct IdHasher;
 template<> struct IdHasher<Ident>
@@ -86,13 +101,12 @@ template<> struct IdHasher<Ident>
       std::size_t h1 = MyTemplatePointerHash<ir::Trans>() (k.trans);
       std::size_t h2 = MyTemplatePointerHash<Event>() (k.pre_proc);
       std::size_t h3 = MyTemplatePointerHash<Event>() (k.pre_mem);
-      std::size_t h2 =  Event() (k.pre_readers);
+      std::size_t h4 = MyVectorHash<Event>() (k.pre_readers);
 
-      return h2;
+      return h1^h2^h3^h4;
 
    }
 };
-
 
 //--------class Event------------
 class Event: public MultiNode<Event,2,3> // 2 trees, skip step = 3
@@ -100,7 +114,6 @@ class Event: public MultiNode<Event,2,3> // 2 trees, skip step = 3
 public:
    unsigned int          idx;
    Ident                 evtid;
-   std::unordered_map <Event *, IdHasher<Ident> >    evt_map;
 
    std::vector<Event *>  post_proc;  // set of successors in the same process
 
@@ -137,8 +150,9 @@ public:
    Event() = default;
    Event (Unfolding & u);
    Event (Unfolding & u, Ident & ident);
+   Event (Unfolding & u, const ir::Trans & t, const Config & c);
 
-   void mk_history (const Config & c);
+   //void mk_history (const Config & c);
    void update_parents();
    void eprint_debug();
 
@@ -169,17 +183,6 @@ public:
    friend class Node<Event,3>;
    friend Unfolding;
 
-   //-----hash function-------
-   //size_t operator() (const Event * val) const { return (size_t)val;}
-   size_t operator() (std::vector<const Event *> v) const
-   {
-      size_t it = (size_t) v[0] >> 3;
-      for (int i = 1; i < v.size(); i++)
-      {
-         it = it ^ ((size_t) v[i] >> 3);// shift a bit to the right, 3 for 64 bit, 1 for 32 bit
-      }
-      return it;
-   }
 
 }; // end of class Event
 
@@ -238,7 +241,7 @@ class Unfolding
 public:
    static unsigned count; // count number of events.
    std::vector<Event>    evt; // events actually in the unfolding
- //  std::unordered_map <EventID, Event *> evttab;
+   std::unordered_map <Ident, Event *, IdHasher<Ident>>    evttab;
    ir::Machine &         m;
    Event *               bottom;
    int                   colorflag;

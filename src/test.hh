@@ -26,5 +26,5 @@ void test22 ();
 void test23 ();
 void test24 ();
 void test25 ();
-
+void test26 ();
 #endif

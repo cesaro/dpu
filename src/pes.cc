@@ -294,19 +294,46 @@ Ident::Ident(const ir::Trans & t, const Config & c)
 
   // DEBUG("   Make history: %s ",this->str().c_str());
 }
+//------------------
+Ident::Ident(const Ident & id)
+{
+   trans = id.trans;
+   pre_proc = id.pre_proc;
+   pre_mem = id.pre_mem;
+   pre_readers = id.pre_readers;
+}
+//------------------
+std::string Ident::str () const
+{
+   std::string st;
 
-/*
- * Overlap == operator for Ident
- */
+      if (pre_readers.empty())
+         st = "None\n";
+      else
+      {
+         for (unsigned int i = 0; i < pre_readers.size(); i++)
+            if (i == pre_readers.size() -1)
+               st += std::to_string(pre_readers[i]->idx);
+            else
+               st += std::to_string(pre_readers[i]->idx) + ", ";
+         st +="\n";
+      }
+
+      const char * code = trans ? trans->code.str().c_str() : "";
+      int proc = trans ? trans->proc.id : -1;
+
+      if (pre_mem != nullptr)
+         return fmt ("trans %p, code '%s', proc %d, pre_proc %p, pre_mem %p, pre_readers: %s ",
+            trans, code, proc, pre_proc, pre_mem, st.c_str());
+      else
+        return fmt ("trans %p, code '%s', proc %d, pre_proc %p, pre_mem(null) %p, pre_readers: %s",
+            trans, code, proc, pre_proc, pre_mem, st.c_str());
+
+}
+
+/* Overlap == operator for Ident */
 bool Ident:: operator == (const Ident & id) const
 {
-   /*
-   if ( (trans == id.trans) && (pre_proc == id.pre_proc)
-           && (pre_mem == id.pre_mem) && (pre_readers == id.pre_readers))
-      return true;
-
-   return false;
-   */
    return ((trans == id.trans) and (pre_proc == id.pre_proc)
          and (pre_mem == id.pre_mem) and (pre_readers == id.pre_readers));
 }
@@ -318,17 +345,17 @@ bool Ident:: operator == (const Ident & id) const
 /*
  * To create an event with a specific identity in the unfolding u
  */
-Event:: Event (Unfolding & u, Ident & ident)
+Event:: Event (Unfolding & u, const ir::Trans & t, const Config & c)
 :  MultiNode()
 ,  idx(u.count)
-,  evtid(ident)
+,  evtid(t,c)
 ,  val(0)
 ,  localvals(0)
 ,  color(0)
 {
    //assert(c.unf.count < c.unf.evt.capacity());
    unsigned numprocs = u.m.procs.size();
-   if (ident.trans->type == ir::Trans::WR)
+   if (evtid.trans->type == ir::Trans::WR)
       {
          std::vector<Event *> temp;
          for (unsigned i = 0; i < numprocs; i++)
@@ -339,15 +366,15 @@ Event:: Event (Unfolding & u, Ident & ident)
       for (unsigned i = 0; i < numprocs; i++)
          clock.push_back(0);
 
-      DEBUG ("  %p: Event.ctor: t %p: '%s'", this, ident.trans, ident.trans->str().c_str());
+      DEBUG ("  %p: Event.ctor: t %p: '%s'", this, evtid.trans, evtid.trans->str().c_str());
       //mk_history();
-      ASSERT (ident.pre_proc != NULL);
+      ASSERT (evtid.pre_proc != NULL);
 
       // initialize the corresponding nodes, after setting up the history
-      node[0].set_up(0, ident.pre_proc);
-      if (ident.trans->type != ir::Trans::LOC)
+      node[0].set_up(0, evtid.pre_proc);
+      if (evtid.trans->type != ir::Trans::LOC)
       {
-         node[1].set_up(1, ident.pre_mem);
+         node[1].set_up(1, evtid.pre_mem);
       }
 
       /* set up vector clock */
@@ -357,6 +384,44 @@ Event:: Event (Unfolding & u, Ident & ident)
 
 }
 //-------------------
+Event:: Event (Unfolding & u, Ident & ident)
+:  MultiNode()
+,  idx(u.count)
+,  evtid(ident)
+,  val(0)
+,  localvals(0)
+,  color(0)
+{
+   //assert(c.unf.count < c.unf.evt.capacity());
+   unsigned numprocs = u.m.procs.size();
+   if (evtid.trans->type == ir::Trans::WR)
+      {
+         std::vector<Event *> temp;
+         for (unsigned i = 0; i < numprocs; i++)
+            post_mem.push_back(temp);
+      }
+
+      // clock.reserve(numprocs);
+      for (unsigned i = 0; i < numprocs; i++)
+         clock.push_back(0);
+
+      DEBUG ("  %p: Event.ctor: t %p: '%s'", this, evtid.trans, evtid.trans->str().c_str());
+      ASSERT (evtid.pre_proc != NULL);
+
+      // initialize the corresponding nodes, after setting up the history
+      node[0].set_up(0, evtid.pre_proc);
+      if (evtid.trans->type != ir::Trans::LOC)
+      {
+         node[1].set_up(1, evtid.pre_mem);
+      }
+
+      /* set up vector clock */
+      set_vclock();
+      //set_proc_maxevt();
+      //set_var_maxevt();
+
+}
+
 /* For creating bottom event */
 Event::Event (Unfolding & u)
    : MultiNode()
@@ -368,15 +433,15 @@ Event::Event (Unfolding & u)
 {
    // this is for bottom event only
    unsigned numprocs = u.m.procs.size();
-   //unsigned mem = u.m.memsize - numprocs;
 
+   // post_mem is a vector of vectors, so it needs initialized
    std::vector<Event *> temp;
    for (unsigned i = 0; i < numprocs; i++)
       post_mem.push_back(temp);
 
    // initialize vector clock
-   for (unsigned i = 0; i < numprocs; i++)
-      clock.push_back(0);
+   //for (unsigned i = 0; i < numprocs; i++)
+     // clock.push_back(0);
 
    DEBUG ("  %p: Event.ctor:", this);
 }
@@ -389,7 +454,7 @@ bool Event::is_bottom () const
 /*
  * set up its history, including 3 attributes: pre_proc, pre_mem and pre_readers
  */
-
+#if 0
 void Event::mk_history(const Config & c)
 {
    /*
@@ -460,7 +525,7 @@ void Event::mk_history(const Config & c)
 
    DEBUG("   Make history: %s ",this->str().c_str());
 }
-
+#endif
 
 void Event::set_vclock()
 {
@@ -578,16 +643,21 @@ void Event::update_parents()
 {
    DEBUG("   Update_parents:  ");
    if (is_bottom())
+   {
+      DEBUG("Its parent is bottom");
       return;
+   }
 
    Process & p  = this->evtid.trans->proc;
 
    switch (this->evtid.trans->type)
    {
       case ir::Trans::WR:
+
          evtid.pre_proc->post_proc.push_back(this);
+         DEBUG("pre_proc is ok");
          /* update pre_mem */
-         //pre_mem->post_wr.push_back(this); // need to consider its necessary
+         //pre_mem->post_wr.push_back(this); // need to consider its necessary -> No
          for (unsigned i = 0; i < evtid.pre_readers.size(); i++)
          {
             if (evtid.pre_readers[i]->is_bottom() || (evtid.pre_readers[i]->evtid.trans->type == ir::Trans::WR))
@@ -631,6 +701,7 @@ void Event::update_parents()
          break;
    }
 
+   DEBUG("Finished");
    return ;
 }
 /*
@@ -921,8 +992,8 @@ bool Event:: is_same(Event & e) const
 /* Express an event in a string */
 std::string Event::str () const
 {
-  std::string st;
-
+#if 0
+   std::string st;
    if (evtid.pre_readers.empty())
       st = "None";
    else
@@ -943,6 +1014,10 @@ std::string Event::str () const
    else
 	  return fmt ("index: %d, %p: trans %p code: '%s' proc: %d pre_proc: %p pre_mem(null): %p pre_readers: %s",
 	            idx, this, evtid.trans, code, proc, evtid.pre_proc, evtid.pre_mem, st.c_str());
+#endif
+
+   return fmt ("%p, index: %d,  evtid: %s",
+                this, idx,  evtid.str().c_str());
 
 }
 /* represent event's information for dot print */
@@ -966,19 +1041,13 @@ std::string Event::dotstr () const
 /* Print all information of an event */
 void Event::eprint_debug()
 {
-	printf ("Event: %s", this->str().c_str());
-	if (evtid.pre_readers.size() != 0)
-	{
-		DEBUG("\n Pre_readers: ");
-		for (unsigned int i = 0; i < evtid.pre_readers.size(); i++)
-			DEBUG("  Process %d: %d",i, evtid.pre_readers[i]->idx);
-	}
-	else
-	   DEBUG("\n No pre_readers");
+
+   printf ("Event: %p, id: %d, Ident: %s", this, this->idx, this->evtid.str().c_str());
+
 	//print post_mem
 	if (post_mem.size() != 0)
 		{
-			DEBUG(" Post_mem: ");
+			DEBUG("Post_mem: ");
 			for (unsigned int i = 0; i < post_mem.size(); i++)
 			{
 			   printf("  Process %d:", i);
@@ -1061,7 +1130,7 @@ void Config::add_any ()
 void Config::add (const Event & e)
 {
 
-   DEBUG ("\n%p: Config.add: %p\n", this, e.str().c_str());
+   DEBUG ("\n\n%p: Config.add: %p\n", this, e.str().c_str());
    for (unsigned int i = 0; i < en.size (); i++)
       if (e == *en[i]) add (i);
    throw std::range_error ("Trying to add an event not in enable set by a configuration");
@@ -1226,7 +1295,6 @@ void Config:: RD_cex(Event * e)
 {
    DEBUG(" %p, id:%d: RD conflicting extension", e, e->idx);
    Event * ep, * em, *pr_mem; //pr_mem: pre_mem
-  // const Trans & t = *(e->evtid.trans);
    ep = e->evtid.pre_proc;
    em = e->evtid.pre_mem;
 
@@ -1594,7 +1662,7 @@ Unfolding::Unfolding (ir::Machine & ma)
    : m (ma)
    , colorflag(0)
 {
-   evt.reserve(50); // maximum number of events????
+   evt.reserve(1000); // maximum number of events????
    DEBUG ("%p: Unfolding.ctor: m %p", this, &m);
    __create_bottom ();
 }
@@ -1609,35 +1677,48 @@ void Unfolding::__create_bottom ()
    bottom->evtid.pre_mem = bottom;
    bottom->evtid.pre_proc = bottom;
 
+   /* add to the hash table evttab */
+   DEBUG("%s", bottom->evtid.str().c_str());
+
+   evttab.emplace(bottom->evtid, bottom);
+
    DEBUG ("%p: Unfolding.__create_bottom: bottom %p", this, &evt.back());
+   //bottom->eprint_debug();
 }
 /*
  * create an event with enabled transition and config.
  */
 void Unfolding::create_event(ir::Trans & t, Config & c)
 {
-   /* Need to check the event's history before adding it to the unf
+   /*
+    * Need to check the event's history before adding it to the unf
     * Only add events that are really enabled at the current state of config.
     * Don't add events already in the unf (enabled at the previous state)
     */
-   Ident id(t, c);
+   Ident id(t,c);
    Event e(*this, id);
-
-   for (auto ee :evt) // check if it exists in the evt
-      if (e.is_same(ee))
+   /* Check if new event exist in evt or not */
+   std::unordered_map <Ident, Event *, IdHasher<Ident>>::const_iterator got = evttab.find (id);
+   if ( got != evttab.end() )
       {
-         printf("   Already in the unf as %s", ee.str().c_str());
-         return;
+         DEBUG("   already in the unf as event with idx = %d", evttab[id]);
+         //return *evttab[id];
       }
 
-   DEBUG("Not the same");
    evt.push_back(e);
 
    // need carefully considering
    evt.back().update_parents();
-   count++;
-   c.en.push_back(&evt.back()); // do we need to check its existence
-   DEBUG("   Unf.evt.back: id: %s \n ", evt.back().str().c_str());
+
+   /* add to the hash table evttabl */
+   //evttab[evt.back().evtid] = &evt.back();
+   evttab.emplace(evt.back().evtid, &evt.back());
+
+   count++; // increase the number of objects in Event class
+   c.en.push_back(&evt.back()); // do we need to check its existence???
+   DEBUG("   Unf.evt.back:%s \n ", evt.back().str().c_str());
+
+
 }
 #if 0
 // check if temp is already in the unfolding. If not, add it to unf.
@@ -1655,7 +1736,7 @@ Event & Unfolding:: find_or_add(const ir::Trans & t, Event * ep, Event * pr_mem)
       }
 
    evt.push_back(Event(t, ep, pr_mem, *this));
-   evt.back().update_parents(); // to make sure of conflict
+  // evt.back().update_parents(); // to make sure of conflict
    count++;
    DEBUG("   new event: id: %s \n ", evt.back().str().c_str());
    return evt.back();
@@ -1683,7 +1764,7 @@ Event & Unfolding:: find_or_addWR(const ir::Trans & t, Event * ep, Event * ew, s
    DEBUG("Addr of t: %p", &t);
    evt.push_back(Event(t, ep, ew, combi, *this));
 
-   evt.back().update_parents(); // to make sure of conflict
+  // evt.back().update_parents(); // to make sure of conflict
    count++;
    DEBUG("   new event: id: %s \n ", evt.back().str().c_str());
    return evt.back();
@@ -1695,17 +1776,32 @@ Event & Unfolding:: find_or_add(Ident & id)
    /* Need to check the event's history before adding it to the unf
     * Don't add events which are already in the unf
     */
-
+#if 0
    for (auto & ee: this->evt)
       if (ee.evtid == id )
       {
          DEBUG("   already in the unf as event with idx = %d", ee.idx);
          return ee;
       }
+#endif
+
+   std::unordered_map <Ident, Event *, IdHasher<Ident>>::const_iterator got = evttab.find (id);
+
+   if ( got != evttab.end() )
+   {
+      DEBUG("   already in the unf as event with idx = %d", evttab[id]);
+      return *evttab[id];
+   }
 
    evt.push_back(Event(*this, id));
-   evt.back().update_parents(); // to make sure of conflict
+
+   /* add to the hash table evttabl */
+   //evttab[evt.back().evtid] = &evt.back();
+   evttab.emplace(evt.back().evtid, &evt.back());
+
+   //evt.back().update_parents(); // to make sure of conflict
    count++;
+
    DEBUG("   new event: id: %s \n ", evt.back().str().c_str());
    return evt.back();
 }

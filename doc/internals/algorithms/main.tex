@@ -503,9 +503,14 @@ Given two arbitrary events $e$ and $e'$ in the unfolding, decide if they are in 
 	\item e and e' are in the same process: $p(e) = p(e')$ , apply \cref{a:layer_tree} for tree of events in same process
 	\item e and e' are in different processes: $p(e)\neq p(e')$
 		\begin{itemize}
-			\item touch the same variable: $v(e) = v(e')$ and $ type(e) = type(e') = WR$ , apply \cref{a:layer_tree} for tree of WR events 
-			\item touch the same variable: $v(e) = v(e')$ and $ type(e) = type(e') = SYN$ , apply \cref{a:layer_tree} for tree of SYN
-			\item touch the same variable: $v(e) = v(e')$ and they are (RD, RD). Assume $w_1$, $w_2$ are the latest WR events in two local configurations of $e$ and $e'$ respectively. Apply \cref{a:layer_tree} to determine the relation between two WRs: they are either in conflict or in causality.
+			\item
+				touch the same variable: $v(e) = v(e')$ and $ type(e) = type(e') = WR$ , apply \cref{a:layer_tree} for tree of WR events 
+			\item
+				touch the same variable: $v(e) = v(e')$ and $ type(e) = type(e') = SYN$ , apply \cref{a:layer_tree} for tree of SYN
+			\item
+				touch the same variable: $v(e) = v(e')$ and they are (RD, RD). Assume $w_1$, $w_2$ are the latest WR events in two local
+				configurations of $e$ and $e'$ respectively. Apply \cref{a:layer_tree} to determine the relation between two WRs: 
+				they are either inconflict or in causality.
 			\begin{itemize}
 				\item
 					If $w_1 = w_2$, then $e \co e'$ (which implies that $\lnot (e \cfl e')$).
@@ -520,26 +525,39 @@ Given two arbitrary events $e$ and $e'$ in the unfolding, decide if they are in 
 					the only writer event at depth $\depth{w_1} + 1$ that is a causal predecessor of $w_2$.
 					Let $r_1$ be the reader event 
 					\verb!w'->pre_readers[e->trans->proc.id]!. Events $r_1$ and $e$ are events in the same process.
-					If $r_1 < e$, then we are at case (b), otherwise $e < r_1$, and we are at case (a).
+					If $ e' < r_1$, then we are at case (b), otherwise $e < r_1$, and we are at case (a).
 			\end{itemize}
 			\item 
-				touch the same variable: $v(e) = v(e')$ and $e$ is a WR and $e'$ is a RD. Find the latest WR predecessor of $e'$, called $w'$. Apply  \cref{a:layer_tree} for WR tree to determine if $e$ (a WR) and $w'$ are in conflict or not.
+				touch the same variable: $v(e) = v(e')$ and $e$ is a WR and $e'$ is a RD. Find the latest WR predecessor of $e'$, called $w_2$. Apply  						\cref{a:layer_tree} for WR tree to determine if $e$ (a WR) and $w_2$ are in conflict or not.
 				\begin{itemize}
 					\item
-						If $w'\cfl e$ then $e \cfl e'$
+						If $w_2 = e$, then $e < e'$, which implies that $\lnot (e \cfl e')$
 					\item
-						If $ w'< e$ or $e < w'$, do as the case (*).
+						If $w_2 \cfl e$ , then sequentially $e \cfl e'$
+					\item
+						If not, then either $ w_2< e$ or $e < w_2$:
+						\begin{itemize}
+							\item
+								If $ e < w_2 $, we also have $w_2 < e'$, so $e < e'$, which means that $\lnot (e \cfl e')$
+							\item
+								If $w_2 < e$, then two cases are possible: either (a) $e' < e$ or (b) $\lnot (e < e')$, which implies that $e \cfl e'$. 									Here, from e, we find $w'$, the only writer event at depth $\depth{w_2} + 1$ which is a causal predecessor of $e$,
+								Let $r_1$ be the reader event \verb!w'->pre_readers[e->trans->proc.id]!.
+								Events $r_1$ and $e$ are events in the same process. 
+								If $r_1 < e$, then we are at case (a), otherwise $_\lnot (r_1 < e) $, and we are at case (b). 
+						\end{itemize}
 				\end{itemize}
 				
 			\item Other cases where two events touch different variables: $v(e) \neq v(e')$) or two LOCs, store more information:	
 			\begin{itemize}
-				\item For each event $e$, use a vector $maxevt = (e_1, e_2...,e_n)$  (n is the number of variables in the model)
-				while $e_i$ is the maximal event (RD, SYN, WR) in $e$'s local configuration which touches $v_i$ variable :
-				
-				$e_i \in  \left[ e \right]: v(e_i) = v_i$ 
-				and $ \nexists e_i' \in \left[ e \right] : v(e_i') = v_i$ 
-				and $e_i < e_i'$ .
-				\item Apply \cref{a:layer_tree} to check conflict for all pairs of events $(e_i, e_i')$ where $e_i \in e.maxevt$ and $e_i'\in e'.maxevt$ touch the same variable $v_i$
+				\item 
+					For each event $e$, use a vector $maxevt = (e_1, e_2...,e_n)$  (n is the number of variables in the model)
+					while $e_i$ is the maximal event (RD, SYN, WR) in $e$'s local configuration which touches $v_i$ variable :
+					$e_i \in  \left[ e \right]: v(e_i) = v_i$ 
+					and $ \nexists e_i' \in \left[ e \right] : v(e_i') = v_i$ 
+					and $e_i < e_i'$ .
+				\item
+					Apply \cref{a:layer_tree} to check conflict for all pairs of events $(e_i, e_i')$ where $e_i \in e.maxevt$ and
+					$e_i'\in e'.maxevt$ touch the same variable $v_i$
 			\end{itemize}	
 		\end{itemize}
 \end{enumerate}

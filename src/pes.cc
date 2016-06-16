@@ -166,10 +166,10 @@ int max_skip(int d, int base)
 }
 //----------
 template <class T, int SS >
-Event & Node<T,SS>:: find_pred(int d) const
+T & Node<T,SS>:: find_pred(int d) const
 {
    //printf("\n This is function to find a node at a specific depth");
-   Event * next;
+   T * next;
    int i, dis = this->depth - d;
 
    while (dis != 0)
@@ -709,15 +709,8 @@ void Event::update_parents()
  * If this and e are in the same process, check their source
  * If not, check pre_mem chain of this event to see whether e is inside or not (e can only be a RD, SYN or WR)
  */
-bool Event::is_causal_to(Event & e )
+bool Event:: succeed(const Event & e ) const
 {
-#if 0
-   for (unsigned int i = 0; i < clock.size(); i++)
-   if (e->clock[i] > clock[i])
-      return false;
-   return true;
-#endif
-
    if (e.clock < clock)
         return true;
      return false;
@@ -762,19 +755,22 @@ Event & Event:: operator  = (const Event & e)
   return *this;
 }
 /*
- * Find the WR event which is the immediate predecessor
+ * Find the WR event which is the immediate predecessor of a RD
  */
-const Event & Event:: find_latest_pre_WR() const
+const Event & Event:: find_latest_WR_pred() const
 {
    const Event * e = this;
    while (1)
    {
-      if (e->evtid.trans->type != ir::Trans::WR) break;
+      if ((e->evtid.trans->type == ir::Trans::WR) or (e->is_bottom()))
+         break;
       e = e->evtid.pre_mem;
    }
 
    return *e;
 }
+
+#if 0
 /*
  * Find a WR between two WRs
  * Find the WR predecesspr of this event which is also the immediate successor of the event e:
@@ -791,6 +787,7 @@ const Event & Event:: find_post_WR_of(const Event & e) const
 
    return *p;
 }
+#endif
 
 /*
  * Check if two events are in immediate conflict:
@@ -878,10 +875,8 @@ bool Event::check_dicfl( const Event & e )
  */
 bool Event::check_cfl(const Event & e )
 {
-   Event & pre_wr = *this;
-   Event & post_wr = *this;
    if (evtid.trans->proc.id == e.evtid.trans->proc.id)
-     return this->check_conflict_same_proc_tree(e);
+     return this->check_cfl_same_tree<0>(e);
    else
       if (this->evtid.trans->var == e.evtid.trans->var) // have the same value? How about LOC?
       {
@@ -890,27 +885,13 @@ bool Event::check_cfl(const Event & e )
          {
          case ir::Trans::WR: // if this is a WR
            if (e.evtid.trans->type == ir::Trans::WR)
-               return this->check_conflict_same_var_tree(e);
+               return this->check_cfl_same_tree<1>(e);
 
            if (e.evtid.trans->type == ir::Trans::RD)
-           {
-              pre_wr = e.find_latest_pre_WR(); //????
-              if  (this->check_conflict_same_var_tree(pre_wr))
-                    return true;
-              else // pre_wr < e or e < pre_wr need to know which precedes
-              {
-                 post_wr = this->find_post_WR_of(pre_wr); // this > pre_wr
-                 if (this->is_causal_to(post_wr))
-                    return false; // not conflict
-                 else
-                    return true;
-              }
-
-           }
-
+               return check_cfl_WRD(e);
          case ir::Trans::SYN:
             if (e.evtid.trans->type == ir::Trans::SYN)
-               return this->check_conflict_same_var_tree(e);
+               return this->check_cfl_same_tree<1>(e);
             else
                return check_conflict_local_config(e);
 
@@ -918,11 +899,9 @@ bool Event::check_cfl(const Event & e )
             switch (e.evtid.trans->type)
             {
                case ir::Trans::WR:
-                  //const Event & temp = this->find_latest_WR();
-                  return this->check_conflict_same_var_tree(find_latest_pre_WR());
+                  return e.check_cfl_WRD(*this);
                case ir::Trans::RD:
-                  return this->check_conflict_same_var_tree(e);
-                  break;
+                  return check_cfl_2RD(e);
                default:
                   return this->check_conflict_local_config(e);//????
             }
@@ -939,6 +918,37 @@ bool Event::check_cfl(const Event & e )
 
    return false;
 }
+//------same tree ---------
+template <int idx>
+bool Event:: check_cfl_same_tree (const Event & e) const
+{
+   int d1, d2;
+   d1 = node[idx].depth;
+   d2 = e.node[idx].depth;
+   if (d1 == d2)
+      return not(this->is_same(e));
+
+   if (d1 > d2)
+   {
+      Event & temp = node[0].find_pred(d2);
+      if (e.is_same(temp))
+         return false;
+      else
+         return true;
+   }
+   else
+   {
+      Event & temp = e.node[0].find_pred(d1);
+      if (e.is_same(temp))
+         return false;
+      else
+         return true;
+   }
+
+   return false;
+}
+
+#if 0
 // check conflict between two events in the same process tree
 bool Event:: check_conflict_same_proc_tree(const Event & e)
 {
@@ -972,14 +982,74 @@ bool Event:: check_conflict_same_var_tree(const Event & e)
 {
    return false;
 }
-// check conflict between two maximal events for the same variable or process in the event's local configuration
+#endif
+/*
+ * Check WR and RD where this is a WR and e is a RD
+ */
+bool Event:: check_cfl_WRD(const Event & e) const
+{
+   Event * post_wr;
+   const Event * pre_wr = &e.find_latest_WR_pred(); //????
+   if (this->check_cfl_same_tree<1>(*pre_wr))
+      return true;
+   else // pre_wr < this or this < pre_wr
+   {
+      if (pre_wr->succeed(*this)) // this < pre_wr (e < pre_wr < e')
+         return false;
+      else
+      {
+         post_wr = &node[1].find_pred(pre_wr->node[1].depth + 1);
+         if (post_wr->evtid.pre_readers[e.evtid.trans->proc.id]->succeed(e))
+            return false; //in causality
+         else
+            return true;
+      }
+   }
+}
+/*
+ * Check conflict between 2 RDs
+ */
+bool Event:: check_cfl_2RD(const Event & e) const
+{
+   const Event * pre_wr1, * pre_wr2;
+   Event * post_wr;
+   pre_wr1 = &find_latest_WR_pred();
+   pre_wr2 = &e.find_latest_WR_pred();
+      if (pre_wr1->check_cfl_same_tree<1>(*pre_wr2))
+         return true;
+      else // pre_wr1 < pre_wr2 or pre_wr2 < pre_wr1
+      {
+         if (pre_wr1->succeed(*pre_wr2)) // this < pre_wr (e < pre_wr < e')
+         {
+            post_wr = &pre_wr1->node[1].find_pred(pre_wr2->node[1].depth + 1);
+            if (post_wr->evtid.pre_readers[e.evtid.trans->proc.id]->succeed(e))
+               return false; //in causality
+            else
+               return true;
+         }
+         else
+         {
+            post_wr = &pre_wr2->node[1].find_pred(pre_wr1->node[1].depth + 1);
+            if (post_wr->evtid.pre_readers[this->evtid.trans->proc.id]->succeed(*this))
+               return false; //in causality
+            else
+               return true;
+         }
+      }
+   return false;
+}
+
+/*
+ *  check conflict between two maximal events
+ *  for the same variable or process in the event's local configuration
+ */
 bool Event:: check_conflict_local_config(const Event & e)
 {
    return true;
 }
 
 /* check if 2 events are the same or not */
-bool Event:: is_same(Event & e) const
+bool Event:: is_same(const Event & e) const
 {
    if (this->is_bottom() or e.is_bottom()) return false;
 
@@ -989,36 +1059,12 @@ bool Event:: is_same(Event & e) const
    return false;
 }
 
+
 /* Express an event in a string */
 std::string Event::str () const
 {
-#if 0
-   std::string st;
-   if (evtid.pre_readers.empty())
-      st = "None";
-   else
-   {
-      for (unsigned int i = 0; i < evtid.pre_readers.size(); i++)
-         if (i == evtid.pre_readers.size() -1)
-            st += std::to_string(evtid.pre_readers[i]->idx);
-         else
-            st += std::to_string(evtid.pre_readers[i]->idx) + ", ";
-   }
-
-   const char * code = evtid.trans ? evtid.trans->code.str().c_str() : "";
-   int proc = evtid.trans ? evtid.trans->proc.id : -1;
-
-   if (evtid.pre_mem != nullptr)
-      return fmt ("index: %d, %p: trans %p code: '%s' proc: %d pre_proc: %p pre_mem: %p pre_readers: %s ",
-         idx, this, evtid.trans, code, proc, evtid.pre_proc, evtid.pre_mem, st.c_str());
-   else
-	  return fmt ("index: %d, %p: trans %p code: '%s' proc: %d pre_proc: %p pre_mem(null): %p pre_readers: %s",
-	            idx, this, evtid.trans, code, proc, evtid.pre_proc, evtid.pre_mem, st.c_str());
-#endif
-
    return fmt ("%p, index: %d,  evtid: %s",
                 this, idx,  evtid.str().c_str());
-
 }
 /* represent event's information for dot print */
 std::string Event::dotstr () const
@@ -1298,7 +1344,7 @@ void Config:: RD_cex(Event * e)
    ep = e->evtid.pre_proc;
    em = e->evtid.pre_mem;
 
-   while (!(em->is_bottom()) and (ep->is_causal_to(*em) == false))
+   while (!(em->is_bottom()) and (ep->succeed(*em) == false))
    {
       if (em->evtid.trans->type == ir::Trans::RD)
       {
@@ -1378,7 +1424,7 @@ void Config:: SYN_cex(Event * e)
    ep = e->evtid.pre_proc;
    em = e->evtid.pre_mem;
 
-   while (!(em->is_bottom()) and (ep->is_causal_to(*em) == false))
+   while (!(em->is_bottom()) and (ep->succeed(*em) == false))
    {
       if (em->evtid.trans->type == ir::Trans::RD)
       {
@@ -1422,7 +1468,7 @@ void Config:: WR_cex(Event * e)
    ew = e;
    int count = 0;
 
-   while ((ew->is_bottom() == false) && (ep->is_causal_to(*ew)) == false )
+   while ((ew->is_bottom() == false) && (ep->succeed(*ew)) == false )
    {
       for (unsigned k = 0; k < numprocs; k++)
          spikes[k].clear(); // clear all spikes for storing new elements
@@ -1455,10 +1501,10 @@ void Config:: WR_cex(Event * e)
        * remove from the comb ew itself and all RD events that are also in the history
        * should think about bottom!!!
        */
-      if (ep->is_causal_to(*ew) == true)
+      if (ep->succeed(*ew) == true)
       {
          for (int unsigned i = 0; i < spikes.size(); i++)
-            while (ep->is_causal_to(*spikes[i].back()) == true)
+            while (ep->succeed(*spikes[i].back()) == true)
                spikes[i].pop_back(); // WR event at the back and its predecessors have an order backward
       }
 
@@ -1720,71 +1766,12 @@ void Unfolding::create_event(ir::Trans & t, Config & c)
 
 
 }
-#if 0
-// check if temp is already in the unfolding. If not, add it to unf.
-Event & Unfolding:: find_or_add(const ir::Trans & t, Event * ep, Event * pr_mem)
-{
-   /* Need to check the event's history before adding it to the unf
-    * Don't add events which are already in the unf
-    */
-
-   for (auto & ee: this->evt)
-      if (evtid == ee.evtid )
-      {
-         DEBUG("   already in the unf as event with idx = %d", ee.idx);
-         return ee;
-      }
-
-   evt.push_back(Event(t, ep, pr_mem, *this));
-  // evt.back().update_parents(); // to make sure of conflict
-   count++;
-   DEBUG("   new event: id: %s \n ", evt.back().str().c_str());
-   return evt.back();
-}
-/*
- * create a WR with:
- * - t : transition
- * - ep: pre_proc event
- * - combi: set of pre_readers
- */
-Event & Unfolding:: find_or_addWR(const ir::Trans & t, Event * ep, Event * ew, std::vector<Event *> combi)
-{
-   /*
-    * Need to check if there is some event with the same transition, pre_proc and pre_readers in the unf
-    * Don't add events which are already in the unf
-    */
-
-   for (auto & ee: this->evt)
-      if ((ee.trans == &t) and (ee.pre_proc == ep) and (ee.pre_readers == combi) )
-      {
-         DEBUG("   already in the unf as event with idx = %d", ee.idx);
-         return ee;
-      }
-
-   DEBUG("Addr of t: %p", &t);
-   evt.push_back(Event(t, ep, ew, combi, *this));
-
-  // evt.back().update_parents(); // to make sure of conflict
-   count++;
-   DEBUG("   new event: id: %s \n ", evt.back().str().c_str());
-   return evt.back();
-}
-#endif
 //------------
 Event & Unfolding:: find_or_add(Ident & id)
 {
    /* Need to check the event's history before adding it to the unf
     * Don't add events which are already in the unf
     */
-#if 0
-   for (auto & ee: this->evt)
-      if (ee.evtid == id )
-      {
-         DEBUG("   already in the unf as event with idx = %d", ee.idx);
-         return ee;
-      }
-#endif
-
    std::unordered_map <Ident, Event *, IdHasher<Ident>>::const_iterator got = evttab.find (id);
 
    if ( got != evttab.end() )
@@ -1799,7 +1786,7 @@ Event & Unfolding:: find_or_add(Ident & id)
    //evttab[evt.back().evtid] = &evt.back();
    evttab.emplace(evt.back().evtid, &evt.back());
 
-   //evt.back().update_parents(); // to make sure of conflict
+   evt.back().update_parents(); // to make sure of conflict
    count++;
 
    DEBUG("   new event: id: %s \n ", evt.back().str().c_str());

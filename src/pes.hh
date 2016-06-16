@@ -40,7 +40,7 @@ public:
    int compute_size();
    void set_skip_preds(int idx);
    void print_skip_preds();
-   Event & find_pred(int d) const;
+   T & find_pred(int d) const;
 };
 //-------template class MultiNode------
 template <class T, int S, int SS> // S: number of trees, SS: skip step
@@ -160,16 +160,17 @@ public:
    void set_proc_maxevt();
    void set_var_maxevt();
 
-   const Event & find_latest_pre_WR ()const;
-   const Event & find_post_WR_of (const Event & e) const;
+   const Event & find_latest_WR_pred ()const;
    bool check_dicfl (const Event & e); // check direct conflict
    bool check_cfl (const Event & e); // check conflict
-   bool check_conflict_same_proc_tree (const Event & e);
-   bool check_conflict_same_var_tree (const Event & e);
+   template <int idx>
+   bool check_cfl_same_tree (const Event & e) const;
+   bool check_cfl_WRD(const Event & e) const; // this is a WR and e is a RD
+   bool check_cfl_2RD(const Event & e) const;
    bool check_conflict_local_config (const Event & e);
    bool is_bottom () const;
-   bool is_same (Event &) const;
-   bool is_causal_to (Event & e);
+   bool is_same (const Event &) const;
+   bool succeed (const Event & e) const;
 
 
 

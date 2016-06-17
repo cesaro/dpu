@@ -540,8 +540,11 @@ Given two arbitrary events $e$ and $e'$ in the unfolding, decide if they are in 
 							\item
 								If $ e < w_2 $, we also have $w_2 < e'$, so $e < e'$, which means that $\lnot (e \cfl e')$
 							\item
-								If $w_2 < e$, then two cases are possible: either (a) $e' < e$ or (b) $\lnot (e < e')$, which implies that $e \cfl e'$. 									Here, from e, we find $w'$, the only writer event at depth $\depth{w_2} + 1$ which is a causal predecessor of $e$,
-								Let $r_1$ be the reader event \verb!w'->pre_readers[e->trans->proc.id]!.
+								If $w_2 < e$, then two cases are possible: either (a) $e' < e$ or (b) $\lnot (e < e')$,
+								which implies that $e \cfl e'$. Here, from e, we find $w'$,
+								the only writer event at depth $\depth{w_2} + 1$ which is a causal predecessor of $e$,
+								Let $r_1$ be the reader event immediately precedes $w'$ 
+								($r_1 = $\verb!w'->pre_readers[e->trans->proc.id]!)
 								Events $r_1$ and $e$ are events in the same process. 
 								If $r_1 < e$, then we are at case (a), otherwise $_\lnot (r_1 < e) $, and we are at case (b). 
 						\end{itemize}
@@ -550,14 +553,32 @@ Given two arbitrary events $e$ and $e'$ in the unfolding, decide if they are in 
 			\item Other cases where two events touch different variables: $v(e) \neq v(e')$) or two LOCs, store more information:	
 			\begin{itemize}
 				\item 
-					For each event $e$, use a vector $maxevt = (e_1, e_2...,e_n)$  (n is the number of variables in the model)
-					while $e_i$ is the maximal event (RD, SYN, WR) in $e$'s local configuration which touches $v_i$ variable :
-					$e_i \in  \left[ e \right]: v(e_i) = v_i$ 
-					and $ \nexists e_i' \in \left[ e \right] : v(e_i') = v_i$ 
-					and $e_i < e_i'$ .
+					For each event $e$, we use two vectors: one \verb!var_maxevt! includes maximal events  for all variables and 
+					the other \verb!pro_maxevt! includes those for all processes in e' local configuration.
+					\begin{itemize}
+					\item
+						Formally, \verb!var_maxevt! $ = (e_1, e_2...,e_n)$  (n is the number of variables in the model)
+						while $e_i$ is the maximal event (RD, SYN, WR) in $e$'s local configuration which touches $v_i$ variable :
+						$e_i \in  \left[ e \right]: v(e_i) = v_i$ and $ \nexists e_i' \in \left[ e \right] $ such that:
+						$e_i < e_i'$ and $v(e_i') = v_i$ 
+					\item
+						\verb!proc_maxevt! $ = (e_1, e_2...,e_n)$  (n is the number of processes in the model)
+						while $e_i$ is the maximal event of process $p_i$ in $e$'s local configuration:
+						$e_i \in  \left[ e \right]: p(e_i) = p_i$ and $ \nexists e_i' \in \left[ e \right] $ such that:
+						$e_i < e_i'$ and $p(e_i') = p_i$ 
+					\end{itemize}				
 				\item
-					Apply \cref{a:layer_tree} to check conflict for all pairs of events $(e_i, e_i')$ where $e_i \in e.maxevt$ and
-					$e_i'\in e'.maxevt$ touch the same variable $v_i$
+					Apply \cref{a:layer_tree} to check conflict for all pairs of events:
+					\begin{itemize}
+						\item
+							$(e_i, e_i')$ where $e_i \in $ \verb!e.var_maxevt! 	
+							and $e_i'\in $ \verb!e'.var_maxevt! touch the same variable $v_i$
+						\item
+							$(e_i, e_i')$ where $e_i \in $ \verb!e.proc_maxevt! 	
+							and $e_i'\in $ \verb!e'.proc_maxevt! in the same process $p_i$
+					\end{itemize}
+					
+					If there exist any pair $(e_i, e_i')$ such that $e_i \cfl e_i'$, then necessarily $e \cfl e'$			
 			\end{itemize}	
 		\end{itemize}
 \end{enumerate}

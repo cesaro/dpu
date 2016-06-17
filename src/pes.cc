@@ -362,9 +362,15 @@ Event:: Event (Unfolding & u, const ir::Trans & t, const Config & c)
             post_mem.push_back(temp);
       }
 
-      // clock.reserve(numprocs);
+   /* initialize vector clock and vector of maximal events for all processes */
       for (unsigned i = 0; i < numprocs; i++)
+      {
          clock.push_back(0);
+         proc_maxevt.push_back(nullptr);
+      }
+      /* initialize vector of maximal events for all variables*/
+      for (unsigned i = 0; i < u.m.memsize; i++)
+         var_maxevt.push_back(nullptr);
 
       DEBUG ("  %p: Event.ctor: t %p: '%s'", this, evtid.trans, evtid.trans->str().c_str());
       //mk_history();
@@ -376,12 +382,6 @@ Event:: Event (Unfolding & u, const ir::Trans & t, const Config & c)
       {
          node[1].set_up(1, evtid.pre_mem);
       }
-
-      /* set up vector clock */
-      set_vclock();
-      //set_proc_maxevt();
-      //set_var_maxevt();
-
 }
 //-------------------
 Event:: Event (Unfolding & u, Ident & ident)
@@ -395,31 +395,31 @@ Event:: Event (Unfolding & u, Ident & ident)
    //assert(c.unf.count < c.unf.evt.capacity());
    unsigned numprocs = u.m.procs.size();
    if (evtid.trans->type == ir::Trans::WR)
-      {
-         std::vector<Event *> temp;
-         for (unsigned i = 0; i < numprocs; i++)
-            post_mem.push_back(temp);
-      }
-
-      // clock.reserve(numprocs);
+   {
+      std::vector<Event *> temp;
       for (unsigned i = 0; i < numprocs; i++)
-         clock.push_back(0);
+         post_mem.push_back(temp);
+   }
 
-      DEBUG ("  %p: Event.ctor: t %p: '%s'", this, evtid.trans, evtid.trans->str().c_str());
-      ASSERT (evtid.pre_proc != NULL);
+   /* initialize vector clock and vector of maximal events for all processes */
+   for (unsigned i = 0; i < numprocs; i++)
+   {
+      clock.push_back(0);
+      proc_maxevt.push_back(nullptr);
+   }
+   /* initialize vector of maximal events for all variables*/
+   for (unsigned i = 0; i < u.m.memsize; i++)
+      var_maxevt.push_back(nullptr);
 
-      // initialize the corresponding nodes, after setting up the history
-      node[0].set_up(0, evtid.pre_proc);
-      if (evtid.trans->type != ir::Trans::LOC)
-      {
-         node[1].set_up(1, evtid.pre_mem);
-      }
+   DEBUG ("  %p: Event.ctor: t %p: '%s'", this, evtid.trans, evtid.trans->str().c_str());
+   ASSERT (evtid.pre_proc != NULL);
 
-      /* set up vector clock */
-      set_vclock();
-      //set_proc_maxevt();
-      //set_var_maxevt();
-
+   // initialize the corresponding nodes, after setting up the history
+   node[0].set_up(0, evtid.pre_proc);
+   if (evtid.trans->type != ir::Trans::LOC)
+   {
+      node[1].set_up(1, evtid.pre_mem);
+   }
 }
 
 /* For creating bottom event */
@@ -438,11 +438,6 @@ Event::Event (Unfolding & u)
    std::vector<Event *> temp;
    for (unsigned i = 0; i < numprocs; i++)
       post_mem.push_back(temp);
-
-   // initialize vector clock
-   //for (unsigned i = 0; i < numprocs; i++)
-     // clock.push_back(0);
-
    DEBUG ("  %p: Event.ctor:", this);
 }
 
@@ -529,6 +524,9 @@ void Event::mk_history(const Config & c)
 
 void Event::set_vclock()
 {
+   if (this->is_bottom())
+      return;
+
    Process & p = evtid.trans->proc;
    clock = evtid.pre_proc->clock;
    switch (evtid.trans->type)
@@ -570,22 +568,35 @@ void Event::set_vclock()
  */
 void Event::set_proc_maxevt()
 {
-   proc_maxevt = evtid.pre_proc->proc_maxevt; // initialize maxevt by maxevt(pre_proc)
+   if (this->is_bottom())
+      return;
+
+   proc_maxevt = evtid.pre_proc->proc_maxevt; // initialize maxevt by pre_proc.maxevt
+   printf("Proc_maxevt before: ");
+   for (unsigned i = 0; i < proc_maxevt.size(); i++)
+      printf ("%d, ", proc_maxevt[i]->idx);
+   printf("\n");
+
    switch (evtid.trans->type)
    {
         case ir::Trans::LOC:
-          // proc_maxevt = pre_proc->proc_maxevt;
            proc_maxevt[evtid.trans->proc.id] = this;
            break;
 
         case ir::Trans::SYN:
            for (unsigned i = 0; i < proc_maxevt.size(); i++)
-              proc_maxevt[i] = std::max(evtid.pre_mem->proc_maxevt[i], proc_maxevt[i]);
+              if (evtid.pre_mem->proc_maxevt[i]->succeed(*proc_maxevt[i]))
+              {
+                 printf("Oh oh la la");
+                 proc_maxevt[i] = evtid.pre_mem->proc_maxevt[i];
+              }
+              // else do nothing
            break;
 
         case ir::Trans::RD:
            for (unsigned i = 0; i < proc_maxevt.size(); i++)
-              proc_maxevt[i] = std::max(evtid.pre_mem->proc_maxevt[i], proc_maxevt[i]);
+              if (evtid.pre_mem->proc_maxevt[i]->succeed(*proc_maxevt[i]))
+                 proc_maxevt[i] = evtid.pre_mem->proc_maxevt[i];
            break;
 
         case ir::Trans::WR:
@@ -593,58 +604,89 @@ void Event::set_proc_maxevt()
            for (unsigned i = 0; i < proc_maxevt.size(); i++)
            {
               for (unsigned j = 0; j < evtid.pre_readers.size(); j++)
-                 if ( evtid.pre_readers[j]->proc_maxevt[i] > proc_maxevt[i])
+                 if ( evtid.pre_mem->proc_maxevt[i]->succeed(*proc_maxevt[i]))
                      proc_maxevt[i] = evtid.pre_readers[j]->proc_maxevt[i] ;
            }
            break;
    }
-}
 
+   proc_maxevt[this->evtid.trans->proc.id] = this; // maximal event in for its process
+
+   printf("Proc_maxevt after: ");
+     for (unsigned i = 0; i < proc_maxevt.size(); i++)
+        printf ("%d, ", proc_maxevt[i]->idx);
+     printf("\n");
+
+}
 
 /*
  * Set up the vector maxevt which stores maximal events in an event's local configuration
  */
 void Event::set_var_maxevt()
 {
-   var_maxevt = evtid.pre_proc->var_maxevt; // initialize maxevt by maxevt(pre_proc)
-   switch (this->evtid.trans->type)
+   if (this->is_bottom())
+      return;
+
+   var_maxevt = evtid.pre_proc->var_maxevt;
+
+   printf("var_maxevt before: ");
+   for (unsigned i = 0; i < var_maxevt.size(); i++)
+      printf ("%d, ", var_maxevt[i]->idx);
+       printf("\n");
+
+   switch (evtid.trans->type)
    {
-        case ir::Trans::LOC:
-           //var_maxevt = pre_proc->var_maxevt;
-           break;
+      case ir::Trans::SYN:
+         for (unsigned i = 0; i < var_maxevt.size(); i++)
+            if (evtid.pre_mem->var_maxevt[i]->succeed(*var_maxevt[i]))
+               var_maxevt[i] = evtid.pre_mem->var_maxevt[i];
+         // else do nothing
+         var_maxevt[this->evtid.trans->var] = this;
+         break;
 
-        case ir::Trans::SYN:
-           for (unsigned i = 0; i < var_maxevt.size(); i++)
-              var_maxevt[i] = std::max(evtid.pre_mem->var_maxevt[i], var_maxevt[i]);
-           break;
+      case ir::Trans::RD:
+         for (unsigned i = 0; i < var_maxevt.size(); i++)
+            if (evtid.pre_mem->var_maxevt[i]->succeed(*var_maxevt[i]))
+            {
+               var_maxevt[i] = evtid.pre_mem->var_maxevt[i];
+               printf("Oh oh la la");
+            }
+         var_maxevt[this->evtid.trans->var] = this;
+         break;
 
-        case ir::Trans::RD:
-           for (unsigned i = 0; i < var_maxevt.size(); i++)
-              var_maxevt[i] = std::max(evtid.pre_mem->var_maxevt[i], var_maxevt[i]);
-           break;
+      case ir::Trans::WR:
+         // find out the max elements among those of all pre_readers.
+         for (unsigned i = 0; i < var_maxevt.size(); i++)
+         {
+            for (unsigned j = 0; j < evtid.pre_readers.size(); j++)
+               if ( evtid.pre_mem->var_maxevt[i]->succeed(*var_maxevt[i]))
+                  var_maxevt[i] = evtid.pre_readers[j]->var_maxevt[i] ;
+         }
 
-        case ir::Trans::WR:
-           // find out the max elements among those of all pre_readers.
-           for (unsigned i = 0; i < var_maxevt.size(); i++)
-           {
-              for (unsigned j = 0; j < evtid.pre_readers.size(); j++)
-                 if ( evtid.pre_readers[j]->var_maxevt[i] > var_maxevt[i])
-                     var_maxevt[i] = evtid.pre_readers[j]->var_maxevt[i] ;
-           }
-           break;
-   }
+         var_maxevt[this->evtid.trans->var] = this;
+         break;
+
+      case ir::Trans::LOC:
+         // do nothing
+         break;
+     }
+
+
+   printf("var_maxevt after: ");
+   for (unsigned i = 0; i < var_maxevt.size(); i++)
+      printf ("%d, ", var_maxevt[i]->idx);
+   printf("\n");
 }
-
 
 /*
  * Update all events precede current event, including pre_proc, pre_mem and all pre_readers
  */
 void Event::update_parents()
 {
-   DEBUG("   Update_parents:  ");
+   printf("   Update_parents:  ");
    if (is_bottom())
    {
-      DEBUG("Its parent is bottom");
+      printf("   Its parent is bottom");
       return;
    }
 
@@ -655,7 +697,6 @@ void Event::update_parents()
       case ir::Trans::WR:
 
          evtid.pre_proc->post_proc.push_back(this);
-         DEBUG("pre_proc is ok");
          /* update pre_mem */
          //pre_mem->post_wr.push_back(this); // need to consider its necessary -> No
          for (unsigned i = 0; i < evtid.pre_readers.size(); i++)
@@ -701,7 +742,7 @@ void Event::update_parents()
          break;
    }
 
-   DEBUG("Finished");
+   printf(" Finished\n");
    return ;
 }
 /*
@@ -1127,6 +1168,17 @@ void Event::eprint_debug()
          DEBUG(" No post rws");
    // print corresponding in the process tree
    node[0].print_skip_preds();
+   //---------------------
+   printf(" Proc_maxevt: ");
+   for (unsigned i = 0; i < proc_maxevt.size(); i++)
+      printf("%d, ", proc_maxevt[i]->idx);
+     // printf("%p, ", proc_maxevt[i]);
+   printf("\n");
+
+   printf(" Var_maxevt: ");
+      for (unsigned i = 0; i < var_maxevt.size(); i++)
+         printf("%d, ", var_maxevt[i]->idx);
+      printf("\n");
 }
 
 /*
@@ -1360,6 +1412,7 @@ void Config:: RD_cex(Event * e)
       /* Need to check the event's history before adding it to the unf
        * Don't add events which are already in the unf
        */
+
       Ident * id = new Ident(e->evtid.trans, ep, pr_mem, std::vector<Event *> ());
       Event * newevt = &unf.find_or_add (*id);
 
@@ -1710,7 +1763,10 @@ Unfolding::Unfolding (ir::Machine & ma)
 {
    evt.reserve(1000); // maximum number of events????
    DEBUG ("%p: Unfolding.ctor: m %p", this, &m);
+   DEBUG("Bottom is %p", bottom);
    __create_bottom ();
+
+   DEBUG("Bottom is %p", bottom);
 }
 
 void Unfolding::__create_bottom ()
@@ -1720,16 +1776,29 @@ void Unfolding::__create_bottom ()
    evt.emplace_back(*this); // need reviewing
    count++;
    bottom = &evt.back(); // using = operator
-   bottom->evtid.pre_mem = bottom;
+   bottom->evtid.pre_mem  = bottom;
    bottom->evtid.pre_proc = bottom;
+   //DEBUG("%s", bottom->evtid.str().c_str());
 
    /* add to the hash table evttab */
-   DEBUG("%s", bottom->evtid.str().c_str());
-
    evttab.emplace(bottom->evtid, bottom);
 
+   /*
+    * set up vector clock and maxevent
+    * After initialize the history Ident
+    */
+
+   for (unsigned i = 0; i < m.procs.size(); i++)
+   {
+      bottom->clock.push_back(0);
+      bottom->proc_maxevt.push_back(bottom);
+   }
+
+   for (unsigned i = 0; i < m.memsize - m.procs.size(); i++)
+      bottom->var_maxevt.push_back(bottom);
+
    DEBUG ("%p: Unfolding.__create_bottom: bottom %p", this, &evt.back());
-   //bottom->eprint_debug();
+   bottom->eprint_debug();
 }
 /*
  * create an event with enabled transition and config.
@@ -1747,14 +1816,18 @@ void Unfolding::create_event(ir::Trans & t, Config & c)
    std::unordered_map <Ident, Event *, IdHasher<Ident>>::const_iterator got = evttab.find (id);
    if ( got != evttab.end() )
       {
-         DEBUG("   already in the unf as event with idx = %d", evttab[id]);
-         //return *evttab[id];
+         DEBUG("   already in the unf as event with idx = %d", evttab[id]->idx);
+         return;
       }
 
    evt.push_back(e);
-
    // need carefully considering
    evt.back().update_parents();
+
+   /* set up vector clock */
+   evt.back().set_vclock();
+   evt.back().set_proc_maxevt();
+   evt.back().set_var_maxevt();
 
    /* add to the hash table evttabl */
    //evttab[evt.back().evtid] = &evt.back();
@@ -1774,20 +1847,22 @@ Event & Unfolding:: find_or_add(Ident & id)
     */
    std::unordered_map <Ident, Event *, IdHasher<Ident>>::const_iterator got = evttab.find (id);
 
-   if ( got != evttab.end() )
+   if (got != evttab.end())
    {
-      DEBUG("   already in the unf as event with idx = %d", evttab[id]);
+      DEBUG("   already in the unf as event with idx = %d", evttab[id]->idx);
       return *evttab[id];
    }
 
    evt.push_back(Event(*this, id));
-
-   /* add to the hash table evttabl */
-   //evttab[evt.back().evtid] = &evt.back();
-   evttab.emplace(evt.back().evtid, &evt.back());
-
    evt.back().update_parents(); // to make sure of conflict
    count++;
+   /* set up vector clock */
+   evt.back().set_vclock();
+   evt.back().set_proc_maxevt();
+   evt.back().set_var_maxevt();
+
+   /* add to the hash table evttabl */
+   evttab.emplace(evt.back().evtid, &evt.back());
 
    DEBUG("   new event: id: %s \n ", evt.back().str().c_str());
    return evt.back();
@@ -1921,7 +1996,7 @@ void Unfolding::explore_rnd_config ()
    //c.cprint_debug();
 
    c.cprint_dot();
-   c.compute_cex();
+   //c.compute_cex();
    uprint_debug();
    uprint_dot();
 
@@ -1954,7 +2029,7 @@ void Unfolding::explore_driven_config ()
    }
    // c.cprint_debug();
    uprint_debug();
-   c.compute_cex();
+   //c.compute_cex();
    c.cprint_dot();
    uprint_dot();
    return;

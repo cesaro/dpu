@@ -718,10 +718,77 @@ Assume $e.depth > e'.depth$, and , to reach e', do as follows:
 \end{algorithm}
 
 \begin{algorithm}
-Given two reads $e1$ and $e2$
-\caption{Decide the conflict between two reads}
+Given two reads $e$ and $e'$.
+\begin{enumerate}
+	\item
+		Set \verb!w1 = e.find_WR_pred() !
+			\verb!w2 = e'.find_WR_pred()!
+	\item
+		If $w_1 == w_2$
+			return false;
+	\item
+		If $w_1 \cfl w_2$
+			return true;
+	\item
+		If $w_2$ is a successor of $w_1$
+		\begin{itemize}
+			\item
+				Set $w'$ is WR predecessor of $w_2$ at the $w_1.depth + 1$
+			\item
+				Set $r_1 = w'.pre\_preaders[e->trans->proc.id]$
+			\item
+				If ($e$ precedes $r_1$) then $\lnot (e \cfl e')$
+				
+				else 	$e \cfl e'$;
+		\end{itemize}
+		else
+		\begin{itemize}
+			\item
+				Set $w'$ is WR predecessor of $w_1$ at the $w_2.depth + 1$
+			\item
+				Set $r_1 = w'.pre\_preaders[e'->trans->proc.id]$
+			\item
+				If ($e'$ precedes $r_1$) then $\lnot (e \cfl e')$
+				
+				else 	$e \cfl e'$;
+		\end{itemize}
+		
+\end{enumerate}
+\caption{Decide the conflict between a WR and a RD}
 \label{a:reads}	
 \end{algorithm}
+
+\begin{algorithm}
+Given two events $e$ is a WR and $e'$ is a RD
+\begin{enumerate}
+	\item
+		Set 	\verb!w2 = e'.find_WR_pred()!
+	\item
+		If $e == w_2$
+			return false;
+	\item
+		If $e \cfl w_2$
+			return true;
+	\item
+		If $w_2$ is a successor of $e$
+		then $e < e'$
+		else
+		\begin{itemize}
+			\item
+				Set $w'$ is WR predecessor at the $w_2.depth + 1$
+			\item
+				Set $r_1 = w'.pre\_preaders[e'->trans->proc.id]$
+			\item
+				If ($e'$ precedes $r_1$) then $\lnot (e \cfl e')$
+				
+				else 	$e \cfl e'$;
+		\end{itemize}
+		
+\end{enumerate}
+\caption{Decide the conflict between a WR and a RD}
+\label{a:reads}	
+\end{algorithm}
+
 
 \section{LLVM Frontend}
 

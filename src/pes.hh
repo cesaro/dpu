@@ -258,7 +258,7 @@ public:
    void uprint_debug();
    void uprint_dot();
 
-   void explore(Config & C, std::vector<Event *> D, std::vector<Event *> A);
+   void explore(Config & C, std::vector<Event *> & D, std::vector<Event *> & A);
    void explore_rnd_config ();
    void explore_driven_config ();
    void alternative(Config & C, std::vector<Event *> D);

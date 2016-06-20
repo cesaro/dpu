@@ -825,6 +825,44 @@ Given two events $e$ is a WR and $e'$ is a RD
 \label{a:reads}	
 \end{algorithm}
 
+\section{Exloration algorithm}
+\begin{algorithm}
+Let C is current configuration, D is a set of disable events, A is a set of events to be added.
+
+At the beginning, set $C = \{\bot \}$, $D = \emptyset$, $A = \emptyset$ 
+\begin{enumerate}
+	\item
+		Compute C.en and C.cex at the state of C
+	\item
+		If $C.en = \emptyset$, then exit
+	\item
+		Else 
+		\begin{itemize}
+			\item
+				If ($A = \emptyset$), then e is an arbitrary event in C.en
+			\item
+				else e is an event: $e \in A$ and $e \in C.en$
+		\end{itemize}
+	\item
+		C.add(e) \\
+		A.pop(e)
+	\item
+		Come back to step 1 by calling Explore(C,D,A)
+	\item
+		$D.push_back(e)$
+		$J = compute\_alt(C,D)$
+		\begin{itemize}
+			\item
+				If J is not empty, then update $A = \{e: e \in J$
+				and $e\not\in C\}$
+			\item
+				Call Explore(C,D,A)
+		\end{itemize}
+\end{enumerate}
+
+\caption{Unfolding based POR exploration algorithm}
+\label{a:reads}	
+\end{algorithm}
 
 \section{LLVM Frontend}
 

@@ -2099,29 +2099,40 @@ std::vector<Event *> Unfolding:: compute_alt(unsigned int i, const std::vector<s
 /*
  * Explore the entire unfolding
  */
-void Unfolding:: explore(Config & C, std::vector<Event*> D, std::vector<Event*> A)
+void Unfolding:: explore(Config & C, std::vector<Event*> & D, std::vector<Event*> & A)
 {
    Event * pe;
    if (C.en.empty() == true) return ;
 
    if (A.empty() == true)
-       pe = *(C.en.begin()); // choose the first element
+       pe = C.en.back(); // choose the last element
    else
    { //choose the mutual event in A and C.en to add
-      for (auto a = A.begin(); a != A.end(); a++)
-       for (auto e = C.en.begin(); e!= C.en.end(); e++)
+      for (auto a : A)
+       for (auto e : C.en)
           if (*e == *a)
              {
-                pe = *e;
-                A.erase(a);
-                C.en.erase(e);
+                pe = e;
+                /* remove the choosen event from addable set*/
+                a = A.back();
+                A.pop_back();
+
+                /* remove the choosen event from enable set*/
+                //e = C.en.back();
+                C.en.pop_back(); // the choosen event is the one at the back of vector
                 break;
              }
    }
    explore (C, D, A);
-   D.push_back(pe); // add
-   alternative(C,D);
-   explore (C, D, A);
+   // When it is impossible to add any event, choose an alternative to go
+   D.push_back(pe); // ???pe???
+   std::vector<Event *> J;
+  // J = alternative(C,D);????need to see more carefully
+   if (J.empty() == false)
+   {
+      A.push_back(*J.begin()); // choose the first element in J to add
+      explore (C, D, A);
+   }
 }
 
 } // end of namespace

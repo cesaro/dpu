@@ -431,47 +431,50 @@ For each event $e \in C$ such that \verb!e->trans == t!, repeat the following:
 Given a configuration $C \subseteq U$ and a set of events $D \subset U$, an alternative to D after C is an configuration $J \subset U $ such that:
 \begin{itemize}
 \item 
-	$C \cup J$ is a configuration
+	$C \cup J$ is a configuration 						 (1)
 \item
-	for all event $e \in D$ , there is some $e'\in C \cup J$ such that $e' \in  \icfl{e}$
+	for all event $e \in D$ , there is some $e'\in C \cup J$ such that $e' \in  \icfl{e}$ 	(2)
 \end{itemize}
 \end{definition}
 
 
 \noindent
-We have $\forall e \in D: $ $e \in cex(C)$ or $e \in en(C)$.
+We know that $\forall e \in D: $ $e \in cex(C)$ or $e \in en(C)$.
 \begin{enumerate}
 \item
-	If  $e \in cex(C)$, there exists an event $e' \in C: e' \icfl e$. So, it shouldn't be taken into account.
+	If  $e \in cex(C)$, there exists an event $e' \in C: e' \icfl e$. So, e shouldn't be taken into account.
 \item
 	If $e \in en(C)$, do the followings to find out all possible J:
 \end{enumerate}
 
 \begin{itemize}
 \item 
-	$A = \{e_i \in D: e_i \in en(C)\}$. 
-	Set up a \emph{comb} (over A), an $n$-tuple
-	$c \eqdef \tup{s_1, \ldots, s_n}$ of sequences $s_i \in A^*$
+	$A = \{e_i \in D: e_i \in en(C)\}$.
+	Set up a \emph{comb} (over A),
+	an $n$-tuple $c \eqdef \tup{s_1, \ldots, s_n}$ of sequences $s_i \in A^*$
 	(n is the number of elements in A).
-	\begin{itemize}
-	\item
-		Each sequence $s_i$ of the $n$-tuple is called a \emph{spike} which contains all events that are in immediate conflict with $e_{i} \in A$. (Each event has a attribute to store all its immediately-conflicting events).
-	\item
-		If a spike is empty ($e_i$ has no conflicting event), there is no J.
-	\end{itemize}
+	Each sequence $s_i$ of the $n$-tuple is called a \emph{spike} 
+	which contains all events that are in immediate conflict with $e_{i} \in A$.
+	If there is a empty spike, ($e_i$ has no conflicting event), then there is no J.
+\item
+	Given a comb $c$ witout any empty spike, a \emph{combination} over $c$ is any $n$-tuple $a = \tup{e_1, \ldots, e_n} \in A^n$ such that $e_i \in A$ is one of the elements of the sequence $s_i \in A^*$, for $i \in \set{1, \ldots, n}$. \\
+	We should check if a combination $a$ is an alternative J we are looking for. To do that, check:
 	
-\item
-	Given a comb $c$ witout any empty spike, a \emph{combination} of $c$ is any $n$-tuple $\tup{a_1, \ldots, a_n} \in A^n$ such that $a_i \in A$ is one of the elements of the sequence $s_i \in A^*$, for
-	$i \in \set{1, \ldots, n}$.
-\item
-	\begin{itemize}
+\begin{itemize}
 	\item
-		If $\exists e_i$: $e_c \cup C$ is not a configuration, condition (1) is not satisfied, then discard the combination
+		If $\exists e_i$: $e_i \cup C$ is not a configuration, condition (1) is not satisfied, 
+		then discard the combination
 	\item
-		If there exists any two events in $[e_i]$ in conflict, discard the combination.
-	\item
-		If $\tup{a_1, \ldots, a_n}$ is conflict free (there does not exist any pair of events which are in conflict) J will be the union of all their local configuration: $ J = \cup [e'_i]$. Condition (2) is satisfied.
-	\end{itemize}
+		If not, check if $a$ is conflict-free or not
+		\begin{itemize}
+			\item
+				If there exist a pair $(e_i, e_j): e_i \cfl e_j$, discard the combination.
+			\item
+				If $\tup{a_1, \ldots, a_n}$ is conflict free which means there does not exist any pair 
+				of events in conflict, J will be the union of all their local configuration:
+				$ J = \cup [e'_i]$. Condition (2) is satisfied.
+		\end{itemize}
+\end{itemize}
 \end{itemize}
 
 \begin{algorithm}
@@ -528,7 +531,9 @@ Given two arbitrary events $e$ and $e'$ in the unfolding, decide if they are in 
 					If $ e' < r_1$, then we are at case (b), otherwise $e < r_1$, and we are at case (a).
 			\end{itemize}
 			\item 
-				touch the same variable: $v(e) = v(e')$ and $e$ is a WR and $e'$ is a RD. Find the latest WR predecessor of $e'$, called $w_2$. Apply  						\cref{a:layer_tree} for WR tree to determine if $e$ (a WR) and $w_2$ are in conflict or not.
+				touch the same variable: $v(e) = v(e')$ and $e$ is a WR and $e'$ is a RD. 
+				Find the latest WR predecessor of $e'$, called $w_2$.
+				Apply \cref{a:layer_tree} for WR tree to determine if $e$ (a WR) and $w_2$ are in conflict or not.
 				\begin{itemize}
 					\item
 						If $w_2 = e$, then $e < e'$, which implies that $\lnot (e \cfl e')$
@@ -564,7 +569,8 @@ Given two arbitrary events $e$ and $e'$ in the unfolding, decide if they are in 
 					\item
 						\verb!proc_maxevt! $ = (e_1, e_2...,e_n)$  (n is the number of processes in the model)
 						while $e_i$ is the maximal event of process $p_i$ in $e$'s local configuration:
-						$e_i \in  \left[ e \right]: p(e_i) = p_i$ and $ \nexists e_i' \in \left[ e \right] $ such that:
+						$e_i \in  \left[ e \right]: p(e_i) = p_i$ and \\
+						$ \nexists e_i' \in \left[ e \right] $ such that:
 						$e_i < e_i'$ and $p(e_i') = p_i$ 
 					\end{itemize}				
 				\item
@@ -585,39 +591,69 @@ Given two arbitrary events $e$ and $e'$ in the unfolding, decide if they are in 
 
 \noindent
 \textbf{Data Structure}
+An event $e$ has two vectors \verb!proc_maxevt! and \verb!var_maxevt!:
+\begin{itemize}
+	\item
+		\verb!proc_maxevt! = $(e_1, e_2...,e_n)$ (n is the number of processes)
+		which stores pointers to maximal events for all processes $v_i$ in the configuration of e
+	\item
+		\verb!var_maxevt! = $(e_1, e_2...,e_n)$ (n is the number of global variables)
+		which stores pointers to maximal events for all global variables $v_i$ in the configuration of e	
+\end{itemize}
 
-In Event class, there is a vector \verb!maxevt! $maxevt = (e_1, e_2...,e_n)$ (n is the number of global variables) which stores pointers to maximal events for all global variables $v_i$.\\
 
 \noindent
 \textbf{Initialize the vector of maximal events:}
 For an event e:
+\begin{enumerate}
+\item {Initialize \verb!proc_maxevt!:}
 \begin{itemize}
-\item
-	If e is a LOC: \verb!e.maxevt = e.pre_proc.maxevt!
-\item
-	If e is a RD or SYN touching $x$ variable: 
-	\begin{itemize}
 	\item
-		\verb!e.maxevt(x) = e!
-	\item	
-		$\forall y \neq x$: 
+		If $e$ is a $LOC$:
 		
-		$e.maxevt(y) = max(e.pre\_proc.maxevt(y), e.pre\_mem.maxevt(y) )$
-	\end{itemize}
-\item
-	If e is a WR: 
-	\begin{itemize}
+		\verb!e.proc_maxevt = e.pre_proc.proc_maxevt!
+			
+		\verb!e.proc_maxevt[e.trans->proc.id] = e!
+		
 	\item
-		\verb!e.maxevt(x) = e!
-	\item	
-		$\forall y \neq x$:
+		If $e$ is a $RD$ or $SYN$ in process $p_i$: 
 		
-		$e.maxevt(y) = max(e.pre\_proc.maxevt(y), max(e.pre\_readers[i])(y))$
+		\verb!e.proc_maxevt[p_i.id] = e!
+		$\forall p_j \neq p_i$: 
 		
-		while $pre\_readers[i]$ is the previous reader corresponding to process i 
-		
-	\end{itemize}
+		\verb! e.proc_maxevt[!$p_j$ \verb!] = max(e.pre_proc.proc_maxevt[! $p_j$ \verb!], e.pre_mem.proc_maxevt[!$p_j$ \verb!])!
+
+	\item
+		If $e$ is a $WR$: 
+		\verb!e.proc_maxevt[!$p_i$\verb!] = e! \\
+		$\forall p_j \neq p_i$: \\
+		\verb!e.proc_maxevt[!$p_j$\verb!] = max(e.pre_proc.proc_maxevt[!$p_j$\verb!], max(e.pre_readers[k])[!$p_j$\verb!])!
+		while $pre\_readers[k]$ is the previous reader corresponding to process k 
 \end{itemize}
+
+\item {Initialize \verb!var_maxevt!:}
+\begin{itemize}
+	\item
+		If $e$ is a $LOC$:
+		
+		\verb!e.var_maxevt = e.pre_proc.proc_maxevt!
+	\item
+		If $e$ is a $RD$ or $SYN$ touching variable $v_i$: 
+		
+		\verb!e.var_maxevt[!$v_i$ \verb!] = e!\\
+		$\forall p_j \neq p_i$: \\
+		\verb! e.var_maxevt[!$p_j$ \verb!] = max(e.pre_proc.var_maxevt[! $p_j$ \verb!], e.pre_mem.proc_maxevt[!$p_j$ \verb!])!
+
+	\item
+		If $e$ is a $WR$: 
+		\verb!e.proc_maxevt[p_i] = e!
+
+		$\forall p_j \neq p_i$:
+			
+		\verb!e.proc_maxevt[!$p_j$\verb!] = max(e.pre_proc.proc_maxevt[!$p_j$\verb!], max(e.pre_readers[k])[!$p_j$\verb!])!
+		while $pre\_readers[k]$ is the previous reader corresponding to process k 
+\end{itemize}	
+\end{enumerate}
 
 \begin{figure}
 \subfloat[original tree]{

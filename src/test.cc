@@ -1671,6 +1671,7 @@ void test26()
 
    pes::Unfolding u (*m.get ());
    /* Explore a random configuration */
-   u.explore_rnd_config ();
-   //u.explore_driven_config ();
+   pes::Config c(u);
+   std::vector<pes::Event *> d, a;
+   u.explore(c,d,a);
 }

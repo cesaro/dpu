@@ -262,7 +262,7 @@ public:
    void explore_rnd_config ();
    void explore_driven_config ();
    void alternative(Config & C, std::vector<Event *> D);
-   void compute_alt(unsigned int i, const std::vector<std::vector<Event *>> & s, std::vector<Event *> combi);
+   std::vector<Event *> compute_alt(unsigned int i, const std::vector<std::vector<Event *>> & s, std::vector<Event *> & combi);
    friend Event;
 
 private :

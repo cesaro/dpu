@@ -796,25 +796,6 @@ const Event & Event:: find_latest_WR_pred() const
    return *e;
 }
 
-#if 0
-/*
- * Find a WR between two WRs
- * Find the WR predecesspr of this event which is also the immediate successor of the event e:
- * w : w < this and w > e and w.pre_mem = e
- */
-const Event & Event:: find_post_WR_of(const Event & e) const
-{
-   const Event * p = this;
-   while (1)
-   {
-      if ((p->evtid.trans->type != ir::Trans::WR) and (*(p->evtid.pre_mem) == e)) break;
-      p = p->evtid.pre_mem;
-   }
-
-   return *p;
-}
-#endif
-
 /*
  * Check if two events are in immediate conflict:
  *    - Two events are in direct conflict if they both appear in a vector in post_mem of an event
@@ -902,6 +883,29 @@ bool Event::check_dicfl( const Event & e )
 bool Event::check_cfl(const Event & e )
 {
    if (evtid.trans->proc.id == e.evtid.trans->proc.id)
+      return this->check_cfl_same_tree<0>(e);
+
+   if ((this->evtid.trans->type == ir::Trans::WR) and (e.evtid.trans->type == ir::Trans::WR))
+      return this->check_cfl_same_tree<1>(e);
+
+   if ((this->evtid.trans->type == ir::Trans::SYN) and (e.evtid.trans->type == ir::Trans::SYN))
+         return this->check_cfl_same_tree<1>(e);
+
+   if ((this->evtid.trans->type == ir::Trans::RD) and (e.evtid.trans->type == ir::Trans::RD))
+      return this->check_cfl_2RD(e);
+
+   if ((this->evtid.trans->type == ir::Trans::WR) and (e.evtid.trans->type == ir::Trans::RD))
+         return this->check_cfl_WRD(e);
+
+   if ((this->evtid.trans->type == ir::Trans::RD) and (e.evtid.trans->type == ir::Trans::WR))
+            return e.check_cfl_WRD(*this);
+
+   // other cases
+   return check_conflict_local_config(e);
+
+
+#if 0
+   if (evtid.trans->proc.id == e.evtid.trans->proc.id)
      return this->check_cfl_same_tree<0>(e);
    else
       if (this->evtid.trans->var == e.evtid.trans->var) // have the same value? How about LOC?
@@ -943,7 +947,9 @@ bool Event::check_cfl(const Event & e )
          return this->check_conflict_local_config(e);
 
    return false;
+#endif
 }
+
 //------same tree ---------
 template <int idx>
 bool Event:: check_cfl_same_tree (const Event & e) const
@@ -1574,7 +1580,6 @@ void Config:: WR_cex(Event * e)
 void Config::compute_combi(unsigned int i, const std::vector<std::vector<Event *>> & s, std::vector<Event *> combi, Event * e)
 {
    Event * newevt;
-   //const ir::Trans & t = *(e->evtid.trans);
    for (unsigned j = 0; j < s[i].size(); j++ )
    {
       if (j < s[i].size())
@@ -1946,32 +1951,6 @@ void Unfolding:: uprint_dot()
 }
 
 /*
- * Explore the entire unfolding
- */
-void Unfolding:: explore(Config & C, std::vector<Event*> D, std::vector<Event*> A)
-{
-   Event * pe;
-   if (C.en.empty() == true) return ;
-   if (A.empty() == true)
-       pe = *(C.en.begin()); // choose the first element
-   else
-   { //choose the mutual event in A and C.en to add
-      for (auto a = A.begin(); a != A.end(); a++)
-       for (auto e = C.en.begin(); e!= C.en.end(); e++)
-          if (*e == *a)
-             {
-                pe = *e;
-                A.erase(a);
-                C.en.erase(e);
-                break;
-             }
-   }
-   C.add(*pe);
-   // Alt(C,D.add(e))
-   explore (C, D, A);
-}
-
-/*
  * Explore a random configuration
  */
 void Unfolding::explore_rnd_config ()
@@ -1993,7 +1972,7 @@ void Unfolding::explore_rnd_config ()
    //c.cprint_debug();
 
    c.cprint_dot();
-   //c.compute_cex();
+   c.compute_cex();
    uprint_debug();
    uprint_dot();
 
@@ -2037,6 +2016,8 @@ void Unfolding::explore_driven_config ()
 void Unfolding:: alternative(Config & C, std::vector<Event *> D)
 {
    std::vector<std::vector<Event *>> spikes;
+   std::vector<Event *> combin;
+
    for (auto e: D)
    {
       // check if e in cex(C). If yes, remove from D
@@ -2058,37 +2039,89 @@ void Unfolding:: alternative(Config & C, std::vector<Event *> D)
       for (unsigned i = 0; i < D.size(); i++)
          spikes.push_back(D[i]->dicfl);
 
-   std::vector<Event *> combi;
-   compute_alt(0, spikes, combi);
+   std::vector<Event *> J = compute_alt(0, spikes, combin);
+   if (J.empty() == false)
+   {
+      for (unsigned i = 0; i < J.size(); i++)
+         //C.add(*J[i]);
+         printf("%d",J[i]->idx);
+   }
 }
 
 /*
- *
+ * check if all elements in combin are conflict-free in pairs
  */
-void Unfolding:: compute_alt(unsigned int i, const std::vector<std::vector<Event *>> & s, std::vector<Event *> combi)
+bool is_conflict_free(std::vector<Event *> combin)
+{
+   for (unsigned i = 0; i < combin.size() - 1; i++)
+     for (unsigned j = i; j < combin.size(); j++)
+      {
+        if (combin[i]->check_cfl(*combin[j]))
+           return false;
+      }
+   printf("It is a conflict-free combination");
+   return true;
+}
+
+/*
+ * compute and return a set J which is a possible alternative to extend from C
+ */
+std::vector<Event *> Unfolding:: compute_alt(unsigned int i, const std::vector<std::vector<Event *>> & s, std::vector<Event *> & combin)
 {
    for (unsigned j = 0; j < s[i].size(); j++ )
      {
         if (j < s[i].size())
         {
-           combi.push_back(s[i][j]);
+           combin.push_back(s[i][j]);
            if (i == s.size() - 1)
            {
               printf("   Combination:");
-              for (unsigned k = 0; k < combi.size(); k++)
-                 printf("%d ", combi[k]->idx);
-
+              for (unsigned k = 0; k < combin.size(); k++)
+                 printf("%d ", combin[k]->idx);
+              printf("\n");
               /*
                * Do something here, check if the combination is conflict-free or not
                * is_conflict_free();
                */
-              printf("\n");
+              if (is_conflict_free(combin))
+                 return combin;
            }
            else
-              compute_alt(i+1, s, combi);
+              compute_alt(i+1, s, combin);
         }
-        combi.pop_back();
+        combin.pop_back();
      }
+
+   //combin.clear(); // make combin empty
+   return combin;
+}
+
+/*
+ * Explore the entire unfolding
+ */
+void Unfolding:: explore(Config & C, std::vector<Event*> D, std::vector<Event*> A)
+{
+   Event * pe;
+   if (C.en.empty() == true) return ;
+
+   if (A.empty() == true)
+       pe = *(C.en.begin()); // choose the first element
+   else
+   { //choose the mutual event in A and C.en to add
+      for (auto a = A.begin(); a != A.end(); a++)
+       for (auto e = C.en.begin(); e!= C.en.end(); e++)
+          if (*e == *a)
+             {
+                pe = *e;
+                A.erase(a);
+                C.en.erase(e);
+                break;
+             }
+   }
+   explore (C, D, A);
+   D.push_back(pe); // add
+   alternative(C,D);
+   explore (C, D, A);
 }
 
 } // end of namespace

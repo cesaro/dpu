@@ -489,14 +489,15 @@ For each event $e_i \in D$ repeat the following:
 	Enumerate all combinations $\tup{e_1, \ldots, e_n}$ of $c$.
 \item
 	For any of them, do:
-	\begin{enumerate}
-\item 
-    	If $\tup{e_1, \ldots, e_n}$ is conflict-free, get J from union of their all local configurations.
-	    If there is one couple in conflict, then discard and take next combination
-	\end{enumerate}
+	\begin{itemize}
+		\item 
+    		If $\tup{e_1, \ldots, e_n}$ is conflict-free, return $J = \cup e_i$ 
+    	\item
+		    If there is one couple in conflict, then discard and come back to step 2 to take next combination
+	\end{itemize}
 \item End.
 \end{enumerate}
-\caption{Computing all alternatives J for D after C}
+\caption{Computing an alternative J for D after C}
 \label{a:alter}
 \end{algorithm}
 
@@ -562,7 +563,7 @@ Given two arbitrary events $e$ and $e'$ in the unfolding, decide if they are in 
 					the other \verb!pro_maxevt! includes those for all processes in e' local configuration.
 					\begin{itemize}
 					\item
-						Formally, \verb!var_maxevt! $ = (e_1, e_2...,e_n)$  (n is the number of variables in the model)
+						Formally, \verb!var_maxevt! $ = (e_1, e_2...,e_m)$  (m is the number of variables in the model)
 						while $e_i$ is the maximal event (RD, SYN, WR) in $e$'s local configuration which touches $v_i$ variable :
 						$e_i \in  \left[ e \right]: v(e_i) = v_i$ and $ \nexists e_i' \in \left[ e \right] $ such that:
 						$e_i < e_i'$ and $v(e_i') = v_i$ 
@@ -877,7 +878,7 @@ At the beginning, set $C = \{\bot \}$, $D = \emptyset$, $A = \emptyset$
 		C.add(e) \\
 		A.pop(e)
 	\item
-		Come back to step 1 by calling Explore(C,D,A)
+		Call Explore(C,D,A)
 	\item
 		$D.push\_back(e)$
 	\item
@@ -889,6 +890,8 @@ At the beginning, set $C = \{\bot \}$, $D = \emptyset$, $A = \emptyset$
 			\item
 				Call Explore(C,D,A)
 		\end{itemize}
+	\item
+		$D.pop\_back()$
 \end{enumerate}
 
 \caption{Unfolding based POR exploration algorithm}

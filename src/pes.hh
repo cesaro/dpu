@@ -264,6 +264,7 @@ public:
    void alternative(Config & C, std::vector<Event *> D);
    std::vector<Event *> compute_alt(unsigned int i, const std::vector<std::vector<Event *>> & s, std::vector<Event *> & combi);
    friend Event;
+   void test_conflict();
 
 private :
    void __create_bottom ();

@@ -1237,16 +1237,20 @@ void Config::add_any ()
 
 void Config::add (const Event & e)
 {
-
    DEBUG ("\n\n%p: Config.add: %p\n", this, e.str().c_str());
+
    for (unsigned int i = 0; i < en.size (); i++)
-      if (e == *en[i]) add (i);
-   throw std::range_error ("Trying to add an event not in enable set by a configuration");
+      if (e == *en[i])
+         {
+            printf("Enable event idx = %d", i);
+            add (i);
+         }
+  // throw std::range_error ("Trying to add an event not in enable set by a configuration");
 
 }
 
 /*
- * add an event identified by its index idx
+ * add an event identified by its index in enable set
  */
 void Config::add (unsigned idx)
 {
@@ -1297,11 +1301,7 @@ void Config::add (unsigned idx)
             latest_op[p.id][i - procs.size()] = &e;
          }
 
-   /* remove conflicting events with event which has just been added */
-   if (en.size() > 0)
-      remove_cfl(e);
-
-     /* update en and cex set with e being added to c (before removing it from en) */
+   /* update en and cex set with e being added to c (before removing it from en) */
    __update_encex(e);
 }
 
@@ -1310,15 +1310,18 @@ void Config::add (unsigned idx)
  */
 void Config::__update_encex (Event & e )
 {
-  // Actually we don't use e any more!!!
+   // Actually we don't use e any more!!!
    DEBUG ("%p: Config.__update_encex(%p)", this, &e);
 
    assert(unf.m.trans.size() > 0);
    assert(unf.m.procs.size() > 0);
 
-   std::vector<Trans*> enable;
+   /* remove conflicting events with event which has just been added */
+   if (en.size() > 0)
+      remove_cfl(e);
 
-   /* get set of events enabled at the state gstate    */
+  /* get set of events enabled at the state gstate    */
+   std::vector<Trans*> enable;
    gstate.enabled (enable);
 
    if (enable.empty() == true )
@@ -1338,6 +1341,9 @@ void Config::__update_encex (Event & e )
        */
       unf.create_event(*t, *this);
    }
+
+   //update conflict extension
+   //compute_cex();
 }
 
 /*
@@ -1425,7 +1431,6 @@ void Config:: RD_cex(Event * e)
 
       Ident * id = new Ident(e->evtid.trans, ep, pr_mem, std::vector<Event *> ());
       Event * newevt = &unf.find_or_add (*id);
-
       add_to_cex(newevt);
 
       // add event to set of direct conflict dicfl if it is new one.
@@ -1433,46 +1438,8 @@ void Config:: RD_cex(Event * e)
       {
          e->dicfl.push_back(newevt);
          newevt->dicfl.push_back(e);
+
       }
-
-#if 0
-      bool in_unf = false, in_cex = false;
-      for (auto & ee :c.unf.evt)
-      {
-         if ( temp->is_same(ee) == true )
-         {
-            in_unf = true;
-            DEBUG("   Already in the unf as %s", ee.str().c_str());
-            // if it is in cex -> don't add
-            for (auto ce : c.cex1)
-               if (ee.idx == ce->idx)
-               {
-                  in_cex = true;
-                  DEBUG("Event already in the cex");
-                  break;
-               }
-
-            if (in_cex == false)
-            {
-               c.cex1.push_back(&ee);
-               this->dicfl.push_back(&ee);
-            }
-
-            break;
-         }
-      } // end for
-
-      if (in_unf == false)
-      {
-            DEBUG(" Temp doesn't exist in evt");
-            c.unf.evt.push_back(*temp);
-            c.unf.evt.back().update_parents();
-            c.unf.count++;
-            c.cex1.push_back(&c.unf.evt.back());
-            this->dicfl.push_back(&c.unf.evt.back());
-            DEBUG("   Unf.evt.back: id: %s \n ", c.unf.evt.back().str().c_str());
-      }
-#endif
    } // end while
 }
 
@@ -1506,13 +1473,13 @@ void Config:: SYN_cex(Event * e)
        */
       Ident id(e->evtid.trans, e->evtid.pre_proc, e->evtid.pre_mem, std::vector<Event *>());
       Event * newevt = &unf.find_or_add (id);
-      add_to_cex(newevt);
 
       // add event to set of direct conflict dicfl if it is new one.
       if (newevt->idx == unf.evt.back().idx)
       {
          e->dicfl.push_back(newevt);
          newevt->dicfl.push_back(e);
+         add_to_cex(newevt);
       }
    }
 }
@@ -1560,9 +1527,8 @@ void Config:: WR_cex(Event * e)
 
       ew = spikes[0].back();
       /*
-       * if ew is a event which is inside ep's history,
-       * remove from the comb ew itself and all RD events that are also in the history
-       * should think about bottom!!!
+       * if ep is a successor of ew, then remove from the comb ew itself
+       * and all RD events that are also in the history should think about bottom!!!
        */
       if (ep->succeed(*ew) == true)
       {
@@ -1601,10 +1567,11 @@ void Config::compute_combi(unsigned int i, const std::vector<std::vector<Event *
              */
             Ident id(e->evtid.trans, e->evtid.pre_proc, e->evtid.pre_mem, combi);
             newevt = &unf.find_or_add(id);
+
+            //only add new event in cex, if it is already in unf, don't add
             add_to_cex(newevt);
 
             // update direct conflicting set for both events, but only for new added event.
-
             if (newevt->idx == unf.evt.back().idx) // new added event at back of evt
             {
                e->dicfl.push_back(newevt);
@@ -1627,7 +1594,7 @@ void Config:: add_to_cex(Event * ee)
    for (auto ce : cex)
       if (ee->idx == ce->idx)
       {
-         DEBUG("Event already in the cex");
+         printf(" and already in the cex");
          return;
       }
    cex.push_back(ee);
@@ -1744,9 +1711,15 @@ void Config::__print_en() const
  */
 void Config::__print_cex() const
 {
-   DEBUG ("\nConflicting set of config %p: size: %zu", this, cex.size());
+   printf ("%p Config.cex: size = %zu ", this, cex.size());
+   if (cex.size() != 0)
+   {
+      printf(", elements: ");
       for (auto & e : cex)
-         e->eprint_debug();
+         printf("%d ", e->idx);
+   }
+   else
+      printf(", No element");
 }
 
 /*
@@ -1783,14 +1756,16 @@ void Unfolding::__create_bottom ()
    assert (evt.size () == 0);
    /* create an "bottom" event with all empty */
    evt.emplace_back(*this); // need reviewing
+   evt.back().evtid.pre_mem   = &evt.back();
+   evt.back().evtid.pre_proc  = &evt.back();
+
    count++;
    bottom = &evt.back(); // using = operator
-   bottom->evtid.pre_mem  = bottom;
-   bottom->evtid.pre_proc = bottom;
+
    //DEBUG("%s", bottom->evtid.str().c_str());
 
    /* add to the hash table evttab */
-   evttab.emplace(bottom->evtid, bottom);
+   evttab.emplace(bottom->evtid, &evt.back());
 
    /*
     * set up vector clock and maxevent
@@ -1798,10 +1773,7 @@ void Unfolding::__create_bottom ()
     */
 
    for (unsigned i = 0; i < m.procs.size(); i++)
-   {
       bottom->clock.push_back(0);
-      bottom->proc_maxevt.push_back(bottom);
-   }
 
    for (unsigned i = 0; i < m.memsize - m.procs.size(); i++)
       bottom->var_maxevt.push_back(bottom);
@@ -1819,8 +1791,8 @@ void Unfolding::create_event(ir::Trans & t, Config & c)
     * Only add events that are really enabled at the current state of config.
     * Don't add events already in the unf (enabled at the previous state)
     */
+
    Ident id(t,c);
-   Event e(*this, id);
    /* Check if new event exist in evt or not */
    std::unordered_map <Ident, Event *, IdHasher<Ident>>::const_iterator got = evttab.find (id);
    if ( got != evttab.end() )
@@ -1829,7 +1801,8 @@ void Unfolding::create_event(ir::Trans & t, Config & c)
          return;
       }
 
-   evt.push_back(e);
+   evt.emplace_back(*this, id);
+   evt.back().eprint_debug();
    evt.back().update_parents();
 
    /* set up vector clock */
@@ -1861,7 +1834,7 @@ Event & Unfolding:: find_or_add(Ident & id)
    }
 
    evt.push_back(Event(*this, id));
-   evt.back().update_parents(); // to make sure of conflict
+  // evt.back().update_parents(); // to make sure of conflict
    count++;
    /* set up vector clock */
    evt.back().set_vclock();
@@ -1977,7 +1950,7 @@ void Unfolding::explore_rnd_config ()
    //c.cprint_debug();
 
    c.cprint_dot();
-   c.compute_cex();
+  // c.compute_cex();
    uprint_debug();
    uprint_dot();
 
@@ -2107,9 +2080,6 @@ std::vector<Event *> Unfolding:: compute_alt(unsigned int i, const std::vector<s
 void Unfolding:: explore(Config & C, std::vector<Event*> & D, std::vector<Event*> & A)
 {
    Event * pe;
-   C.compute_cex();
-   // enable set is updated whenever an event is added to a configuration.
-
    if (C.en.empty() == true) return ;
 
    if (A.empty() == true)
@@ -2131,7 +2101,7 @@ void Unfolding:: explore(Config & C, std::vector<Event*> & D, std::vector<Event*
                 break;
              }
    }
-   C.add(*pe); // extend C by e
+   C.add(*pe); // enable set is updated whenever pe is added to a configuration.
    explore (C, D, A);
    // When C.en is empty, choose an alternative to go
    D.push_back(pe); // ???pe???
@@ -2142,6 +2112,33 @@ void Unfolding:: explore(Config & C, std::vector<Event*> & D, std::vector<Event*
       A.push_back(*J.begin()); // choose the first element in J to add
       explore (C, D, A);
    }
+}
+//----test conflict
+void Unfolding:: test_conflict()
+{
+   DEBUG("What's the hell");
+   DEBUG("Size of evt: %zu", evt.size());
+   pes::Event e1, e2;
+
+   for (unsigned i = 0; i < evt.size(); i++)
+   {
+      DEBUG("address of event %d is %p, ", i, &evt[i]);
+      /*
+      if (evt[i].idx == 1)        e1 = evt[i];
+      if (evt[i].idx == 5)        e2 = evt[i];
+      */
+   }
+#if 0
+   if (!e1.is_bottom() and !e2.is_bottom())
+      DEBUG("They are %s and %s", e1.evtid.trans->type, e1.evtid.trans->type );
+   else
+      DEBUG("One event is bottom");
+
+   if (e1.check_cfl(e2))
+      printf("They are in conflict");
+   else
+      printf("They are not in conflict");
+#endif
 }
 
 } // end of namespace

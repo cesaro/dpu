@@ -167,7 +167,7 @@ public:
    bool check_cfl_same_tree (const Event & e) const;
    bool check_cfl_WRD(const Event & e) const; // this is a WR and e is a RD
    bool check_cfl_2RD(const Event & e) const;
-   bool check_conflict_local_config (const Event & e);
+   bool check_2LOCs (const Event & e);
    bool is_bottom () const;
    bool is_same (const Event &) const;
    bool succeed (const Event & e) const;

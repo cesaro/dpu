@@ -825,6 +825,36 @@ Given two events $e$ is a WR and $e'$ is a RD
 \label{a:reads}	
 \end{algorithm}
 
+\begin{algorithm}
+Given two events touching different variables or 2 LOCs $e$ and $e'$.
+Do the following:
+\begin{enumerate}
+	\item
+		For each pair $(e_i, e_i')$ of maximal events of each process:
+		$e_i \in e.proc\_maxevt$ and $e_i' \in e'.proc\_maxevt$ do: \\
+		\begin{itemize}
+			\item
+				If $e_i$.\verb!check_conflict_same_tree(!$e_i'$ \verb!)! is $true$, then  return true;
+			\item
+				Else jump to 2
+		\end{itemize}
+			
+	\item
+		For each pair $(e_i, e_i')$ of maximal events of each process:
+		$e_i \in e.var\_maxevt$ and $e_i' \in e'.var\_maxevt$ do:\\
+			\begin{itemize}
+			\item
+				If $e_i$.\verb!check_conflict_same_tree(!$e_i'$ \verb!)! is $true$, then  return true;
+			\item
+				Else, return false;
+		\end{itemize}
+			
+\end{enumerate}
+\caption{Decide the conflict between 2 LOCs}
+\label{a:reads}	
+\end{algorithm}
+
+
 \section{Exloration algorithm}
 \begin{algorithm}
 Let C is current configuration, D is a set of disable events, A is a set of events to be added.
@@ -839,9 +869,9 @@ At the beginning, set $C = \{\bot \}$, $D = \emptyset$, $A = \emptyset$
 		Else 
 		\begin{itemize}
 			\item
-				If ($A = \emptyset$), then e is an arbitrary event in C.en
+				If ($A = \emptyset$), then take an random $e$ in C.en
 			\item
-				else e is an event: $e \in A$ and $e \in C.en$
+				else take $e$ satisfying: $e \in A$ and $e \in C.en$
 		\end{itemize}
 	\item
 		C.add(e) \\
@@ -849,7 +879,8 @@ At the beginning, set $C = \{\bot \}$, $D = \emptyset$, $A = \emptyset$
 	\item
 		Come back to step 1 by calling Explore(C,D,A)
 	\item
-		$D.push_back(e)$
+		$D.push\_back(e)$
+	\item
 		$J = compute\_alt(C,D)$
 		\begin{itemize}
 			\item

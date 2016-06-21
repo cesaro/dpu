@@ -901,7 +901,7 @@ bool Event::check_cfl(const Event & e )
             return e.check_cfl_WRD(*this);
 
    // other cases
-   return check_conflict_local_config(e);
+   return check_2LOCs(e);
 
 
 #if 0
@@ -1072,11 +1072,17 @@ bool Event:: check_cfl_2RD(const Event & e) const
 }
 
 /*
- *  check conflict between two maximal events
- *  for the same variable or process in the event's local configuration
+ *  check conflict between two events touching different variables or 2 LOCs.
  */
-bool Event:: check_conflict_local_config(const Event & e)
+bool Event:: check_2LOCs(const Event & e)
 {
+   for (unsigned i = 0; i < proc_maxevt.size(); i++)
+      if (proc_maxevt[i]->check_cfl(*e.proc_maxevt[i]))
+         return false;
+
+   for (unsigned i = 0; i < var_maxevt.size(); i++)
+         if (var_maxevt[i]->check_cfl(*e.var_maxevt[i]))
+            return false;
    return true;
 }
 
@@ -1090,7 +1096,6 @@ bool Event:: is_same(const Event & e) const
 
    return false;
 }
-
 
 /* Express an event in a string */
 std::string Event::str () const
@@ -2102,6 +2107,9 @@ std::vector<Event *> Unfolding:: compute_alt(unsigned int i, const std::vector<s
 void Unfolding:: explore(Config & C, std::vector<Event*> & D, std::vector<Event*> & A)
 {
    Event * pe;
+   C.compute_cex();
+   // enable set is updated whenever an event is added to a configuration.
+
    if (C.en.empty() == true) return ;
 
    if (A.empty() == true)
@@ -2123,8 +2131,9 @@ void Unfolding:: explore(Config & C, std::vector<Event*> & D, std::vector<Event*
                 break;
              }
    }
+   C.add(*pe); // extend C by e
    explore (C, D, A);
-   // When it is impossible to add any event, choose an alternative to go
+   // When C.en is empty, choose an alternative to go
    D.push_back(pe); // ???pe???
    std::vector<Event *> J;
   // J = alternative(C,D);????need to see more carefully

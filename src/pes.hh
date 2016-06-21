@@ -40,6 +40,7 @@ public:
    int compute_size();
    void set_skip_preds(int idx);
    void print_skip_preds();
+   template <int idx>
    T & find_pred(int d) const;
 };
 //-------template class MultiNode------
@@ -135,8 +136,7 @@ public:
 
    std::vector <int>     clock; // size = number of processes (to store clock for all its predecessors: pre_proc, pre_mem or pre_readers)
 
-   //store maximal events in the event's local configuration for all variables and processes
-   std::vector <Event *> proc_maxevt; // size of number of processes
+   //store maximal events in the event's local configuration for all variables
    std::vector <Event *> var_maxevt; // size of number of variables
 
 
@@ -150,14 +150,12 @@ public:
    Event() = default;
    Event (Unfolding & u);
    Event (Unfolding & u, Ident & ident);
-   Event (Unfolding & u, const ir::Trans & t, const Config & c);
 
    //void mk_history (const Config & c);
    void update_parents();
    void eprint_debug();
 
    void set_vclock();
-   void set_proc_maxevt();
    void set_var_maxevt();
 
    const Event & find_latest_WR_pred ()const;
@@ -250,8 +248,6 @@ public:
 
    Unfolding (ir::Machine & ma);
    void create_event(ir::Trans & t, Config &);
-   //Event & find_or_add(const ir::Trans & t, Event * ep, Event * pr_mem);
-   //Event & find_or_addWR(const ir::Trans & t, Event * ep, Event * ew, std::vector<Event *> combi);
    Event & find_or_add(Ident & id);
 
 

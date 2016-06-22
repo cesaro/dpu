@@ -40,6 +40,7 @@ public:
    int compute_size();
    void set_skip_preds(int idx);
    void print_skip_preds();
+
    template <int idx>
    T & find_pred(int d) const;
 };
@@ -161,8 +162,6 @@ public:
    const Event & find_latest_WR_pred ()const;
    bool check_dicfl (const Event & e); // check direct conflict
    bool check_cfl (const Event & e); // check conflict
-   template <int idx>
-   bool check_cfl_same_tree (const Event & e) const;
    bool check_cfl_WRD(const Event & e) const; // this is a WR and e is a RD
    bool check_cfl_2RD(const Event & e) const;
    bool check_2LOCs (const Event & e);
@@ -170,6 +169,8 @@ public:
    bool is_same (const Event &) const;
    bool succeed (const Event & e) const;
 
+   template <int idx>
+   bool check_cfl_same_tree (const Event & e) const;
 
 
    Node<Event,3> &proc () { return node[0]; }

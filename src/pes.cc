@@ -162,27 +162,44 @@ int max_skip(int d, int base)
       pow = pow * base;
       i++;
    }
-   return i;
+   return i-1;
 }
 //----------
+/*
+ * make sure that d < this->depth to use this method
+ */
 template <class T, int SS >
 template <int idx>
 T & Node<T,SS>:: find_pred(int d) const
 {
    //printf("\n This is function to find a node at a specific depth");
-   T * next;
+   T * next = nullptr;;
    int i, dis = this->depth - d;
+   assert (dis != 0); // at the beginning dis != 0
 
+   // initial next for the very first time
+   DEBUG("dis = %d", dis);
+   i = max_skip(dis,SS);
+   DEBUG("i=%d", i);
+   if (i == 0)
+      next = pre;
+   else
+      next = skip_preds[i-1];
+   dis = next->node[idx].depth - d;
+
+// for the second loop and so on
    while (dis != 0)
    {
       i = max_skip(dis,SS);
+      DEBUG("i=%d", i);
       if (i == 0)
-         next = pre;
+         next = next->node[idx].pre;
       else
-         next = skip_preds[i-1];
+         next = next->node[idx].skip_preds[i-1];
 
       dis = next->node[idx].depth - d;
    }
+   DEBUG("next = %d", next->idx);
    return *next;
 }
 //-----------
@@ -786,12 +803,16 @@ bool Event::check_dicfl( const Event & e )
  */
 bool Event::check_cfl(const Event & e )
 {
-   assert(this->is_bottom() == false);
-   assert(e.is_bottom() == false);
+   if (this->is_bottom() or e.is_bottom())
+      return false;
+
+   if (this == &e) // same event
+      return false;
 
    if (evtid.trans->proc.id == e.evtid.trans->proc.id)
    {
       DEBUG("They are in the same process");
+      DEBUG("check cfl same tree returns %d", this->check_cfl_same_tree<0>(e));
       return this->check_cfl_same_tree<0>(e);
    }
 
@@ -831,38 +852,56 @@ bool Event::check_cfl(const Event & e )
 }
 
 //------same tree ---------
-template <int idx>
+template <int id>
 bool Event:: check_cfl_same_tree (const Event & e) const
 {
    int d1, d2;
-   d1 = node[idx].depth;
-   d2 = e.node[idx].depth;
+   d1 = this->node[id].depth;
+   d2 = e.node[id].depth;
 
+   DEBUG("d1 = %d, d2 = %d", d1, d2);
    //one of event is the bottom
    if ((d1 == 0) or (d2 == 0))
+   {
+      DEBUG("1 trong 2 cai la bottom, %d and %d not cfl", this->idx, e.idx);
       return false;
+   }
 
    if (d1 == d2)
-      return not(this->is_same(e));
+      return not(this == &e); // same event -> not conflict and reverse
 
    if (d1 > d2)
    {
-      Event & temp = node[0].find_pred<0>(d2);
-      if (e.is_same(temp))
+      DEBUG("Here d1 > d2");
+      Event & temp = this->node[id].find_pred<id>(d2);
+      DEBUG("temp=%d", temp.idx);
+      if (this == &temp) // refer to the same event
+      {
+         DEBUG("same event");
          return false;
+      }
       else
+      {
+         DEBUG("not same event");
          return true;
+      }
    }
    else
    {
-      Event & temp = e.node[0].find_pred<0>(d1);
-      if (e.is_same(temp))
+      DEBUG("Here d2 > d1");
+      Event & temp = e.node[id].find_pred<id>(d1);
+      if (this == &temp) // refer to the same event
+      {
+         DEBUG("same event");
          return false;
+      }
       else
+      {
+         DEBUG("not same event");
          return true;
-   }
+      }
 
-   return false;
+   }
 }
 
 /*
@@ -877,33 +916,40 @@ bool Event:: check_cfl_WRD(const Event & e) const
    const Event * pre_wr = &e.find_latest_WR_pred();
    DEBUG("pre_wr.idx: %d", pre_wr->idx);
 
-   if (this->is_same(*pre_wr))
+   if (this == pre_wr) // point to the same event
       return false;
 
    if (this->check_cfl_same_tree<1>(*pre_wr))
+   {
+      DEBUG("this and pre_wr are in cfl");
       return true;
-
-   // else - not conflict in the same tree
-   if (pre_wr->succeed(*this)) // this < pre_wr (e < pre_wr < e') => no conflict
-   {
-      DEBUG("this < pre_wr");
-      return false;
    }
-   else
+   else // else - not conflict in the same tree
    {
-      DEBUG("pre_wr < this");
-      post_wr = &node[1].find_pred<1>(pre_wr->node[1].depth + 1);
-
-      DEBUG("post_wr.idx: %d", post_wr->idx);
-
-      if (post_wr->evtid.pre_readers[e.evtid.trans->proc.id]->succeed(e))
-         return false; //in causality
+      if (pre_wr->succeed(*this)) // this < pre_wr (e < pre_wr < e') => no conflict
+      {
+         DEBUG("bla blathis < pre_wr");
+         return false;
+      }
       else
-         return true;
+      {
+         DEBUG(" hu hu pre_wr < this");
+         if (this->node[1].depth == pre_wr->node[1].depth + 1) // this and e are in post_mem of pre_wr
+            return true;
+
+         post_wr = &node[1].find_pred<1>(pre_wr->node[1].depth + 1);
+
+         DEBUG("post_wr.idx: %d", post_wr->idx);
+
+         if (post_wr->evtid.pre_readers[e.evtid.trans->proc.id]->succeed(e))
+            return false; //in causality
+         else
+            return true;
+      }
    }
 }
 /*
- * Check conflict between 2 RDs
+ * Check conflict between 2 RDs in different processes
  */
 bool Event:: check_cfl_2RD(const Event & e) const
 {
@@ -911,28 +957,45 @@ bool Event:: check_cfl_2RD(const Event & e) const
    Event * post_wr;
    pre_wr1 = &find_latest_WR_pred();
    pre_wr2 = &e.find_latest_WR_pred();
-      if (pre_wr1->check_cfl_same_tree<1>(*pre_wr2))
+
+   if (pre_wr1 == pre_wr2)
+      return false; // they are concurrent
+
+   if (pre_wr1->check_cfl_same_tree<1>(*pre_wr2))
+   {
+         DEBUG("pre_wr1 and pre_wr2 are in cfl");
          return true;
-      else // pre_wr1 < pre_wr2 or pre_wr2 < pre_wr1
-      {
-         if (pre_wr1->succeed(*pre_wr2)) // this < pre_wr (e < pre_wr < e')
-         {
-            post_wr = &pre_wr1->node[1].find_pred<1>(pre_wr2->node[1].depth + 1);
-            if (post_wr->evtid.pre_readers[e.evtid.trans->proc.id]->succeed(e))
-               return false; //in causality
-            else
-               return true;
-         }
-         else
-         {
-            post_wr = &pre_wr2->node[1].find_pred<1>(pre_wr1->node[1].depth + 1);
-            if (post_wr->evtid.pre_readers[this->evtid.trans->proc.id]->succeed(*this))
-               return false; //in causality
-            else
-               return true;
-         }
-      }
-   return false;
+   }
+
+   if (pre_wr1->succeed(*pre_wr2)) // this < pre_wr (e < pre_wr < e') => no conflict
+   {
+      DEBUG(" hu hu pre_wr2 < pre_wr1");
+      if (pre_wr1->node[1].depth == pre_wr2->node[1].depth + 1) // this and e are in post_mem of pre_wr
+         return true;
+
+      post_wr = &pre_wr1->node[1].find_pred<1>(pre_wr2->node[1].depth + 1);
+
+      DEBUG("post_wr.idx: %d", post_wr->idx);
+
+      if (post_wr->evtid.pre_readers[e.evtid.trans->proc.id]->succeed(e))
+         return false; //in causality
+      else
+         return true;         }
+   else //pre_wr1 < pre_wr2
+   {
+      DEBUG(" pre_wr1 < pre_wr2");
+      if (pre_wr2->node[1].depth == pre_wr1->node[1].depth + 1) // this and e are in post_mem of pre_wr
+         return true;
+
+      post_wr = &pre_wr2->node[1].find_pred<1>(pre_wr1->node[1].depth + 1);
+
+      DEBUG("post_wr.idx: %d", post_wr->idx);
+
+      if (post_wr->evtid.pre_readers[this->evtid.trans->proc.id]->succeed(*this))
+         return false; //in causality
+      else
+         return true;
+   }
 }
 
 /*
@@ -946,10 +1009,14 @@ bool Event:: check_2LOCs(const Event & e)
       // if there exists a pair of events in conflict, then this \cfl e
       DEBUG("Pair %d: %d and %d", i, var_maxevt[i]->idx,e.var_maxevt[i]->idx );
 
-      if (var_maxevt[i]->check_cfl(*e.var_maxevt[i]))
+      if ( var_maxevt[i]->check_cfl (*e.var_maxevt[i]) )
+      {
+         DEBUG("They are in cfl");
          return true;
+      }
    }
 
+   DEBUG("They are not in cfl");
    return false; // they are not in conflict
 }
 
@@ -1038,7 +1105,11 @@ void Event::eprint_debug()
       else
          DEBUG(" No post rws");
    // print corresponding in the process tree
-   node[0].print_skip_preds();
+   printf("Proc node: ");
+   print_proc_skip_preds();
+   printf("Var node:");
+   print_var_skip_preds();
+
    //---------------------
    printf(" Var_maxevt: ");
    for (unsigned i = 0; i < var_maxevt.size(); i++)
@@ -1976,7 +2047,7 @@ void Unfolding:: test_conflict()
 
    for (unsigned i = 0; i < evt.size(); i++)
    {
-      if (evt[i].idx == 1)    e1 = &evt[i];
+      if (evt[i].idx == 7)    e1 = &evt[i];
       if (evt[i].idx == 5)    e2 = &evt[i];
    }
 
@@ -1985,21 +2056,7 @@ void Unfolding:: test_conflict()
 
    e1->eprint_debug();
    e2->eprint_debug();
-   switch (e1->evtid.trans->type)
-   {
-   case ir::Trans::LOC:
-      DEBUG("it is a Loc");
-      break;
-   case ir::Trans::RD:
-         DEBUG("it is a RD");
-         break;
-   case ir::Trans::WR:
-         DEBUG("it is a WR");
-         break;
-   case ir::Trans::SYN:
-         DEBUG("it is a SYn");
-         break;
-   }
+   DEBUG("We need to check cfl between %d and %d", e1->idx, e2->idx);
 
    if (e1->is_bottom() or e2->is_bottom())
    {
@@ -2011,7 +2068,6 @@ void Unfolding:: test_conflict()
       printf("They are in conflict");
    else
       printf("They are not in conflict");
-
 }
 
 } // end of namespace

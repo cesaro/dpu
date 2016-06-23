@@ -131,12 +131,12 @@ public:
 
    uint32_t              val; //??? value for global variable?
    std::vector<uint32_t> localvals; //???
-   //const ir::Trans *     trans;
-   int                   color;
+
+   int                   color; // to avoid re-read an event in printing functions.
+   int                   in_bit; // to mark that an event is in cex or not: 1 - in, 0: not in
+
    std::vector<Event *>  dicfl;  // set of direct conflicting events
-
    std::vector <int>     clock; // size = number of processes (to store clock for all its predecessors: pre_proc, pre_mem or pre_readers)
-
    //store maximal events in the event's local configuration for all variables
    std::vector <Event *> var_maxevt; // size of number of variables
 
@@ -258,8 +258,9 @@ public:
    void explore(Config & C, std::vector<Event *> & D, std::vector<Event *> & A);
    void explore_rnd_config ();
    void explore_driven_config ();
-   void alternative(Config & C, std::vector<Event *> D);
-   std::vector<Event *> compute_alt(unsigned int i, const std::vector<std::vector<Event *>> & s, std::vector<Event *> & combi);
+   void alternative(Config & C, std::vector<Event *> D, std::vector<Event *> & J );
+   //std::vector<Event *> compute_alt(unsigned int i, const std::vector<std::vector<Event *>> & s, std::vector<Event *> & combi);
+   void compute_alt(unsigned int i, const std::vector<std::vector<Event *>> & s, std::vector<Event *> & combi);
    friend Event;
    void test_conflict();
 

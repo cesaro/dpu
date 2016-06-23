@@ -1783,4 +1783,6 @@ void test26()
    pes::Config c(u);
    std::vector<pes::Event *> d, a;
    u.explore(c,d,a);
+  // u.uprint_debug();
+   u.uprint_dot();
 }

@@ -1135,17 +1135,14 @@ Config::Config (Unfolding & u)
    __update_encex (*unf.bottom);
 }
 
-#if 0
 Config:: Config (const Config & c)
-   : latest_proc (c.latest_proc)
-   , latest_wr (c.latest_wr)
-   , latest_op (c.latest_op)
-   , latest_local_wr (c.latest_local_wr)
-   , unf(c.unf)
+   :  gstate(c.gstate)
+   ,  unf(c.unf)
+   ,  latest_proc (c.latest_proc)
+   ,  latest_wr (c.latest_wr)
+   ,  latest_op (c.latest_op)
 {
-   gstate = c.gstate;
 }
-#endif
 
 /*
  * Add an event fixed by developer to a configuration
@@ -1163,12 +1160,12 @@ void Config::add_any ()
 
 void Config::add (const Event & e)
 {
-   DEBUG ("\n\n%p: Config.add: %p\n", this, e.str().c_str());
+   DEBUG ("\n\n%p: Config.addevent : %d\n", this, e.idx);
 
    for (unsigned int i = 0; i < en.size (); i++)
       if (e == *en[i])
          {
-            printf("Enable event idx = %d", i);
+           // printf("Enable event idx = %d", i);
             add (i);
          }
   // throw std::range_error ("Trying to add an event not in enable set by a configuration");
@@ -1183,7 +1180,7 @@ void Config::add (unsigned idx)
    assert(idx < en.size());
    Event & e = *en[idx];
 
-   DEBUG ("\n%p: Config.add: %s\n", this, e.str().c_str());
+   DEBUG ("\n%p: Config.addidx: %s\n", this, e.str().c_str());
 
    /* move the element en[idx] out of enable set */
    en[idx] = en.back();
@@ -1269,7 +1266,7 @@ void Config::__update_encex (Event & e )
    }
 
    //update conflict extension
-   //compute_cex();
+   compute_cex();
 }
 
 /*
@@ -1916,39 +1913,55 @@ void Unfolding::explore_driven_config ()
 /*
  * Find all alternatives J after C and conflict with D
  */
-void Unfolding:: alternative(Config & C, std::vector<Event *> D)
+void Unfolding:: alternative(Config & C, std::vector<Event *> D, std::vector<Event *> & J) // we only want to modify D in the scope of this function
 {
    std::vector<std::vector<Event *>> spikes;
-   std::vector<Event *> combin;
+  // std::vector<Event *> combin;
+/*
+   printf("D = ");
+   for (unsigned i = 0; i < D.size(); i++)
+      printf("%d, ", D[i]->idx);
+   DEBUG("");
+*/
+   DEBUG("This is alternative function");
+   // Keep in D only events which are not in C.cex
+   for (auto & e: C.cex)
+      e->in_bit = 1;
 
-   for (auto e: D)
+   for (unsigned i = 0; i < D.size(); i++)
    {
-      // check if e in cex(C). If yes, remove from D
-      for (unsigned i = 0; i < C.cex.size(); i++)
+      if (D[i]->in_bit == 1)
       {
-         if (e == C.cex[i])
-         {
-            e = D.back();
-            D.pop_back();
-         }
+         D[i] = D.back();
+         D.pop_back();
       }
    }
-
+/*
+   printf("D after = ");
+   for (unsigned i = 0; i < D.size(); i++)
+      printf("%d, ", D[i]->idx);
+   DEBUG("");
+*/
+ //  C.cprint_debug();
    /*
     *  D now contains only events which is in en(C).
     *  D is a comb whose each spike is a list of conflict events D[i].dicfl
     */
 
-      for (unsigned i = 0; i < D.size(); i++)
-         spikes.push_back(D[i]->dicfl);
+   for (unsigned i = 0; i < D.size(); i++)
+      spikes.push_back(D[i]->dicfl);
 
-   std::vector<Event *> J = compute_alt(0, spikes, combin);
-   if (J.empty() == false)
+   DEBUG("SPIKES: ");
+   for (unsigned i = 0; i < spikes.size(); i++)
    {
-      for (unsigned i = 0; i < J.size(); i++)
-         //C.add(*J[i]);
-         printf("%d",J[i]->idx);
+      for (unsigned j = 0; j < spikes[i].size(); j++)
+         printf(" %d", spikes[i][j]->idx);
+      printf("\n");
    }
+   printf("\n");
+
+   compute_alt(0, spikes, J);
+
 }
 
 /*
@@ -1969,8 +1982,9 @@ bool is_conflict_free(std::vector<Event *> combin)
 /*
  * compute and return a set J which is a possible alternative to extend from C
  */
-std::vector<Event *> Unfolding:: compute_alt(unsigned int i, const std::vector<std::vector<Event *>> & s, std::vector<Event *> & combin)
+void Unfolding:: compute_alt(unsigned int i, const std::vector<std::vector<Event *>> & s, std::vector<Event *> & combin)
 {
+   DEBUG("This is compute_alt function");
    for (unsigned j = 0; j < s[i].size(); j++ )
      {
         if (j < s[i].size())
@@ -1986,8 +2000,15 @@ std::vector<Event *> Unfolding:: compute_alt(unsigned int i, const std::vector<s
                * Do something here, check if the combination is conflict-free or not
                * is_conflict_free();
                */
+              DEBUG("a combination");
+              for (unsigned i = 0; i < combin.size(); i++)
+                 printf ("%d ", combin[i]->idx);
+              /*
               if (is_conflict_free(combin))
-                 return combin;
+              {
+                 return;
+              }
+              */
            }
            else
               compute_alt(i+1, s, combin);
@@ -1996,7 +2017,7 @@ std::vector<Event *> Unfolding:: compute_alt(unsigned int i, const std::vector<s
      }
 
    //combin.clear(); // make combin empty
-   return combin;
+  // return combin;
 }
 
 /*
@@ -2004,38 +2025,56 @@ std::vector<Event *> Unfolding:: compute_alt(unsigned int i, const std::vector<s
  */
 void Unfolding:: explore(Config & C, std::vector<Event*> & D, std::vector<Event*> & A)
 {
-   Event * pe;
+   Event * pe = nullptr;
+
    if (C.en.empty() == true) return ;
 
    if (A.empty() == true)
+   {
        pe = C.en.back(); // choose the last element
+   }
    else
    { //choose the mutual event in A and C.en to add
-      for (auto a : A)
-       for (auto e : C.en)
-          if (*e == *a)
-             {
-                pe = e;
-                /* remove the choosen event from addable set*/
-                a = A.back();
-                A.pop_back();
+      for (auto & e: C.en)
+         e->in_bit = 1;
 
-                /* remove the choosen event from enable set*/
-                //e = C.en.back();
-                C.en.pop_back(); // the choosen event is the one at the back of vector
-                break;
-             }
+      for (auto & a : A)
+      {
+         if (a->in_bit == 1)
+         {
+            pe = a;
+            /* remove the choosen event from addable set*/
+            a = A.back();
+            A.pop_back();
+            break;
+         }
+      }
    }
-   C.add(*pe); // enable set is updated whenever pe is added to a configuration.
+
+   Config C1(C);
+   //C1.cprint_debug();
+   C.add(*pe); // enable set is updated whenever pe is added to a configuration, pe is also removed from C.en in Config::add function
+   //C.cprint_debug();
    explore (C, D, A);
    // When C.en is empty, choose an alternative to go
+
+   DEBUG("Here start computing alternative");
+   //Pop up the last event from C
    D.push_back(pe); // ???pe???
+
    std::vector<Event *> J;
-  // J = alternative(C,D);????need to see more carefully
+   alternative(C1,D, J); //to see more carefully
+
+   printf("J = ");
+   for (unsigned i = 0; i < J.size(); i++)
+      printf("%d, ", J[i]->idx);
+   DEBUG("");
+
    if (J.empty() == false)
    {
       A.push_back(*J.begin()); // choose the first element in J to add
-      explore (C, D, A);
+      explore (C1, D, A); // use C1, the state of C before adding pe
+      D.pop_back();
    }
 }
 //----test conflict

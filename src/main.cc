@@ -6,6 +6,6 @@
 
 int main (int, char **)
 {
-   test25();
+   test26();
    return 0;
 }

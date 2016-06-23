@@ -865,22 +865,27 @@ At the beginning, set $C = \{\bot \}$, $D = \emptyset$, $A = \emptyset$
 	\item
 		Compute C.en and C.cex at the state of C
 	\item
-		If $C.en = \emptyset$, then exit
+		If $C.en = \emptyset$, then return
 	\item
 		Else 
 		\begin{itemize}
 			\item
-				If ($A = \emptyset$), then take an random $e$ in C.en
+				If ($A = \emptyset$), then take the event $e$ at the back of C.en
+				(Remember to pop up the event from C.en)
 			\item
 				else take $e$ satisfying: $e \in A$ and $e \in C.en$
+				(Remember to pop up the event from both A and C.en))
 		\end{itemize}
 	\item
-		C.add(e) \\
-		A.pop(e)
+		Store current configuration for alternative computing function
+	\item
+		C.add(e)
 	\item
 		Call Explore(C,D,A)
 	\item
-		$D.push\_back(e)$
+		Remove the last added event from C to D
+		\verb!C.remove(e)!
+		\verb!D.push_back(e)!
 	\item
 		$J = compute\_alt(C,D)$
 		\begin{itemize}

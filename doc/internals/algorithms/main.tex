@@ -482,8 +482,8 @@ We know that $\forall e \in D: $ $e \in cex(C)$ or $e \in en(C)$.
 For each event $e_i \in D$ repeat the following:
 \begin{enumerate}
 \item
-	Let $c \eqdef \tup{s_1, \ldots, s_n}$ be the comb associated to A . 
-	c is computed by adding all events in $e_i->dicfl$ to its corresponding spike.
+	Let $comb \eqdef \tup{s_1, \ldots, s_n}$ be the comb over A . 
+	$s_i$ are the events in direct conflict to $e_i$: $s_i$ = $e_i$ \verb!->dicfl!
 
 \item
 	Enumerate all combinations $\tup{e_1, \ldots, e_n}$ of $c$.
@@ -883,17 +883,26 @@ At the beginning, set $C = \{\bot \}$, $D = \emptyset$, $A = \emptyset$
 	\item
 		Call Explore(C,D,A)
 	\item
-		Remove the last added event from C to D
-		\verb!C.remove(e)!
-		\verb!D.push_back(e)!
+		Remove the last added event from C to D: 
+		\begin{itemize}
+		\item
+			\verb!C.remove(e)! (retrieving the previous configuration)
+		\item
+			\verb!D.push_back(e)!
+		\end{itemize}
 	\item
 		$J = compute\_alt(C,D)$
 		\begin{itemize}
 			\item
-				If J is not empty, then update $A = \{e: e \in J$
-				and $e\not\in C\}$
+				If J is not empty, then
+				\begin{itemize}
+					\item
+						update $A = \{e: e \in J$ and $e\not\in C\}$
+					\item
+						Call Explore(C,D,A)
+				\end{itemize}
 			\item
-				Call Explore(C,D,A)
+				If J is empty, then 
 		\end{itemize}
 	\item
 		$D.pop\_back()$

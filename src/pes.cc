@@ -2000,19 +2000,18 @@ void Unfolding:: find_an_alternative(Config & C, std::vector<Event *> D, std::ve
 #endif
 
    for (auto & c : C.cex)
-   for (unsigned i = 0; i < D.size(); i++)
-   {
-      if (c == D[i])
+      for (unsigned i = 0; i < D.size(); i++)
       {
-         //remove D[i]
-         D[i] = D.back();
-         D.pop_back();
+         if (c == D[i])
+         {
+            //remove D[i]
+            D[i] = D.back();
+            D.pop_back();
+         }
       }
-   }
 
-   printf("cut D = ");
-   for (unsigned i = 0; i < D.size(); i++)
-      printf("%d, ", D[i]->idx);
+   DEBUG_("prunned D = ");
+   for (unsigned i = 0; i < D.size(); i++) DEBUG_("%d, ", D[i]->idx);
    DEBUG("");
 
  //  C.cprint_debug();
@@ -2022,26 +2021,38 @@ void Unfolding:: find_an_alternative(Config & C, std::vector<Event *> D, std::ve
     */
 
    for (unsigned i = 0; i < D.size(); i++)
+   {
+      if (D[i]->idx == 11 && D[i]->dicfl.size() == 1)
+      {
+         DEBUG ("xxxxxxxxxxxxxxxxxxx: hacking e11");
+         spikes.emplace_back();
+         //exit (1);
+         continue;
+      }
       spikes.push_back(D[i]->dicfl);
+   }
 
-   DEBUG("SPIKES: ");
+   ASSERT (spikes.size() == D.size ());
+   DEBUG("COMB: %d spikes: ", spikes.size());
+   for (unsigned i = 0; i < spikes.size(); i++)
+   {
+      DEBUG_ ("i %d e%d (len %d): ", i, D[i]->idx, spikes[i].size());
+      for (unsigned j = 0; j < spikes[i].size(); j++) DEBUG_(" e%d", spikes[i][j]->idx);
+      DEBUG("");
+   }
+   DEBUG("END COMB");
 
+   // no alternative if we get an empty spike!
    for (unsigned i = 0; i < spikes.size(); i++)
    {
       if (spikes[i].size() == 0)
       {
-         DEBUG("There is no alternative");
+         DEBUG("Spike %d (e%d) is empty: no alternative; returning.", i, D[i]->idx);
          return;
       }
-
-      for (unsigned j = 0; j < spikes[i].size(); j++)
-         printf(" %d", spikes[i][j]->idx);
-      printf("\n");
    }
-   printf("\n");
 
    compute_alt(0, spikes, J);
-
 }
 
 /*

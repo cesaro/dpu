@@ -738,7 +738,7 @@ bool Event::check_dicfl( const Event & e )
    /*
     *  a LOC event has no conflict with any other transition.
     * "2 LOC trans sharing a localvar" doesn't matter because it depends on the PC of process.
-    * Here, it means they don't have same pre_proc --> any LOC is in no conflict with others.
+    * Here, it means they don't have same pre_proc (the system is deterministic) --> any LOC is in no conflict with others.
     */
    if ((this->evtid.trans->type == ir::Trans::LOC)  || (e.evtid.trans->type == ir::Trans::LOC))
       return false;
@@ -1502,13 +1502,16 @@ void Config::compute_combi(unsigned int i, const std::vector<std::vector<Event *
                //only add new event in cex, if it is already in unf, don't add
                add_to_cex(newevt);
 
+#if 0
                // update direct conflicting set for both events, but only for new added event.
                if (newevt->idx == unf.evt.back().idx) // new added event at back of evt
                {
                   e->dicfl.push_back(newevt);
                   newevt->dicfl.push_back(e);
                }
+#endif
             }
+
 
             printf("\n");
          }
@@ -2142,13 +2145,13 @@ void Unfolding:: explore(Config & C, std::vector<Event*> & D, std::vector<Event*
       for (auto & c : C.en)
       {
          printf("%d", c->idx);
-         for (unsigned i = 0; i < A.size(); i++)
+         for (unsigned i = 0; i < A.size(); i++) // choose the first one in A which is also in C.en
          {
             if (c == A[i])
             {
                pe = A[i];
-               DEBUG("pe is %d", pe->idx);
-               //remove A[i]
+               //DEBUG("pe is %d", pe->idx);
+               /*remove A[i] */
                A[i] = A.back();
                A.pop_back();
                break;

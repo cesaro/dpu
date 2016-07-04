@@ -454,7 +454,7 @@ We know that $\forall e \in D: $ $e \in cex(C)$ or $e \in en(C)$.
 	an $n$-tuple $c \eqdef \tup{s_1, \ldots, s_n}$ of sequences $s_i \in A^*$
 	(n is the number of elements in A).
 	Each sequence $s_i$ of the $n$-tuple is called a \emph{spike} 
-	which contains all events that are in immediate conflict with $e_{i} \in A$.
+	which contains all events that are in immediate conflict with $e_{i} \in A$.(see \ref{a:dicfl} for direct conflict checking algorithm)
 	If there is a empty spike, ($e_i$ has no conflicting event), then there is no J.
 \item
 	Given a comb $c$ witout any empty spike, a \emph{combination} over $c$ is any $n$-tuple $a = \tup{e_1, \ldots, e_n} \in A^n$ such that $e_i \in A$ is one of the elements of the sequence $s_i \in A^*$, for $i \in \set{1, \ldots, n}$. \\
@@ -476,6 +476,19 @@ We know that $\forall e \in D: $ $e \in cex(C)$ or $e \in en(C)$.
 		\end{itemize}
 \end{itemize}
 \end{itemize}
+
+\subsubsection{Checking direct conflict between two arbitrary events:}
+Given two events $e$ and $e'$. $e$ and $e'$ are in direct or immediate conflict when:
+
+
+\begin{algorithm}{}
+Given two events $e$ and $e'$.
+\noindent
+
+\caption{Check direct conflict between two arbitrary events}
+\label{a:dicfl}
+\end{algorithm}
+
 
 \begin{algorithm}
 \noindent
@@ -902,7 +915,7 @@ At the beginning, set $C = \{\bot \}$, $D = \emptyset$, $A = \emptyset$
 						Call Explore(C,D,A)
 				\end{itemize}
 			\item
-				If J is empty, then 
+				If J is empty, then backtrack to the previous C
 		\end{itemize}
 	\item
 		$D.pop\_back()$

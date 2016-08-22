@@ -744,7 +744,7 @@ bool Event::check_dicfl( const Event & e )
       return false;
 
    // different pre_procs => check pre_mem or pre_readers
-   Event * parent = evtid.pre_mem; // for RD, SYN, WR events
+   Event * parent = evtid.pre_mem; // for RD, SYN, WR events // not right for WR
    std::vector<Event *>::iterator this_idx, e_idx;
 
    // special case when parent is bottom, bottom as a WR, but not exactly a WR

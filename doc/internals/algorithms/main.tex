@@ -122,7 +122,6 @@ FIXME -- some of these events are only causal predecessors or successors,
 not necessarily immediate predecessors or successors.
 
 \subsection{Data Structure}
-
 The members of the class \verb!Event! that are relevant on each instance of
 the class depend on the type of the transition represented by the event.
 
@@ -477,12 +476,36 @@ We know that $\forall e \in D: $ $e \in cex(C)$ or $e \in en(C)$.
 \end{itemize}
 \end{itemize}
 
-\subsubsection{Checking direct conflict between two arbitrary events:}
-Given two events $e$ and $e'$. $e$ and $e'$ are in direct or immediate conflict when:
+\subsubsection{Checking direct conflict}
+The only case that we need to check direct conflict between two events is when adding a new event $e$ to a configuration C. 
+By the time of adding $e$ to C, we need to check if there exist any $e'$ in en(C) which conflicts with e. If yes, move $e'$ to cex(C) and update their direct conflict set at the same time.
+
+It is the fact that $e$ and $e'$ are both in en(C), so we have:
+\begin{itemize}
+	\item
+		$\lceil e \rceil \cup e'$ is a configuration.
+	\item
+		$\lceil e' \rceil \cup e$ is a configuration.
+\end{itemize} 
+To decide if they are in conflcit or not, just check if they share one parent.
+
+
 
 
 \begin{algorithm}{}
-Given two events $e$ and $e'$.
+Given two events $e$ and $e'$, do as follows to check the direct (immediate) conflict between two events:
+\begin{enumerate}
+	\item
+		If there is no share parent, they are not in direct conflict.
+	\item
+		If two events share at least one parent (which can be \verb!pre_proc!,\verb!pre_mem! or one of \verb!pre_readers! ), we have some different cases:
+\begin{itemize}
+	\item
+		If one of two is a LOC, there is no direct conflict between them because of the deterministic feature of the system.
+	\item
+		If they are two RDs:
+\end{itemize}
+\end{enumerate}
 \noindent
 
 \caption{Check direct conflict between two arbitrary events}

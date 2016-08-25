@@ -716,7 +716,7 @@ const Event & Event:: find_latest_WR_pred() const
       e = e->evtid.pre_mem;
    }
 }
-
+#if 0
 /*
  * Check if two events are in immediate conflict:
  *    - Two events are in direct conflict if they both appear in a vector in post_mem of an event
@@ -797,6 +797,70 @@ bool Event::check_dicfl( const Event & e )
 
    return false;
 }
+#endif
+
+/*
+ * Check if two events are in immediate conflict, providing that they are in enable set of a configuration:
+   this is a new event choosen to add to the configuration which means this is also in the enable set.
+   e is another event in enable set of the configuration
+ */
+
+bool Event::check_dicfl( const Event & e )
+{
+   if (this->is_bottom() || e.is_bottom() || (*this == e) )
+      return false;
+
+   if ((this->evtid.trans->type == ir::Trans::LOC)  || (e.evtid.trans->type == ir::Trans::LOC))
+      return false;
+
+   /*
+    * Check pre_proc: if they have the same pre_proc and in the same process -> conflict
+    * It is also true for the case where pre_proc is bottom
+    */
+
+   if ((this->evtid.pre_proc == e.evtid.pre_proc) && (this->evtid.trans->proc.id == e.evtid.trans->proc.id))
+      return true;
+
+   /*
+    *  a LOC event has no conflict with any other transition.
+    * "2 LOC trans sharing a localvar" doesn't matter because it depends on the PC of process.
+    * Here, it means they don't have same pre_proc (the system is deterministic) --> any LOC is in no conflict with others.
+    */
+
+
+   // different pre_procs => check pre_mem or pre_readers
+   Event * parent = evtid.pre_mem; // for RD, SYN, WR events // not right for WR
+   std::vector<Event *>::iterator this_idx, e_idx;
+
+   // special case when parent is bottom, bottom as a WR, but not exactly a WR
+   if (parent->is_bottom())
+   {
+
+   }
+   // I am trying not to use post_mem
+
+   switch (parent->evtid.trans->type)
+   {
+      case ir::Trans::RD:
+
+         break;
+
+      case ir::Trans::WR:
+
+         break;
+
+     case ir::Trans::SYN:
+
+        break;
+
+     case ir::Trans::LOC:
+        // nothing to do
+        break;
+   }
+
+   return false;
+}
+
 /*
  * Check if two events (this and e) are in conflict
  *
@@ -1344,13 +1408,13 @@ void Config:: RD_cex(Event * e)
    {
       if (em->evtid.trans->type == ir::Trans::RD)
       {
-         pr_mem   = em;
-         em       = em->evtid.pre_mem;
+         pr_mem   = em->evtid.pre_mem;
+         //em       = em->evtid.pre_mem;
       }
-      else
+      else // or WR
       {
          pr_mem   = em->evtid.pre_readers[e->evtid.trans->proc.id];
-         em       = em->evtid.pre_readers[e->evtid.trans->proc.id];
+         //em       = em->evtid.pre_readers[e->evtid.trans->proc.id];
       }
 
       /* Need to check the event's history before adding it to the unf
@@ -1361,13 +1425,16 @@ void Config:: RD_cex(Event * e)
       Event * newevt = &unf.find_or_add (*id);
       add_to_cex(newevt);
 
-      // add event to set of direct conflict dicfl if it is new one.
+      // add new event newevt to set of dicfl of em and verse. Refer to the doc for more details
       if (newevt->idx == unf.evt.back().idx)
       {
-         e->dicfl.push_back(newevt);
-         newevt->dicfl.push_back(e);
+         em->dicfl.push_back(newevt);
+         newevt->dicfl.push_back(em);
 
       }
+
+      // move the pointer to the next
+      em = pr_mem;
    } // end while
 }
 
@@ -1384,17 +1451,7 @@ void Config:: SYN_cex(Event * e)
 
    while (!(em->is_bottom()) and (ep->succeed(*em) == false))
    {
-      if (em->evtid.trans->type == ir::Trans::RD)
-      {
-         pr_mem   = em;
-         em       = em->evtid.pre_mem;
-      }
-      else
-      {
-         pr_mem   = em->evtid.pre_readers[e->evtid.trans->proc.id];
-         em       = em->evtid.pre_readers[e->evtid.trans->proc.id];
-      }
-
+      pr_mem   = em->evtid.pre_mem;
       /*
        *  Need to check the event's history before adding it to the unf
        * Don't add events which are already in the unf
@@ -1402,13 +1459,15 @@ void Config:: SYN_cex(Event * e)
       Ident id(e->evtid.trans, e->evtid.pre_proc, e->evtid.pre_mem, std::vector<Event *>());
       Event * newevt = &unf.find_or_add (id);
 
-      // add event to set of direct conflict dicfl if it is new one.
+      // add new event newevt to set of dicfl of em and verse. Refer to the doc for more details
       if (newevt->idx == unf.evt.back().idx)
       {
-         e->dicfl.push_back(newevt);
-         newevt->dicfl.push_back(e);
-         add_to_cex(newevt);
+         em->dicfl.push_back(newevt);
+         newevt->dicfl.push_back(em);
       }
+
+      // move the pointer to the next
+      em = pr_mem;
    }
 }
 /*
@@ -1502,14 +1561,15 @@ void Config::compute_combi(unsigned int i, const std::vector<std::vector<Event *
                //only add new event in cex, if it is already in unf, don't add
                add_to_cex(newevt);
 
-#if 0
-               // update direct conflicting set for both events, but only for new added event.
-               if (newevt->idx == unf.evt.back().idx) // new added event at back of evt
+               // add new event newevt to set of dicfl of all events in combi (its pre_readers) and verse. Refer to the doc for more details
+               if (newevt->idx == unf.evt.back().idx)
                {
-                  e->dicfl.push_back(newevt);
-                  newevt->dicfl.push_back(e);
+                  for (unsigned i = 0; i < combi.size(); i++)
+                  {
+                     combi[i]->dicfl.push_back(newevt);
+                     newevt->dicfl.push_back(combi[i]);
+                  }
                }
-#endif
             }
 
 

@@ -477,62 +477,95 @@ We know that $\forall e \in D: $ $e \in cex(C)$ or $e \in en(C)$.
 \end{itemize}
 
 \subsubsection{Checking direct conflict}
-Every event in the unfolding should have a list of events which are in conflict with it. Whenever 
-The only case that we need to check direct conflict between two events is when adding a new event $e$ to a configuration C. 
-By the time of adding $e$ to C, we need to check if there exist any $e'$ in en(C) which conflicts with e. If 'yes', move $e'$ to cex(C) and update their direct conflict set at the same time.
-
-It is the fact that $e$ and $e'$ are both in en(C), so we have:
-\begin{itemize}
-	\item
-		$\lceil e \rceil \cup e'$ is a configuration.
-	\item
-		$\lceil e' \rceil \cup e$ is a configuration.
-\end{itemize} 
-To decide if they are in conflcit, just check their parents together. If there is at least one shared parent between them, they are not in direct conflict. Otherwise, they are not.
-Let us take the type of transition into account:
-Note that they are in a enable set of configuration, so they cannot share\verb!	pre_proc!.
-\begin{itemize}
-	\item
-		If either $e$ or $e'$ is a LOC: two events definitly share no parent (thank to the deterministic 				feature of the model) which means they are not in conflict (including direct conflict).
-		
-	\item
-		If they are two RDs or a RD and a SYN: If \verb!e.pre_mem = e'.pre_mem!, they are not in conflict
-		but concurrent. Therefore, if we have \verb!e.pre_proc = e'.pre_mem! 
-		or \verb!e.pre_mem = e'.pre_proc!, $e$ and $e'$ are in direct conflict.
-
-	\item
-		If $e$ is RD or a SYN and the other $e'$ is a WR: 
-		\begin{itemize}
-			\item
-				If \verb!e.pre_mem = e.pre_proc!, we have a direct conflict between $e$ and $e'$
-			\item
-				For each \verb!e'.pre_readers!, 
-				check \verb!e'.pre_readers[i] = e.pre_proc! or \verb!e'.pre_readers[i] = e.pre_mem!
-		\end{itemize}
-	\item
-		If both are WRs, check each parent of $e$ with those of $e'$. If there exist a shared parent, $e$ and $e'$ conflict directly.
-\end{itemize}
-
-\begin{algorithm}{}
-Given two events $e$ and $e'$, do as follows to check the direct (immediate) conflict between two events:
+Every event in the unfolding should have a list of events which are in conflict with it, called $dicfl$. This set is updated when events are created or something which can cause changes in relationships among events happens.
+An event can be create in two cases:
 \begin{enumerate}
 	\item
-		If there is no share parent, they are not in direct conflict.
-	\item
-		If two events share at least one parent (which can be \verb!pre_proc!,\verb!pre_mem! or one of 					\verb!pre_readers! ), we have some different cases:
+		A transition is enabled at the state of configuration, one event labelling with that transition is
+		created and added to enable set. However, at that time, we don't care much about the conflict or
+		causality between events because it is not explored yet. Just when an event $e$ is explored (added
+		to a configuration C), we need to update its $dicfl$. If there exist any $e'$ in en(C) which
+		conflicts with $e$, move $e'$ to cex(C) and update their direct conflict set at the same time. 		
+		
+		\begin{lemma}
+			$e$ and $e'$ are both in en(C), $e \icfl e'$ iff they share at least one parent.
+		\end{lemma}
+		
+		\begin{proof}
+			($\leftarrow$) $e$ and $e'$ have a common parent $\rightarrow$ $e \icfl e'$
+			
+			 $e$ and $e'$ sharing one parent means that  $e \cfl e'$. Moreover, $e$ and $e'$ are both in
+			  en(C), so we have:
+			\begin{itemize}
+				\item
+					$\lceil e \rceil \cup e'$ is a configuration.
+				\item
+					$\lceil e' \rceil \cup e$ is a configuration.
+			\end{itemize} 
+			According to the definition of direct conflict, it is obvious that $e \icfl e'$.
+			
+			($\rightarrow$) $\rightarrow$ $e \icfl e'$, they have at least one parent in common.
+			.....
+			
+		\end{proof}			
+		
+		To decide if they are in conflict, just check their parents together. If there is at least one
+		shared parent between them, they are not in direct conflict. Otherwise, they are not. Let us take
+		the type of transition into account: 
+		Note that they are in a enable set of configuration, so they cannot share\verb!	pre_proc!.
 		\begin{itemize}
 			\item
-				If one of two is a LOC, there is no direct conflict between them because of the 								deterministic feature of the system.
+				If either $e$ or $e'$ is a LOC: two events definitly share no parent (thank to the
+				deterministic feature of the model) which means they are not in conflict 
+				(including direct conflict).
 			\item
-				If they are two RDs: 
+				If they are two RDs or a RD and a SYN: If \verb!e.pre_mem = e'.pre_mem!, they are not in
+				conflict but concurrent. Therefore, if we have \verb!e.pre_proc = e'.pre_mem! or
+				\verb!e.pre_mem = e'.pre_proc!, $e$ and $e'$ are in direct conflict.
+			\item
+				If $e$ is RD or a SYN and the other $e'$ is a WR: 
+				\begin{itemize}
+					\item
+						If \verb!e.pre_mem = e.pre_proc!, we have a direct conflict between $e$ and $e'$
+					\item
+						For each \verb!e'.pre_readers!, check \verb!e'.pre_readers[i] = e.pre_proc! or
+						 \verb!e'.pre_readers[i] = e.pre_mem!
+				\end{itemize}
+				
+			\item
+				If both are WRs, check \verb!e.pre_proc! and \verb!e.pre_readers! with \verb!e'.pre_proc!
+				and all \verb!e'.pre_readers! and reverse. If there exist a pair with the same id, $e$ and
+				$e'$ conflict directly.
 		\end{itemize}
+
+		\begin{algorithm}{}
+			Given two events $e$ and $e'$, do as follows to check the direct (immediate) conflict between
+			two events:
+			\begin{enumerate}
+				\item
+					If there is no share parent, they are not in direct conflict.
+				\item
+					If two events share at least one parent (which can be \verb!pre_proc!,\verb!pre_mem! or
+					one of \verb!pre_readers! ), we have some different cases:
+					\begin{itemize}
+						\item
+							If one of two is a LOC, there is no direct conflict between them because of the 								deterministic feature of the system.
+						\item
+							If they are two RDs: 
+					\end{itemize}
+			\end{enumerate}
+			\noindent
+			\caption{Check direct conflict between two arbitrary events}
+			\label{a:dicfl}
+		\end{algorithm}
+
+	\item
+		An event in conflict extension of a configuration is created by sharing \verb!pre_proc! and finding
+		new \verb!pre_mem! or \verb!pre_readers!.
+		Find $e'$ with the same transition, same \verb!pre_proc! but different \verb!pre_mem! or \verb!pre_readers!.
+		If new event $e'$ is a SYN, RD, it will be in immidiate conflict with \verb!e.pre_mem!
+		If $e'$ is a WR, it will conflict directly with all \verb!e.pre_readers!		
 \end{enumerate}
-
-\noindent
-
-\caption{Check direct conflict between two arbitrary events}
-\label{a:dicfl}
-\end{algorithm}
 
 
 \begin{algorithm}
@@ -566,13 +599,16 @@ Given two arbitrary events $e$ and $e'$ in the unfolding, decide if they are in 
 	\item e and e' are in different processes: $p(e)\neq p(e')$
 		\begin{itemize}
 			\item
-				touch the same variable: $v(e) = v(e')$ and $ type(e) = type(e') = WR$ , apply \cref{a:layer_tree} for tree of WR events 
+				touch the same variable: $v(e) = v(e')$ and $ type(e) = type(e') = WR$ , apply 
+				\cref{a:layer_tree} for tree of WR events 
 			\item
-				touch the same variable: $v(e) = v(e')$ and $ type(e) = type(e') = SYN$ , apply \cref{a:layer_tree} for tree of SYN
+				touch the same variable: $v(e) = v(e')$ and $ type(e) = type(e') = SYN$ , apply 
+				\cref{a:layer_tree} for tree of SYN
 			\item
-				touch the same variable: $v(e) = v(e')$ and they are (RD, RD). Assume $w_1$, $w_2$ are the latest WR events in two local
-				configurations of $e$ and $e'$ respectively. Apply \cref{a:layer_tree} to determine the relation between two WRs: 
-				they are either inconflict or in causality.
+				touch the same variable: $v(e) = v(e')$ and they are (RD, RD). Assume $w_1$, $w_2$ are the 
+				latest WR events in two local configurations of $e$ and $e'$ respectively. Apply 
+				\cref{a:layer_tree} to determine the relation between two WRs: they are either inconflict or
+				in causality.
 			\begin{itemize}
 				\item
 					If $w_1 = w_2$, then $e \co e'$ (which implies that $\lnot (e \cfl e')$).
@@ -617,16 +653,21 @@ Given two arbitrary events $e$ and $e'$ in the unfolding, decide if they are in 
 			\item Other cases where two events touch different variables: $v(e) \neq v(e')$) or two LOCs, store more information:	
 			\begin{itemize}
 				\item 
-					For each event $e$, we use two vectors: one \verb!var_maxevt! includes maximal events  for all variables and 
+					For each event $e$, we use two vectors: one \verb!var_maxevt! includes maximal events  
+					for all variables and 
 					the other \verb!pro_maxevt! includes those for all processes in e' local configuration.
 					\begin{itemize}
 					\item
-						Formally, \verb!var_maxevt! $ = (e_1, e_2...,e_m)$  (m is the number of variables in the model)
-						while $e_i$ is the maximal event (RD, SYN, WR) in $e$'s local configuration which touches $v_i$ variable :
-						$e_i \in  \left[ e \right]: v(e_i) = v_i$ and $ \nexists e_i' \in \left[ e \right] $ such that:
+						Formally, \verb!var_maxevt! $ = (e_1, e_2...,e_m)$  (m is the number of variables in 
+						the model)
+						while $e_i$ is the maximal event (RD, SYN, WR) in $e$'s local configuration which 
+						touches $v_i$ variable :
+						$e_i \in  \left[ e \right]: v(e_i) = v_i$ and $ \nexists e_i' \in \left[ e \right] $ 
+						such that:
 						$e_i < e_i'$ and $v(e_i') = v_i$ 
 					\item
-						\verb!proc_maxevt! $ = (e_1, e_2...,e_n)$  (n is the number of processes in the model)
+						\verb!proc_maxevt! $ = (e_1, e_2...,e_n)$  (n is the number of processes in the
+						 model)
 						while $e_i$ is the maximal event of process $p_i$ in $e$'s local configuration:
 						$e_i \in  \left[ e \right]: p(e_i) = p_i$ and \\
 						$ \nexists e_i' \in \left[ e \right] $ such that:

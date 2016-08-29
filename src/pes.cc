@@ -63,7 +63,7 @@ void Node<T,SS>:: set_skip_preds(int idx)
 {
    // including immediate predecessor
    int size = compute_size();
-   //printf(", size: %d", size);
+   //DEBUG_(", size: %d", size);
 
    // initialize the elements
    if (size == 0) return;
@@ -132,25 +132,25 @@ int Node<T,SS>::compute_size()
 template <class T, int SS >
 void Node<T,SS>:: print_skip_preds()
 {
-   printf("Node: %p", this);
-   printf(", depth: %d", depth);
-   printf(", Pre: %p", pre);
+   DEBUG_("Node: %p", this);
+   DEBUG_(", depth: %d", depth);
+   DEBUG_(", Pre: %p", pre);
    int size = compute_size();
    if (size == 0)
    {
-      printf(", No skip predecessor\n");
+      DEBUG_(", No skip predecessor\n");
       return;
    }
-   printf(", Skip_preds: ");
+   DEBUG_(", Skip_preds: ");
    for (unsigned i = 0; i < size; i++)
    {
       if (i == size-1)
-         printf ("%p", skip_preds[i]);
+         DEBUG_ ("%p", skip_preds[i]);
       else
-         printf ("%p, ", skip_preds[i]);
+         DEBUG_ ("%p, ", skip_preds[i]);
    }
 
-   printf("\n");
+   DEBUG_("\n");
 }
 //----------
 int max_skip(int d, int base)
@@ -172,7 +172,7 @@ template <class T, int SS >
 template <int idx>
 T & Node<T,SS>:: find_pred(int d) const
 {
-   //printf("\n This is function to find a node at a specific depth");
+   //DEBUG_("\n This is function to find a node at a specific depth");
    T * next = nullptr;;
    int i, dis = this->depth - d;
    assert (dis != 0); // at the beginning dis != 0
@@ -589,10 +589,10 @@ void Event::set_var_maxevt()
  */
 void Event::update_parents()
 {
-   printf("   Update_parents:  ");
+   DEBUG_("   Update_parents:  ");
    if (is_bottom())
    {
-      printf("   Its parent is bottom");
+      DEBUG_("   Its parent is bottom");
       return;
    }
 
@@ -648,7 +648,7 @@ void Event::update_parents()
          break;
    }
 
-   printf(" Finished\n");
+   DEBUG_(" Finished\n");
    return ;
 }
 /*
@@ -716,7 +716,7 @@ const Event & Event:: find_latest_WR_pred() const
       e = e->evtid.pre_mem;
    }
 }
-#if 0
+
 /*
  * Check if two events are in immediate conflict:
  *    - Two events are in direct conflict if they both appear in a vector in post_mem of an event
@@ -797,7 +797,8 @@ bool Event::check_dicfl( const Event & e )
 
    return false;
 }
-#endif
+
+#if 0
 
 /*
  * Check if two events are in immediate conflict, providing that they are in enable set of a configuration:
@@ -861,6 +862,7 @@ bool Event::check_dicfl( const Event & e )
    return false;
 }
 
+#endif
 /*
  * Check if two events (this and e) are in conflict
  *
@@ -1131,7 +1133,7 @@ std::string Event::dotstr () const
 void Event::eprint_debug()
 {
 
-   printf ("Event: %p, id: %d, Ident: %s", this, this->idx, this->evtid.str().c_str());
+   DEBUG_ ("Event: %p, id: %d, Ident: %s", this, this->idx, this->evtid.str().c_str());
 
 	//print post_mem
 	if (post_mem.size() != 0)
@@ -1139,10 +1141,10 @@ void Event::eprint_debug()
 			DEBUG("Post_mem: ");
 			for (unsigned int i = 0; i < post_mem.size(); i++)
 			{
-			   printf("  Process %d:", i);
+			   DEBUG_("  Process %d:", i);
 			   for (unsigned j = 0; j < post_mem[i].size(); j++)
-			      printf(" %d  ",post_mem[i][j]->idx);
-			   printf("\n");
+			      DEBUG_(" %d  ",post_mem[i][j]->idx);
+			   DEBUG_("\n");
 			}
 		}
 	else
@@ -1151,10 +1153,10 @@ void Event::eprint_debug()
 	// print post_proc
    if (post_proc.size() != 0)
    {
-      printf(" Post_proc: ");
+      DEBUG_(" Post_proc: ");
 	   for (unsigned int i = 0; i < post_proc.size(); i++)
-	      printf("%d   ", post_proc[i]->idx);
-	   printf("\n");
+	      DEBUG_("%d   ", post_proc[i]->idx);
+	   DEBUG_("\n");
    }
    else
       DEBUG(" No post proc");
@@ -1169,16 +1171,16 @@ void Event::eprint_debug()
       else
          DEBUG(" No post rws");
    // print corresponding in the process tree
-   printf("Proc node: ");
+   DEBUG_("Proc node: ");
    print_proc_skip_preds();
-   printf("Var node:");
+   DEBUG_("Var node:");
    print_var_skip_preds();
 
    //---------------------
-   printf(" Var_maxevt: ");
+   DEBUG_(" Var_maxevt: ");
    for (unsigned i = 0; i < var_maxevt.size(); i++)
-      printf("%d, ", var_maxevt[i]->idx);
-   printf("\n");
+      DEBUG_("%d, ", var_maxevt[i]->idx);
+   DEBUG_("\n");
 }
 
 /*
@@ -1231,7 +1233,7 @@ void Config::add (const Event & e)
    for (unsigned int i = 0; i < en.size (); i++)
       if (e == *en[i])
          {
-           // printf("Enable event idx = %d", i);
+           // DEBUG_("Enable event idx = %d", i);
             add (i);
          }
   // throw std::range_error ("Trying to add an event not in enable set by a configuration");
@@ -1343,14 +1345,14 @@ void Config::__update_encex (Event & e )
  */
 void Config::remove_cfl(Event & e)
 {
-   printf (" %p: Config.remove_cfl(%p): ", this, &e);
+   DEBUG_ (" %p: Config.remove_cfl(%p): ", this, &e);
    unsigned int i = 0;
 
    while (i < en.size())
    {
       if (e.check_dicfl(*en[i]) == true)
       {
-         printf ("  %p ", en[i]);
+         DEBUG_ ("  %p ", en[i]);
          e.dicfl.push_back(en[i]); // add en[i] to direct conflicting set of e
          en[i]->dicfl.push_back(&e); // add e to direct conflict set of en[i]
          cex.push_back(en[i]);
@@ -1360,7 +1362,7 @@ void Config::remove_cfl(Event & e)
       }
       else   i++;
    }
-   printf("\n");
+   DEBUG_("\n");
 }
 /*
  * compute confilct extension for a maximal configuration
@@ -1506,10 +1508,10 @@ void Config:: WR_cex(Event * e)
       /* show the comb */
       for (unsigned i = 0; i < spikes.size(); i++)
       {
-         printf("    ");
+         DEBUG_("    ");
          for (unsigned j = 0; j < spikes[i].size(); j++)
-            printf("%d ", spikes[i][j]->idx);
-         printf("\n");
+            DEBUG_("%d ", spikes[i][j]->idx);
+         DEBUG_("\n");
       }
 
       ew = spikes[0].back();
@@ -1545,9 +1547,11 @@ void Config::compute_combi(unsigned int i, const std::vector<std::vector<Event *
          combi.push_back(s[i][j]);
          if (i == s.size() - 1)
          {
-            printf("   Combination:");
+            DEBUG_("   Combination:");
             for (unsigned k = 0; k < combi.size(); k++)
-               printf("%d ", combi[k]->idx);
+               DEBUG_("%d ", combi[k]->idx);
+
+            DEBUG_(":");
 
             /* if an event is already in the unf, it must have all necessary relations including causality and conflict.
              * That means it is in cex, so don't need to check if old event is in cex or not. It's surely in cex.
@@ -1557,23 +1561,29 @@ void Config::compute_combi(unsigned int i, const std::vector<std::vector<Event *
             // make sure new event is different from e
             if (!(combi == e->evtid.pre_readers))
             {
+               DEBUG_("valid for new event:");
                newevt = &unf.find_or_add(id);
                //only add new event in cex, if it is already in unf, don't add
                add_to_cex(newevt);
 
-               // add new event newevt to set of dicfl of all events in combi (its pre_readers) and verse. Refer to the doc for more details
+               // add new event newevt to set of dicfl of all events in combi (its pre_readers) which is different from those of e. Refer to the doc for more details
                if (newevt->idx == unf.evt.back().idx)
                {
                   for (unsigned i = 0; i < combi.size(); i++)
                   {
-                     combi[i]->dicfl.push_back(newevt);
-                     newevt->dicfl.push_back(combi[i]);
+                     if (combi[i]->idx != e->evtid.pre_readers[i]->idx)
+                     {
+                        combi[i]->dicfl.push_back(newevt);
+                        newevt->dicfl.push_back(combi[i]);
+                     }
                   }
                }
             }
+            else
+               DEBUG("Not valid");
 
 
-            printf("\n");
+            DEBUG_("\n");
          }
          else
             compute_combi(i+1, s, combi, e);
@@ -1589,7 +1599,7 @@ void Config:: add_to_cex(Event * ee)
    for (auto ce : cex)
       if (ee->idx == ce->idx)
       {
-         printf(" and already in the cex");
+         DEBUG_(" and already in the cex");
          return;
       }
    cex.push_back(ee);
@@ -1618,15 +1628,17 @@ void Config::cprint_debug () const
 void Config:: cprint_event() const
 {
    Event * pe;
+   DEBUG_("{");
    for (unsigned i = 0; i < latest_proc.size(); i++)
    {
       pe = latest_proc[i];
       while (pe->is_bottom() == false)
       {
-         printf("%d, ", pe->idx );
+         DEBUG_("%d  ", pe->idx );
          pe = pe->evtid.pre_proc;
       }
    }
+   DEBUG("}");
 }
 
 /*
@@ -1648,10 +1660,10 @@ void Config::cprint_dot()
          DEBUG("Directory \"output\" has just been created!");
    }
 
-   printf(" The configuration is exported to dot file: \"dpu/output/conf.dot\"");
+   DEBUG_(" The configuration is exported to dot file: \"dpu/output/conf.dot\"");
    std::ofstream fs("output/conf.dot", std::fstream::out);
    if (fs.is_open() != true)
-      printf("Cannot open the file\n");
+      DEBUG_("Cannot open the file\n");
 
    fs << "Digraph RGraph {\n node [shape = rectangle, style = filled]";
    fs << "label =\"A random configuration.\"";
@@ -1701,7 +1713,7 @@ void Config::cprint_dot()
 
    fs << "}";
    fs.close();
-   printf(" successfully\n");
+   DEBUG_(" successfully\n");
 }
 
 /*
@@ -1719,20 +1731,20 @@ void Config::__print_en() const
  */
 void Config::__print_cex() const
 {
-   printf ("\n %p Config.cex: size = %zu ", this, cex.size());
+   DEBUG_ ("\n %p Config.cex:", this);
    if (cex.size() != 0)
    {
-      printf(", elements: ");
       for (auto & e : cex)
       {
-         printf("%d ", e->idx);
-         printf("Direct conflict:");
+         DEBUG_("%d ", e->idx);
+         DEBUG_("(dicfl:");
          for (auto c : e->dicfl)
-            printf("%d, ", c->idx);
+            DEBUG_("%d, ", c->idx);
+         DEBUG(")");
       }
    }
    else
-      printf(", No element");
+      DEBUG_("Empty");
 }
 
 /*
@@ -1810,7 +1822,7 @@ void Unfolding::create_event(ir::Trans & t, Config & c)
    std::unordered_map <Ident, Event *, IdHasher<Ident>>::const_iterator got = evttab.find (id);
    if ( got != evttab.end() )
       {
-         printf("   already in the unf as event with idx = %d", evttab[id]->idx);
+         DEBUG_("   already in the unf as event with idx = %d", evttab[id]->idx);
          return;
       }
 
@@ -1840,7 +1852,7 @@ Event & Unfolding:: find_or_add(Ident & id)
 
    if (got != evttab.end())
    {
-      DEBUG("   already in the unf as event with idx = %d", evttab[id]->idx);
+      DEBUG_("   already in the unf as event with idx = %d", evttab[id]->idx);
       return *evttab[id];
    }
 
@@ -1886,7 +1898,7 @@ void Unfolding:: uprint_dot()
 
    std::ofstream fs("output/unf.dot", std::fstream::out);
    std::string caption = "Concur example";
-   printf(" Unfolding is exported to dot file: \"dpu/output/unf.dot\"");
+   DEBUG_(" Unfolding is exported to dot file: \"dpu/output/unf.dot\"");
    fs << "Digraph RGraph {\n";
    fs << "label = \"Unfolding: " << caption <<"\"";
    fs << "node [shape=rectangle, fontsize=10, style=\"filled, solid\", align=right]";
@@ -2028,9 +2040,9 @@ void Unfolding:: test_conflict()
    }
 
    if (e1->check_cfl(*e2))
-      printf("They are in conflict");
+      DEBUG_("They are in conflict");
    else
-      printf("They are not in conflict");
+      DEBUG_("They are not in conflict");
 }
 
 /*
@@ -2041,11 +2053,11 @@ void Unfolding:: find_an_alternative(Config & C, std::vector<Event *> D, std::ve
    std::vector<std::vector<Event *>> spikes;
   // std::vector<Event *> combin;
 
-   DEBUG("This is alternative function");
-   printf("Original D = ");
+   DEBUG("Find J alternative to");
+   DEBUG_("Original D = {");
      for (unsigned i = 0; i < D.size(); i++)
-        printf("%d, ", D[i]->idx);
-   DEBUG("");
+        DEBUG_("%d  ", D[i]->idx);
+   DEBUG("}");
 
    // Keep in D only events which are not in C.cex
 #if 0
@@ -2073,11 +2085,12 @@ void Unfolding:: find_an_alternative(Config & C, std::vector<Event *> D, std::ve
          }
       }
 
-   DEBUG_("prunned D = ");
-   for (unsigned i = 0; i < D.size(); i++) DEBUG_("%d, ", D[i]->idx);
-   DEBUG("");
+   DEBUG_("Prunned D = {");
+   for (unsigned i = 0; i < D.size(); i++) DEBUG_("%d  ", D[i]->idx);
+   DEBUG("}");
 
- //  C.cprint_debug();
+   DEBUG_("after C = ");
+   C.cprint_event();
    /*
     *  D now contains only events which is in en(C).
     *  D is a comb whose each spike is a list of conflict events D[i].dicfl
@@ -2099,8 +2112,9 @@ void Unfolding:: find_an_alternative(Config & C, std::vector<Event *> D, std::ve
    DEBUG("COMB: %d spikes: ", spikes.size());
    for (unsigned i = 0; i < spikes.size(); i++)
    {
-      DEBUG_ ("i %d e%d (len %d): ", i, D[i]->idx, spikes[i].size());
-      for (unsigned j = 0; j < spikes[i].size(); j++) DEBUG_(" e%d", spikes[i][j]->idx);
+      DEBUG_ ("  spike %d: (#e%d (len %d): ", i, D[i]->idx, spikes[i].size());
+      for (unsigned j = 0; j < spikes[i].size(); j++)
+         DEBUG_(" %d", spikes[i][j]->idx);
       DEBUG("");
    }
    DEBUG("END COMB");
@@ -2129,7 +2143,6 @@ bool is_conflict_free(std::vector<Event *> combin)
         if (combin[i]->check_cfl(*combin[j]))
            return false;
       }
-   printf("It is a conflict-free combination");
    return true;
 }
 
@@ -2150,26 +2163,28 @@ void Unfolding:: compute_alt(unsigned int i, const std::vector<std::vector<Event
            {
 
               /*
-               * Do something here, check if the combination is conflict-free or not
-               * is_conflict_free();
+               * check if the combination is conflict-free or not
                */
 
 #if 0
-              printf("A combination J =: ");
+              DEBUG_("A combination J =: ");
               for (unsigned i = 0; i < J.size(); i++)
-                 printf ("%d ", J[i]->idx);
-              printf("\n");
+                 DEBUG_ ("%d ", J[i]->idx);
+              DEBUG_("\n");
 #endif
-              return;
+              DEBUG_("J = {");
+              for (unsigned i = 0; i < J.size(); i++)
+                 DEBUG_("%d, ", J[i]->idx);
 
-              /*
+              DEBUG_("}\n");
+
               if (is_conflict_free(J))
               {
+                 DEBUG("It is a conflict-free combination");
                  return;
               }
-              else
-                 J.clear();
-              */
+              //else
+                // J.clear();
            }
            else
               compute_alt(i+1, s, J);
@@ -2184,12 +2199,12 @@ void Unfolding:: compute_alt(unsigned int i, const std::vector<std::vector<Event
  */
 void Unfolding:: explore(Config & C, std::vector<Event*> & D, std::vector<Event*> & A)
 {
-   DEBUG("\n Explore function");
+   DEBUG("\nExplore %p:", &C);
    Event * pe = nullptr;
 
    if (C.en.empty() == true)
       {
-         DEBUG("No enabled event");
+         DEBUG(" No enabled event");
          C.compute_cex();
          return ;
       }
@@ -2200,11 +2215,11 @@ void Unfolding:: explore(Config & C, std::vector<Event*> & D, std::vector<Event*
    }
    else
    { //choose the mutual event in A and C.en to add
-      DEBUG("A is not empty");
-      printf("C.en = ");
+      DEBUG(" A is not empty");
+      DEBUG_(" C.en:{ ");
       for (auto & c : C.en)
       {
-         printf("%d", c->idx);
+         DEBUG_("%d, ", c->idx);
          for (unsigned i = 0; i < A.size(); i++) // choose the first one in A which is also in C.en
          {
             if (c == A[i])
@@ -2218,6 +2233,7 @@ void Unfolding:: explore(Config & C, std::vector<Event*> & D, std::vector<Event*
             }
          }
       }
+      DEBUG("}");
 
 #if 0
       for (auto & e: C.en)
@@ -2236,42 +2252,46 @@ void Unfolding:: explore(Config & C, std::vector<Event*> & D, std::vector<Event*
       }
 #endif
    }
-   DEBUG("pe is %d", pe->idx);
-   Config C1(C);
+
+   //DEBUG("New event to add is %d", pe->idx);
+   Config C1(C); // C1 is to store old configuration
+
    C.add(*pe); // enable set is updated whenever pe is added to a configuration, pe is also removed from C.en in Config::add function
+
    explore (C, D, A);
 
    // When C.en is empty, choose an alternative to go
-   DEBUG("\n-----Here, start computing alternative----------");
+   DEBUG("Compute alternative to D");
    //Pop up the last event from C
    D.push_back(pe); // ???pe???
 
    std::vector<Event *> J;
    find_an_alternative(C1,D,J); //to see more carefully
 
-   printf("J = {");
+   /*
+   DEBUG_("J = {");
    for (unsigned i = 0; i < J.size(); i++)
-      printf("%d, ", J[i]->idx);
+      DEBUG_("%d, ", J[i]->idx);
 
-   printf("}\n");
+   DEBUG_("}\n");
+   */
 
    if (J.empty() == false)
    {
       A.push_back(*J.begin()); // choose the first element in J to add
 
-      printf("A = { ");
+      DEBUG_("A = { ");
       for (unsigned i = 0; i< A.size(); i++)
-         printf ("%d, ", A[i]->idx);
-      printf("}\n");
+         DEBUG_ ("%d, ", A[i]->idx);
+      DEBUG_("}\n");
 
-      printf("D = {");
+      DEBUG_("D = {");
       for (unsigned i = 0; i< D.size(); i++)
-         printf ("%d, ", D[i]->idx);
-      printf("}\n");
+         DEBUG_ ("%d, ", D[i]->idx);
+      DEBUG_("}\n");
 
-      printf("C1 = {");
+      DEBUG_("C1 = ");
       C1.cprint_event();
-      printf("}");
 
       explore (C1, D, A); // use C1, the state of C before adding pe
    }

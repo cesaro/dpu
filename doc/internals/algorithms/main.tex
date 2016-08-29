@@ -487,8 +487,11 @@ An event can be create in two cases:
 		to a configuration C), we need to update its $dicfl$. If there exist any $e'$ in en(C) which
 		conflicts with $e$, move $e'$ to cex(C) and update their direct conflict set at the same time. 		
 		
-		\begin{lemma}
-			$e$ and $e'$ are both in en(C), $e \icfl e'$ iff they share at least one parent.
+		\begin{lemma}{Direct conflict between enable events}
+			\begin{itemize}
+				\item
+					$e$ and $e'$ are both in en(C), $e \icfl e'$ iff they share at least one parent.		
+			\end{itemize}
 		\end{lemma}
 		
 		\begin{proof}
@@ -504,13 +507,15 @@ An event can be create in two cases:
 			\end{itemize} 
 			According to the definition of direct conflict, it is obvious that $e \icfl e'$.
 			
-			($\rightarrow$) $\rightarrow$ $e \icfl e'$, they have at least one parent in common.
-			.....
+			($\rightarrow$) $e \icfl e'$ $\rightarrow$ they have at least one parent in common.
+			
+			Assume that $e$ and $e'$ share no parent, because $\lceil e \rceil \cup e'$ as well as $\lceil
+			e' \rceil \cup e$ is a configuration, $e || e'$ which means $\lnot (e \cfl e')$
 			
 		\end{proof}			
 		
 		To decide if they are in conflict, just check their parents together. If there is at least one
-		shared parent between them, they are not in direct conflict. Otherwise, they are not. Let us take
+		shared parent between them, they are in direct conflict. Otherwise, they are not. Let us take
 		the type of transition into account: 
 		Note that they are in a enable set of configuration, so they cannot share\verb!	pre_proc!.
 		\begin{itemize}
@@ -562,9 +567,18 @@ An event can be create in two cases:
 	\item
 		An event in conflict extension of a configuration is created by sharing \verb!pre_proc! and finding
 		new \verb!pre_mem! or \verb!pre_readers!.
-		Find $e'$ with the same transition, same \verb!pre_proc! but different \verb!pre_mem! or \verb!pre_readers!.
-		If new event $e'$ is a SYN, RD, it will be in immidiate conflict with \verb!e.pre_mem!
-		If $e'$ is a WR, it will conflict directly with all \verb!e.pre_readers!		
+		Find $e'$ with the same transition, same \verb!pre_proc! but different \verb!pre_mem! or
+		\verb!pre_readers!.
+		\begin{lemma}{Direct conflict in conflict extension}
+			\begin{itemize}
+				\item
+					If new event $e'$ is a SYN, RD, it will be in immidiate conflict with \verb!e.pre_mem!
+				\item
+					If $e'$ is a WR, it will conflict directly with all \verb!e.pre_readers! which is
+					different from those of $e$
+			\end{itemize}
+		\end{lemma}
+		
 \end{enumerate}
 
 

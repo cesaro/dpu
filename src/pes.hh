@@ -259,9 +259,9 @@ public:
    void explore(Config & C, std::vector<Event *> & D, std::vector<Event *> & A);
    void explore_rnd_config ();
    void explore_driven_config ();
-   void find_an_alternative(Config & C, std::vector<Event *> D, std::vector<Event *> & J );
+   void find_an_alternative(Config & C, std::vector<Event *> D, std::vector<Event *> & J, std::vector<Event *> & A );
    //std::vector<Event *> compute_alt(unsigned int i, const std::vector<std::vector<Event *>> & s, std::vector<Event *> & combi);
-   void compute_alt(unsigned int i, const std::vector<std::vector<Event *>> & s, std::vector<Event *> & combi);
+   void compute_alt(unsigned int i, const std::vector<std::vector<Event *>> & s, std::vector<Event *> & combi, std::vector<Event *> & A);
    friend Event;
    void test_conflict();
 

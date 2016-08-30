@@ -1497,7 +1497,7 @@ void test18 ()
    }
 }
 
-void combi(unsigned int i, std::vector<std::vector<int>> s, std::vector<int> c)
+void combi(unsigned int i, std::vector<std::vector<int>> s, std::vector<int> & c)
 {
  // unsigned j = curptr;
  // while (j < s[i].size())
@@ -1511,6 +1511,7 @@ void combi(unsigned int i, std::vector<std::vector<int>> s, std::vector<int> c)
             for (unsigned k = 0; k < c.size(); k++)
                printf("%d ", c[k]);
             printf("\n");
+            return;
          }
          else
 
@@ -1554,6 +1555,9 @@ void test19()
 
    DEBUG("compute all combinations");
    combi(0, s, c);
+   DEBUG("New C: len=%d", c.size());
+   for (auto i: c)
+      DEBUG("%d", i);
    DEBUG("stop");
 
 }

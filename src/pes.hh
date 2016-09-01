@@ -54,6 +54,7 @@ public:
    MultiNode() = default;
    MultiNode(T * pp, T * pm);
 };
+
 //-----Ident class-------------
 class Ident
 {

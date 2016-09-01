@@ -1778,8 +1778,8 @@ void test25()
 
 void test26()
 {
-   auto m = build_concur15_example ();
-   //auto m = build_mul_example2 ();
+  // auto m = build_concur15_example ();
+   auto m = build_mul_example2 ();
    DEBUG ("\n%s", m->str().c_str());
 
    pes::Unfolding u (*m.get ());

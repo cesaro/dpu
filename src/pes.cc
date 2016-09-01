@@ -717,7 +717,7 @@ const Event & Event:: find_latest_WR_pred() const
    }
 }
 
-#if 0
+
 /*
  * Check if two events are in immediate conflict:
  *    - Two events are in direct conflict if they both appear in a vector in post_mem of an event
@@ -799,8 +799,8 @@ bool Event::check_dicfl( const Event & e )
    return false;
 }
 
-#endif
 
+#if 0
 /*
  * Check if two events are in immediate conflict, providing that they are in enable set of a configuration:
    this is a new event choosen to add to the configuration which means this is also in the enable set.
@@ -829,30 +829,106 @@ bool Event::check_dicfl( const Event & e )
     * Here, it means they don't have same pre_proc (the system is deterministic) --> any LOC is in no conflict with others.
     */
 
-/*
-
-   switch (evtid.trans->type)
+   switch (this->evtid.trans->type)
    {
       case ir::Trans::RD:
-         if (e.evtid.trans->type == ir::Trans::RD)
+         switch (e.evtid.trans->type)
+         {
+            case ir::Trans::RD:
+               if ((this->evtid.pre_proc == e.evtid.pre_mem) or (this->evtid.pre_mem == e.evtid.pre_proc))
+                  return true;
+               break;
 
-         break;
+            case ir::Trans::SYN:
+               if ((this->evtid.pre_proc == e.evtid.pre_mem) or (this->evtid.pre_mem == e.evtid.pre_proc) or (this->evtid.pre_mem == e.evtid.pre_mem))
+                  return true;
+               break;
 
-      case ir::Trans::WR:
+            case ir::Trans::WR:
+               if ((e.evtid.pre_proc == this->evtid.pre_mem) or (this->evtid.pre_proc == e.evtid.pre_mem))
+                  return true;
+               // check all pre_readers
+               for (auto pr: e.evtid.pre_readers)
+                  if ((this->evtid.pre_mem = pr) or (this->evtid.pre_proc == pr))
+                     return true;
+               break;
+
+            case ir::Trans::LOC:
+               // nothing to do
+               break;
+         }
 
          break;
 
      case ir::Trans::SYN:
+        switch (e.evtid.trans->type)
+        {
+           case ir::Trans::RD:
+              if ((this->evtid.pre_proc == e.evtid.pre_mem) or (this->evtid.pre_mem == e.evtid.pre_proc) or (this->evtid.pre_mem == e.evtid.pre_mem))
+                 return true;
+              break;
 
+           case ir::Trans::SYN:
+              if ((this->evtid.pre_proc == e.evtid.pre_mem) or (this->evtid.pre_mem == e.evtid.pre_proc) or (this->evtid.pre_mem == e.evtid.pre_mem))
+                 return true;
+              break;
+
+           case ir::Trans::WR:
+              if ((e.evtid.pre_proc == this->evtid.pre_mem) or (this->evtid.pre_proc == e.evtid.pre_mem))
+                 return true;
+              // check all pre_readers
+              for (auto pr: e.evtid.pre_readers)
+                 if ((this->evtid.pre_mem = pr) or (this->evtid.pre_proc == pr))
+                    return true;
+              break;
+
+           case ir::Trans::LOC:
+              // nothing to do
+              break;
+        }
+
+        break;
+
+     case ir::Trans::WR:
+        switch (e.evtid.trans->type)
+        {
+           case ir::Trans::RD:
+              if ((this->evtid.pre_proc == e.evtid.pre_mem) or (this->evtid.pre_mem == e.evtid.pre_mem))
+                 return true;
+              break;
+
+           case ir::Trans::SYN:
+              if (this->evtid.pre_proc == e.evtid.pre_mem)
+                 return true;
+              break;
+
+           case ir::Trans::WR:
+
+              for (unsigned i = 0; i < this->evtid.pre_readers.size(); i++)
+              {
+                 if ((this->evtid.pre_readers[i] == e.evtid.pre_proc) or (e.evtid.pre_readers[i] == this->evtid.pre_proc))
+                    return true;
+                 for (unsigned j = 0; j < e.evtid.pre_readers.size(); j++)
+                    if (this->evtid.pre_readers[i] == e.evtid.pre_readers[j])
+                       return true;
+              }
+              break;
+
+           case ir::Trans::LOC:
+              // nothing to do
+              break;
+        }
         break;
 
      case ir::Trans::LOC:
         // nothing to do
         break;
    }
-*/
+
    return false;
 }
+
+#endif
 
 /*
  * Check if two events (this and e) are in conflict
@@ -1581,6 +1657,15 @@ void Config::compute_combi(unsigned int i, const std::vector<std::vector<Event *
              */
 
             Ident id(e->evtid.trans, e->evtid.pre_proc, e->evtid.pre_mem, combi);
+
+            DEBUG("new ident is");
+            DEBUG("Pre_proc: %d", id.pre_proc->idx);
+            DEBUG("Pre_mem: %d", id.pre_mem->idx);
+            DEBUG_("Pre_readers:");
+            for (unsigned i = 0; i < id.pre_readers.size(); i++)
+               DEBUG_(" %d", id.pre_readers[i]->idx);
+
+
             // make sure new event is different from e
             if (!(combi == e->evtid.pre_readers))
             {
@@ -1882,6 +1967,14 @@ Event & Unfolding:: find_or_add(Ident & id)
    /* Need to check the event's history before adding it to the unf
     * Don't add events which are already in the unf
     */
+   /*
+   DEBUG("new ident is");
+   DEBUG("Pre_proc: %d", id.pre_proc->idx);
+   DEBUG("Pre_mem: %d", id.pre_mem->idx);
+   DEBUG_("Pre_readers:");
+   for (unsigned i = 0; i < id.pre_readers.size(); i++)
+      DEBUG_(" %d", id.pre_readers[i]->idx);
+   */
    std::unordered_map <Ident, Event *, IdHasher<Ident>>::const_iterator got = evttab.find (id);
 
    if (got != evttab.end())
@@ -1891,7 +1984,7 @@ Event & Unfolding:: find_or_add(Ident & id)
    }
 
    evt.push_back(Event(*this, id));
-  // evt.back().update_parents(); // to make sure of conflict
+   evt.back().update_parents(); // to make sure of conflict
    count++;
    /* set up vector clock */
    evt.back().set_vclock();

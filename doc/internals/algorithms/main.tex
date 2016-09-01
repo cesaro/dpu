@@ -485,13 +485,14 @@ An event can be create in two cases:
 		created and added to enable set. However, at that time, we don't care much about the conflict or
 		causality between events because it is not explored yet. Just when an event $e$ is explored (added
 		to a configuration C), we need to update its $dicfl$. If there exist any $e'$ in en(C) which
-		conflicts with $e$, move $e'$ to cex(C) and update their direct conflict set at the same time. 		
+		conflicts with $e$, move $e'$ to cex(C) and update their direct conflict sets at the same time. 		
 		
 		\begin{lemma}{Direct conflict between enable events}
 			\begin{itemize}
 				\item
 					$e$ and $e'$ are both in en(C), $e \icfl e'$ iff they share at least one parent.		
 			\end{itemize}
+		\label{thm:lem1}
 		\end{lemma}
 		
 		\begin{proof}
@@ -509,37 +510,43 @@ An event can be create in two cases:
 			
 			($\rightarrow$) $e \icfl e'$ $\rightarrow$ they have at least one parent in common.
 			
-			Assume that $e$ and $e'$ share no parent, because $\lceil e \rceil \cup e'$ as well as $\lceil
-			e' \rceil \cup e$ is a configuration, $e || e'$ which means $\lnot (e \cfl e')$
+			Assume that $e$ and $e'$ share no parent, because $\lceil e \rceil \cup e'$ aand $\lceil
+			e' \rceil \cup e$ are configurations, $e || e'$ which means $\lnot (e \cfl e')$
 			
 		\end{proof}			
 		
-		To decide if they are in conflict, just check their parents together. If there is at least one
-		shared parent between them, they are in direct conflict. Otherwise, they are not. Let us take
-		the type of transition into account: 
+		Thank to \autoref{thm:lem1}, to decide if they are in conflict, just check their parents together.
+		If there is at least one shared parent between them, they are in direct conflict. Otherwise, they
+		are not. Let us take the type of transition into account: 
 		Note that they are in a enable set of configuration, so they cannot share\verb!	pre_proc!.
 		\begin{itemize}
 			\item
 				If either $e$ or $e'$ is a LOC: two events definitly share no parent (thank to the
-				deterministic feature of the model) which means they are not in conflict 
+				deterministic feature of the model) which implies that they are not in conflict 
 				(including direct conflict).
 			\item
-				If they are two RDs or a RD and a SYN: If \verb!e.pre_mem = e'.pre_mem!, they are not in
-				conflict but concurrent. Therefore, if we have \verb!e.pre_proc = e'.pre_mem! or
-				\verb!e.pre_mem = e'.pre_proc!, $e$ and $e'$ are in direct conflict.
-			\item
-				If $e$ is RD or a SYN and the other $e'$ is a WR: 
+				If they are two RDs or two SYNs or a pair of (RD, SYN):
 				\begin{itemize}
 					\item
-						If \verb!e.pre_mem = e.pre_proc!, we have a direct conflict between $e$ and $e'$
+						If \verb!e.pre_mem = e'.pre_mem!, they are not in conflict but concurrent.
 					\item
-						For each \verb!e'.pre_readers!, check \verb!e'.pre_readers[i] = e.pre_proc! or
-						 \verb!e'.pre_readers[i] = e.pre_mem!
+						If we have \verb!e.pre_proc = e'.pre_mem! or \verb!e.pre_mem = e'.pre_proc!,
+						$e$ and $e'$ are in direct conflict.
+				\end{itemize}
+				
+			\item
+				If ($e$. $e'$) is a pair of (RD, WR) or (SYN, WR): 
+				\begin{itemize}
+					\item
+						If \verb!e.pre_mem = e'.pre_proc!, we have $e \icfl e'$
+					\item
+						If \verb!e.pre_mem! or \verb!e.pre_proc! is the same as one of \verb!e'.pre_readers!
+						, it is definitely that $e \icfl e'$
 				\end{itemize}
 				
 			\item
 				If both are WRs, check \verb!e.pre_proc! and \verb!e.pre_readers! with \verb!e'.pre_proc!
-				and all \verb!e'.pre_readers! and reverse. If there exist a pair with the same id, $e$ and
+				and all \verb!e'.pre_readers!. If there exist a pair with the same index, $e$ and
 				$e'$ conflict directly.
 		\end{itemize}
 
@@ -556,7 +563,7 @@ An event can be create in two cases:
 						\item
 							If one of two is a LOC, there is no direct conflict between them because of the 								deterministic feature of the system.
 						\item
-							If they are two RDs: 
+							If they are two RDs: \verb!e'.pre_readers[i] = e.pre_mem!
 					\end{itemize}
 			\end{enumerate}
 			\noindent

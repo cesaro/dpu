@@ -1655,8 +1655,14 @@ void Config::compute_combi(unsigned int i, const std::vector<std::vector<Event *
             /* if an event is already in the unf, it must have all necessary relations including causality and conflict.
              * That means it is in cex, so don't need to check if old event is in cex or not. It's surely in cex.
              */
+            /* Need to find pre_mem for new event */
+            Event * pm = combi[0];
+            DEBUG("combi[0] = %d", combi[0]->idx);
 
-            Ident id(e->evtid.trans, e->evtid.pre_proc, e->evtid.pre_mem, combi);
+            while ((pm->is_bottom() == false) && (pm->evtid.trans->type != ir::Trans::WR))
+               pm = pm->evtid.pre_mem;
+
+            Ident id(e->evtid.trans, e->evtid.pre_proc, pm, combi);
 
             DEBUG("new ident is");
             DEBUG("Pre_proc: %d", id.pre_proc->idx);

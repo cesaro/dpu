@@ -196,22 +196,23 @@ Finally, for \verb!WR! events :
 FIXME - incomplete; look at my notes and fix
 
 
-\subsection{Events in Conflict with an Event}
+\subsection{Conflict between events}
 To determine immediate conflict between two events $e$ and $e'$: 
 \begin{itemize}
 	\item
 		One of them is a LOC, there is no conflict at all.
 	\item
-		If they are in the same process $p(e) = p(e')$ and have the same predecessor $e.pre\_proc = e'.pre\_proc$, they are in immediate conflict.
+		If they have the same predecessor \verb!e.pre_proc = e'.pre_proc!, the look at their local configuration.
 	\item
-		If they are in different processes (have different $pre_proc$), look at one event's \verb!parent! \verb!e.pre_mem! (watch out the case where its parent is $bottom$ - a special WR)
+		If they are in different processes (have different \verb!pre_proc!), look at one event's \verb!parent! \verb!e.pre_mem! (watch out the case where its parent is $bottom$ - a special WR)
 	\begin{itemize}
 		\item
-			\verb!parent! is RD: if we find $e'$ in its \verb!post_rws!, they are in conflict.
+			\verb!parent! is RD or SYN: if we find $e'$ in its \verb!post_rws!, then they are in
+			 conflict.
 		\item
-			\verb!parent! is SYN: if we find $e'$ in its \verb!post_rws!, they are in conflict.
-		\item
-			\verb!parent! is WR: if we find $e$ and $e'$ in the same vector of \verb!e.post_mem!, they are in conflict (e can be a WR, so it can appear in all vectors of \verb!e.post_mem!, not only the vector of its process)
+			\verb!parent! is WR: if we find $e$ and $e'$ in the same vector of \verb!e.post_mem!,
+			 they are in conflict (e can be a WR, so it can appear in all vectors of 
+			 \verb!e.post_mem!, not only the vector of its process)
 	\end{itemize}
 		
 \end{itemize}
@@ -481,14 +482,15 @@ We know that $\forall e \in D: $ $e \in cex(C)$ or $e \in en(C)$.
 
 \subsubsection{Checking direct conflict}
 Every event in the unfolding should have a list of events which are in conflict with it, called $dicfl$. This set is updated when events are created or something which can cause changes in relationships among events happens.
-An event can be create in two cases:
+An event can be created in two cases:
 \begin{enumerate}
 	\item
-		A transition is enabled at the state of configuration, one event labelling with that transition is
-		created and added to enable set. However, at that time, we don't care much about the conflict or
-		causality between events because it is not explored yet. Just when an event $e$ is explored (added
-		to a configuration C), we need to update its $dicfl$. If there exist any $e'$ in en(C) which
-		conflicts with $e$, move $e'$ to cex(C) and update their direct conflict sets at the same time. 		
+		A transition is enabled at the state of configuration, one event labelling by that is
+		created and added to enable set. However, at that time, we can't say anything about the
+		conflict or causality between events because it is not explored yet. Just when an event 
+		$e$ is explored (added to a configuration C), the relation among events is changed, so we
+		need to update their $dicfl$. If there exist any $e'$ in en(C) which conflicts with $e$,
+		move $e'$ to cex(C) and update their direct conflict sets $dicfl$ at the same time. 		
 		
 		\begin{lemma}{Direct conflict between enable events}
 			\begin{itemize}
@@ -499,6 +501,8 @@ An event can be create in two cases:
 		\end{lemma}
 		
 		\begin{proof}
+		\begin{itemize}
+			\item
 			($\leftarrow$) $e$ and $e'$ have a common parent $\rightarrow$ $e \icfl e'$
 			
 			 $e$ and $e'$ sharing one parent means that  $e \cfl e'$. Moreover, $e$ and $e'$ are both in
@@ -511,18 +515,19 @@ An event can be create in two cases:
 			\end{itemize} 
 			According to the definition of direct conflict, it is obvious that $e \icfl e'$.
 			
+			\item
 			($\rightarrow$) $e \icfl e'$ $\rightarrow$ they have at least one parent in common.
 			
-			Assume that $e$ and $e'$ share no parent, because $\lceil e \rceil \cup e'$ aand $\lceil
+			Assume that $e$ and $e'$ share no parent, because $\lceil e \rceil \cup e'$ and $\lceil
 			e' \rceil \cup e$ are configurations, $e || e'$ which means $\lnot (e \cfl e')$
-			
+		\end{itemize}			
 		\end{proof}			
 		
-		Thank to \autoref{thm:lem1}, to decide if they are in conflict, just check their parents together.
-		If there is at least one shared parent between them, they are in direct conflict. Otherwise, they
-		are not. Use \verb!post_mem! field to check shared parents.
+\iffalse			
+		Thank to \autoref{thm:lem1}, to decide if they are in conflict, just check their parents
+		together. If there is at least one shared parent between them, they are in direct conflict.
+		Otherwise, they are not. Use \verb!post_mem! field to check shared parents.
 		
-\iffalse
 		Let us take the type of transition into account: 
 		Note that they are in a enable set of configuration, so they cannot share\verb!	pre_proc!.
 		\begin{itemize}
@@ -536,8 +541,8 @@ An event can be create in two cases:
 					\item
 						If \verb!e.pre_mem = e'.pre_mem!, they are not in conflict but concurrent.
 					\item
-						If we have \verb!e.pre_proc = e'.pre_mem! or \verb!e.pre_mem = e'.pre_proc!,
-						$e$ and $e'$ are in direct conflict.
+						If we have \verb!e.pre_proc = e'.pre_mem! or 
+						\verb!e.pre_mem =  e'.pre_proc!, $e$ and $e'$ are in direct conflict.
 				\end{itemize}
 				
 			\item
@@ -546,14 +551,14 @@ An event can be create in two cases:
 					\item
 						If \verb!e.pre_mem = e'.pre_proc!, we have $e \icfl e'$
 					\item
-						If \verb!e.pre_mem! or \verb!e.pre_proc! is the same as one of \verb!e'.pre_readers!
-						, it is definitely that $e \icfl e'$
+						If \verb!e.pre_mem! or \verb!e.pre_proc! is the same as one of 
+						\verb!e'.pre_readers!, it is definitely that $e \icfl e'$
 				\end{itemize}
 				
 			\item
-				If both are WRs, check \verb!e.pre_proc! and \verb!e.pre_readers! with \verb!e'.pre_proc!
-				and all \verb!e'.pre_readers!. If there exist a pair with the same index, $e$ and
-				$e'$ conflict directly.
+				If both are WRs, check \verb!e.pre_proc! and \verb!e.pre_readers! with
+				\verb!e'.pre_proc! and all \verb!e'.pre_readers!. If there exist a pair with the
+				 same index, $e$ and $e'$ conflict directly.
 		\end{itemize}
 \fi
 
@@ -561,35 +566,48 @@ An event can be create in two cases:
 			Given two events $e$ and $e'$ in the enable set of configuration C, 
 			do as follows to check the direct (immediate) conflict between them:
 			\begin{enumerate}
+				\item 
+					Don't care about \verb!pre_proc!. It does not affect the conflict.
 				\item
-					Set pr1 = e.pre_proc
+					If \verb!this->trans->type! is RD or SYN, set \verb!parent = e.pre_mem!
 				\item
-					If \verb!e.trans.type ==  WR!
-				\item
-					If \verb!e.trans.type == RD!
-					\begin{itemize}
-						\item
-							If one of two is a LOC, there is no direct conflict between them because of the 								deterministic feature of the system.
-						\item
-							If they are two RDs: \verb!e'.pre_readers[i] = e.pre_mem!
-					\end{itemize}
+					If \verb!this->trans->type == WR!,
+					
+					for each \verb!pre_readers[i]! $(i \in [0..numprocs])$,
+					
+					set \verb!parent = pre_readers[i]!
+					
 			\end{enumerate}
+			Let's consider $parent$.
+			
+			\begin{itemize}
+				\item
+					\verb!parent->trans->type! is RD or SYN: 
+					If found(e) in \verb!parent.post_rws!, then $this$ and $e$ are in direct
+					conflict
+				\item
+					\verb!parent->trans->type! is WR: If found(this) and found(e) in the same 
+					\verb!parent.post_mem[i]!, then they definitely
+					conflict immediately.
+			\end{itemize}
 			\noindent
 			\caption{Check direct conflict between two enabled events}
 			\label{a:dicfl}
 		\end{algorithm}
 
 	\item
-		An event in conflict extension of a configuration is created by sharing \verb!pre_proc! and finding
-		new \verb!pre_mem! or \verb!pre_readers!.
+		A new event conflicting with an event $e$ labelling by transition $t$ is created by
+		combining \verb!e.pre_proc! and new \verb!pre_mem! and \verb!pre_readers! (for a WR).
 		Find $e'$ with the same transition, same \verb!pre_proc! but different \verb!pre_mem! or
-		\verb!pre_readers!.
+		\verb!pre_readers!. See \cref{a:cex_rd}, \cref{a:cex_syn} and \cref{a:cex_wr} for more
+		 details.
+		 
 		\begin{lemma}{Direct conflict in conflict extension}
 			\begin{itemize}
 				\item
 					If new event $e'$ is a SYN, RD, it will be in immidiate conflict with \verb!e.pre_mem!
 				\item
-					If $e'$ is a WR, it will conflict directly with all \verb!e.pre_readers! which is
+					If $e'$ is a WR, it will conflict directly with all \verb!e.pre_readers! which are
 					different from those of $e$
 			\end{itemize}
 		\end{lemma}
@@ -1024,6 +1042,9 @@ At the beginning, set $C = \{\bot \}$, $D = \emptyset$, $A = \emptyset$
 			\item
 				If J is not empty, then
 				\begin{itemize}
+					\item
+						Check conflict between every maximal event of C with J. If there is some
+						conflict, discard J
 					\item
 						update $A = \{e: e \in J$ and $e\not\in C\}$
 					\item

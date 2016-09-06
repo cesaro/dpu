@@ -124,7 +124,7 @@ public:
     *  Only for WR events
     *  Each vector of children events for a process
     */
-   std::vector< std::vector<Event *> >   post_mem; // size = numprocs x mem
+   std::vector< std::vector<Event *> >   post_mem; // a vector of numprocs subvectors
    std::vector<Event * >                 post_wr; // WR children of a WR trans
 
    //only for RD and SYN events

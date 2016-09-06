@@ -694,8 +694,8 @@ const Event & Event:: find_latest_WR_pred() const
 
 
 /*
- * Check if two events are in immediate conflict:
- *    - Two events are in direct conflict if they both appear in a vector in post_mem of an event
+ * Check if two events are in immediate conflict, provided that they are both in enalbe set.
+ *    - Two events are in direct conflict if they both appear in a vector in post_mem of an parental event
  */
 
 bool Event::check_dicfl( const Event & e )
@@ -739,17 +739,15 @@ bool Event::check_dicfl( const Event & e )
    switch (parent->evtid.trans->type)
    {
       case ir::Trans::RD:
-         // post_rws is a vector of all operations succeeding
-         //this_idx = std::find(parent->post_rws.begin(), parent->post_rws.end(),this); // don't need to find, because it is certainly there
+
          e_idx  = std::find(parent->post_rws.begin(), parent->post_rws.end(),&e);
-    	  // if ( (this_idx != parent->post_rws.end()) && (e_idx != parent->post_rws.end()) )
-         if (e_idx != parent->post_rws.end())
+    	   if (e_idx != parent->post_rws.end())
     	      return true;
          break;
 
       case ir::Trans::WR:
          for (unsigned i = 0; i< parent->post_mem.size(); i++)
-         {
+         {// this and e in the same process
             this_idx = std::find(parent->post_mem[i].begin(), parent->post_mem[i].end(),this);
             e_idx    = std::find(parent->post_mem[i].begin(), parent->post_mem[i].end(),&e);
             if ( (this_idx != parent->post_mem[i].end()) && (e_idx != parent->post_mem[i].end()) )
@@ -758,11 +756,8 @@ bool Event::check_dicfl( const Event & e )
          break;
 
      case ir::Trans::SYN:
-        // post_rws is a vector of all operations succeeding
-       // this_idx = std::find(parent->post_rws.begin(), parent->post_rws.end(),this); // don't need to find, because it is certainly there
-    	  e_idx    = std::find(parent->post_rws.begin(), parent->post_rws.end(),&e);
-    	 // if ( (this_idx != parent->post_rws.end()) && (e_idx != parent->post_rws.end()) )
-    	 if (e_idx != parent->post_rws.end())
+         e_idx    = std::find(parent->post_rws.begin(), parent->post_rws.end(),&e);
+         if (e_idx != parent->post_rws.end())
            return true;
     	  break;
 
@@ -773,6 +768,87 @@ bool Event::check_dicfl( const Event & e )
 
    return false;
 }
+
+
+#if 0
+/*
+ * Check if two events are in immediate conflict, provided that they are both in enable set.
+ * Two events are in direct conflict if:
+ *    - They both appear in a vector in post_mem of a WR parental event
+ *    - They both appear in vector of post_rws of a RD parental event.
+ *
+ */
+
+bool Event::check_dicfl( const Event & e )
+{
+   if (this->is_bottom() || e.is_bottom() || (*this == e) )
+      return false;
+
+   /*
+    *  a LOC event has no conflict with any other transition.
+    * "2 LOC trans sharing a localvar" doesn't matter because it depends on the PC of process.
+    * Here, it means they don't have same pre_proc (the system is deterministic) --> any LOC is in no conflict with others.
+    */
+   if ((this->evtid.trans->type == ir::Trans::LOC)  || (e.evtid.trans->type == ir::Trans::LOC))
+      return false;
+
+   /* set up parent */
+   Event * parent;
+   if ((this->evtid.trans->type == ir::Trans::RD) || (this->evtid.trans->type == ir::Trans::SYN))
+   {
+      parent = evtid.pre_mem; // for RD and SYN
+      parent.find_in_parent(this, e);
+   }
+   else // this is a WR
+
+   std::vector<Event *>::iterator this_idx, e_idx;
+
+   // special case when parent is bottom, bottom as a WR, but not exactly a WR
+   if (parent->is_bottom())
+   {
+      for (unsigned i = 0; i< parent->post_mem.size(); i++)
+      {
+        this_idx = std::find(parent->post_mem[i].begin(), parent->post_mem[i].end(),this);
+        e_idx    = std::find(parent->post_mem[i].begin(), parent->post_mem[i].end(),&e);
+        if ( (this_idx != parent->post_mem[i].end()) && (e_idx != parent->post_mem[i].end()) )
+           return true;
+      }
+      return false;
+   }
+
+   switch (parent->evtid.trans->type)
+   {
+      case ir::Trans::RD:
+
+         e_idx  = std::find(parent->post_rws.begin(), parent->post_rws.end(),&e);
+         if (e_idx != parent->post_rws.end())
+            return true;
+         break;
+
+      case ir::Trans::WR:
+         for (unsigned i = 0; i< parent->post_mem.size(); i++)
+         {// this and e in the same process
+            this_idx = std::find(parent->post_mem[i].begin(), parent->post_mem[i].end(),this);
+            e_idx    = std::find(parent->post_mem[i].begin(), parent->post_mem[i].end(),&e);
+            if ( (this_idx != parent->post_mem[i].end()) && (e_idx != parent->post_mem[i].end()) )
+               return true;
+         }
+         break;
+
+     case ir::Trans::SYN:
+         e_idx    = std::find(parent->post_rws.begin(), parent->post_rws.end(),&e);
+         if (e_idx != parent->post_rws.end())
+           return true;
+        break;
+
+     case ir::Trans::LOC:
+        // nothing to do
+        break;
+   }
+
+   return false;
+}
+#endif
 
 /*
  * Check if two events (this and e) are in conflict

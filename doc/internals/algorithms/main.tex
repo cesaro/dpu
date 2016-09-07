@@ -486,9 +486,7 @@ An event can be created in two cases:
 \begin{enumerate}
 	\item
 		A transition is enabled at the state of configuration, one event labelling by that is
-		created and added to enable set. However, at that time, we can't say anything about the
-		conflict or causality between events because it is not explored yet. Just when an event 
-		$e$ is explored (added to a configuration C), the relation among events is changed, so we
+		created and added to enable set. At the time of creating an event, we need to 
 		need to update their $dicfl$. If there exist any $e'$ in en(C) which conflicts with $e$,
 		move $e'$ to cex(C) and update their direct conflict sets $dicfl$ at the same time. 		
 		
@@ -614,31 +612,6 @@ An event can be created in two cases:
 		
 \end{enumerate}
 
-
-\begin{algorithm}
-\noindent
-For each event $e_i \in D$ repeat the following:
-\begin{enumerate}
-\item
-	Let $comb \eqdef \tup{s_1, \ldots, s_n}$ be the comb over A . 
-	$s_i$ are the events in direct conflict to $e_i$: $s_i$ = $e_i$ \verb!->dicfl!
-
-\item
-	Enumerate all combinations $\tup{e_1, \ldots, e_n}$ of $c$.
-\item
-	For any of them, do:
-	\begin{itemize}
-		\item 
-    		If $\tup{e_1, \ldots, e_n}$ is conflict-free, return $J = \cup e_i$ 
-    	\item
-		    If there is one couple in conflict, then discard and come back to step 2 to take next combination
-	\end{itemize}
-\item End.
-\end{enumerate}
-\caption{Computing an alternative J for D after C}
-\label{a:alter}
-\end{algorithm}
-
 \subsubsection{Checking conflict between two arbitrary events:}
 Given two arbitrary events $e$ and $e'$ in the unfolding, decide if they are in conflict or not.
 \begin{enumerate}
@@ -652,10 +625,12 @@ Given two arbitrary events $e$ and $e'$ in the unfolding, decide if they are in 
 				touch the same variable: $v(e) = v(e')$ and $ type(e) = type(e') = SYN$ , apply 
 				\cref{a:layer_tree} for tree of SYN
 			\item
-				touch the same variable: $v(e) = v(e')$ and they are (RD, RD). Assume $w_1$, $w_2$ are the 
-				latest WR events in two local configurations of $e$ and $e'$ respectively. Apply 
-				\cref{a:layer_tree} to determine the relation between two WRs: they are either inconflict or
-				in causality.
+				touch the same variable: $v(e) = v(e')$ and they are (RD, RD). Apply \cref{a:rds}
+				for two RDs: 
+				
+				 Assume $w_1$, $w_2$ are the latest WR events in two local configurations of $e$
+				 and $e'$ respectively. Apply \cref{a:layer_tree} to determine the relation
+				 between two WRs (they are either inconflict or in causality):
 			\begin{itemize}
 				\item
 					If $w_1 = w_2$, then $e \co e'$ (which implies that $\lnot (e \cfl e')$).
@@ -673,9 +648,11 @@ Given two arbitrary events $e$ and $e'$ in the unfolding, decide if they are in 
 					If $ e' < r_1$, then we are at case (b), otherwise $e < r_1$, and we are at case (a).
 			\end{itemize}
 			\item 
-				touch the same variable: $v(e) = v(e')$ and $e$ is a WR and $e'$ is a RD. 
-				Find the latest WR predecessor of $e'$, called $w_2$.
-				Apply \cref{a:layer_tree} for WR tree to determine if $e$ (a WR) and $w_2$ are in conflict or not.
+				touch the same variable: $v(e) = v(e')$ and $e$ is a WR and $e'$ is a RD. Apply
+				 \cref{a:wrd} for a WR and a RD.
+				
+				Find the latest WR predecessor of $e'$, called $w_2$. Apply \cref{a:layer_tree} for
+				 WR tree to determine if $e$ (a WR) and $w_2$ are in conflict or not.
 				\begin{itemize}
 					\item
 						If $w_2 = e$, then $e < e'$, which implies that $\lnot (e \cfl e')$
@@ -697,7 +674,9 @@ Given two arbitrary events $e$ and $e'$ in the unfolding, decide if they are in 
 						\end{itemize}
 				\end{itemize}
 				
-			\item Other cases where two events touch different variables: $v(e) \neq v(e')$) or two LOCs, store more information:	
+			\item Other cases where two events touch different variables: $v(e) \neq v(e')$) or two LOCs, apply \cref{a:arb}.
+			
+			 Store more information:	
 			\begin{itemize}
 				\item 
 					For each event $e$, we use two vectors: one \verb!var_maxevt! includes maximal events  
@@ -938,7 +917,7 @@ Given two reads $e$ and $e'$.
 		
 \end{enumerate}
 \caption{Decide the conflict between a WR and a RD}
-\label{a:reads}	
+\label{a:rds}	
 \end{algorithm}
 
 \begin{algorithm}
@@ -969,7 +948,7 @@ Given two events $e$ is a WR and $e'$ is a RD
 		
 \end{enumerate}
 \caption{Decide the conflict between a WR and a RD}
-\label{a:reads}	
+\label{a:wrd}	
 \end{algorithm}
 
 \begin{algorithm}
@@ -998,7 +977,7 @@ Do the following:
 			
 \end{enumerate}
 \caption{Decide the conflict between 2 LOCs}
-\label{a:reads}	
+\label{a:arb}	
 \end{algorithm}
 
 
@@ -1025,14 +1004,14 @@ At the beginning, set $C = \{\bot \}$, $D = \emptyset$, $A = \emptyset$
 	\item
 		Store current configuration for alternative computing function
 	\item
-		C.add(e)
+		C.add(e) 
 	\item
 		Call Explore(C,D,A)
 	\item
 		Remove the last added event from C to D: 
 		\begin{itemize}
 		\item
-			\verb!C.remove(e)! (retrieving the previous configuration)
+			\verb!C.remove(e)! (retrieve the previous configuration)
 		\item
 			\verb!D.push_back(e)!
 		\end{itemize}
@@ -1042,9 +1021,6 @@ At the beginning, set $C = \{\bot \}$, $D = \emptyset$, $A = \emptyset$
 			\item
 				If J is not empty, then
 				\begin{itemize}
-					\item
-						Check conflict between every maximal event of C with J. If there is some
-						conflict, discard J
 					\item
 						update $A = \{e: e \in J$ and $e\not\in C\}$
 					\item
@@ -1058,8 +1034,38 @@ At the beginning, set $C = \{\bot \}$, $D = \emptyset$, $A = \emptyset$
 \end{enumerate}
 
 \caption{Unfolding based POR exploration algorithm}
-\label{a:reads}	
+\label{a:exp}	
 \end{algorithm}
+
+%Algorithm to find out all alternatives
+
+\begin{algorithm}
+\noindent
+Remove from D all events in cex(C).
+For each event $e_i \in D$, repeat the following:
+\begin{enumerate}
+\item
+	Let $comb \eqdef \tup{s_1, \ldots, s_n}$ be the comb over A . 
+	$s_i$ are the events in direct conflict to $e_i$: $s_i$ = $e_i$ \verb!->dicfl!
+\item
+	Remove from the $comb$ all events that are in conflict with any maximal event of C
+\item
+	Enumerate all combinations $\tup{e_1, \ldots, e_n}$ of $c$.
+\item
+	For any of them, do:
+	\begin{itemize}
+		\item 
+    		If $\tup{e_1, \ldots, e_n}$ is conflict-free, return $J = \cup e_i$ 
+   		\item
+			If there exist any conflict among events in J, then discard J and come back to step 2
+			to take next combination.
+	\end{itemize}
+\item End.
+\end{enumerate}
+\caption{Computing an alternative J for D after C}
+\label{a:alter}
+\end{algorithm}
+
 
 \section{LLVM Frontend}
 

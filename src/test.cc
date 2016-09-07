@@ -1765,21 +1765,21 @@ void test24 ()
 
 void test25()
 {
-   //auto m = build_concur15_example ();
-   auto m = build_mul_example2 ();
+   auto m = build_concur15_example ();
+   //auto m = build_mul_example2 ();
    DEBUG ("\n%s", m->str().c_str());
 
    pes::Unfolding u (*m.get ());
    /* Explore a random configuration */
-   //u.explore_rnd_config ();
-   u.explore_driven_config ();
-   //u.test_conflict();
+   u.explore_rnd_config ();
+  // u.explore_driven_config ();
+   u.test_conflict();
 }
 
 void test26()
 {
-   //auto m = build_concur15_example ();
-   auto m = build_mul_example2 ();
+   auto m = build_concur15_example ();
+   //auto m = build_mul_example2 ();
    DEBUG ("\n%s", m->str().c_str());
 
    pes::Unfolding u (*m.get ());

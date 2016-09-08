@@ -1516,6 +1516,7 @@ void Config:: WR_cex(Event * e)
 
    ep = e->evtid.pre_proc;
    ew = e;
+  // ew =
    int count = 0;
 
    while ((ew->is_bottom() == false) && (ep->succeed(*ew)) == false )

@@ -606,7 +606,7 @@ std::unique_ptr<ir::Machine> build_mul_example2 ()
     * numprocs = 2
     * numtrans = 14
     *
-    * v1 is a global variable, others are local.
+    * v1 is a global variable, others are locals.
     *
     * Process 0:
     * src dst  what
@@ -1778,8 +1778,8 @@ void test25()
 
 void test26()
 {
-   auto m = build_concur15_example ();
-   //auto m = build_mul_example2 ();
+   //auto m = build_concur15_example ();
+   auto m = build_mul_example2 ();
    DEBUG ("\n%s", m->str().c_str());
 
    pes::Unfolding u (*m.get ());

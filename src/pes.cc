@@ -639,13 +639,13 @@ bool Event:: succeed(const Event & e ) const
 
    if (this->evtid.trans->proc.id == e.evtid.trans->proc.id)
    {
-      if (e.clock[evtid.trans->proc.id] < this->clock[evtid.trans->proc.id])
+      if (e.clock[evtid.trans->proc.id] <= this->clock[evtid.trans->proc.id])
          return true;
       else
          return false;
    }
 
-   if (e.clock < clock)
+   if (e.clock <= clock)
         return true;
      return false;
 }
@@ -2155,6 +2155,17 @@ void Unfolding:: find_an_alternative(Config & C, std::vector<Event *> D, std::ve
    for (unsigned i = 0; i < D.size(); i++)
    {
       spikes.push_back(D[i]->dicfl);
+
+      DEBUG("COMB before: %d spikes: ", spikes.size());
+         for (unsigned i = 0; i < spikes.size(); i++)
+         {
+            DEBUG_ ("  spike %d: (#e%d (len %d): ", i, D[i]->idx, spikes[i].size());
+            for (unsigned j = 0; j < spikes[i].size(); j++)
+               DEBUG_(" %d", spikes[i][j]->idx);
+            DEBUG("");
+         }
+         DEBUG("END COMB");
+
       /*
        * - Remove from each spike events which are already in D
        * - Remove from D events which conflict with any maximal events of C
@@ -2169,12 +2180,15 @@ void Unfolding:: find_an_alternative(Config & C, std::vector<Event *> D, std::ve
                spikes[i][j] = spikes[i].back();
                spikes[i].pop_back();
             }
+
          /* Remove events that are in conflict with any maxinal event */
+         DEBUG("Remove events cfl with maximal events");
          for (auto max : C.latest_proc)
          {
             if (spikes[i][j]->check_cfl(*max))
             {
                //remove spike[i][j]
+               DEBUG("Remove %d", spikes[i][j]->idx);
                spikes[i][j] = spikes[i].back();
                spikes[i].pop_back();
             }
@@ -2279,17 +2293,18 @@ void Unfolding:: explore(Config & C, std::vector<Event*> & D, std::vector<Event*
 
    if (A.empty() == true)
    {
-       //pe = C.en.front(); // choose the last element
+      // pe = C.en.back(); // choose the last element
+
       /* choose random event in C.en*/
+
       srand(time(NULL));
       int i = rand() % C.en.size();
       pe = C.en[i];
-
    }
    else
    { //choose the mutual event in A and C.en to add
      // DEBUG(" A is not empty");
-     // DEBUG_(" C.en:{ ");
+      DEBUG_(" C.en:{ ");
       for (auto & c : C.en)
       {
          DEBUG_("%d, ", c->idx);

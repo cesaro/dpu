@@ -639,14 +639,15 @@ bool Event:: succeed(const Event & e ) const
 
    if (this->evtid.trans->proc.id == e.evtid.trans->proc.id)
    {
-      if (e.clock[evtid.trans->proc.id] <= this->clock[evtid.trans->proc.id])
+      if (e.clock[evtid.trans->proc.id] < this->clock[evtid.trans->proc.id])
          return true;
       else
          return false;
    }
 
-   if (e.clock <= clock)
+   if (e.clock < clock)
         return true;
+
      return false;
 }
 
@@ -995,7 +996,8 @@ bool Event:: check_cfl_WRD(const Event & e) const
 
          if (this->node[1].depth == pre_wr->node[1].depth + 1) // RD is one of pre_readers of WR !!!!
          {
-            if (this->evtid.pre_readers[e.evtid.trans->proc.id]->succeed(e))
+            if ((this->evtid.pre_readers[e.evtid.trans->proc.id]->succeed(e))
+               or (this->evtid.pre_readers[e.evtid.trans->proc.id] == &e) )
                return false; //in causality
             else
                return true;  // this and e has the same parent (pre_WR)
@@ -1005,7 +1007,8 @@ bool Event:: check_cfl_WRD(const Event & e) const
 
          //DEBUG("post_wr.idx: %d", post_wr->idx);
 
-         if (post_wr->evtid.pre_readers[e.evtid.trans->proc.id]->succeed(e))
+         if (post_wr->evtid.pre_readers[e.evtid.trans->proc.id]->succeed(e)
+               or (post_wr->evtid.pre_readers[e.evtid.trans->proc.id] == &e) )
             return false; //in causality
          else
             return true;
@@ -1440,19 +1443,24 @@ void add_to_dicfl(Event & a, Event & b)
  */
 void Config:: RD_cex(Event * e)
 {
-   DEBUG(" %p, id:%d: RD_cex", e, e->idx);
+   DEBUG(" %p, id:%d: RD_cex oh la la", e, e->idx);
    Event * ep, * em, *pr_mem; //pr_mem: pre_mem
    ep = e->evtid.pre_proc;
    em = e->evtid.pre_mem;
+   /*
+    * em is the first event in the [ep] is still ok to create a new event
+    */
 
-   while (!(em->is_bottom()) and (ep->succeed(*em) == false))
+   while (!(em->is_bottom()) and !ep->succeed(*em))
    {
+      DEBUG("create new evt");
       if (em->evtid.trans->type == ir::Trans::RD)
          pr_mem   = em->evtid.pre_mem;
       else // or WR
          pr_mem   = em->evtid.pre_readers[e->evtid.trans->proc.id];
 
-      /* Need to check the event's history before adding it to the unf
+      /*
+       * Need to check the event's history before adding it to the unf
        * Don't add events which are already in the unf
        */
 
@@ -1470,6 +1478,19 @@ void Config:: RD_cex(Event * e)
       // move the pointer to the next
       em = pr_mem;
    } // end while
+
+   if (ep->succeed(*em))
+   {
+      DEBUG_("em.clock: ");
+      for (unsigned i = 0; i < em->clock.size(); i++)
+         DEBUG_("%d ", em->clock[i]);
+
+      DEBUG_("ep.clock: ");
+            for (unsigned i = 0; i < ep->clock.size(); i++)
+               DEBUG_("%d ", ep->clock[i]);
+
+         DEBUG("ep > em");
+   }
 }
 
 /*

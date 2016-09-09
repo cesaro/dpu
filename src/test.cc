@@ -652,7 +652,7 @@ std::unique_ptr<ir::Machine> build_mul_example2 ()
 
    //  1 >  2 : v3 = 5
    t = & p.add_trans (1, 2);
-   t->code.stm = ir::Stm (ir::Stm::ASGN, v3->clone (), ir::Expr::make (5));
+   t->code.stm = ir::Stm (ir::Stm::ASGN, v3->clone (), ir::Expr::make (2));
    t->type = ir::Trans::LOC;
    t->offset = 0;
    t->localvars.push_back(3);

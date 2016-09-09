@@ -57,8 +57,10 @@ Node<T,SS>::Node(int idx, Event * pr)
 template <class T, int SS >
 void Node<T,SS>:: set_skip_preds(int idx)
 {
+   DEBUG("set_sp.depth = %d", this->depth);
    // including immediate predecessor
-   int size = compute_size();
+   int size = this->compute_size();
+   DEBUG("Size of skip_preds = %d", size);
 
    // initialize the elements
    if (size == 0) return;
@@ -113,9 +115,14 @@ void Node<T,SS>:: set_up(int idx, Event * pr)
 template <class T, int SS >
 int Node<T,SS>::compute_size()
 {
-   if (depth == 0) return 0;
-   int temp = 1;
    int skip = SS;
+   DEBUG("cmpsize.depth = %d", this->depth);
+   if ((depth == 0) or (depth < skip)) return 0;
+
+   while (depth % skip != 0)
+      depth--;
+
+   int temp = 1;
    while (depth % skip == 0)
    {
       skip = skip * SS;
@@ -175,24 +182,27 @@ T & Node<T,SS>:: find_pred(int d) const
    // initial next for the very first time
    DEBUG("dis = %d", dis);
    i = max_skip(dis,SS);
-   DEBUG("i=%d", i);
+   DEBUG("i = %d", i);
    if (i == 0)
       next = pre;
    else
       next = skip_preds[i-1];
    dis = next->node[idx].depth - d;
+   DEBUG("Now dis = %d", dis);
 
    // for the second loop and so on
    while (dis != 0)
    {
       i = max_skip(dis,SS);
-      DEBUG("i=%d", i);
+      DEBUG("i = %d", i);
       if (i == 0)
          next = next->node[idx].pre;
       else
          next = next->node[idx].skip_preds[i-1];
 
+      DEBUG("Next = %d",next->idx);
       dis = next->node[idx].depth - d;
+      DEBUG("After jump, dis = %d",dis);
    }
    DEBUG("next = %d", next->idx);
    return *next;
@@ -366,11 +376,11 @@ Event:: Event (Unfolding & u, Ident & ident)
    ASSERT (evtid.pre_proc != NULL);
 
    // initialize the corresponding nodes, after setting up the history
+
    node[0].set_up(0, evtid.pre_proc);
+
    if (evtid.trans->type != ir::Trans::LOC)
-   {
       node[1].set_up(1, evtid.pre_mem);
-   }
 }
 
 /* For creating bottom event */
@@ -645,10 +655,17 @@ bool Event:: succeed(const Event & e ) const
          return false;
    }
 
+   /*
    if (e.clock < clock)
         return true;
+   */
+   for (unsigned i = 0; i < clock.size(); i++)
+   {
+      if (this->clock[i] < e.clock[i])
+         return false;
+   }
 
-     return false;
+   return true;
 }
 
 /*
@@ -910,7 +927,7 @@ bool Event::check_cfl(const Event & e )
  * or events in the same process, events touching the same variable
  */
 template <int id>
-bool Event:: check_cfl_same_tree (const Event & e) const
+bool Event:: check_cfl_same_tree(const Event & e) const
 {
    int d1, d2;
    d1 = this->node[id].depth;
@@ -1905,7 +1922,8 @@ void Unfolding::create_event(ir::Trans & t, Config & c)
    // add to enable set. Do not need to check its existence because it is brand new event
    c.en.push_back(&evt.back());
 
-   DEBUG("   Unf.evt.back:%s \n ", evt.back().str().c_str());
+   //DEBUG("   Unf.evt.back:%s \n ", evt.back().str().c_str());
+   evt.back().eprint_debug();
 
 
 }

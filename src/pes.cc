@@ -115,15 +115,16 @@ void Node<T,SS>:: set_up(int idx, Event * pr)
 template <class T, int SS >
 int Node<T,SS>::compute_size()
 {
+   int d = this->depth;
    int skip = SS;
-   DEBUG("cmpsize.depth = %d", this->depth);
-   if ((depth == 0) or (depth < skip)) return 0;
+   DEBUG("cmpsize.depth = %d", d);
+   if ((d == 0) or (d < skip)) return 0;
 
-   while (depth % skip != 0)
-      depth--;
+   while (d % skip != 0)
+      d--;
 
    int temp = 1;
-   while (depth % skip == 0)
+   while (d % skip == 0)
    {
       skip = skip * SS;
       temp++;
@@ -135,8 +136,8 @@ template <class T, int SS >
 void Node<T,SS>:: print_skip_preds()
 {
    DEBUG_("Node: %p", this);
-   DEBUG_(", depth: %d", depth);
-   DEBUG_(", Pre: %p", pre);
+   DEBUG_(", depth: %d", this->depth);
+   DEBUG_(", Pre: %p", this->pre);
    int size = compute_size();
    if (size == 0)
    {
@@ -369,6 +370,10 @@ Event:: Event (Unfolding & u, Ident & ident)
       clock.push_back(0);
 
    /* initialize vector of maximal events for all variables*/
+   for (unsigned i = 0; i < u.m.procs.size(); i++)
+      proc_maxevt.push_back(nullptr);
+
+   /* initialize vector of maximal events for all variables*/
    for (unsigned i = 0; i < u.m.memsize; i++)
       var_maxevt.push_back(nullptr);
 
@@ -524,6 +529,50 @@ void Event::set_vclock()
 
 }
 
+/*
+ * Set up the proc_maxevt vector
+ * - Store maximal events for all processes in an event's local configuration
+ */
+void Event::set_proc_maxevt()
+{
+   if (this->is_bottom())
+            return;
+
+   proc_maxevt = evtid.pre_proc->proc_maxevt; // initialize maxevt by pre_proc.maxevt
+
+   switch (evtid.trans->type)
+   {
+      case ir::Trans::LOC:
+         //nothing to do
+         break;
+
+      case ir::Trans::SYN:
+         for (unsigned i = 0; i < proc_maxevt.size(); i++)
+            if (evtid.pre_mem->proc_maxevt[i]->succeed(*proc_maxevt[i]))
+               proc_maxevt[i] = evtid.pre_mem->proc_maxevt[i];
+            // else do nothing
+         break;
+
+      case ir::Trans::RD:
+         for (unsigned i = 0; i < proc_maxevt.size(); i++)
+            if (evtid.pre_mem->proc_maxevt[i]->succeed(*proc_maxevt[i]))
+               proc_maxevt[i] = evtid.pre_mem->proc_maxevt[i];
+         break;
+
+      case ir::Trans::WR:
+         // find out the max elements among those of all pre_readers.
+         for (unsigned i = 0; i < proc_maxevt.size(); i++)
+         {
+            for (unsigned j = 0; j < evtid.pre_readers.size(); j++)
+               if ( (evtid.pre_readers[j])->proc_maxevt[i]->succeed(*proc_maxevt[i]))
+                  proc_maxevt[i] = (evtid.pre_readers[j])->proc_maxevt[i] ;
+         }
+         break;
+      }
+
+      // maximal event of the transition's process is this, for all types of events
+      proc_maxevt[this->evtid.trans->proc.id] = this;
+}
 /*
  * Set up the vector var_maxevt
  * - stores maximal events for all variables in an event's local configuration
@@ -883,7 +932,7 @@ bool Event::check_cfl(const Event & e )
    if (evtid.trans->proc.id == e.evtid.trans->proc.id)
    {
       DEBUG("They are in the same process");
-      DEBUG("check cfl same tree returns %d", this->check_cfl_same_tree<0>(e));
+      DEBUG("check cfl same tree returns %", this->check_cfl_same_tree<0>(e));
       return this->check_cfl_same_tree<0>(e);
    }
 
@@ -949,15 +998,16 @@ bool Event:: check_cfl_same_tree(const Event & e) const
       //Here d1 > d2
       Event & temp = this->node[id].find_pred<id>(d2);
 
-      //DEBUG("temp=%d", temp.idx);
-      if (this == &temp) // refer to the same event
+      DEBUG("this = %d", this->idx);
+      DEBUG("temp = %d", temp.idx);
+      if (&e == &temp) // refer to the same event
       {
-         //DEBUG("same event");
+         DEBUG("same event");
          return false;
       }
       else
       {
-         //DEBUG("not same event");
+         DEBUG("not same event");
          return true;
       }
    }
@@ -965,9 +1015,12 @@ bool Event:: check_cfl_same_tree(const Event & e) const
    {
       //DEBUG("Here d2 > d1");
       Event & temp = e.node[id].find_pred<id>(d1);
+      DEBUG("this = %d", this->idx);
+      DEBUG("temp = %d", temp.idx);
+
       if (this == &temp) // refer to the same event
       {
-         //DEBUG("same event");
+         DEBUG("same event");
          return false;
       }
       else
@@ -1206,6 +1259,11 @@ void Event::eprint_debug()
    print_var_skip_preds();
 
    //---------------------
+   DEBUG_(" Proc_maxevt: ");
+      for (unsigned i = 0; i < proc_maxevt.size(); i++)
+         DEBUG_("%d, ", proc_maxevt[i]->idx);
+      DEBUG_("\n");
+
    DEBUG_(" Var_maxevt: ");
    for (unsigned i = 0; i < var_maxevt.size(); i++)
       DEBUG_("%d, ", var_maxevt[i]->idx);
@@ -1863,6 +1921,9 @@ void Unfolding::__create_bottom ()
    for (unsigned i = 0; i < m.procs.size(); i++)
       bottom->clock.push_back(0);
 
+   for (unsigned i = 0; i < m.procs.size(); i++)
+      bottom->proc_maxevt.push_back(bottom);
+
    for (unsigned i = 0; i < m.memsize - m.procs.size(); i++)
       bottom->var_maxevt.push_back(bottom);
 
@@ -1902,6 +1963,7 @@ void Unfolding::create_event(ir::Trans & t, Config & c)
 
    /* set up vector clock */
    evt.back().set_vclock();
+   evt.back().set_proc_maxevt();
    evt.back().set_var_maxevt();
 
    /* add to the hash table evttabl */
@@ -1923,9 +1985,9 @@ void Unfolding::create_event(ir::Trans & t, Config & c)
    c.en.push_back(&evt.back());
 
    //DEBUG("   Unf.evt.back:%s \n ", evt.back().str().c_str());
+   DEBUG("eprint_debug-------");
    evt.back().eprint_debug();
-
-
+   DEBUG("end print-----");
 }
 //------------
 Event & Unfolding:: find_or_add(Ident & id)
@@ -1954,6 +2016,7 @@ Event & Unfolding:: find_or_add(Ident & id)
    count++;
    /* set up vector clock */
    evt.back().set_vclock();
+   evt.back().set_proc_maxevt();
    evt.back().set_var_maxevt();
 
    /* add to the hash table evttabl */
@@ -2273,6 +2336,33 @@ bool is_conflict_free(std::vector<Event *> combin)
       }
    return true;
 }
+/*
+ * Retrieve all events in local configuration of an event
+ */
+const std::vector<Event *> Event::local_config() const
+{
+   DEBUG("Event.local_config");
+   Event * next;
+   std::vector<Event *> lc;
+   //DEBUG("Proc_maxevt.size = %d", proc_maxevt.size());
+
+   for (unsigned i = 0; i < proc_maxevt.size(); i++)
+   {
+      next = proc_maxevt[i];
+      while (!next->is_bottom())
+      {
+         //DEBUG("push back to LC");
+         lc.push_back(next);
+         next = next->evtid.pre_proc;
+      }
+   }
+/*
+   DEBUG("LC inside the function");
+   for (unsigned j = 0; j < lc.size(); j++)
+      DEBUG_("%d ", lc[j]->idx);
+ */
+   return lc;
+}
 
 /*
  * compute and return a set J which is a possible alternative to extend from C
@@ -2299,7 +2389,21 @@ void Unfolding:: compute_alt(unsigned int i, const std::vector<std::vector<Event
             if (is_conflict_free(J))
             {
                DEBUG(": a conflict-free combination");
-               A = J;
+               /*
+                * A is the union of local configuration of all events in J
+                */
+
+               for (unsigned i = 0; i < J.size(); i++)
+               {
+                  const std::vector<Event *> & tp = J[i]->local_config();
+
+                  //DEBUG("LC.size = %d", tp.size());
+                  for (unsigned j = 0; j < tp.size(); j++)
+                  // A.insert(A.end(), J[i]->local_config().begin(), J[i]->local_config().end());
+                  A.push_back(tp[j]);
+               }
+
+             //  A = J;
                return;
             }
             else
@@ -2325,25 +2429,55 @@ void Unfolding:: explore(Config & C, std::vector<Event*> & D, std::vector<Event*
    Event * pe = nullptr;
 
    if (C.en.empty() == true)
-      {
-         DEBUG(" No enabled event");
-         C.compute_cex();
-         return ;
-      }
+   {
+      DEBUG(" No enabled event");
+      C.compute_cex();
+      return ;
+   }
 
    if (A.empty() == true)
    {
       // pe = C.en.back(); // choose the last element
 
       /* choose random event in C.en*/
-
       srand(time(NULL));
       int i = rand() % C.en.size();
       pe = C.en[i];
    }
    else
-   { //choose the mutual event in A and C.en to add
-     // DEBUG(" A is not empty");
+   {
+      //choose the mutual event in A and C.en to add
+      // DEBUG(" A is not empty");
+      /*
+       * Remove from A events which are already in C
+       */
+      Event * next;
+      for (unsigned j = 0; j < C.latest_proc.size(); j++)
+      {
+         next = C.latest_proc[j];
+         while (next->is_bottom() == false)
+         {
+            for (unsigned i = 0; i < A.size(); i++)
+            {
+               if (A[i] == next)
+               {
+                  //remove A[i]
+                  A[i] = A.back();
+                  A.pop_back();
+                  break;
+               }
+            }
+            next = next->evtid.pre_proc;
+         }
+
+      }
+
+      DEBUG("After removing events in C");
+      DEBUG_("A = { ");
+            for (unsigned i = 0; i < A.size(); i++)
+               DEBUG_("%d ", A[i]->idx);
+            DEBUG("}");
+
       DEBUG_(" C.en:{ ");
       for (auto & c : C.en)
       {
@@ -2390,10 +2524,28 @@ void Unfolding:: explore(Config & C, std::vector<Event*> & D, std::vector<Event*
 
    // When C.en is empty, choose an alternative to go
    DEBUG("Compute alternative:");
-   //Pop up the last event from C
-   D.push_back(pe); //
+
+   /*
+    * If D contain a LOC, there does not exist any alternative to D, after C.
+    * Because a LOC never has a direct conflict event.
+    * If pe is a LOC, exit,
+    * Else push it to D.
+    */
+
+   if (pe->evtid.trans->type == ir::Trans::LOC)
+   {
+      DEBUG("There is a LOC in D. No alternative");
+      return;
+   }
+   else
+      D.push_back(pe);
+   /*
+    * Compute alternative to new D.
+    */
 
    std::vector<Event *> J;
+
+   //Pop up the last event from C == using C1
    find_an_alternative(C1,D,J,A); //to see more carefully
 
    if (J.empty() == false)

@@ -353,6 +353,8 @@ For each event $e \in C$ such that \verb!e->trans == t!, repeat the following:
   \item \verb!ex->pre_proc = ep!,
   \item \verb!ex->pre_mem = em!,
   \end{itemize}
+  
+\item Check if \verb!ex! is enabled at the new local configuration
 \item Event \verb!ex! is in $\cex C$
 \item Goto 4.
 \item End.
@@ -897,9 +899,9 @@ Given two reads $e$ and $e'$.
 			\item
 				Set $w'$ is WR predecessor of $w_2$ at the $w_1.depth + 1$
 			\item
-				Set $r_1 = w'.pre\_preaders[e->trans->proc.id]$
+				Set $r_1$ = \verb!w'.pre_preaders[e->trans->proc.id]!
 			\item
-				If ($e$ precedes $r_1$) then $\lnot (e \cfl e')$
+				If ($e$ < $r_1$) then $\lnot (e \cfl e')$
 				
 				else 	$e \cfl e'$;
 		\end{itemize}
@@ -908,15 +910,15 @@ Given two reads $e$ and $e'$.
 			\item
 				Set $w'$ is WR predecessor of $w_1$ at the $w_2.depth + 1$
 			\item
-				Set $r_1 = w'.pre\_preaders[e'->trans->proc.id]$
+				Set $r_1$ = \verb!w'.pre_preaders[e'->trans->proc.id]!
 			\item
-				If ($e'$ precedes $r_1$) then $\lnot (e \cfl e')$
+				If ($e'$ < $r_1$) then $\lnot (e \cfl e')$
 				
 				else 	$e \cfl e'$;
 		\end{itemize}
 		
 \end{enumerate}
-\caption{Decide the conflict between a WR and a RD}
+\caption{Decide the conflict between two RDs}
 \label{a:rds}	
 \end{algorithm}
 
@@ -957,7 +959,7 @@ Do the following:
 \begin{enumerate}
 	\item
 		For each pair $(e_i, e_i')$ of maximal events of each process:
-		$e_i \in e.proc\_maxevt$ and $e_i' \in e'.proc\_maxevt$ do: \\
+		$e_i \in$ \verb!e.proc_maxevt! and $e_i' \in$ \verb!e'.proc_maxevt! do: \\
 		\begin{itemize}
 			\item
 				If $e_i$.\verb!check_conflict_same_tree(!$e_i'$ \verb!)! is $true$, then  return true;
@@ -967,7 +969,7 @@ Do the following:
 			
 	\item
 		For each pair $(e_i, e_i')$ of maximal events of each process:
-		$e_i \in e.var\_maxevt$ and $e_i' \in e'.var\_maxevt$ do:\\
+		$e_i \in $ \verb!e.var_maxevt! and $e_i' \in$ \verb!e'.var_maxevt! do:\\
 			\begin{itemize}
 			\item
 				If $e_i$.\verb!check_conflict_same_tree(!$e_i'$ \verb!)! is $true$, then  return true;

@@ -2011,6 +2011,10 @@ Event & Unfolding:: find_or_add(Ident & id)
       return *evttab[id];
    }
 
+   /*
+    * Here we need to check if new event is enable at the new configuration
+    * - new local config is:
+    */
    evt.push_back(Event(*this, id));
    evt.back().update_parents(); // to make sure of conflict
    count++;
@@ -2469,7 +2473,6 @@ void Unfolding:: explore(Config & C, std::vector<Event*> & D, std::vector<Event*
             }
             next = next->evtid.pre_proc;
          }
-
       }
 
       DEBUG("After removing events in C");
@@ -2477,6 +2480,7 @@ void Unfolding:: explore(Config & C, std::vector<Event*> & D, std::vector<Event*
             for (unsigned i = 0; i < A.size(); i++)
                DEBUG_("%d ", A[i]->idx);
             DEBUG("}");
+
 
       DEBUG_(" C.en:{ ");
       for (auto & c : C.en)

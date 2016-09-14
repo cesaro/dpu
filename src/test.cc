@@ -611,16 +611,17 @@ std::unique_ptr<ir::Machine> build_mul_example2 ()
     * Process 0:
     * src dst  what
     *   0   1  v1 = 2
-    *   1   2  v2 = 5
-    *   2   3  v3 = 0
-    *   3   4  v4 = 0
+    *   1   2  v2 = 2
+    *   2   3  v3 = 0                   # loop variable
+    *   3   4  v4 = 0                   # accumulator
     *   4   5  assume (v3 < v2)
-    *   5   6  v4 = v4 + v1
-    *   6   4  v3 = v3 + 1
+    *   5   6  v4 = v4 + v1             # add v1 to the accumulator (v4)
+    *   6   4  v3 = v3 + 1              # increment by 1 v3 loop variable
     *   4   7  assume (v3 >= v2)
-    *   7   8  assume (v4 != v1 * v2)
+    *   7  12  v3 = v1                  # save global v1 into local v3
+    *  12   8  assume (v4 != v3 * v2)   # check for error
     *   8   9  error
-    *   7  10  assume (v4 == v1 * v2)
+    *  12  10  assume (v4 == v3 * v2)   # check for OK exit
     *  10  11  exit
     *
     *  Process 1:
@@ -631,8 +632,8 @@ std::unique_ptr<ir::Machine> build_mul_example2 ()
     */
 
    ir::Trans * t;
-   std::unique_ptr<ir::Machine> m (new ir::Machine (6, 2, 14)); // 6 mems (4 var + 2 pc), 2 thread, 14 transitions
-   ir::Process & p  = m->add_process (12); // 12 locations in this thread
+   std::unique_ptr<ir::Machine> m (new ir::Machine (6, 2, 15)); // 6 mems (4 var + 2 pc), 2 thread, 15 transitions
+   ir::Process & p  = m->add_process (13); // 13 locations in this thread
    ir::Process & p1 = m->add_process (3); // 3 locations in this thread
 
    // variables v2 to v5
@@ -650,7 +651,7 @@ std::unique_ptr<ir::Machine> build_mul_example2 ()
    t->offset = 0;
    t->localvars.clear ();
 
-   //  1 >  2 : v3 = 5
+   //  1 >  2 : v3 = 2
    t = & p.add_trans (1, 2);
    t->code.stm = ir::Stm (ir::Stm::ASGN, v3->clone (), ir::Expr::make (2));
    t->type = ir::Trans::LOC;
@@ -709,18 +710,23 @@ std::unique_ptr<ir::Machine> build_mul_example2 ()
    t->localvars.push_back(3);
    t->localvars.push_back(4);
 
-
-
-   //  7 >  8 : assume (v5 != v2 * v3)
-   t = & p.add_trans (7, 8);
-   t->code.stm = ir::Stm (ir::Stm::ASSUME,
-         ir::Expr::make (ir::Expr::NE,
-            ir::Expr::make (v5->clone ()),
-            ir::Expr::make (ir::Expr::MUL, ir::Expr::make (v2->clone()), ir::Expr::make (v3->clone ()))));
+   //  7 > 12 : v4 = v2
+   t = & p.add_trans (7, 12);
+   t->code.stm = ir::Stm (ir::Stm::ASGN, v4->clone (), ir::Expr::make (v2->clone ()));
    t->type = ir::Trans::RD;
    t->var = 2;
    t->offset = 0;
-   t->localvars={3};
+   t->localvars.push_back(4);
+
+
+   // 12 >  8 : assume (v5 != v4 * v3)
+   t = & p.add_trans (12, 8);
+   t->code.stm = ir::Stm (ir::Stm::ASSUME,
+         ir::Expr::make (ir::Expr::NE,
+            ir::Expr::make (v5->clone ()),
+            ir::Expr::make (ir::Expr::MUL, ir::Expr::make (v4->clone()), ir::Expr::make (v3->clone ()))));
+   t->type = ir::Trans::LOC;
+   t->offset = 0;
    t->localvars={5};
 
    //  8 >  9 : error
@@ -730,16 +736,14 @@ std::unique_ptr<ir::Machine> build_mul_example2 ()
    t->offset = 0;
    t->localvars.clear();
 
-   //  7 > 10 : assume (v5 == v2 * v3)
-   t = & p.add_trans (7, 10);
+   //  12 > 10 : assume (v5 == v4 * v3)
+   t = & p.add_trans (12, 10);
    t->code.stm = ir::Stm (ir::Stm::ASSUME,
          ir::Expr::make (ir::Expr::EQ,
             ir::Expr::make (v5->clone ()),
-            ir::Expr::make (ir::Expr::MUL, ir::Expr::make (v2->clone()), ir::Expr::make (v3->clone ()))));
-   t->type = ir::Trans::RD;
-   t->var = 2;
+            ir::Expr::make (ir::Expr::MUL, ir::Expr::make (v4->clone()), ir::Expr::make (v3->clone ()))));
+   t->type = ir::Trans::LOC;
    t->offset = 0;
-   t->localvars={3};
    t->localvars={5};
 
    // 10 > 11 : exit

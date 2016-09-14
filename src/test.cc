@@ -1037,25 +1037,25 @@ std::unique_ptr<ir::Machine> build_concur15_example1 ()
     * Thread 0
     * ========
     * src dst  what           type  var  localvars
-    *   0   1  v3 = 123       WR    3     {}
+    *   0   1  v1 = 123       WR    4     {}
     *   1   2  exit           LOC   na    {}
     *
     * Thread 1
     * ========
     * src dst  what           type  var  localvars
-    *   0   1  v4 = v3 + 1    RD    3     {4}
+    *   0   1  v2 = v1 + 1    RD    4     {5}
     *   1   2  exit           LOC   na    {}
     *
     * Thread 2
     * ========
     * src dst  what           type  var  localvars
-    *   0   1  v5 = v3 + 2;   RD    3     {5}
+    *   0   1  v3 = v1 + 2;   RD    4     {6}
     *   1   2  exit           LOC   na    {}
     *
     * Thread 3
     * ========
     * src dst  what           type  var  localvars
-    *   0   1  v6 = 20;       WR    6     {}
+    *   0   1  v4 = 20;       WR    7     {}
     *   1   2  exit           LOC   na    {}
     *
     */
@@ -1068,16 +1068,16 @@ std::unique_ptr<ir::Machine> build_concur15_example1 ()
    ir::Process & p3 = m->add_process (3);
 
    // variables v1 to v4
-   std::unique_ptr<ir::Var> v3 (ir::Var::make (3));
-   std::unique_ptr<ir::Var> v4 (ir::Var::make (4));
-   std::unique_ptr<ir::Var> v5 (ir::Var::make (5));
-   std::unique_ptr<ir::Var> v6 (ir::Var::make (6));
+   std::unique_ptr<ir::Var> v1 (ir::Var::make (4));
+   std::unique_ptr<ir::Var> v2 (ir::Var::make (5));
+   std::unique_ptr<ir::Var> v3 (ir::Var::make (6));
+   std::unique_ptr<ir::Var> v4 (ir::Var::make (7));
 
-   //   0   1  v3 = 123
+   //   0   1  v1 = 123
    t = & p0.add_trans (0, 1);
-   t->code.stm = ir::Stm (ir::Stm::ASGN, v3->clone (), ir::Expr::make (123));
+   t->code.stm = ir::Stm (ir::Stm::ASGN, v1->clone (), ir::Expr::make (123));
    t->type = ir::Trans::WR;
-   t->var = 3;
+   t->var = 4;
    t->offset = 0;
    t->localvars.clear ();
 
@@ -1087,14 +1087,14 @@ std::unique_ptr<ir::Machine> build_concur15_example1 ()
    t->type = ir::Trans::LOC;
    t->localvars.clear ();
 
-   //   0   1  v4 = v3 + 1
+   //   0   1  v2 = v1 + 1
    t = & p1.add_trans (0, 1);
-   t->code.stm = ir::Stm (ir::Stm::ASGN, v4->clone (),
-         ir::Expr::make (ir::Expr::ADD, ir::Expr::make (v3->clone()), ir::Expr::make (1)));
+   t->code.stm = ir::Stm (ir::Stm::ASGN, v2->clone (),
+         ir::Expr::make (ir::Expr::ADD, ir::Expr::make (v1->clone()), ir::Expr::make (1)));
    t->type = ir::Trans::RD;
-   t->var = 3;
+   t->var = 4;
    t->offset = 0;
-   t->localvars.push_back (4);
+   t->localvars.push_back (5);
 
    //   1   2  exit
    t = & p1.add_trans (1, 2);
@@ -1102,14 +1102,14 @@ std::unique_ptr<ir::Machine> build_concur15_example1 ()
    t->type = ir::Trans::LOC;
    t->localvars.clear ();
 
-   //   0   1  v5 = v3 + 2;
+   //   0   1  v3 = v1 + 2;
    t = & p2.add_trans (0, 1);
-   t->code.stm = ir::Stm (ir::Stm::ASGN, v5->clone (),
-         ir::Expr::make (ir::Expr::ADD, ir::Expr::make (v3->clone()), ir::Expr::make (2)));
+   t->code.stm = ir::Stm (ir::Stm::ASGN, v3->clone (),
+         ir::Expr::make (ir::Expr::ADD, ir::Expr::make (v1->clone()), ir::Expr::make (2)));
    t->type = ir::Trans::RD;
-   t->var = 3;
+   t->var = 4;
    t->offset = 0;
-   t->localvars.push_back (5);
+   t->localvars.push_back (6);
 
    //   1   2  exit
    t = & p2.add_trans (1, 2);
@@ -1117,11 +1117,120 @@ std::unique_ptr<ir::Machine> build_concur15_example1 ()
    t->type = ir::Trans::LOC;
    t->localvars.clear ();
 
-   //   0   1  v6 = 20;
+   //   0   1  v4 = 20;
    t = & p3.add_trans (0, 1);
-   t->code.stm = ir::Stm (ir::Stm::ASGN, v6->clone (), ir::Expr::make (20));
+   t->code.stm = ir::Stm (ir::Stm::ASGN, v4->clone (), ir::Expr::make (20));
    t->type = ir::Trans::WR;
-   t->var = 6;
+   t->var = 7;
+   t->offset = 0;
+   t->localvars.clear ();
+
+   //   1   2  exit
+   t = & p3.add_trans (1, 2);
+   t->code.stm = ir::Stm (ir::Stm::EXIT);
+   t->type = ir::Trans::LOC;
+   t->localvars.clear ();
+
+   return m;
+}
+
+std::unique_ptr<ir::Machine> build_concur15_example2 ()
+{
+   /*
+    * Four threads
+    *
+    * memsize  = 8 = 4 vars + 4 pcs
+    * numprocs = 4
+    * numtrans = 8
+    *
+    * Thread 0
+    * ========
+    * src dst  what           type  var  localvars
+    *   0   1  v1 = 123       WR    4     {}
+    *   1   2  exit           LOC   na    {}
+    *
+    * Thread 1
+    * ========
+    * src dst  what           type  var  localvars
+    *   0   1  v2 = v1 + 1    RD    4     {5}
+    *   1   2  exit           LOC   na    {}
+    *
+    * Thread 2
+    * ========
+    * src dst  what           type  var  localvars
+    *   0   1  v3 = v1 + 2;   RD    4     {6}
+    *   1   2  exit           LOC   na    {}
+    *
+    * Thread 3
+    * ========
+    * src dst  what           type  var  localvars
+    *   0   1  v1 = 20;       WR    4     {}
+    *   1   2  exit           LOC   na    {}
+    *
+    */
+
+   ir::Trans * t;
+   std::unique_ptr<ir::Machine> m (new ir::Machine (8, 4, 8)); // 8 vars, 4 thread, 8 transitions
+   ir::Process & p0 = m->add_process (3); // 3 locations per thread
+   ir::Process & p1 = m->add_process (3);
+   ir::Process & p2 = m->add_process (3);
+   ir::Process & p3 = m->add_process (3);
+
+   // variables v1 to v4
+   std::unique_ptr<ir::Var> v1 (ir::Var::make (4));
+   std::unique_ptr<ir::Var> v2 (ir::Var::make (5));
+   std::unique_ptr<ir::Var> v3 (ir::Var::make (6));
+   std::unique_ptr<ir::Var> v4 (ir::Var::make (7));
+
+   //   0   1  v1 = 123
+   t = & p0.add_trans (0, 1);
+   t->code.stm = ir::Stm (ir::Stm::ASGN, v1->clone (), ir::Expr::make (123));
+   t->type = ir::Trans::WR;
+   t->var = 4;
+   t->offset = 0;
+   t->localvars.clear ();
+
+   //   1   2  exit
+   t = & p0.add_trans (1, 2);
+   t->code.stm = ir::Stm (ir::Stm::EXIT);
+   t->type = ir::Trans::LOC;
+   t->localvars.clear ();
+
+   //   0   1  v2 = v1 + 1
+   t = & p1.add_trans (0, 1);
+   t->code.stm = ir::Stm (ir::Stm::ASGN, v2->clone (),
+         ir::Expr::make (ir::Expr::ADD, ir::Expr::make (v1->clone()), ir::Expr::make (1)));
+   t->type = ir::Trans::RD;
+   t->var = 4;
+   t->offset = 0;
+   t->localvars.push_back (5);
+
+   //   1   2  exit
+   t = & p1.add_trans (1, 2);
+   t->code.stm = ir::Stm (ir::Stm::EXIT);
+   t->type = ir::Trans::LOC;
+   t->localvars.clear ();
+
+   //   0   1  v3 = v1 + 2;
+   t = & p2.add_trans (0, 1);
+   t->code.stm = ir::Stm (ir::Stm::ASGN, v3->clone (),
+         ir::Expr::make (ir::Expr::ADD, ir::Expr::make (v1->clone()), ir::Expr::make (2)));
+   t->type = ir::Trans::RD;
+   t->var = 4;
+   t->offset = 0;
+   t->localvars.push_back (6);
+
+   //   1   2  exit
+   t = & p2.add_trans (1, 2);
+   t->code.stm = ir::Stm (ir::Stm::EXIT);
+   t->type = ir::Trans::LOC;
+   t->localvars.clear ();
+
+   //   0   1  v1 = 20;
+   t = & p3.add_trans (0, 1);
+   t->code.stm = ir::Stm (ir::Stm::ASGN, v1->clone (), ir::Expr::make (20));
+   t->type = ir::Trans::WR;
+   t->var = 4;
    t->offset = 0;
    t->localvars.clear ();
 
@@ -1783,7 +1892,9 @@ void test25()
 void test26()
 {
    //auto m = build_concur15_example ();
-   auto m = build_mul_example2 ();
+   auto m = build_concur15_example2 ();
+   //auto m = build_mul_example2 ();
+
    DEBUG ("\n%s", m->str().c_str());
 
    pes::Unfolding u (*m.get ());

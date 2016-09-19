@@ -1656,6 +1656,18 @@ void Config:: SYN_cex(Event * e)
       em = pr_mem;
    }
 }
+
+bool Event::pred_max(Event * ew) const
+{
+   Event * pe;
+   for (unsigned i = 0; i < proc_maxevt.size(); i++)
+   {
+      pe = proc_maxevt[i];
+     // while (pe->evtid.trans->var != ew->evtid.trans->var)
+
+
+   }
+}
 /*
  * Compute conflicting event for a WR event e
  */
@@ -1669,10 +1681,9 @@ void Config:: WR_cex(Event * e)
 
    ep = e->evtid.pre_proc;
    ew = e;
-  // ew =
    int count = 0;
 
-   while ((ew->is_bottom() == false) && (ep->succeed(*ew)) == false )
+   while ((ew->is_bottom() == false) && (ep->pred_max(ew)) == false )
    {
       for (unsigned k = 0; k < numprocs; k++)
          spikes[k].clear(); // clear all spikes for storing new elements
@@ -1699,7 +1710,6 @@ void Config:: WR_cex(Event * e)
          DEBUG_("\n");
       }
 
-      ew = spikes[0].back();
       /*
        * if ep is a successor of ew, then remove from the comb ew itself
        * and all RD events that are also in the history should think about bottom!!!
@@ -1716,6 +1726,8 @@ void Config:: WR_cex(Event * e)
        */
       std::vector<Event *> combi;
       compute_combi(0, spikes, combi,e);
+
+      ew = spikes[0].back(); // ew is assigned to the last WR for new loop
    }
 }
 /*
@@ -1762,20 +1774,22 @@ void Config::compute_combi(unsigned int i, const std::vector<std::vector<Event *
                   DEBUG("Add to dicfl");
                   for (unsigned i = 0; i < e->evtid.pre_readers.size(); i++)
                   {
-                     //DEBUG("COmbi[%d]: %d", i, combi[i]->idx);
-                     //DEBUG("preaders[%d]: %d", i, e->evtid.pre_readers[i]->idx); //error here!!!
+                    // DEBUG("COmbi[%d]: %d", i, combi[i]->idx);
+                    // DEBUG("preaders[%d]: %d", i, e->evtid.pre_readers[i]->idx); //error here!!!
 
                      DEBUG_("combi: %d, prread: %d ", combi[i]->idx, e->evtid.pre_readers[i]->idx);
                      if (combi[i] != e->evtid.pre_readers[i])
                      {
                         Event * pos = e->evtid.pre_readers[i];
-                        //DEBUG("combi[i] different e.pr[i]");
+                        DEBUG("pos1: %d", pos->idx);
 
                         // find RD just succeed combi[i] in the process i
+                        if (pos->evtid.trans->type == ir::Trans::WR)
+
                         while (pos->evtid.pre_mem != combi[i])
                            pos = pos->evtid.pre_mem;
 
-                        DEBUG("pos: %d", pos->idx);
+                        DEBUG("pos2: %d", pos->idx);
                         DEBUG_("Add %d to %d.cfl",pos->idx, newevt->idx);
                         add_to_dicfl(pos, newevt);
 

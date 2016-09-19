@@ -173,6 +173,7 @@ public:
    bool is_bottom () const;
    bool is_same (const Event &) const;
    bool succeed (const Event & e) const;
+   bool pred_max(Event * ew) const;
 
    template <int idx>
    bool check_cfl_same_tree (const Event & e) const;

@@ -1646,8 +1646,6 @@ void Config:: SYN_cex(Event * e)
       // add new event newevt to set of dicfl of em and verse. Refer to the doc for more details
       if (newevt->idx == unf.evt.back().idx)
       {
-         //em->dicfl.push_back(newevt);
-         //newevt->dicfl.push_back(em);
          add_to_dicfl(em, newevt);
          add_to_dicfl(newevt, em);
       }
@@ -1656,17 +1654,27 @@ void Config:: SYN_cex(Event * e)
       em = pr_mem;
    }
 }
-
+/*
+ * Return true if ew precedes one of maximal events touching the same variable in the local configuration of 'this'
+ * - Find maximal event for each process
+ * - check if there is any maximal event succeed to ew
+ */
 bool Event::pred_max(Event * ew) const
 {
    Event * pe;
    for (unsigned i = 0; i < proc_maxevt.size(); i++)
    {
-      pe = proc_maxevt[i];
-     // while (pe->evtid.trans->var != ew->evtid.trans->var)
+      pe = this->proc_maxevt[i];
+      while (!pe->is_bottom() and pe->evtid.trans->var != ew->evtid.trans->var)
+         pe = pe->evtid.pre_proc;
 
-
+      if (pe->succeed(*ew))
+      {
+         DEBUG(" precedes max event in ep's local config ");
+         return true;
+      }
    }
+   return false;
 }
 /*
  * Compute conflicting event for a WR event e
@@ -1725,7 +1733,7 @@ void Config:: WR_cex(Event * e)
        * Compute all possible combinations c(s1,s2,..sn) from the spikes to produce new conflicting events
        */
       std::vector<Event *> combi;
-      compute_combi(0, spikes, combi,e);
+      compute_combi(0, spikes, combi,ew);
 
       ew = spikes[0].back(); // ew is assigned to the last WR for new loop
    }
@@ -2298,32 +2306,14 @@ void Unfolding:: test_conflict()
 void Unfolding:: find_an_alternative(Config & C, std::vector<Event *> D, std::vector<Event *> & J, std::vector<Event *> & A ) // we only want to modify D in the scope of this function
 {
    std::vector<std::vector<Event *>> spikes;
-   std::vector<Event *> oldD = D;
 
-   DEBUG("Find an alternative J to");
-   DEBUG_("Original D = {");
+   DEBUG(" Find an alternative J to D after C: ");
+   DEBUG_("   Original D = {");
      for (unsigned i = 0; i < D.size(); i++)
         DEBUG_("%d  ", D[i]->idx);
    DEBUG("}");
 
    // Keep in D only events which are not in C.cex
-#if 0
-   for (auto & e: C.cex)
-      e->in_bit = 1;
-
-   for (unsigned i = 0; i < D.size(); i++)
-   {
-      if (D[i]->in_bit == 1)
-      {
-         D[i] = D.back();
-         D.pop_back();
-      }
-   }
-   // set it back to normal for future use (newly added-> unchecked)
-   for (auto & e: C.cex)
-         e->in_bit = 0;
-#endif
-
    for (auto & c : C.cex)
    for (unsigned i = 0; i < D.size(); i++)
    {
@@ -2335,65 +2325,114 @@ void Unfolding:: find_an_alternative(Config & C, std::vector<Event *> D, std::ve
       }
    }
 
-   DEBUG_("Prunned D = {");
+
+   DEBUG_("   Prunned D = {");
    for (unsigned i = 0; i < D.size(); i++) DEBUG_("%d  ", D[i]->idx);
    DEBUG("}");
 
-   DEBUG_("After C = ");
+   DEBUG_("   After C = ");
    C.cprint_event();
    /*
     *  D now contains only events which is in en(C).
     *  D is a comb whose each spike is a list of conflict events D[i].dicfl
     */
-
+   std::vector<Event *> oldD;
+   DEBUG("D.size: %d", D.size());
    for (unsigned i = 0; i < D.size(); i++)
-   {
       spikes.push_back(D[i]->dicfl);
+
+   DEBUG("COMB: %d spikes: ", spikes.size());
+     for (unsigned i = 0; i < spikes.size(); i++)
+     {
+        DEBUG_ ("  spike %d: (#e%d (len %d): ", i, D[i]->idx, spikes[i].size());
+        for (unsigned j = 0; j < spikes[i].size(); j++)
+           DEBUG_(" %d", spikes[i][j]->idx);
+        DEBUG("");
+     }
+   DEBUG("END COMB");
+
+   for (unsigned i = 0; i < spikes.size(); i++)
+   {
+      DEBUG("   For spike[%d]:", i);
       // no alternative if we get an empty spike!
       if (spikes[i].size() == 0)
       {
-         DEBUG("Spike %d (e%d) is empty: no alternative; returning.", i, D[i]->idx);
+         DEBUG("       Spike %d (e%d) is empty: no alternative; returning.", i, D[i]->idx);
          return;
       }
 
       /*
        * - Remove from each spike those which are already in D
-       * - Remove from D events which conflict with any maximal events of C
+
        */
-      for (unsigned j = 0; j < spikes[i].size(); j++)
+      unsigned j = 0;
+
+      DEBUG_("    Remove from spikes[%d] those which are already in D: ", i);
+      bool removed = false;
+      while ((spikes[i].size() != 0) and (j < spikes[i].size()) )
       {
-         /* Remove events also in D */
-         for (unsigned k = 0; k < oldD.size(); k++)
-            if (spikes[i][j] == oldD[k])
+         for (unsigned k = 0; k < D.size(); k++)
+         {
+            if (spikes[i][j] == D[k])
             {
-               DEBUG("Remove from spikes those which are already in D");
+               DEBUG(" %d ", spikes[i][j]->idx);
                //remove spike[i][j]
                spikes[i][j] = spikes[i].back();
                spikes[i].pop_back();
-            }
-
-         if (spikes[i].size() == 0)
-         {
-            DEBUG("Spike %d (e%d) is empty: no alternative; returning.", i, D[i]->idx);
-            return;
-         }
-
-         /* Remove events that are in conflict with any maxinal event */
-         DEBUG("Remove events cfl with maximal events");
-         for (auto max : C.latest_proc)
-         {
-            if (spikes[i][j]->check_cfl(*max))
-            {
-               //remove spike[i][j]
-               DEBUG("%d cfl with %d", spikes[i][j]->idx, max->idx);
-               DEBUG("Remove %d", spikes[i][j]->idx);
-               spikes[i][j] = spikes[i].back();
-               spikes[i].pop_back();
+               removed = true;
                break;
             }
          }
+
+         // if we removed some event in spikes[i] by swapping it with the last one, then repeat the task with new spike[i][j]
+         if (!removed)
+            j++;
       }
-   }
+
+      DEBUG("Done.");
+
+      if (spikes[i].size() == 0)
+      {
+         DEBUG("\n    Spike %d (e%d) is empty: no alternative; returning.", i, D[i]->idx);
+         return;
+      }
+#if 0
+         /* Remove events that are in conflict with any maxinal event */
+
+      DEBUG("\n    Remove from spikes[%d] events cfl with maximal events", i);
+      removed = false;
+      unsigned k = 0;
+      while ((spikes[i].size() != 0) and (k < spikes[i].size()) )
+      {
+         for (auto max : C.latest_proc)
+         {
+            if (spikes[i][k]->check_cfl(*max))
+            {
+                  //remove spike[i][j]
+               DEBUG_("    %d cfl with %d", spikes[i][k]->idx, max->idx);
+               DEBUG("->Remove %d", spikes[i][k]->idx);
+               spikes[i][k] = spikes[i].back();
+               spikes[i].pop_back();
+               removed = true;
+               break;
+            }
+         }
+
+         // if we removed some event in spikes[i] by swapping it with the last one, then repeat the task with new spike[i][j]
+         // not increase j
+         if (!removed)
+            k++;
+      }
+
+      if (spikes[i].size() == 0)
+      {
+         DEBUG("    Spike %d (e%d) is empty: no alternative; returning.", i, D[i]->idx);
+         return;
+      }
+#endif
+
+   } // end for spike[i]
+
 
    ASSERT (spikes.size() == D.size ());
    DEBUG("COMB: %d spikes: ", spikes.size());
@@ -2628,7 +2667,7 @@ void Unfolding:: explore(Config & C, std::vector<Event*> & D, std::vector<Event*
 
    if (pe->evtid.trans->type == ir::Trans::LOC)
    {
-      DEBUG("There is a LOC in D. No alternative");
+      DEBUG("   There is a LOC in D. No alternative");
       return;
    }
    else
@@ -2639,7 +2678,7 @@ void Unfolding:: explore(Config & C, std::vector<Event*> & D, std::vector<Event*
 
    std::vector<Event *> J;
 
-   //Pop up the last event from C == using C1
+   //Pop up the last event from C, equivalently using C1
    find_an_alternative(C1,D,J,A); //to see more carefully
 
    if (J.empty() == false)

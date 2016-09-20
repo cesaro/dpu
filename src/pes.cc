@@ -786,7 +786,7 @@ bool Event::check_dicfl( const Event & e )
 
    /*
     * 2 event touching 2 different variables are not in direct conflict
-    * Let's consider "in different processes" when we have two events sharing pre_proc
+    * Let's consider "in different processes" when we have two events sharing pre_proc -> not conflict (they take different part of pre_proc)
     */
    if (this->evtid.trans->var != e.evtid.trans->var) return false; // concurrent
 
@@ -949,31 +949,31 @@ bool Event::check_cfl(const Event & e )
       return this->check_cfl_same_tree<0>(e);
    }
 
-   if ((this->evtid.trans->type == ir::Trans::WR) and (e.evtid.trans->type == ir::Trans::WR))
+   if ((this->evtid.trans->type == ir::Trans::WR) and (e.evtid.trans->type == ir::Trans::WR) and (this->evtid.trans->var == e.evtid.trans->var))
    {
       DEBUG("%d and %d are 2 WRs", this->idx, e.idx);
       return this->check_cfl_same_tree<1>(e);
    }
 
-   if ((this->evtid.trans->type == ir::Trans::SYN) and (e.evtid.trans->type == ir::Trans::SYN))
+   if ((this->evtid.trans->type == ir::Trans::SYN) and (e.evtid.trans->type == ir::Trans::SYN) and (this->evtid.trans->var == e.evtid.trans->var) )
    {
       DEBUG("%d and %d are 2 SYNs", this->idx, e.idx);
       return this->check_cfl_same_tree<1>(e);
    }
 
-   if ((this->evtid.trans->type == ir::Trans::RD) and (e.evtid.trans->type == ir::Trans::RD))
+   if ((this->evtid.trans->type == ir::Trans::RD) and (e.evtid.trans->type == ir::Trans::RD) and (this->evtid.trans->var == e.evtid.trans->var))
    {
       DEBUG("%d and %d are 2 RDs", this->idx, e.idx);
       return this->check_cfl_2RD(e);
    }
 
-   if ((this->evtid.trans->type == ir::Trans::WR) and (e.evtid.trans->type == ir::Trans::RD))
+   if ((this->evtid.trans->type == ir::Trans::WR) and (e.evtid.trans->type == ir::Trans::RD) and (this->evtid.trans->var == e.evtid.trans->var))
    {
       DEBUG("%d is a WR and %d is a RD", this->idx, e.idx);
       return this->check_cfl_WRD(e);
    }
 
-   if ((this->evtid.trans->type == ir::Trans::RD) and (e.evtid.trans->type == ir::Trans::WR))
+   if ((this->evtid.trans->type == ir::Trans::RD) and (e.evtid.trans->type == ir::Trans::WR)and (this->evtid.trans->var == e.evtid.trans->var))
    {
       DEBUG("%d is a RD and %d is a WR", this->idx, e.idx);
       return e.check_cfl_WRD(*this);
@@ -2336,8 +2336,8 @@ void Unfolding:: find_an_alternative(Config & C, std::vector<Event *> D, std::ve
     *  D now contains only events which is in en(C).
     *  D is a comb whose each spike is a list of conflict events D[i].dicfl
     */
-   std::vector<Event *> oldD;
-   DEBUG("D.size: %d", D.size());
+
+   //DEBUG("D.size: %d", D.size());
    for (unsigned i = 0; i < D.size(); i++)
       spikes.push_back(D[i]->dicfl);
 
@@ -2354,21 +2354,16 @@ void Unfolding:: find_an_alternative(Config & C, std::vector<Event *> D, std::ve
    for (unsigned i = 0; i < spikes.size(); i++)
    {
       DEBUG("   For spike[%d]:", i);
-      // no alternative if we get an empty spike!
-      if (spikes[i].size() == 0)
-      {
-         DEBUG("       Spike %d (e%d) is empty: no alternative; returning.", i, D[i]->idx);
-         return;
-      }
 
       /*
        * - Remove from each spike those which are already in D
 
        */
       unsigned j = 0;
+      bool removed = false;
 
       DEBUG_("    Remove from spikes[%d] those which are already in D: ", i);
-      bool removed = false;
+
       while ((spikes[i].size() != 0) and (j < spikes[i].size()) )
       {
          for (unsigned k = 0; k < D.size(); k++)
@@ -2380,6 +2375,7 @@ void Unfolding:: find_an_alternative(Config & C, std::vector<Event *> D, std::ve
                spikes[i][j] = spikes[i].back();
                spikes[i].pop_back();
                removed = true;
+               DEBUG("Remove done");
                break;
             }
          }
@@ -2387,6 +2383,9 @@ void Unfolding:: find_an_alternative(Config & C, std::vector<Event *> D, std::ve
          // if we removed some event in spikes[i] by swapping it with the last one, then repeat the task with new spike[i][j]
          if (!removed)
             j++;
+         else
+            removed = false;
+
       }
 
       DEBUG("Done.");
@@ -2396,40 +2395,47 @@ void Unfolding:: find_an_alternative(Config & C, std::vector<Event *> D, std::ve
          DEBUG("\n    Spike %d (e%d) is empty: no alternative; returning.", i, D[i]->idx);
          return;
       }
-#if 0
-         /* Remove events that are in conflict with any maxinal event */
+
+
+      /*
+       *  Remove events that are in conflict with any maxinal event
+       *  Let's reconsider set of maximal events
+       */
+      removed = false;
+      j = 0;
 
       DEBUG("\n    Remove from spikes[%d] events cfl with maximal events", i);
-      removed = false;
-      unsigned k = 0;
-      while ((spikes[i].size() != 0) and (k < spikes[i].size()) )
+
+      while ((spikes[i].size() != 0) and (j < spikes[i].size()) )
       {
          for (auto max : C.latest_proc)
          {
-            if (spikes[i][k]->check_cfl(*max))
+            if (spikes[i][j]->check_cfl(*max))
             {
                   //remove spike[i][j]
-               DEBUG_("    %d cfl with %d", spikes[i][k]->idx, max->idx);
-               DEBUG("->Remove %d", spikes[i][k]->idx);
-               spikes[i][k] = spikes[i].back();
+               DEBUG_("    %d cfl with %d", spikes[i][j]->idx, max->idx);
+               DEBUG("->Remove %d", spikes[i][j]->idx);
+               spikes[i][j] = spikes[i].back();
                spikes[i].pop_back();
                removed = true;
                break;
             }
          }
 
-         // if we removed some event in spikes[i] by swapping it with the last one, then repeat the task with new spike[i][j]
-         // not increase j
+         // if we removed some event in spikes[i] by swapping it with the last one,
+         // then repeat the task with new spike[i][j] which means "do not increase j"
          if (!removed)
-            k++;
+            j++;
+         else
+            removed = false;
       }
 
+      DEBUG("Done.");
       if (spikes[i].size() == 0)
       {
          DEBUG("    Spike %d (e%d) is empty: no alternative; returning.", i, D[i]->idx);
          return;
       }
-#endif
 
    } // end for spike[i]
 
@@ -2485,12 +2491,12 @@ const std::vector<Event *> Event::local_config() const
    DEBUG("LC inside the function");
    for (unsigned j = 0; j < lc.size(); j++)
       DEBUG_("%d ", lc[j]->idx);
- */
+*/
    return lc;
 }
 
 /*
- * compute and return a set J which is a possible alternative to extend from C
+ * compute all possible conbinations and return a set J which is a possible alternative to extend from C
  */
 void Unfolding:: compute_alt(unsigned int i, const std::vector<std::vector<Event *>> & s, std::vector<Event *> & J, std::vector<Event *> & A)
 {
@@ -2509,32 +2515,64 @@ void Unfolding:: compute_alt(unsigned int i, const std::vector<std::vector<Event
             for (unsigned i = 0; i < J.size(); i++)
                DEBUG_("%d, ", J[i]->idx);
 
-            DEBUG_("}");
+            DEBUG("}");
 
-            if (is_conflict_free(J))
+
+            /*
+             * Check if two or more events in J are the same
+             * To maintain J, copy J to Jcopy
+             */
+            std::vector<Event *>  Jcopy = J;
+
+            DEBUG("Remove duplica in Jcopy");
+            for (unsigned i = 0; i < Jcopy.size()-1; i++)
+            {
+               for (unsigned int j = i+1; j < Jcopy.size(); j++)
+               {
+                  if (Jcopy[j] == Jcopy[i])
+                  {
+                     // remove J[j]
+                     Jcopy[j] = Jcopy.back();
+                     Jcopy.pop_back();
+                     j--;
+                  }
+               }
+            }
+
+            DEBUG_("J = {");
+            for (unsigned i = 0; i < Jcopy.size(); i++)
+               DEBUG_("%d, ", Jcopy[i]->idx);
+            DEBUG("}");
+
+            /*
+             * If J is conflict-free, then A is assigned to union of every element's local configuration.
+             */
+            if (is_conflict_free(Jcopy))
             {
                DEBUG(": a conflict-free combination");
                /*
                 * A is the union of local configuration of all events in J
                 */
 
-               for (unsigned i = 0; i < J.size(); i++)
+               for (unsigned i = 0; i < Jcopy.size(); i++)
                {
-                  const std::vector<Event *> & tp = J[i]->local_config();
+                  const std::vector<Event *> & tp = Jcopy[i]->local_config();
 
                   //DEBUG("LC.size = %d", tp.size());
                   for (unsigned j = 0; j < tp.size(); j++)
-                  // A.insert(A.end(), J[i]->local_config().begin(), J[i]->local_config().end());
-                  A.push_back(tp[j]);
+                     A.push_back(tp[j]);
                }
 
-             //  A = J;
-               return;
+               DEBUG_("A = {");
+               for (unsigned i = 0; i < A.size(); i++)
+                  DEBUG_("%d, ", A[i]->idx);
+               DEBUG("}");
+
+               return; // go back to
             }
             else
             {
                DEBUG(": not conflict-free");
-               //J.clear();
             }
          }
          else
@@ -2684,6 +2722,7 @@ void Unfolding:: explore(Config & C, std::vector<Event*> & D, std::vector<Event*
    if (J.empty() == false)
    {
       /* A is assigned by J when we find a conflict-free J in find_an_alternative function */
+
       DEBUG_("A = { ");
       for (unsigned i = 0; i< A.size(); i++)
          DEBUG_ ("%d, ", A[i]->idx);

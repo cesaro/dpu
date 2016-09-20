@@ -1243,6 +1243,73 @@ std::unique_ptr<ir::Machine> build_concur15_example2 ()
    return m;
 }
 
+std::unique_ptr<ir::Machine> build_syn_example ()
+{
+   /*
+    * 2 threadds
+    *
+    *
+    * memsize  = 3 = 1 vars + 2 pc (v0)
+    * numprocs = 2
+    * numtrans = 4
+    *
+    * Thread 0:
+    * src dst  what
+    *   0   1  lock(l): l = 1
+    *   1   2  unlock(l): l = 0
+
+    * Thread 1:
+    * src dst  what
+    *   0   1  lock(l): l = 1
+    *   1   2  unlock(l): l = 0
+    */
+
+   ir::Trans * t;
+   std::unique_ptr<ir::Machine> m (new ir::Machine (3, 2, 4)); // 3 vars, 2 threads, 4 transitions
+   ir::Process & p0 = m->add_process (3); // 3 locations in this thread
+   ir::Process & p1 = m->add_process (3); // 3 locations in this thread
+
+   // variable v0
+   std::unique_ptr<ir::Var> v0 (ir::Var::make (2));
+
+   // Process 0
+   //  0 >  1 : v0 = 1
+   t = & p0.add_trans (0, 1);
+   t->code.stm = ir::Stm (ir::Stm::ASGN, v0->clone (), ir::Expr::make (1));
+   t->type = ir::Trans::SYN;
+   t->var  = 2;
+   t->offset = 0;
+   t->localvars.clear();
+
+   //  1 >  2 : v0 = 0
+   t = & p0.add_trans (1, 2);
+   t->code.stm = ir::Stm (ir::Stm::ASGN, v0->clone (), ir::Expr::make (0));
+   t->type = ir::Trans::SYN;
+   t->var  = 2;
+   t->offset = 0;
+   t->localvars.clear();
+
+   // Process 1
+   //  0 >  1 : v0 = 1
+   t = & p1.add_trans (0, 1);
+   t->code.stm = ir::Stm (ir::Stm::ASGN, v0->clone (), ir::Expr::make (1));
+   t->type = ir::Trans::SYN;
+   t->var  = 2;
+   t->offset = 0;
+   t->localvars.clear();
+
+   //  1 >  2 : v0 = 0
+   t = & p1.add_trans (1, 2);
+   t->code.stm = ir::Stm (ir::Stm::ASGN, v0->clone (), ir::Expr::make (0));
+   t->type = ir::Trans::SYN;
+   t->var  = 2;
+   t->offset = 0;
+   t->localvars.clear();
+
+   return m;
+}
+
+
 void test12 ()
 {
    //auto m = build_mul_example ();
@@ -1892,8 +1959,10 @@ void test25()
 void test26()
 {
    //auto m = build_concur15_example ();
-   auto m = build_concur15_example2 ();
+   //auto m = build_concur15_example2 ();
+   //auto m = build_concur15_example1 ();
    //auto m = build_mul_example2 ();
+   auto m = build_syn_example ();
 
    DEBUG ("\n%s", m->str().c_str());
 
@@ -1904,4 +1973,24 @@ void test26()
    u.explore(c,d,a);
   // u.uprint_debug();
    u.uprint_dot();
+}
+
+
+void test27()
+{
+   std::vector<int> vt = {1,1,2,3,4,1,1,5,2,3,5, 100,100};
+   for (int i = 0; i < vt.size() - 1; i++)
+      for (int j = i+1; j < vt.size(); j++)
+   {
+      if (vt[j] == vt[i])
+      {
+         vt[j] = vt.back();
+         vt.pop_back();
+         j--;
+      }
+   }
+   DEBUG("vt after removing");
+   for (int i = 0; i < vt.size(); i++)
+      DEBUG_("%d  ", vt[i]);
+
 }

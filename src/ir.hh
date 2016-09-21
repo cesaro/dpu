@@ -120,6 +120,8 @@ public:
 
 };
 
+void simulate (Machine * m);
+
 } // namespace ir
 
 #endif

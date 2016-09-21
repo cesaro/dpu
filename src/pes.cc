@@ -1,5 +1,5 @@
-/*
-f * pes.cc
+ /*
+ * pes.cc
  *
  *  Created on: Jan 12, 2016
  *      Author: tnguyen
@@ -264,6 +264,10 @@ Ident::Ident(const ir::Trans & t, const Config & c)
     * For LOC
     * - pre_mem     is NULL
     * - pre_readers remains empty
+    *
+    * For SYNC
+    * - pre_mem     is the latest WR in the variable
+    * - pre_readers remains empty
     */
 
    trans = &t;
@@ -298,7 +302,10 @@ Ident::Ident(const ir::Trans & t, const Config & c)
          break;
 
       case ir::Trans::SYN:
-         pre_mem  = c.latest_op[p.id][varaddr]; // pre_mem can be latest SYN from another process (same variable)
+         if (trans->code.stm.type == ir::Stm::LOCK)
+            pre_mem = c.latest_wr[varaddr];
+         else
+            pre_mem = c.latest_op[p.id][varaddr]; // latest_wr is ok too
          break;
 
       case ir::Trans::LOC:
@@ -673,12 +680,11 @@ void Event::update_parents()
 
       case ir::Trans::SYN:
          evtid.pre_proc->post_proc.push_back(this);
-         /* update pre_mem */
-         if ( (evtid.pre_mem->is_bottom() == true) || (evtid.pre_mem->evtid.trans->type == ir::Trans::WR)   )
-            evtid.pre_mem->post_mem[p.id].push_back(this);
-         else
-            evtid.pre_mem->post_rws.push_back(this);
-         /* no pre_readers -> nothing to do with pre_readers */
+         /* update pre_mem: can be bottom or a SYN */
+         for (unsigned i = 0; i < evtid.pre_mem->post_mem.size(); i++)
+            evtid.pre_mem->post_mem[i].push_back(this);
+         //evtid.pre_mem->post_rws.push_back(this);
+
          break;
 
       case ir::Trans::LOC:
@@ -790,7 +796,6 @@ bool Event::check_dicfl( const Event & e )
     */
    if (this->evtid.trans->var != e.evtid.trans->var) return false; // concurrent
 
-
    /*
     * Check pre_proc: if they have the same pre_proc and in the same process -> conflict
     * It is also true for the case where pre_proc is bottom
@@ -800,6 +805,7 @@ bool Event::check_dicfl( const Event & e )
       return true;
 
    // different pre_procs => check pre_mem or pre_readers
+   DEBUG("Check pre_mem for dicfl");
    Event * parent = evtid.pre_mem; // for RD, SYN, WR events // not right for WR
    std::vector<Event *>::iterator this_idx, e_idx;
 
@@ -808,10 +814,14 @@ bool Event::check_dicfl( const Event & e )
    {
 	   for (unsigned i = 0; i< parent->post_mem.size(); i++)
 	   {
+	     DEBUG("Parent is the bottom");
 		  this_idx = std::find(parent->post_mem[i].begin(), parent->post_mem[i].end(),this);
 		  e_idx    = std::find(parent->post_mem[i].begin(), parent->post_mem[i].end(),&e);
         if ( (this_idx != parent->post_mem[i].end()) && (e_idx != parent->post_mem[i].end()) )
+        {
+           DEBUG("%d cfl %d", this->idx, e.idx);
            return true;
+        }
   	   }
 	   return false;
    }
@@ -836,10 +846,18 @@ bool Event::check_dicfl( const Event & e )
          break;
 
      case ir::Trans::SYN:
-         e_idx    = std::find(parent->post_rws.begin(), parent->post_rws.end(),&e);
-         if (e_idx != parent->post_rws.end())
-           return true;
-    	  break;
+        DEBUG("Parent is a SYN");
+        for (unsigned i = 0; i< parent->post_mem.size(); i++)
+        {// this and e in the same process
+           this_idx = std::find(parent->post_mem[i].begin(), parent->post_mem[i].end(),this);
+           e_idx    = std::find(parent->post_mem[i].begin(), parent->post_mem[i].end(),&e);
+           if ( (this_idx != parent->post_mem[i].end()) && (e_idx != parent->post_mem[i].end()) )
+           {
+              DEBUG("%d cfl %d", this->idx, e.idx);
+              return true;
+           }
+        }
+        break;
 
      case ir::Trans::LOC:
         // nothing to do
@@ -1408,7 +1426,8 @@ void Config::add (unsigned idx)
       break;
 
    case ir::Trans::SYN:
-      latest_wr[varaddr]=&e;
+      latest_wr[varaddr] = &e;
+      latest_op[p.id][varaddr] = &e; //update latest operation on the varaddr in the p process
       break;
 
    case ir::Trans::LOC:
@@ -1518,7 +1537,7 @@ void Config::compute_cex ()
                this->RD_cex(p);
                break;
             case ir::Trans::SYN:
-               this->SYN_cex(p);
+               //this->SYN_cex(p);
                break;
             case ir::Trans::WR:
                this->WR_cex(p);
@@ -1628,7 +1647,7 @@ void Config:: RD_cex(Event * e)
  */
 void Config:: SYN_cex(Event * e)
 {
-   DEBUG(" %p, id:%d: SYN_cex", e, e->idx);
+   DEBUG("\n %p, id:%d: SYN_cex", e, e->idx);
    Event * ep, * em, *pr_mem; //pr_mem: pre_mem
    ep = e->evtid.pre_proc;
    em = e->evtid.pre_mem;
@@ -2036,6 +2055,9 @@ void Unfolding::create_event(ir::Trans & t, Config & c)
     * Don't add events already in the unf (enabled at the previous state)
     */
 
+   // assert that t is enabled at c
+   //ASSERT ()
+
    Ident id(t,c);
    /* Check if new event exist in evt or not */
    std::unordered_map <Ident, Event *, IdHasher<Ident>>::const_iterator got = evttab.find (id);
@@ -2080,9 +2102,9 @@ void Unfolding::create_event(ir::Trans & t, Config & c)
    c.en.push_back(&evt.back());
 
    //DEBUG("   Unf.evt.back:%s \n ", evt.back().str().c_str());
-   //DEBUG("eprint_debug-------");
-   //evt.back().eprint_debug();
-   //DEBUG("end print-----");
+   DEBUG("eprint_debug-------");
+   evt.back().eprint_debug();
+   DEBUG("end print-----");
 }
 //------------
 Event & Unfolding:: find_or_add(Ident & id)
@@ -2744,4 +2766,7 @@ void Unfolding:: explore(Config & C, std::vector<Event*> & D, std::vector<Event*
 }
 
 } // end of namespace
+
+
+
 

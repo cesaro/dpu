@@ -366,7 +366,8 @@ Stm::Stm (type_t t, Var * v, Expr * e)
       ASSERT (0); break;
    case LOCK :
    case UNLOCK :
-      ASSERT (not e); break;
+      ASSERT (not e);
+      break;
    }
 #endif
 }

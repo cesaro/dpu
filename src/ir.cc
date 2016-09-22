@@ -75,6 +75,11 @@ void Machine::sanity_check ()
    // - the program is deterministic
 }
 
+void Machine:: change_init_state(std::vector<uint32_t> t)
+{
+   init_state.change_tab(t);
+}
+
 // methods of class Process
 Process::Process (Machine & m, unsigned numlocations, int id)
    : id (id)
@@ -398,6 +403,12 @@ std::string State::str_header () const
    s += "  ";
    for ( ; i < m.memsize; ++i) s += fmt ("v%-3u ", i);
    return s;
+}
+
+void  State::change_tab  (std::vector<uint32_t> t) const
+{
+   for (unsigned i = 0; i < t.size(); i++)
+      tab[i] = t[i];
 }
 
 void simulate (Machine * m)

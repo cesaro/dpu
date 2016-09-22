@@ -47,6 +47,7 @@ std::unique_ptr<ir::Machine> build_mul_example ();
 std::unique_ptr<ir::Machine> build_mul_example1 ();
 
 
+
 class Stack
 {
    int * tab;
@@ -1309,6 +1310,97 @@ std::unique_ptr<ir::Machine> build_syn_example ()
    return m;
 }
 
+
+std::unique_ptr<ir::Machine> build_syn_example1 ()
+{
+   /*
+    * 3 threadds
+    *
+    *
+    * memsize  = 4 = 1 vars + 3 pc (v0)
+    * numprocs = 3
+    * numtrans = 6
+    *
+    * Thread 0:
+    * src dst  what
+    *   0   1  lock(l): l = 1
+    *   1   2  unlock(l): l = 0
+
+    * Thread 1:
+    * src dst  what
+    *   0   1  lock(l): l = 1
+    *   1   2  unlock(l): l = 0
+    *
+    * Thread 2:
+    * src dst  what
+    *   0   1  lock(l): l = 1
+    *   1   2  unlock(l): l = 0
+    */
+
+   ir::Trans * t;
+   std::unique_ptr<ir::Machine> m (new ir::Machine (4, 3, 6)); // 4 vars, 3 threads, 6 transitions
+   ir::Process & p0 = m->add_process (3); // 3 locations in this thread
+   ir::Process & p1 = m->add_process (3); // 3 locations in this thread
+   ir::Process & p2 = m->add_process (3); // 3 locations in this thread
+
+   // variable v0
+   std::unique_ptr<ir::Var> v0 (ir::Var::make (3));
+
+   // Process 0
+   //  0 >  1 : v0 = 1
+   t = & p0.add_trans (0, 1);
+   t->code.stm = ir::Stm (ir::Stm::LOCK, v0->clone (), 0);
+   t->type = ir::Trans::SYN;
+   t->var  = 2;
+   t->offset = 0;
+   t->localvars.clear();
+
+   //  1 >  2 : v0 = 0
+   t = & p0.add_trans (1, 2);
+   t->code.stm = ir::Stm (ir::Stm::UNLOCK, v0->clone (), 0);
+   t->type = ir::Trans::SYN;
+   t->var  = 2;
+   t->offset = 0;
+   t->localvars.clear();
+
+   // Process 1
+   //  0 >  1 : v0 = 1
+   t = & p1.add_trans (0, 1);
+   t->code.stm = ir::Stm (ir::Stm::LOCK, v0->clone (), 0);
+   t->type = ir::Trans::SYN;
+   t->var  = 2;
+   t->offset = 0;
+   t->localvars.clear();
+
+   //  1 >  2 : v0 = 0
+   t = & p1.add_trans (1, 2);
+   t->code.stm = ir::Stm (ir::Stm::UNLOCK, v0->clone (), 0);
+   t->type = ir::Trans::SYN;
+   t->var  = 2;
+   t->offset = 0;
+   t->localvars.clear();
+
+   // Process 2
+   //  0 >  1 : v0 = 1
+   t = & p2.add_trans (0, 1);
+   t->code.stm = ir::Stm (ir::Stm::LOCK, v0->clone (), 0);
+   t->type = ir::Trans::SYN;
+   t->var  = 2;
+   t->offset = 0;
+   t->localvars.clear();
+
+   //  1 >  2 : v0 = 0
+   t = & p2.add_trans (1, 2);
+   t->code.stm = ir::Stm (ir::Stm::UNLOCK, v0->clone (), 0);
+   t->type = ir::Trans::SYN;
+   t->var  = 2;
+   t->offset = 0;
+   t->localvars.clear();
+
+   return m;
+}
+
+
 std::unique_ptr<ir::Machine> build_syn_example2 ()
 {
    /*
@@ -1344,7 +1436,7 @@ std::unique_ptr<ir::Machine> build_syn_example2 ()
    // Process 0
    //  0 >  1 : v0 = 1
    t = & p0.add_trans (0, 1);
-   t->code.stm = ir::Stm (ir::Stm::LOCK, v0->clone (), ir::Expr::make (1));
+   t->code.stm = ir::Stm (ir::Stm::LOCK, v0->clone (), 0);
    t->type = ir::Trans::SYN;
    t->var  = 2;
    t->offset = 0;
@@ -1360,7 +1452,7 @@ std::unique_ptr<ir::Machine> build_syn_example2 ()
 
    //  2 >  3 : v0 = 0
    t = & p0.add_trans (2, 3);
-   t->code.stm = ir::Stm (ir::Stm::UNLOCK, v0->clone (), ir::Expr::make (0));
+   t->code.stm = ir::Stm (ir::Stm::UNLOCK, v0->clone (),0);
    t->type = ir::Trans::SYN;
    t->var  = 2;
    t->offset = 0;
@@ -1369,7 +1461,7 @@ std::unique_ptr<ir::Machine> build_syn_example2 ()
    // Process 1
    //  0 >  1 : v0 = 1
    t = & p1.add_trans (0, 1);
-   t->code.stm = ir::Stm (ir::Stm::LOCK, v0->clone (), ir::Expr::make (1));
+   t->code.stm = ir::Stm (ir::Stm::LOCK, v0->clone (), 0);
    t->type = ir::Trans::SYN;
    t->var  = 2;
    t->offset = 0;
@@ -1385,7 +1477,7 @@ std::unique_ptr<ir::Machine> build_syn_example2 ()
 
    //  2 >  3 : v0 = 0
    t = & p1.add_trans (2, 3);
-   t->code.stm = ir::Stm (ir::Stm::UNLOCK, v0->clone (), ir::Expr::make (0));
+   t->code.stm = ir::Stm (ir::Stm::UNLOCK, v0->clone (), 0);
    t->type = ir::Trans::SYN;
    t->var  = 2;
    t->offset = 0;
@@ -2051,9 +2143,12 @@ void test26()
    //auto m = build_concur15_example1 ();
    //auto m = build_mul_example2 ();
    auto m = build_syn_example ();
+   //auto m = build_syn_example1 ();
    //auto m = build_syn_example2 ();
 
-   //ir::simulate (m.get());
+   m.get()->change_init_state({0,1,1});
+   ir::simulate (m.get());
+
 
    DEBUG ("\n%s", m->str().c_str());
 

@@ -2056,7 +2056,7 @@ void Unfolding::create_event(ir::Trans & t, Config & c)
     */
 
    // assert that t is enabled at c
-   //ASSERT ()
+   ASSERT (t.enabled(c.gstate));
 
    Ident id(t,c);
    /* Check if new event exist in evt or not */

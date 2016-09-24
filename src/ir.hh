@@ -42,6 +42,7 @@ public:
    uint32_t &       eval        (const Var * v) const;
    std::string      str         () const;
    std::string      str_header  () const;
+   void             change_tab  (std::vector<uint32_t> t) const; //need to see more
 
 
 private:
@@ -68,8 +69,10 @@ public:
    Process &   add_process   (unsigned numlocations);
    std::string str           () const;
    void        sanity_check  ();
+   void        change_init_state(std::vector<uint32_t> t);
 
    const State & init_state;
+
 
 private :
    ir::State _init_state;
@@ -119,6 +122,8 @@ public:
    // bool        operator ==   (const Trans &) const;
 
 };
+
+void simulate (Machine * m);
 
 } // namespace ir
 

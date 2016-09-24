@@ -3,6 +3,8 @@
 #include <cassert>
 #include <algorithm>
 #include <stdexcept>
+#include <ctime>
+
 
 #include "ir.hh"
 #include "misc.hh"
@@ -71,6 +73,11 @@ void Machine::sanity_check ()
    // - match between Trans.code and infos in Trans.{type,addr,offset,localaddr}
    // - transitions of one thread do not overwrite the pcs
    // - the program is deterministic
+}
+
+void Machine:: change_init_state(std::vector<uint32_t> t)
+{
+   init_state.change_tab(t);
 }
 
 // methods of class Process
@@ -397,5 +404,43 @@ std::string State::str_header () const
    for ( ; i < m.memsize; ++i) s += fmt ("v%-3u ", i);
    return s;
 }
+
+void  State::change_tab  (std::vector<uint32_t> t) const
+{
+   for (unsigned i = 0; i < t.size(); i++)
+      tab[i] = t[i];
+}
+
+void simulate (Machine * m)
+{
+    DEBUG ("BEGIN simulation");
+    DEBUG ("%s", m->str().c_str());
+
+    ir::State s (m->init_state);
+    std::vector<ir::Trans*> ena;
+    unsigned seed, i;
+
+    seed = std::time (0); // use current time as seed for random
+    //seed = 1234;
+    DEBUG ("Using seed %u", seed);
+    std::srand (seed);
+
+    while (true)
+    {
+       DEBUG ("========================================");
+       DEBUG ("%s", s.str_header().c_str());
+       DEBUG ("%s", s.str().c_str());
+       s.enabled (ena);
+       DEBUG ("enables %d transitions:", ena.size ());
+       for (auto t : ena) DEBUG (" %s", t->str().c_str());
+       if (ena.size () == 0) break;
+
+       i = std::rand() % ena.size ();
+       DEBUG ("firing idx %u, proc %d", i, ena[i]->proc.id);
+       ena[i]->fire (s);
+    }
+    DEBUG ("END simulation");
+
+ }
 
 } // namespace ir

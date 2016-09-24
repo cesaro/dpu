@@ -124,7 +124,7 @@ public:
     *  Only for WR events
     *  Each vector of children events for a process
     */
-   std::vector< std::vector<Event *> >   post_mem; // size = numprocs x mem
+   std::vector< std::vector<Event *> >   post_mem; // a vector of numprocs subvectors
    std::vector<Event * >                 post_wr; // WR children of a WR trans
 
    //only for RD and SYN events
@@ -140,6 +140,8 @@ public:
    std::vector <int>     clock; // size = number of processes (to store clock for all its predecessors: pre_proc, pre_mem or pre_readers)
    //store maximal events in the event's local configuration for all variables
    std::vector <Event *> var_maxevt; // size of number of variables
+   std::vector <Event *> proc_maxevt; // size of number of processes
+
 
 
    bool         operator ==   (const Event &) const;
@@ -159,8 +161,10 @@ public:
 
    void set_vclock();
    void set_var_maxevt();
+   void set_proc_maxevt();
 
    const Event & find_latest_WR_pred ()const;
+   const std::vector<Event *> local_config() const;
    bool check_dicfl (const Event & e); // check direct conflict
    bool check_cfl (const Event & e); // check conflict
    bool check_cfl_WRD(const Event & e) const; // this is a WR and e is a RD
@@ -169,6 +173,7 @@ public:
    bool is_bottom () const;
    bool is_same (const Event &) const;
    bool succeed (const Event & e) const;
+   bool pred_max(Event * ew) const;
 
    template <int idx>
    bool check_cfl_same_tree (const Event & e) const;

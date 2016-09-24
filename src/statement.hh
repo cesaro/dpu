@@ -51,7 +51,7 @@ public:
          Expr * expr1;
          Expr * expr2;
       };
-   };
+};
 
    // factory methods
    static Expr * make (int32_t imm = 0);

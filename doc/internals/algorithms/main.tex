@@ -562,7 +562,7 @@ An event can be create in two cases:
 			do as follows to check the direct (immediate) conflict between them:
 			\begin{enumerate}
 				\item
-					Set pr1 = e.pre_proc
+					Set pr1 = e.pre\_proc
 				\item
 					If \verb!e.trans.type ==  WR!
 				\item
@@ -809,7 +809,12 @@ e and e' are two events in that tree at depths $e.depth$ and $e'.depth$ respecti
 \end{itemize}
 
 	
-To quickly find $e"$ through the tree, we use the idea of skip list (see \ref{fig:example}. Accordingly, in each node, a list of skip predecessors $ skip\_preds = (i_1, i_2,..,i_m)$ are stored, where $i_j$ $(j \in [1,m] )$ is the node's predecessor in $k^{j}$ distance of depth, k (k > 1) is a constant distance in depth choosen to skip.\\
+To quickly find $e"$ through the tree, we use the idea of skip list
+(see \ref{fig:example}).
+Accordingly, in each node, a list of skip predecessors $
+skip\_preds = (i_1, i_2,..,i_m)$ are stored, where $i_j$ $(j \in [1,m] )$ is the
+node's predecessor in $k^{j}$ distance of depth, k (k > 1) is a constant
+distance in depth choosen to skip.\\
 
 \noindent
 \textbf{Data structure:}

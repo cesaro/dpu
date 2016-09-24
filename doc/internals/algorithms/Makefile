@@ -36,7 +36,7 @@ x xfig :
 	cd fig; xfig &
 
 o open :
-	open $T.pdf
+	gnome-open $T.pdf 2> /dev/null &
 
 clean :
 	bash -c 'rm -f $T.{aux,bbl,blg,lof,lol,lot,log,out,toc,snm,nav,pag,bcf,run.xml,vtc,fls}'

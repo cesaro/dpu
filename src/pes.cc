@@ -61,7 +61,7 @@ void Node<T,SS>:: set_skip_preds(int idx)
    DEBUG_("     + SET NODE[%d]", idx);
    // including immediate predecessor
    int size = this->compute_size();
-   //DEBUG("Size of skip_preds = %d", size);
+   DEBUG("Size of skip_preds = %d", size);
 
    // initialize the elements
    if (size == 0)
@@ -1340,8 +1340,8 @@ Config::Config (Unfolding & u)
    : gstate (u.m.init_state)
    , unf (u)
    , latest_proc (u.m.procs.size (), u.bottom)
-   , latest_wr (u.m.memsize - u.m.procs.size(), u.bottom)
-   , latest_op (u.m.procs.size (), std::vector<Event*> (u.m.memsize - u.m.procs.size(), u.bottom))
+   , latest_wr (u.m.memsize, u.bottom) // size is the memsize.
+   , latest_op (u.m.procs.size (), std::vector<Event*> (u.m.memsize, u.bottom))
 {
    /* with the unf containing only bottom event */
    DEBUG ("%p: Config.ctor", this);
@@ -1594,6 +1594,16 @@ void Config:: RD_cex(Event * e)
    ep = e->evtid.pre_proc;
    em = e->evtid.pre_mem;
    /*
+    * Check if e is inside of a pair of (Lock, Unlock)
+    * - find the latest SYN event in e's process. If it is a LOCK, there is no conflicting event to e.
+    */
+   if (e->is_in_mutex())
+   {
+      DEBUG("It is in mutex, so no conflicting event");
+      return;
+   }
+
+   /*
     * em is the first event in the [ep] is still ok to create a new event
     */
 
@@ -1696,6 +1706,22 @@ bool Event::pred_max(Event * ew) const
    return false;
 }
 /*
+ * Return true if the latest SYN event in this local configuration we found is a LOCK.
+ */
+bool Event::is_in_mutex() const
+{
+   Event * p;
+   p = evtid.pre_proc;
+   while (!p->is_bottom() and (p->evtid.trans->type != ir::Trans::SYN))
+      p = p->evtid.pre_proc;
+
+   if (!p->is_bottom() and (p->evtid.trans->code.stm.type == ir::Stm::LOCK))
+      return true;
+   else
+      return false;
+}
+
+/*
  * Compute conflicting event for a WR event e
  */
 void Config:: WR_cex(Event * e)
@@ -1705,6 +1731,16 @@ void Config:: WR_cex(Event * e)
    unsigned numprocs = unf.m.procs.size();
    std::vector<std::vector<Event *> > spikes(numprocs);
    spikes.resize(numprocs);
+
+   /*
+    * Check if e is inside of a pair of (Lock, Unlock)
+    * - find the latest SYN event in e's process. If it is a LOCK, there is no conflicting event to e.
+    */
+   if (e->is_in_mutex())
+   {
+      DEBUG("It is in mutex, so no conflicting event");
+      return;
+   }
 
    ep = e->evtid.pre_proc;
    ew = e;
@@ -2102,9 +2138,9 @@ void Unfolding::create_event(ir::Trans & t, Config & c)
    c.en.push_back(&evt.back());
 
    //DEBUG("   Unf.evt.back:%s \n ", evt.back().str().c_str());
-   DEBUG("eprint_debug-------");
+   DEBUG("=====Event debug print=====");
    evt.back().eprint_debug();
-   DEBUG("end print-----");
+   DEBUG("=====End of print==========");
 }
 //------------
 Event & Unfolding:: find_or_add(Ident & id)

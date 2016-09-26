@@ -2142,11 +2142,11 @@ void test26()
    //auto m = build_concur15_example2 ();
    //auto m = build_concur15_example1 ();
    //auto m = build_mul_example2 ();
-   auto m = build_syn_example ();
-   //auto m = build_syn_example1 ();
+   //auto m = build_syn_example ();
+   auto m = build_syn_example1 ();
    //auto m = build_syn_example2 ();
 
-   m.get()->change_init_state({0,1,1});
+   m.get()->change_init_state({0,0,0});
    ir::simulate (m.get());
 
 

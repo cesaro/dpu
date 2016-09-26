@@ -174,6 +174,7 @@ public:
    bool is_same (const Event &) const;
    bool succeed (const Event & e) const;
    bool pred_max(Event * ew) const;
+   bool is_in_mutex() const;
 
    template <int idx>
    bool check_cfl_same_tree (const Event & e) const;

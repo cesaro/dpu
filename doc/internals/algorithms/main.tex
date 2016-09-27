@@ -338,7 +338,7 @@ $\tup{s_1, \ldots s_n}$ of size~$n$ over~$E$ defined as follows:
 
 \begin{algorithm}
 \noindent
-For each event $e \in C$ such that \verb!e->trans == t! and $e$ is not an event located between a pair of (LOCK, UNLOCk), repeat the following:
+For each event $e \in C$ such that \verb!e->trans == t!, repeat the following:
 \begin{enumerate}
 \item Set \verb!ep = e->pre_proc!
 \item Set \verb!em = e->pre_mem!
@@ -390,7 +390,7 @@ For each event $e \in C$ such that \verb!e->trans == t!, repeat the following:
 
 \begin{algorithm}
 \noindent
-For each event $e \in C$ such that $e$ is not an event located between a pair of (LOCK, UNLOCk) and \verb!e->trans == t!, repeat the following:
+For each event $e \in C$ such that \verb!e->trans == t!, repeat the following:
 \begin{enumerate}
 \item Set \verb!ep = e->pre_proc!
 \item Set \verb!ew = e!

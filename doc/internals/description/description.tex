@@ -1,0 +1,114 @@
+\documentclass{llncs}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[noadjust,nosort]{cite}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+%\usepackage{MnSymbol}
+%\usepackage{thmtools}
+%\usepackage{thm-restate}
+\usepackage{booktabs}
+\usepackage{figlatex}
+\usepackage{xcolor}
+\usepackage{setspace}
+\usepackage{xspace}
+\usepackage[super]{nth}
+\usepackage{multicol}
+\usepackage{microtype}
+\usepackage{wrapfig}
+\usepackage{graphicx}
+\usepackage{subfig}
+\usepackage[center,width=152mm,height=235mm]{crop}
+%\usepackage[pagewise,switch]{lineno} % switch, modulo, pagewise
+\usepackage{hyperref}
+%\usepackage[linesnumbered,lined,noend,ruled]{algorithm2e}
+\usepackage[lined,noend,ruled]{algorithm2e}
+\usepackage[capitalise,english,nameinlink]{cleveref} % load after algorithm2e and hyperref
+
+\hypersetup{
+  bookmarksdepth=2,
+  bookmarksnumbered=true,
+  bookmarksopen=true,
+  bookmarksopenlevel=2,
+  colorlinks=true,
+  linktocpage=true,
+  breaklinks=true,
+  pageanchor=true,
+  allcolors=[rgb]{0.6,0.0,0.0},
+  pdftitle={DPU's data structures and algorithms},
+  pdfauthor={Huyen N.T.T, César Rodríguez}
+}
+
+\input{defs}
+
+\title{DPU Implementation Description}
+\author{Huyen Nguyen}
+\institute{Université Paris 13, Sorbonne Paris Cité, LIPN, CNRS, France}
+
+\begin{document}
+
+\maketitle
+\noindent
+\section{Conflicting extensions}
+\subsection{WR conflicting events}
+Compute all events that conflict with $e$ labelling by transition $t$
+\begin{enumerate}
+\item Set \verb!ep = e->pre_proc!
+\item
+	Use a function called $compute\_maxevt()$ to locate M, the set of maximal events touching variable $t \rightarrow var$ in
+	history of $[ep]$. 
+\item Set \verb!ew = e!
+\item If $\verb!ew! < \verb!ep!$, then goto End.
+\item Let $c \eqdef \tup{s_1, \ldots, s_n}$ be the comb associated to \verb!ew!
+	\begin{itemize}
+	\item
+		Set up the comb with spikes where $spikes[i]$ is a set of RD and WR events that are found by recursively exploring the
+		pointer \verb!pre_readers[i]! until the first event of type \verb!WR! or bottom found.
+	\item
+		Remove from spikes those that precede any event in M, to assure the condition: None of events in $\set{e_1, \ldots, e_n}	
+		$ is a causal predecessor of some event in $M$
+\end{itemize}
+\item
+  Enumerate all combinations $\tup{e_1, \ldots, e_n}$ of $c$.
+  For any of them, do:
+  \begin{enumerate}
+  \item
+    If $\tup{e_1, \ldots, e_n} = \verb!e->pre_readers!$, then discard and take
+    next one.
+  \item
+    Create (or retrieve) an event \verb!ex! such that
+    \begin{itemize}
+    \item \verb!ex->trans = t!,
+    \item \verb!ex->pre_proc = ep!,
+    \item \verb!ex->pre_readers = {e_1, ..., e_n}!,
+    \end{itemize}
+  \item
+    Set \verb!ew! = spikes[0].back() 
+  \end{enumerate}
+\item Goto 3.
+\item End.
+\end{enumerate}
+
+
+\begin{algorithm}
+$ew$ is an event that writes on variable $t \rightarrow var$. The purpose of the function is to check if $ew$ is in the history of $ep$ or not by check it with all maximal events of $[ep]$ that touch variable $t \rightarrow var$ 
+\begin{enumerate}
+\item
+	Find out M, the set of maximal events in $[e_p]$ that read or write the variable $t \rightarrow var$
+	$M$ will either be a singleton with only \verb!WR! event or will contain exactly one \verb!RD! or \verb!WR! event per
+	process
+\item
+	For each process $i$, from \verb!ee.proc_maxevt[i]!, go back by \verb!pre_proc! until we reach the first event $pm$ 
+	that read or write variable t->var
+\item
+	If $ew$ succeeds $pm$, return true;
+\end{enumerate}
+
+\label{a:pre_max}
+\caption{Check if $ew$ in $[e_p]$ }
+\end{algorithm}
+
+
+\end{document}

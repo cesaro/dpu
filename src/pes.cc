@@ -1504,6 +1504,7 @@ void Config:: RD_cex(Event * e)
    Event * ep, * em, *pr_mem; //pr_mem: pre_mem
    ep = e->evtid.pre_proc;
    em = e->evtid.pre_mem;
+#if 0
    /*
     * Check if e is inside of a pair of (Lock, Unlock)
     * - find the latest SYN event in e's process. If it is a LOCK, there is no conflicting event to e.
@@ -1513,6 +1514,7 @@ void Config:: RD_cex(Event * e)
       DEBUG("It is in mutex, so no conflicting event");
       return;
    }
+#endif
 
    /*
     * em is the first event in the [ep] is still ok to create a new event
@@ -1595,26 +1597,24 @@ void Config:: SYN_cex(Event * e)
    }
 }
 /*
- * Return true if ew precedes one of maximal events touching the same variable in the local configuration of 'this'
+ * Return true if ew precedes one of maximal events touching variable var in the local configuration of 'this'
  * - Find maximal event for each process
  * - check if there is any maximal event succeed to ew
  */
-bool Event::pred_max(Event * ew) const
+ void Event::compute_maxvarevt(std::vector<Event *> & maxevt, unsigned var) const
 {
    Event * pe;
-   for (unsigned i = 0; i < proc_maxevt.size(); i++)
+
+   for (unsigned i = 0; i < this->proc_maxevt.size(); i++)
    {
       pe = this->proc_maxevt[i];
-      while (!pe->is_bottom() and pe->evtid.trans->var != ew->evtid.trans->var)
+      while (!pe->is_bottom() and (pe->evtid.trans->var != var))
          pe = pe->evtid.pre_proc;
 
-      if (pe->succeed(*ew))
-      {
-         DEBUG(" precedes max event in ep's local config ");
-         return true;
-      }
+     maxevt.push_back(pe);
    }
-   return false;
+
+   return;
 }
 /*
  * Return true if the latest SYN event in this local configuration we found is a LOCK.
@@ -1643,23 +1643,19 @@ void Config:: WR_cex(Event * e)
    std::vector<std::vector<Event *> > spikes(numprocs);
    spikes.resize(numprocs);
 
-#if 0
-   /*
-    * Check if e is inside of a pair of (Lock, Unlock)
-    * - find the latest SYN event in e's process. If it is a LOCK, there is no conflicting event to e.
-    */
-   if (e->is_in_mutex())
-   {
-      DEBUG("It is in mutex, so no conflicting event");
-      return;
-   }
-#endif
-
    ep = e->evtid.pre_proc;
+   /* Compute all maximal events touching the variable e.trans->var in the history of ep */
+   std::vector<Event *> maxevt;
+   ep->compute_maxvarevt(maxevt, e->evtid.trans->var);
+   DEBUG_("  The maximal events of ep  ");
+   for (unsigned j = 0; j < maxevt.size(); j++)
+      DEBUG_("%d ", maxevt[j]->idx);
+   DEBUG_("\n");
+
    ew = e;
    int count = 0;
 
-   while ((ew->is_bottom() == false) && (ep->pred_max(ew)) == false )
+   while (!ew->is_bottom() && (ep->succeed(*ew)) == false )
    {
       for (unsigned k = 0; k < numprocs; k++)
          spikes[k].clear(); // clear all spikes for storing new elements
@@ -1669,7 +1665,7 @@ void Config:: WR_cex(Event * e)
       for (unsigned i = 0; i < ew->evtid.pre_readers.size(); i++)
       {
          temp = ew->evtid.pre_readers[i];
-         while ((temp->is_bottom() == false) && (temp->evtid.trans->type != Trans::WR))
+         while ((!temp->is_bottom()) && (temp->evtid.trans->type != Trans::WR))
          {
             spikes[i].push_back(temp);
             temp = temp->evtid.pre_mem;
@@ -1687,19 +1683,18 @@ void Config:: WR_cex(Event * e)
       }
 
       /*
-       * if ep is a successor of ew, then remove from the comb ew itself
-       * and all RD events that are also in the history.  should think about bottom!!!
+       * Remove from the spikes those that are in the history of ep.
+       * for eack spikes[i], if ep is a successor of any event ee in it,
+       * then remove ee itself from the spike.
        */
-      DEBUG("Chet o day?");
-      if (ep->succeed(*ew) == true)
+
+      for (int unsigned i = 0; i < spikes.size(); i++)
       {
-         DEBUG("uh huhu");
-         for (int unsigned i = 0; i < spikes.size(); i++)
-            while (ep->succeed(*spikes[i].back()) == true)
-               // WR event at the back and its predecessors have an order backward
+         for (unsigned j = 0; j < maxevt.size(); j++)
+            while (maxevt[j]->succeed(*spikes[i].back()))
+            // WR event at the back and its predecessors have an order backward
                spikes[i].pop_back();
       }
-
       /*
        * Compute all possible combinations c(s1,s2,..sn) from the spikes to produce new conflicting events
        */

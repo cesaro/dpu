@@ -162,6 +162,7 @@ public:
    void set_vclock();
    void set_var_maxevt();
    void set_proc_maxevt();
+   void compute_maxvarevt(std::vector<Event *> & maxevt, unsigned var) const;
 
    const Event & find_latest_WR_pred ()const;
    const std::vector<Event *> local_config() const;
@@ -173,9 +174,7 @@ public:
    bool is_bottom () const;
    bool is_same (const Event &) const;
    bool succeed (const Event & e) const;
-   bool pred_max(Event * ew) const;
    bool is_in_mutex() const;
-
    template <int idx>
    bool check_cfl_same_tree (const Event & e) const;
 

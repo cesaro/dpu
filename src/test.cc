@@ -1351,7 +1351,7 @@ std::unique_ptr<ir::Machine> build_syn_example1 ()
    t = & p0.add_trans (0, 1);
    t->code.stm = ir::Stm (ir::Stm::LOCK, v0->clone (), 0);
    t->type = ir::Trans::SYN;
-   t->var  = 2;
+   t->var  = 3;
    t->offset = 0;
    t->localvars.clear();
 
@@ -1359,7 +1359,7 @@ std::unique_ptr<ir::Machine> build_syn_example1 ()
    t = & p0.add_trans (1, 2);
    t->code.stm = ir::Stm (ir::Stm::UNLOCK, v0->clone (), 0);
    t->type = ir::Trans::SYN;
-   t->var  = 2;
+   t->var  = 3;
    t->offset = 0;
    t->localvars.clear();
 
@@ -1368,7 +1368,7 @@ std::unique_ptr<ir::Machine> build_syn_example1 ()
    t = & p1.add_trans (0, 1);
    t->code.stm = ir::Stm (ir::Stm::LOCK, v0->clone (), 0);
    t->type = ir::Trans::SYN;
-   t->var  = 2;
+   t->var  = 3;
    t->offset = 0;
    t->localvars.clear();
 
@@ -1376,7 +1376,7 @@ std::unique_ptr<ir::Machine> build_syn_example1 ()
    t = & p1.add_trans (1, 2);
    t->code.stm = ir::Stm (ir::Stm::UNLOCK, v0->clone (), 0);
    t->type = ir::Trans::SYN;
-   t->var  = 2;
+   t->var  = 3;
    t->offset = 0;
    t->localvars.clear();
 
@@ -1385,7 +1385,7 @@ std::unique_ptr<ir::Machine> build_syn_example1 ()
    t = & p2.add_trans (0, 1);
    t->code.stm = ir::Stm (ir::Stm::LOCK, v0->clone (), 0);
    t->type = ir::Trans::SYN;
-   t->var  = 2;
+   t->var  = 3;
    t->offset = 0;
    t->localvars.clear();
 
@@ -1393,7 +1393,7 @@ std::unique_ptr<ir::Machine> build_syn_example1 ()
    t = & p2.add_trans (1, 2);
    t->code.stm = ir::Stm (ir::Stm::UNLOCK, v0->clone (), 0);
    t->type = ir::Trans::SYN;
-   t->var  = 2;
+   t->var  = 3;
    t->offset = 0;
    t->localvars.clear();
 
@@ -2143,8 +2143,8 @@ void test26()
    //auto m = build_concur15_example1 ();
    //auto m = build_mul_example2 ();
    //auto m = build_syn_example ();
-   auto m = build_syn_example1 ();
-   //auto m = build_syn_example2 ();
+   //auto m = build_syn_example1 ();
+   auto m = build_syn_example2 ();
 
    m.get()->change_init_state({0,0,0});
    ir::simulate (m.get());

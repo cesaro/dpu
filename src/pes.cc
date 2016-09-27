@@ -639,7 +639,8 @@ void Event::update_parents()
    DEBUG_("   - Update_parents:  ");
    if (is_bottom())
    {
-      DEBUG_("   Its parent is bottom");
+      DEBUG_("   It is the bottom");
+      //nothing to do
       return;
    }
 
@@ -681,10 +682,14 @@ void Event::update_parents()
       case ir::Trans::SYN:
          evtid.pre_proc->post_proc.push_back(this);
          /* update pre_mem: can be bottom or a SYN */
-         for (unsigned i = 0; i < evtid.pre_mem->post_mem.size(); i++)
-            evtid.pre_mem->post_mem[i].push_back(this);
-         //evtid.pre_mem->post_rws.push_back(this);
-
+         if (evtid.pre_mem->is_bottom())
+            for (unsigned i = 0; i < evtid.pre_mem->post_mem.size(); i++)
+               evtid.pre_mem->post_mem[i].push_back(this);
+         else
+            evtid.pre_mem->post_rws.push_back(this);
+         /* no pre_readers -> nothing to do with pre_readers */
+         //for (unsigned i = 0; i < evtid.pre_mem->post_mem.size(); i++)
+           // evtid.pre_mem->post_mem[i].push_back(this);
          break;
 
       case ir::Trans::LOC:
@@ -694,7 +699,7 @@ void Event::update_parents()
          break;
    }
 
-   DEBUG_(" Finished\n");
+   DEBUG(" Update_Parents Finished");
    return ;
 }
 /*
@@ -790,13 +795,7 @@ bool Event::check_dicfl( const Event & e )
    if ((this->evtid.trans->type == ir::Trans::LOC)  || (e.evtid.trans->type == ir::Trans::LOC))
       return false;
 
-   /*
-    * 2 event touching 2 different variables are not in direct conflict
-    * Let's consider "in different processes" when we have two events sharing pre_proc -> not conflict (they take different part of pre_proc)
-    */
-   if (this->evtid.trans->var != e.evtid.trans->var) return false; // concurrent
-
-   /*
+    /*
     * Check pre_proc: if they have the same pre_proc and in the same process -> conflict
     * It is also true for the case where pre_proc is bottom
     */
@@ -804,33 +803,33 @@ bool Event::check_dicfl( const Event & e )
    if ((this->evtid.pre_proc == e.evtid.pre_proc) && (this->evtid.trans->proc.id == e.evtid.trans->proc.id))
       return true;
 
-   // different pre_procs => check pre_mem or pre_readers
+   /*
+    * 2 event touching 2 different variables are not in direct conflict
+    * Let's consider "in different processes" when we have two events sharing pre_proc -> not conflict (they take different part of pre_proc)
+    */
+   if (this->evtid.trans->var != e.evtid.trans->var) return false; // concurrent
+
+   // in different pre_procs, touch the same variable => check pre_mem or pre_readers
    DEBUG("Check pre_mem for dicfl");
    Event * parent = evtid.pre_mem; // for RD, SYN, WR events // not right for WR
    std::vector<Event *>::iterator this_idx, e_idx;
 
-   // special case when parent is bottom, bottom as a WR, but not exactly a WR
+   // special case when parent is bottom, bottom as a special WR without transition.
    if (parent->is_bottom())
    {
 	   for (unsigned i = 0; i< parent->post_mem.size(); i++)
-	   {
-	     DEBUG("Parent is the bottom");
-		  this_idx = std::find(parent->post_mem[i].begin(), parent->post_mem[i].end(),this);
-		  e_idx    = std::find(parent->post_mem[i].begin(), parent->post_mem[i].end(),&e);
-        if ( (this_idx != parent->post_mem[i].end()) && (e_idx != parent->post_mem[i].end()) )
-        {
-           DEBUG("%d cfl %d", this->idx, e.idx);
-           return true;
-        }
-  	   }
+	      if ( (this_idx != parent->post_mem[i].end()) && (e_idx != parent->post_mem[i].end()) )
+	      {
+	         DEBUG("%d cfl %d", this->idx, e.idx);
+	         return true;
+	      }
 	   return false;
    }
 
    switch (parent->evtid.trans->type)
    {
       case ir::Trans::RD:
-
-         e_idx  = std::find(parent->post_rws.begin(), parent->post_rws.end(),&e);
+         e_idx  = std::find(parent->post_rws.begin(), parent->post_rws.end(), &e);
     	   if (e_idx != parent->post_rws.end())
     	      return true;
          break;
@@ -846,96 +845,9 @@ bool Event::check_dicfl( const Event & e )
          break;
 
      case ir::Trans::SYN:
-        DEBUG("Parent is a SYN");
-        for (unsigned i = 0; i< parent->post_mem.size(); i++)
-        {// this and e in the same process
-           this_idx = std::find(parent->post_mem[i].begin(), parent->post_mem[i].end(),this);
-           e_idx    = std::find(parent->post_mem[i].begin(), parent->post_mem[i].end(),&e);
-           if ( (this_idx != parent->post_mem[i].end()) && (e_idx != parent->post_mem[i].end()) )
-           {
-              DEBUG("%d cfl %d", this->idx, e.idx);
-              return true;
-           }
-        }
-        break;
-
-     case ir::Trans::LOC:
-        // nothing to do
-        break;
-   }
-
-   return false;
-}
-
-
-#if 0
-/*
- * Check if two events are in immediate conflict, provided that they are both in enable set.
- * Two events are in direct conflict if:
- *    - They both appear in a vector in post_mem of a WR parental event
- *    - They both appear in vector of post_rws of a RD parental event.
- *
- */
-
-bool Event::check_dicfl( const Event & e )
-{
-   if (this->is_bottom() || e.is_bottom() || (*this == e) )
-      return false;
-
-   /*
-    *  a LOC event has no conflict with any other transition.
-    * "2 LOC trans sharing a localvar" doesn't matter because it depends on the PC of process.
-    * Here, it means they don't have same pre_proc (the system is deterministic) --> any LOC is in no conflict with others.
-    */
-   if ((this->evtid.trans->type == ir::Trans::LOC)  || (e.evtid.trans->type == ir::Trans::LOC))
-      return false;
-
-   /* set up parent */
-   Event * parent;
-   if ((this->evtid.trans->type == ir::Trans::RD) || (this->evtid.trans->type == ir::Trans::SYN))
-   {
-      parent = evtid.pre_mem; // for RD and SYN
-      parent.find_in_parent(this, e);
-   }
-   else // this is a WR
-
-   std::vector<Event *>::iterator this_idx, e_idx;
-
-   // special case when parent is bottom, bottom as a WR, but not exactly a WR
-   if (parent->is_bottom())
-   {
-      for (unsigned i = 0; i< parent->post_mem.size(); i++)
-      {
-        this_idx = std::find(parent->post_mem[i].begin(), parent->post_mem[i].end(),this);
-        e_idx    = std::find(parent->post_mem[i].begin(), parent->post_mem[i].end(),&e);
-        if ( (this_idx != parent->post_mem[i].end()) && (e_idx != parent->post_mem[i].end()) )
-           return true;
-      }
-      return false;
-   }
-
-   switch (parent->evtid.trans->type)
-   {
-      case ir::Trans::RD:
-
-         e_idx  = std::find(parent->post_rws.begin(), parent->post_rws.end(),&e);
-         if (e_idx != parent->post_rws.end())
-            return true;
-         break;
-
-      case ir::Trans::WR:
-         for (unsigned i = 0; i< parent->post_mem.size(); i++)
-         {// this and e in the same process
-            this_idx = std::find(parent->post_mem[i].begin(), parent->post_mem[i].end(),this);
-            e_idx    = std::find(parent->post_mem[i].begin(), parent->post_mem[i].end(),&e);
-            if ( (this_idx != parent->post_mem[i].end()) && (e_idx != parent->post_mem[i].end()) )
-               return true;
-         }
-         break;
-
-     case ir::Trans::SYN:
-         e_idx    = std::find(parent->post_rws.begin(), parent->post_rws.end(),&e);
-         if (e_idx != parent->post_rws.end())
+        //DEBUG("Parent is a SYN");
+        e_idx  = std::find(parent->post_rws.begin(), parent->post_rws.end(), &e);
+        if (e_idx != parent->post_rws.end())
            return true;
         break;
 
@@ -946,7 +858,6 @@ bool Event::check_dicfl( const Event & e )
 
    return false;
 }
-#endif
 
 /*
  * Check if two events (this and e) are in conflict
@@ -1732,6 +1643,7 @@ void Config:: WR_cex(Event * e)
    std::vector<std::vector<Event *> > spikes(numprocs);
    spikes.resize(numprocs);
 
+#if 0
    /*
     * Check if e is inside of a pair of (Lock, Unlock)
     * - find the latest SYN event in e's process. If it is a LOCK, there is no conflicting event to e.
@@ -1741,6 +1653,7 @@ void Config:: WR_cex(Event * e)
       DEBUG("It is in mutex, so no conflicting event");
       return;
    }
+#endif
 
    ep = e->evtid.pre_proc;
    ew = e;
@@ -1775,13 +1688,16 @@ void Config:: WR_cex(Event * e)
 
       /*
        * if ep is a successor of ew, then remove from the comb ew itself
-       * and all RD events that are also in the history should think about bottom!!!
+       * and all RD events that are also in the history.  should think about bottom!!!
        */
+      DEBUG("Chet o day?");
       if (ep->succeed(*ew) == true)
       {
+         DEBUG("uh huhu");
          for (int unsigned i = 0; i < spikes.size(); i++)
             while (ep->succeed(*spikes[i].back()) == true)
-               spikes[i].pop_back(); // WR event at the back and its predecessors have an order backward
+               // WR event at the back and its predecessors have an order backward
+               spikes[i].pop_back();
       }
 
       /*

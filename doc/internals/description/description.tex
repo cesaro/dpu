@@ -53,11 +53,12 @@
 \noindent
 \section{Conflicting extensions}
 \subsection{WR conflicting events}
-Compute all events that conflict with $e$ labelling by transition $t$
+Compute all events that conflict with $e$ labelled by transition $t$
 \begin{enumerate}
 \item Set \verb!ep = e->pre_proc!
 \item
-	Use a function called $compute\_maxevt()$ to locate M, the set of maximal events touching variable $t \rightarrow var$ in
+	Use a function called $compute\_maxevt()$ to locate $max_varevt$, the set of maximal events touching variable $t \rightarrow
+	 var$ in
 	history of $[ep]$. 
 \item Set \verb!ew = e!
 \item If $\verb!ew! < \verb!ep!$, then goto End.
@@ -93,22 +94,26 @@ Compute all events that conflict with $e$ labelling by transition $t$
 
 
 \begin{algorithm}
-$ew$ is an event that writes on variable $t \rightarrow var$. The purpose of the function is to check if $ew$ is in the history of $ep$ or not by check it with all maximal events of $[ep]$ that touch variable $t \rightarrow var$ 
+The purpose of the function is to find out all maximal events in calling event's history which read or write variable $var$. The resulting events are stored in a vector (std::vector) refered by $max\_varevt$.  
 \begin{enumerate}
 \item
-	Find out M, the set of maximal events in $[e_p]$ that read or write the variable $t \rightarrow var$
-	$M$ will either be a singleton with only \verb!WR! event or will contain exactly one \verb!RD! or \verb!WR! event per
-	process
+	For each process $i$, starting from \verb!ee.proc_maxevt[i]!, go back by pointer \verb!pre_proc! until we reach the first event $pm$ that read or write variable $t \rightarrow var$ or bottom and then push it to $max_varevt$.
 \item
-	For each process $i$, from \verb!ee.proc_maxevt[i]!, go back by \verb!pre_proc! until we reach the first event $pm$ 
-	that read or write variable t->var
-\item
-	If $ew$ succeeds $pm$, return true;
+	
 \end{enumerate}
 
 \label{a:pre_max}
-\caption{Check if $ew$ in $[e_p]$ }
+\caption{Compute maximal event touching variable $var$ }
 \end{algorithm}
 
+\subsection{SYN conflicting events}
+SYN events have some features that need to be noticed:
+\begin{itemize}
+\item
+	An UNLOCk event can only be enabled at a LOCK in the same process, so it can not have conflicting events
+\item
+	
+	
+\end{itemize}
 
 \end{document}

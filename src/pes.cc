@@ -709,7 +709,8 @@ void Event::update_parents()
  */
 bool Event:: succeed(const Event & e ) const
 {
-   if (this->is_bottom())  return false;
+   if (this->is_bottom())
+      return false;
 
    if (e.is_bottom()) return true;
 
@@ -1448,7 +1449,7 @@ void Config::compute_cex ()
                this->RD_cex(p);
                break;
             case ir::Trans::SYN:
-               //this->SYN_cex(p);
+               this->SYN_cex(p);
                break;
             case ir::Trans::WR:
                this->WR_cex(p);
@@ -1543,8 +1544,6 @@ void Config:: RD_cex(Event * e)
          // check existence of the same event in the dicfl
          add_to_dicfl(em, newevt);
          add_to_dicfl(newevt, em);
-         //em->dicfl.push_back(newevt);
-         //newevt->dicfl.push_back(em);
       }
 
       // move the pointer to the next
@@ -1574,15 +1573,22 @@ void Config:: SYN_cex(Event * e)
    Event * ep, * em, *pr_mem; //pr_mem: pre_mem
    ep = e->evtid.pre_proc;
    em = e->evtid.pre_mem;
-
+/*
+   if (e->evtid.trans->code.stm.type == ir::Stm::UNLOCK)
+   {
+      DEBUG("No conflicting event for UNLOCK");
+      return;
+   }
+*/
    while (!(em->is_bottom()) and (ep->succeed(*em) == false))
    {
-      pr_mem   = em->evtid.pre_mem;
+     // pr_mem   = em->evtid.pre_mem->evtid.pre_mem; // skip 2
+      pr_mem   = em->evtid.pre_mem->evtid.pre_mem;
       /*
        *  Need to check the event's history before adding it to the unf
        * Don't add events which are already in the unf
        */
-      Ident id(e->evtid.trans, e->evtid.pre_proc, e->evtid.pre_mem, std::vector<Event *>());
+      Ident id(e->evtid.trans, e->evtid.pre_proc, pr_mem, std::vector<Event *>());
       Event * newevt = &unf.find_or_add (id);
 
       // add new event newevt to set of dicfl of em and verse. Refer to the doc for more details
@@ -1690,11 +1696,27 @@ void Config:: WR_cex(Event * e)
 
       for (int unsigned i = 0; i < spikes.size(); i++)
       {
+         DEBUG(" Spike[%d]", i);
          for (unsigned j = 0; j < maxevt.size(); j++)
-            while (maxevt[j]->succeed(*spikes[i].back()))
+         {
+            DEBUG("maxevt[%d] = %d", j, maxevt[j]->idx );
+            while (!spikes[i].empty() && (maxevt[j]->succeed(*spikes[i].back())))
             // WR event at the back and its predecessors have an order backward
+            {
+               DEBUG("Remove: %d", spikes[i].back()->idx);
                spikes[i].pop_back();
+            }
+
+            /* if there is an empty spike, */
+            if (spikes[i].empty())
+            {
+               DEBUG(" One of spikes is empty, so no conflicting event");
+               return;
+            }
+
+         }
       }
+
       /*
        * Compute all possible combinations c(s1,s2,..sn) from the spikes to produce new conflicting events
        */

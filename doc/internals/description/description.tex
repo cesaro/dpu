@@ -28,20 +28,21 @@
 \usepackage[capitalise,english,nameinlink]{cleveref} % load after algorithm2e and hyperref
 
 \hypersetup{
-  bookmarksdepth=2,
-  bookmarksnumbered=true,
-  bookmarksopen=true,
-  bookmarksopenlevel=2,
-  colorlinks=true,
-  linktocpage=true,
-  breaklinks=true,
-  pageanchor=true,
-  allcolors=[rgb]{0.6,0.0,0.0},
-  pdftitle={DPU's data structures and algorithms},
-  pdfauthor={Huyen N.T.T, César Rodríguez}
+	bookmarksdepth=2,
+	bookmarksnumbered=true,
+	bookmarksopen=true,
+	bookmarksopenlevel=2,
+	colorlinks=true,
+	linktocpage=true,
+	breaklinks=true,
+	pageanchor=true,
+	allcolors=[rgb]{0.6,0.0,0.0},
+	pdftitle={DPU's data structures and algorithms},
+	pdfauthor={Huyen N.T.T, César Rodríguez}
 }
 
 \input{defs}
+
 
 \title{DPU Implementation Description}
 \author{Huyen Nguyen}
@@ -51,15 +52,54 @@
 
 \maketitle
 \noindent
-\section{Conflicting extensions}
+Constructing the unfolding for a sytem is actually an exploration of all possible configurations from an input model.
+\begin{itemize}
+	\item
+	 Input: A machine (model) M is described in terms of:
+	 \begin{itemize}
+	 	\item
+		 	A set of states T where each one implies the states of all processes and variables of the system. Every system always has an definitely initial state.
+	 	\item
+			A set of transitionswith code, source and destination..etc. Each of them implies the transition from one state to another.
+	 	\item 
+		 	A set of processes with locations, transitions between them.
+		
+	 \end{itemize} ,  
+	\item Output: A full unfolding with events labelled by transitions and relations including causality, conflict and concurrency.
+\end{itemize}
+
+\noindent
+The algorithm to build the unfolding includes several steps as the following:
+\begin{itemize}
+\item
+	Explore a configuration by adding to it enable events one by one until reaching maximal events (there is no event enable at the state). At the place, we try to find an alternative to each event in the configuration. There may be several alternatives to a set of events but we choose the very first one found to be explored, the rest can be discovered in the coming times. 
+\item
+	To find an alternative to a set of events D after a configuration C:
+	\begin{enumerate}
+		\item 
+			Firstly, we compute conflict extension of C which will be detailed in the following parts of this document.
+		\item
+			Secondly, find an alternative to D after C by judging all combinations of events which are in direct conflict with events in D individually.
+			A combination is considered satisfied if it is conflict-free and causal-closed which means it forms a configuration.
+		\item
+			Finally, if a configuration J is found, extend C by J and repeat the exploration for new configuration.
+		\item
+			If no alternative is figured out, move one of maximal events in C to D, then repeat step 2.
+		\item
+			The exploration termines when no
+	\end{enumerate}
+	 
+
+\end{itemize}
+\section{Conflict extensions}
+Function \verb!compute_cex! (\cref{a:pre_max}) conflict extension to a configuration C by computing all possible conflicting events for each one in C.
+Based on the type of transition a event is labelled by, either RD, WR or SYN, we have separate algorithms. 
 \subsection{WR conflicting events}
 Compute all events that conflict with $e$ labelled by transition $t$
 \begin{enumerate}
 \item Set \verb!ep = e->pre_proc!
 \item
-	Use a function called $compute\_maxevt()$ to locate $max_varevt$, the set of maximal events touching variable $t \rightarrow
-	 var$ in
-	history of $[ep]$. 
+	Use function \verb!compute_maxevt()! to locate \verb!max_varevt!, the set of maximal events touching variable $t \rightarrow var$ in history of $[ep]$. 
 \item Set \verb!ew = e!
 \item If $\verb!ew! < \verb!ep!$, then goto End.
 \item Let $c \eqdef \tup{s_1, \ldots, s_n}$ be the comb associated to \verb!ew!
@@ -68,8 +108,7 @@ Compute all events that conflict with $e$ labelled by transition $t$
 		Set up the comb with spikes where $spikes[i]$ is a set of RD and WR events that are found by recursively exploring the
 		pointer \verb!pre_readers[i]! until the first event of type \verb!WR! or bottom found.
 	\item
-		Remove from spikes those that precede any event in M, to assure the condition: None of events in $\set{e_1, \ldots, e_n}	
-		$ is a causal predecessor of some event in $M$
+		Remove from spikes those that precede any event in \verb!max_varevt! which has been computed previously, to assure the condition: None of events in $\set{e_1, \ldots, e_n} $ is a causal predecessor of some event in $[ep]$
 \end{itemize}
 \item
   Enumerate all combinations $\tup{e_1, \ldots, e_n}$ of $c$.
@@ -97,7 +136,7 @@ Compute all events that conflict with $e$ labelled by transition $t$
 The purpose of the function is to find out all maximal events in calling event's history which read or write variable $var$. The resulting events are stored in a vector (std::vector) refered by $max\_varevt$.  
 \begin{enumerate}
 \item
-	For each process $i$, starting from \verb!ee.proc_maxevt[i]!, go back by pointer \verb!pre_proc! until we reach the first event $pm$ that read or write variable $t \rightarrow var$ or bottom and then push it to $max_varevt$.
+	For each process $i$, starting from \verb!ee.proc_maxevt[i]!, go back by pointer \verb!pre_proc! until we reach the first event $pm$ that read or write variable $t \rightarrow var$ or bottom and then push it to \verb!max_varevt!.
 \item
 	
 \end{enumerate}

@@ -1420,7 +1420,7 @@ std::unique_ptr<ir::Machine> build_syn_example2 ()
     * Thread 1:
     * src dst  what
     *   0   1  lock(l): l = 1
-    *   1   2  x = 100
+    *   1   2  x = x
     *   2   3  unlock(l): l = 0
     */
 
@@ -1469,8 +1469,9 @@ std::unique_ptr<ir::Machine> build_syn_example2 ()
 
    // 1 > 2: v1 = 100
    t = & p1.add_trans (1, 2);
-   t->code.stm = ir::Stm (ir::Stm::ASGN, v1->clone (), ir::Expr::make (100));
-   t->type = ir::Trans::WR;
+   //t->code.stm = ir::Stm (ir::Stm::ASGN, v1->clone (), ir::Expr::make (100));
+   t->code.stm = ir::Stm (ir::Stm::ASGN, v1->clone (), ir::Expr::make (v1->clone()));
+   t->type = ir::Trans::RD;
    t->var = 3;
    t->offset = 0;
    t->localvars.clear ();
@@ -1480,6 +1481,296 @@ std::unique_ptr<ir::Machine> build_syn_example2 ()
    t->code.stm = ir::Stm (ir::Stm::UNLOCK, v0->clone (), 0);
    t->type = ir::Trans::SYN;
    t->var  = 2;
+   t->offset = 0;
+   t->localvars.clear();
+
+   return m;
+}
+
+std::unique_ptr<ir::Machine> build_syn_example3 ()
+{
+   /*
+    * 2 threadds
+    *
+    *
+    * memsize  = 5 = 3 vars + 2 pc (v0)
+    * numprocs = 2
+    * numtrans = 6
+    *
+    * Thread 0:
+    * src dst  what
+    *   0   1  lock(l): l = 1
+    *   1   2  x = 5
+    *   2   3  unlock(l): l = 0
+
+    * Thread 1:
+    * src dst  what
+    *   0   1  lock(l): l = 1
+    *   1   2  y = x + 100
+    *   2   3  unlock(l): l = 0
+    */
+
+   ir::Trans * t;
+   std::unique_ptr<ir::Machine> m (new ir::Machine (5, 2, 6)); // 3 vars, 2 threads, 6 transitions
+   ir::Process & p0 = m->add_process (4); // 4 locations in this thread
+   ir::Process & p1 = m->add_process (4); // 4 locations in this thread
+
+   // variable v0->v1: v0: lock variable, v1: global variable, v2: local variable
+   std::unique_ptr<ir::Var> v0 (ir::Var::make (2));
+   std::unique_ptr<ir::Var> v1 (ir::Var::make (3));
+   std::unique_ptr<ir::Var> v2 (ir::Var::make (4));
+
+   // Process 0
+   //  0 >  1 : lock(v0)
+   t = & p0.add_trans (0, 1);
+   t->code.stm = ir::Stm (ir::Stm::LOCK, v0->clone (), 0);
+   t->type = ir::Trans::SYN;
+   t->var  = 2;
+   t->offset = 0;
+   t->localvars.clear();
+
+   // 1 > 2: v1 = 5
+   t = & p0.add_trans (1, 2);
+   t->code.stm = ir::Stm (ir::Stm::ASGN, v1->clone (), ir::Expr::make (5));
+   t->type = ir::Trans::WR;
+   t->var = 3;
+   t->offset = 0;
+   t->localvars.clear ();
+
+   //  2 >  3 : unlock(v0)
+   t = & p0.add_trans (2, 3);
+   t->code.stm = ir::Stm (ir::Stm::UNLOCK, v0->clone (),0);
+   t->type = ir::Trans::SYN;
+   t->var  = 2;
+   t->offset = 0;
+   t->localvars.clear();
+
+   // Process 1
+   //  0 >  1 : lock(v0)
+   t = & p1.add_trans (0, 1);
+   t->code.stm = ir::Stm (ir::Stm::LOCK, v0->clone (), 0);
+   t->type = ir::Trans::SYN;
+   t->var  = 2;
+   t->offset = 0;
+   t->localvars.clear();
+
+   // 1 > 2: v2 = v1 + 100
+   t = & p1.add_trans (1, 2);
+   t->code.stm = ir::Stm (ir::Stm::ASGN, v2->clone (), ir::Expr::make (
+         ir::Expr::ADD, ir::Expr::make (v1->clone()), ir::Expr::make (100)));
+   t->type = ir::Trans::RD;
+   t->var = 3;
+   t->offset = 0;
+   t->localvars.push_back(4);
+
+   //  2 >  3 : unlock(v0)
+   t = & p1.add_trans (2, 3);
+   t->code.stm = ir::Stm (ir::Stm::UNLOCK, v0->clone (), 0);
+   t->type = ir::Trans::SYN;
+   t->var  = 2;
+   t->offset = 0;
+   t->localvars.clear();
+
+   return m;
+}
+
+std::unique_ptr<ir::Machine> build_syn_example4 ()
+{
+   /*
+    * 2 threadds
+    *
+    *
+    * memsize  = 4 = 2 vars + 2 pc (v0, v1)
+    * numprocs = 2
+    * numtrans = 4
+    *
+    * Thread 0:
+    * src dst  what
+    *   0   1  lock(v0)
+    *   1   2  v1 = 5
+    *   2   3  unlock(v0)
+
+    * Thread 1:
+    * src dst  what
+    *   0   1  v1 = 100
+    */
+
+   ir::Trans * t;
+   std::unique_ptr<ir::Machine> m (new ir::Machine (4, 2, 4)); // 2 vars, 2 threads, 4 transitions
+   ir::Process & p0 = m->add_process (4); // 4 locations in this thread
+   ir::Process & p1 = m->add_process (2); // 2 locations in this thread
+
+   // variable v0->v1: v0: lock variable, v1: global variable, v2: local variable
+   std::unique_ptr<ir::Var> v0 (ir::Var::make (2));
+   std::unique_ptr<ir::Var> v1 (ir::Var::make (3));
+
+   // Process 0
+   //  0 >  1 : lock(v0)
+   t = & p0.add_trans (0, 1);
+   t->code.stm = ir::Stm (ir::Stm::LOCK, v0->clone (), 0);
+   t->type = ir::Trans::SYN;
+   t->var  = 2;
+   t->offset = 0;
+   t->localvars.clear();
+
+   // 1 > 2: v1 = 5
+   t = & p0.add_trans (1, 2);
+   t->code.stm = ir::Stm (ir::Stm::ASGN, v1->clone (), ir::Expr::make (5));
+   t->type = ir::Trans::WR;
+   t->var = 3;
+   t->offset = 0;
+   t->localvars.clear ();
+
+   //  2 >  3 : unlock(v0)
+   t = & p0.add_trans (2, 3);
+   t->code.stm = ir::Stm (ir::Stm::UNLOCK, v0->clone (),0);
+   t->type = ir::Trans::SYN;
+   t->var  = 2;
+   t->offset = 0;
+   t->localvars.clear();
+
+   // Process 1
+   // 0 > 1: v1 = 100
+   t = & p1.add_trans (0, 1);
+   t->code.stm = ir::Stm (ir::Stm::ASGN, v1->clone (), ir::Expr::make (100));
+   t->type = ir::Trans::WR;
+   t->var = 3;
+   t->offset = 0;
+   t->localvars.clear();
+
+   return m;
+}
+
+std::unique_ptr<ir::Machine> build_syn_example5 ()
+{
+   /*
+    * 2 threadds
+    *
+    *
+    * memsize  = 5 = 3 vars + 2 pc (v0, v1, v2)
+    * numprocs = 2
+    * numtrans = 4
+    *
+    * Thread 0:
+    * src dst  what
+    *   0   1  lock(v0)
+    *   1   2  v1 = 5
+    *   2   3  unlock(v0)
+
+    * Thread 1:
+    * src dst  what
+    *   0   1  v2 = v1 + 1
+    */
+
+   ir::Trans * t;
+   std::unique_ptr<ir::Machine> m (new ir::Machine (5, 2, 4)); // 2 vars, 2 threads, 4 transitions
+   ir::Process & p0 = m->add_process (4); // 4 locations in this thread
+   ir::Process & p1 = m->add_process (2); // 2 locations in this thread
+
+   // variable v0->v1: v0: lock variable, v1: global variable, v2: local variable
+   std::unique_ptr<ir::Var> v0 (ir::Var::make (2));
+   std::unique_ptr<ir::Var> v1 (ir::Var::make (3));
+   std::unique_ptr<ir::Var> v2 (ir::Var::make (4));
+
+   // Process 0
+   //  0 >  1 : lock(v0)
+   t = & p0.add_trans (0, 1);
+   t->code.stm = ir::Stm (ir::Stm::LOCK, v0->clone (), 0);
+   t->type = ir::Trans::SYN;
+   t->var  = 2;
+   t->offset = 0;
+   t->localvars.clear();
+
+   // 1 > 2: v1 = 5
+   t = & p0.add_trans (1, 2);
+   t->code.stm = ir::Stm (ir::Stm::ASGN, v1->clone (), ir::Expr::make (5));
+   t->type = ir::Trans::WR;
+   t->var = 3;
+   t->offset = 0;
+   t->localvars.clear ();
+
+   //  2 >  3 : unlock(v0)
+   t = & p0.add_trans (2, 3);
+   t->code.stm = ir::Stm (ir::Stm::UNLOCK, v0->clone (),0);
+   t->type = ir::Trans::SYN;
+   t->var  = 2;
+   t->offset = 0;
+   t->localvars.clear();
+
+   // Process 1
+   // 0 > 1: v2 = v1 + 1
+   t = & p1.add_trans (0, 1);
+   t->code.stm = ir::Stm (ir::Stm::ASGN, v2->clone (),
+      ir::Expr::make(ir::Expr::ADD, ir::Expr::make (v1->clone()), ir::Expr::make (100)));
+   t->type = ir::Trans::RD;
+   t->var = 3;
+   t->offset = 0;
+   t->localvars.clear();
+
+   return m;
+}
+
+std::unique_ptr<ir::Machine> build_syn_example6 ()
+{
+   /*
+    * 2 threadds
+    *
+    *
+    * memsize  = 4 = 2 vars + 2 pc (v2, v3: lock variables)
+    * numprocs = 2
+    * numtrans = 4
+    *
+    * Thread 0:
+    * src dst  what
+    *   0   1  lock(v2)
+    *   1   2  unlock(v2)
+
+    * Thread 1:
+    * src dst  what
+    *   0   1  lock(v3)
+    *   1   2  unlock(v3)
+    */
+
+   ir::Trans * t;
+   std::unique_ptr<ir::Machine> m (new ir::Machine (4, 2, 4)); // 2 vars, 2 threads, 4 transitions
+   ir::Process & p0 = m->add_process (3); // 3 locations in this thread
+   ir::Process & p1 = m->add_process (3); // 3 locations in this thread
+
+   // variables v2, v3
+   std::unique_ptr<ir::Var> v2 (ir::Var::make (2));
+   std::unique_ptr<ir::Var> v3 (ir::Var::make (3));
+
+   // Process 0
+   //  0 >  1 : lock(v2)
+   t = & p0.add_trans (0, 1);
+   t->code.stm = ir::Stm (ir::Stm::LOCK, v2->clone (), 0);
+   t->type = ir::Trans::SYN;
+   t->var  = 2;
+   t->offset = 0;
+   t->localvars.clear();
+
+   //  1 >  2 : unlock(v2)
+   t = & p0.add_trans (1, 2);
+   t->code.stm = ir::Stm (ir::Stm::UNLOCK, v2->clone (), 0);
+   t->type = ir::Trans::SYN;
+   t->var  = 2;
+   t->offset = 0;
+   t->localvars.clear();
+
+   // Process 1
+   //  0 >  1 : lock(v3)
+   t = & p1.add_trans (0, 1);
+   t->code.stm = ir::Stm (ir::Stm::LOCK, v3->clone (), 0);
+   t->type = ir::Trans::SYN;
+   t->var  = 3;
+   t->offset = 0;
+   t->localvars.clear();
+
+   //  1 >  2 : unlock(v3)
+   t = & p1.add_trans (1, 2);
+   t->code.stm = ir::Stm (ir::Stm::UNLOCK, v3->clone (), 0);
+   t->type = ir::Trans::SYN;
+   t->var  = 3;
    t->offset = 0;
    t->localvars.clear();
 
@@ -2142,9 +2433,13 @@ void test26()
    //auto m = build_concur15_example2 ();
    //auto m = build_concur15_example1 ();
    //auto m = build_mul_example2 ();
-   //auto m = build_syn_example ();
-   auto m = build_syn_example1 ();
+   //auto m = build_syn_example  ();
+   //auto m = build_syn_example1 ();
    //auto m = build_syn_example2 ();
+   //auto m = build_syn_example3 ();
+   //auto m = build_syn_example4 ();
+   //auto m = build_syn_example5 ();
+   auto m = build_syn_example6 ();
 
    m.get()->change_init_state({0,0,0});
    ir::simulate (m.get());

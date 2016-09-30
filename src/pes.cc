@@ -1573,17 +1573,12 @@ void Config:: SYN_cex(Event * e)
    Event * ep, * em, *pr_mem; //pr_mem: pre_mem
    ep = e->evtid.pre_proc;
    em = e->evtid.pre_mem;
-/*
-   if (e->evtid.trans->code.stm.type == ir::Stm::UNLOCK)
-   {
-      DEBUG("No conflicting event for UNLOCK");
-      return;
-   }
-*/
-   while (!(em->is_bottom()) and (ep->succeed(*em) == false))
+
+   while (!(em->is_bottom()) and (ep->succeed(*em) == false)) // consider the case when ep = em
    {
      // pr_mem   = em->evtid.pre_mem->evtid.pre_mem; // skip 2
       pr_mem   = em->evtid.pre_mem->evtid.pre_mem;
+
       /*
        *  Need to check the event's history before adding it to the unf
        * Don't add events which are already in the unf

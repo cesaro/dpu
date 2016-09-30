@@ -203,9 +203,9 @@ public:
    Unfolding  &                     unf;
    /*
     * latest_proc : Processes -> Events
-    * initialzed by memsize but actually it uses only the last (memsize - numprocs) elements
+    * initialzed by memsize but actually we use only the last (memsize - numprocs) elements
     * latest_wr   : Variables -> Events
-    * latest_op   : (Processes x Variables) -> Events
+    * latest_op   : (Processes x Variables) -> Events, size = numprocs x memsize
     *
     * where Variables is ALL variables
     */
@@ -266,7 +266,6 @@ public:
    void explore_rnd_config ();
    void explore_driven_config ();
    void find_an_alternative(Config & C, std::vector<Event *> D, std::vector<Event *> & J, std::vector<Event *> & A );
-   //std::vector<Event *> compute_alt(unsigned int i, const std::vector<std::vector<Event *>> & s, std::vector<Event *> & combi);
    void compute_alt(unsigned int i, const std::vector<std::vector<Event *>> & s, std::vector<Event *> & combi, std::vector<Event *> & A);
    friend Event;
    void test_conflict();

@@ -670,6 +670,7 @@ void Event::update_parents()
 
       case ir::Trans::RD:
          evtid.pre_proc->post_proc.push_back(this);
+
          /* update pre_mem */
          if ( (evtid.pre_mem->is_bottom() == true) || (evtid.pre_mem->evtid.trans->type == ir::Trans::WR)   )
             evtid.pre_mem->post_mem[p.id].push_back(this);
@@ -700,6 +701,7 @@ void Event::update_parents()
    }
 
    DEBUG(" Update_Parents Finished");
+
    return ;
 }
 /*
@@ -792,19 +794,21 @@ bool Event::check_dicfl( const Event & e )
    if ((this->evtid.trans->type == ir::Trans::LOC)  || (e.evtid.trans->type == ir::Trans::LOC))
       return false;
 
-    /*
-    * Check pre_proc: if they have the same pre_proc and in the same process -> conflict
-    * It is also true for the case where pre_proc is bottom
-    */
-
-   if ((this->evtid.pre_proc == e.evtid.pre_proc) && (this->evtid.trans->proc.id == e.evtid.trans->proc.id))
-      return true;
-
    /*
     * 2 event touching 2 different variables are not in direct conflict
     * Let's consider "in different processes" when we have two events sharing pre_proc -> not conflict (they take different part of pre_proc)
     */
    if (this->evtid.trans->var != e.evtid.trans->var) return false; // concurrent
+
+    /*
+    * Check pre_proc: if they have the same pre_proc and in the same process -> conflict
+    * It is also true for the case where pre_proc is bottom
+    * //need to consider
+    */
+
+   if ((this->evtid.pre_proc == e.evtid.pre_proc) && (this->evtid.trans->proc.id == e.evtid.trans->proc.id))
+      return true;
+
 
    // in different pre_procs, touch the same variable => check pre_mem or pre_readers
    DEBUG("Check pre_mem for dicfl");
@@ -814,12 +818,17 @@ bool Event::check_dicfl( const Event & e )
    // special case when parent is bottom, bottom as a special WR without transition.
    if (parent->is_bottom())
    {
-	   for (unsigned i = 0; i< parent->post_mem.size(); i++)
+      for (unsigned i = 0; i < parent->post_mem.size(); i++)
+	   {
+	      this_idx = std::find(parent->post_mem[i].begin(), parent->post_mem[i].end(),this);
+	      e_idx    = std::find(parent->post_mem[i].begin(), parent->post_mem[i].end(),&e);
 	      if ( (this_idx != parent->post_mem[i].end()) && (e_idx != parent->post_mem[i].end()) )
 	      {
 	         DEBUG("%d cfl %d", this->idx, e.idx);
 	         return true;
 	      }
+	   }
+
 	   return false;
    }
 
@@ -833,7 +842,7 @@ bool Event::check_dicfl( const Event & e )
 
       case ir::Trans::WR:
          for (unsigned i = 0; i< parent->post_mem.size(); i++)
-         {// this and e in the same process
+         {// if this and e are in the same process
             this_idx = std::find(parent->post_mem[i].begin(), parent->post_mem[i].end(),this);
             e_idx    = std::find(parent->post_mem[i].begin(), parent->post_mem[i].end(),&e);
             if ( (this_idx != parent->post_mem[i].end()) && (e_idx != parent->post_mem[i].end()) )
@@ -1390,6 +1399,7 @@ void Config::__update_encex (Event & e )
        */
       unf.create_event(*t, *this);
    }
+   this->unf.bottom->eprint_debug();
 }
 
 /*
@@ -1403,7 +1413,11 @@ void Config::remove_cfl(Event & e)
       DEBUG("No direct conflict");
    else
    {
-      DEBUG("%d has %d dicfl events", e.idx, e.dicfl.size());
+      DEBUG_("%d has %d dicfl events:", e.idx, e.dicfl.size());
+      for (unsigned i = 0; i < e.dicfl.size(); i++)
+         DEBUG_("%d ", e.dicfl[i]->idx);
+
+
       for (unsigned i = 0; i < e.dicfl.size(); i++)
       {
          for (unsigned j = 0; j < en.size(); j++)
@@ -1421,7 +1435,7 @@ void Config::remove_cfl(Event & e)
          }
       }
    }
-   DEBUG("C.en:");
+   DEBUG("\nC.en:");
    for (unsigned i = 0; i < en.size(); i++)
       DEBUG_("%d ", en[i]->idx);
    DEBUG("");
@@ -1501,17 +1515,6 @@ void Config:: RD_cex(Event * e)
    Event * ep, * em, *pr_mem; //pr_mem: pre_mem
    ep = e->evtid.pre_proc;
    em = e->evtid.pre_mem;
-#if 0
-   /*
-    * Check if e is inside of a pair of (Lock, Unlock)
-    * - find the latest SYN event in e's process. If it is a LOCK, there is no conflicting event to e.
-    */
-   if (e->is_in_mutex())
-   {
-      DEBUG("It is in mutex, so no conflicting event");
-      return;
-   }
-#endif
 
    /*
     * em is the first event in the [ep] is still ok to create a new event
@@ -1524,6 +1527,12 @@ void Config:: RD_cex(Event * e)
          pr_mem   = em->evtid.pre_mem;
       else // or WR
          pr_mem   = em->evtid.pre_readers[e->evtid.trans->proc.id];
+
+      /*
+       * Check if pr_mem < ep
+       */
+      if (ep->succeed(*pr_mem))
+         return;
 
       /*
        * Need to check the event's history before adding it to the unf
@@ -1546,6 +1555,7 @@ void Config:: RD_cex(Event * e)
       em = pr_mem;
    } // end while
 
+   /*
    if (ep->succeed(*em))
    {
       DEBUG_("em.clock: ");
@@ -1558,6 +1568,7 @@ void Config:: RD_cex(Event * e)
 
          DEBUG("ep > em");
    }
+   */
 }
 
 /*
@@ -1566,15 +1577,20 @@ void Config:: RD_cex(Event * e)
 void Config:: SYN_cex(Event * e)
 {
    DEBUG("\n %p, id:%d: SYN_cex", e, e->idx);
-   Event * ep, * em, *pr_mem; //pr_mem: pre_mem
+   Event * ep, * em, *pr_mem;
    ep = e->evtid.pre_proc;
    em = e->evtid.pre_mem;
 
-   while (!(em->is_bottom()) and (ep->succeed(*em) == false)) // consider the case when ep = em
+   while (!(em->is_bottom()) and (ep->succeed(*em) == false))
    {
-     // pr_mem   = em->evtid.pre_mem->evtid.pre_mem; // skip 2
-      pr_mem   = em->evtid.pre_mem->evtid.pre_mem;
+      pr_mem   = em->evtid.pre_mem->evtid.pre_mem; // skip 2
+      //pr_mem   = em->evtid.pre_mem;
 
+      /*
+       * Check if pr_mem < ep
+       */
+      if (ep->succeed(*pr_mem))
+         return;
       /*
        *  Need to check the event's history before adding it to the unf
        * Don't add events which are already in the unf
@@ -1590,7 +1606,8 @@ void Config:: SYN_cex(Event * e)
       }
 
       // move the pointer to the next
-      em = pr_mem;
+      //em = pr_mem;
+      em = em->evtid.pre_mem->evtid.pre_mem;
    }
 }
 /*
@@ -1657,7 +1674,7 @@ void Config:: WR_cex(Event * e)
       for (unsigned k = 0; k < numprocs; k++)
          spikes[k].clear(); // clear all spikes for storing new elements
 
-      DEBUG("  Comb #%d (%d spikes): ", count++, numprocs);
+      DEBUG("  Comb #%d (%d spikes)(ew = %d): ", count++, numprocs, ew->idx);
 
       for (unsigned i = 0; i < ew->evtid.pre_readers.size(); i++)
       {
@@ -1712,7 +1729,7 @@ void Config:: WR_cex(Event * e)
        * Compute all possible combinations c(s1,s2,..sn) from the spikes to produce new conflicting events
        */
       std::vector<Event *> combi;
-      compute_combi(0, spikes, combi,ew);
+      compute_combi(0, spikes, combi,e); // always bring e (not ew) to compare with combi when creating new event
 
       ew = spikes[0].back(); // ew is assigned to the last WR for new loop
    }
@@ -1746,11 +1763,18 @@ void Config::compute_combi(unsigned int i, const std::vector<std::vector<Event *
             while ((pm->is_bottom() == false) && (pm->evtid.trans->type != ir::Trans::WR))
                pm = pm->evtid.pre_mem;
 
-            Ident id(e->evtid.trans, e->evtid.pre_proc, pm, combi);
+#if 0
             // make sure new event is different from e
-            if (!(combi == e->evtid.pre_readers))
+            DEBUG("e.Pre_readers");
+            for (unsigned i = 0; i < e->evtid.pre_readers.size(); i++)
+               DEBUG_("%d ", e->evtid.pre_readers[i]->idx);
+            DEBUG();
+#endif
+
+            if (combi != e->evtid.pre_readers)
             {
-               DEBUG("valid for new event");
+               DEBUG("valid for a new event");
+               Ident id(e->evtid.trans, e->evtid.pre_proc, pm, combi);
                newevt = &unf.find_or_add(id);
                //only add new event in cex, if it is already in unf, don't add
                add_to_cex(newevt);
@@ -1787,7 +1811,7 @@ void Config::compute_combi(unsigned int i, const std::vector<std::vector<Event *
                }
             }
             else
-               DEBUG("Not valid");
+               DEBUG("Not valid, because they are the same as pre_readers.");
 
             DEBUG_("\n");
          }
@@ -2433,7 +2457,14 @@ void Unfolding:: find_an_alternative(Config & C, std::vector<Event *> D, std::ve
    }
    DEBUG("END COMB");
 
-   compute_alt(0, spikes, J, A);
+   if (spikes.size() == 0)
+   {
+      DEBUG("Empty spikes");
+      return;
+   }
+
+   else
+      compute_alt(0, spikes, J, A);
 }
 
 /*
@@ -2483,6 +2514,8 @@ const std::vector<Event *> Event::local_config() const
 void Unfolding:: compute_alt(unsigned int i, const std::vector<std::vector<Event *>> & s, std::vector<Event *> & J, std::vector<Event *> & A)
 {
    DEBUG("This is compute_alt function");
+
+   assert(!s.empty());
 
    for (unsigned j = 0; j < s[i].size(); j++ )
    {
@@ -2550,7 +2583,26 @@ void Unfolding:: compute_alt(unsigned int i, const std::vector<std::vector<Event
                   DEBUG_("%d, ", A[i]->idx);
                DEBUG("}");
 
-               return; // go back to
+              /*
+               * Check if two or more events in A are the same
+               */
+
+              DEBUG("Remove duplica in A");
+              for (unsigned i = 0; i < A.size()-1; i++)
+              {
+                 for (unsigned int j = i+1; j < A.size(); j++)
+                 {
+                    if (A[j] == A[i])
+                    {
+                       // remove A[j]
+                       A[j] = A.back();
+                       A.pop_back();
+                       j--;
+                    }
+                 }
+              }
+
+              return; // go back to
             }
             else
             {

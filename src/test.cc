@@ -2430,8 +2430,8 @@ void test25()
 void test26()
 {
    //auto m = build_concur15_example ();
-   //auto m = build_concur15_example2 ();
    //auto m = build_concur15_example1 ();
+   auto m = build_concur15_example2 ();
    //auto m = build_mul_example2 ();
    //auto m = build_syn_example  ();
    //auto m = build_syn_example1 ();
@@ -2439,7 +2439,7 @@ void test26()
    //auto m = build_syn_example3 ();
    //auto m = build_syn_example4 ();
    //auto m = build_syn_example5 ();
-   auto m = build_syn_example6 ();
+   //auto m = build_syn_example6 ();
 
    m.get()->change_init_state({0,0,0});
    ir::simulate (m.get());

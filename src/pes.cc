@@ -705,7 +705,7 @@ void Event::update_parents()
 /*
  * Check if e is in this event's history or not
  * If this and e are in the same process, check their source
- * If not, check pre_mem chain of this event to see whether e is inside or not (e can only be a RD, SYN or WR)
+ * If not, check its pre_mem chain to see whether e is inside or not (e can only be a RD, SYN or WR)
  */
 bool Event:: succeed(const Event & e ) const
 {
@@ -722,10 +722,6 @@ bool Event:: succeed(const Event & e ) const
          return false;
    }
 
-   /*
-   if (e.clock < clock)
-        return true;
-   */
    for (unsigned i = 0; i < clock.size(); i++)
    {
       if (this->clock[i] < e.clock[i])

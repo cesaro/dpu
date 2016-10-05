@@ -456,19 +456,21 @@ To compute all events that conflict with a WR event $e$ labelled with transition
 \begin{enumerate}
 \item Set \verb!ep = e->pre_proc!
 \item
-	Use function \verb!compute_maxevt()!(\cref{a:pre_max}) to locate \verb!max_varevt!, the set of maximal events touching variable $t \rightarrow var$ in history of $[ep]$. 
+	Use function \verb!compute_maxevt()! \cref{a:max} to locate \verb!max_varevt!, the set of maximal events touching variable $t \rightarrow var$ in history of $[ep]$. 
 \item Set \verb!ew = e!
 \item If $\verb!ew! < \verb!ep!$, then goto End.
 \item Let $c \eqdef \tup{s_1, \ldots, s_n}$ be the comb associated to \verb!ew!
 	\begin{itemize}
 	\item
-		Set up the comb with spikes where $spikes[i]$ is a set of RD and WR events that are found by recursively exploring the
-		pointer \verb!pre_readers[i]! until the first event of type \verb!WR! or bottom found.
+		Set up the comb whose $spikes[i]$ is a set of RD and WR events that are found by recursively exploring the
+		pointer \verb!pre_readers[i]! until the first event of type \verb!WR! or bottom is found.
 	\item
-		Remove from spikes those that precede any event in \verb!max_varevt! which has been computed previously, to assure the condition: None of events in $\set{e_1, \ldots, e_n} $ is a causal predecessor of some event in $[ep]$
+		Remove from spikes those that precede any event in \verb!max_varevt! (computed previously), to assure the condition: None of events in $\set{e_1, \ldots, e_n} $ is a causal predecessor of some event in $[ep]$
+	\item
+		Remember to check empty spikes whenever doing removal on the comb.
 \end{itemize}
 \item
-  Enumerate all combinations $\tup{e_1, \ldots, e_n}$ of $c$.
+  Enumerate all combinations $\tup{e_1, \ldots, e_n}$ of $c$ by recursive algorithm.
   For any of them, do:
   \begin{enumerate}
   \item
@@ -480,7 +482,17 @@ To compute all events that conflict with a WR event $e$ labelled with transition
     \item \verb!ex->trans = t!,
     \item \verb!ex->pre_proc = ep!,
     \item \verb!ex->pre_readers = {e_1, ..., e_n}!,
+    \item \verb!ex->pre_mem = pm! (pm is the first WR found by recursively tracking with pointer \verb!pre_mem!)
     \end{itemize}
+  \item
+  	Check \verb!ex!'s existence in unfolding with function $find\_or\_add()$. If there does not exist an
+  	event in the unfolding having the same \verb!Ident!, add \verb!ex! to the unfolding.
+  \item
+  	New event created in the unfolding will be added to \verb!cex!. If \verb!ex! is already in the
+  	unfolding, it is definitely already in the \verb!cex!
+  \item
+  	Update 'verb!dicfl! (set of directly conflicting event) for both \verb!ex! and other events which are in
+  	immediate conflict with it. Refer \cref{a:dicfl} to see more details.
   \item
     Set \verb!ew! = spikes[0].back() 
   \end{enumerate}
@@ -489,16 +501,25 @@ To compute all events that conflict with a WR event $e$ labelled with transition
 \end{enumerate}
 
 \begin{algorithm}
-\label{a:pre_max}
-The purpose of the function is to find out all maximal events in calling event's history which read or write variable $var$. The resulting events are stored in a vector (std::vector) refered by $max\_varevt$.  
-\begin{enumerate}
-\item
-	For each process $i$, starting from \verb!ee.proc_maxevt[i]!, go back by pointer \verb!pre_proc! until we reach the first
-	event $pm$ that read or write variable $t \rightarrow var$ or bottom	
-\item
-	Push it to \verb!max_varevt!.
-\end{enumerate}
+	The purpose of the function is to find out all maximal events in calling event's history which read or
+	write variable $var$. The resulting events are stored in a vector (std::vector) refered by $max\_varevt
+	$.  
+	\begin{enumerate}
+	\item
+		For each process $i$, starting from \verb!ee.proc_maxevt[i]!, go back by pointer \verb!pre_proc!
+		until we reach the first event $pm$ that read or write variable $t \rightarrow var$ or bottom	
+	\item
+		Push it to \verb!max_varevt!.
+	\end{enumerate}
+\label{a:max}
 \caption{Fucntion compute maxevt}
+\end{algorithm}
+
+\begin{algorithm}
+	Given new conficting event \verb!ex! previously computed in $WR\_cex$ algorithm, the problem is to figure out which of \verb!pre_proc!, \verb!pre_mem! and \verb!pre_readers! are in direct conflict with \verb!ex!. 
+	
+\label{a: dicfl}
+\caption{Add to set of immediate conflict events}
 \end{algorithm}
 
 \subsubsection{RD conflicting events}

@@ -1489,7 +1489,7 @@ void add_to_dicfl(Event * a, Event * b)
       DEBUG(": Done");
       return;
    }
-
+   // check the existence
    unsigned int j = 0;
    while (j < b->dicfl.size())
    {
@@ -1520,7 +1520,7 @@ void Config:: RD_cex(Event * e)
     * em is the first event in the [ep] is still ok to create a new event
     */
 
-   while (!(em->is_bottom()) and !ep->succeed(*em))
+   while (!em->is_bottom() and !ep->succeed(*em))
    {
       DEBUG("create new evt");
       if (em->evtid.trans->type == ir::Trans::RD)
@@ -1529,10 +1529,8 @@ void Config:: RD_cex(Event * e)
          pr_mem   = em->evtid.pre_readers[e->evtid.trans->proc.id];
 
       /*
-       * Check if pr_mem < ep
+       * Note: em > ep and pr_mem < ep -> pr_mem is still valid to be a part of new event.
        */
-      if (ep->succeed(*pr_mem))
-         return;
 
       /*
        * Need to check the event's history before adding it to the unf
@@ -1553,22 +1551,8 @@ void Config:: RD_cex(Event * e)
 
       // move the pointer to the next
       em = pr_mem;
+
    } // end while
-
-   /*
-   if (ep->succeed(*em))
-   {
-      DEBUG_("em.clock: ");
-      for (unsigned i = 0; i < em->clock.size(); i++)
-         DEBUG_("%d ", em->clock[i]);
-
-      DEBUG_("ep.clock: ");
-            for (unsigned i = 0; i < ep->clock.size(); i++)
-               DEBUG_("%d ", ep->clock[i]);
-
-         DEBUG("ep > em");
-   }
-   */
 }
 
 /*
@@ -1658,6 +1642,7 @@ void Config:: WR_cex(Event * e)
    spikes.resize(numprocs);
 
    ep = e->evtid.pre_proc;
+
    /* Compute all maximal events touching the variable e.trans->var in the history of ep */
    std::vector<Event *> maxevt;
    ep->compute_maxvarevt(maxevt, e->evtid.trans->var);
@@ -1675,7 +1660,7 @@ void Config:: WR_cex(Event * e)
          spikes[k].clear(); // clear all spikes for storing new elements
 
       DEBUG("  Comb #%d (%d spikes)(ew = %d): ", count++, numprocs, ew->idx);
-
+      /* Create spikes by pushing back all preceding RDs */
       for (unsigned i = 0; i < ew->evtid.pre_readers.size(); i++)
       {
          temp = ew->evtid.pre_readers[i];
@@ -1687,6 +1672,7 @@ void Config:: WR_cex(Event * e)
 
          spikes[i].push_back(temp); // add the last WR or bottom to the spike
       }
+
       /* show the comb */
       for (unsigned i = 0; i < spikes.size(); i++)
       {
@@ -1707,7 +1693,7 @@ void Config:: WR_cex(Event * e)
          DEBUG(" Spike[%d]", i);
          for (unsigned j = 0; j < maxevt.size(); j++)
          {
-            DEBUG("maxevt[%d] = %d", j, maxevt[j]->idx );
+            //DEBUG("maxevt[%d] = %d", j, maxevt[j]->idx );
             while (!spikes[i].empty() && (maxevt[j]->succeed(*spikes[i].back())))
             // WR event at the back and its predecessors have an order backward
             {
@@ -1715,7 +1701,7 @@ void Config:: WR_cex(Event * e)
                spikes[i].pop_back();
             }
 
-            /* if there is an empty spike, */
+            /* check if spike[i] is empty after removal. If yes, exit the function WR_cex */
             if (spikes[i].empty())
             {
                DEBUG(" One of spikes is empty, so no conflicting event");
@@ -1725,18 +1711,20 @@ void Config:: WR_cex(Event * e)
          }
       }
 
+
       /*
        * Compute all possible combinations c(s1,s2,..sn) from the spikes to produce new conflicting events
        */
       std::vector<Event *> combi;
       compute_combi(0, spikes, combi,e); // always bring e (not ew) to compare with combi when creating new event
 
-      ew = spikes[0].back(); // ew is assigned to the last WR for new loop
+      ew = spikes[0].back(); // ew is assigned to the last WR for new loop, new comb
    }
 }
 /*
- * compute all combinations of set s
- * c is vector to store a combination
+ * compute all combinations of set s (actually a comb)
+ * - combi: vector to store a combination
+ * - e: event we want to find a conflicting event with it
  */
 void Config::compute_combi(unsigned int i, const std::vector<std::vector<Event *>> & s, std::vector<Event *> combi, Event * e)
 {
@@ -1758,28 +1746,24 @@ void Config::compute_combi(unsigned int i, const std::vector<std::vector<Event *
              * That means it is in cex, so don't need to check if old event is in cex or not. It's surely in cex.
              */
 
-            /* Need to find pre_mem for new event */
-            Event * pm = combi[0];
-            while ((pm->is_bottom() == false) && (pm->evtid.trans->type != ir::Trans::WR))
-               pm = pm->evtid.pre_mem;
-
-#if 0
-            // make sure new event is different from e
-            DEBUG("e.Pre_readers");
-            for (unsigned i = 0; i < e->evtid.pre_readers.size(); i++)
-               DEBUG_("%d ", e->evtid.pre_readers[i]->idx);
-            DEBUG();
-#endif
-
             if (combi != e->evtid.pre_readers)
             {
                DEBUG("valid for a new event");
+
+               /* Need to find pre_mem for new event */
+               Event * pm = combi[0];
+               while ((pm->is_bottom() == false) && (pm->evtid.trans->type != ir::Trans::WR))
+                  pm = pm->evtid.pre_mem;
+
+               /* Create new Ident for finding same event in hash table */
                Ident id(e->evtid.trans, e->evtid.pre_proc, pm, combi);
                newevt = &unf.find_or_add(id);
+
                //only add new event in cex, if it is already in unf, don't add
                add_to_cex(newevt);
 
-               // add new event newevt to set of dicfl of all events in combi (its pre_readers) which is different from those of e. Refer to the doc for more details
+               // add new event newevt to dicfl of all events possible
+               //Refer to the doc for more details
                if (newevt->idx == unf.evt.back().idx)
                {
                   DEBUG("Add to dicfl");
@@ -1795,10 +1779,13 @@ void Config::compute_combi(unsigned int i, const std::vector<std::vector<Event *
                         DEBUG("pos1: %d", pos->idx);
 
                         // find RD just succeed combi[i] in the process i
-                        if (pos->evtid.trans->type == ir::Trans::WR)
-
-                        while (pos->evtid.pre_mem != combi[i])
-                           pos = pos->evtid.pre_mem;
+                        while (pos->evtid.trans->type != ir::Trans::WR)
+                        {
+                          if (pos->evtid.pre_mem == combi[i])
+                             break;
+                          else
+                              pos = pos->evtid.pre_mem;
+                        }
 
                         DEBUG("pos2: %d", pos->idx);
                         DEBUG_("Add %d to %d.cfl",pos->idx, newevt->idx);
@@ -1806,8 +1793,9 @@ void Config::compute_combi(unsigned int i, const std::vector<std::vector<Event *
 
                         DEBUG_("Add %d to %d.cfl",newevt->idx, pos->idx);
                         add_to_dicfl(newevt, pos);
-                     }
+                      }
                   }
+                  // else - do nothing
                }
             }
             else

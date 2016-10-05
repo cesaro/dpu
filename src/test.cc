@@ -1777,6 +1777,68 @@ std::unique_ptr<ir::Machine> build_syn_example6 ()
    return m;
 }
 
+std::unique_ptr<ir::Machine> build_syn_example7 ()
+{
+   /*
+    * 1 thread
+    *
+    *
+    * memsize  = 3 = 2 vars + 1 pc (v1, v2: lock variables)
+    * numprocs = 1
+    * numtrans = 4
+    *
+    * Thread 0:
+    * src dst  what
+    *   0   1  lock(v1)
+    *   1   2  lock(v2)
+    *   2   3  unlock(v1)
+    *   3   4  unlock(v2)
+    */
+
+   ir::Trans * t;
+   std::unique_ptr<ir::Machine> m (new ir::Machine (3, 1, 4)); // 3 memsize, 2 threads, 4 transitions
+   ir::Process & p0 = m->add_process (5); // 5 locations in this thread
+
+   // variables v1, v2
+   std::unique_ptr<ir::Var> v1 (ir::Var::make (1));
+   std::unique_ptr<ir::Var> v2 (ir::Var::make (2));
+
+   // Process 0
+   //  0 >  1 : lock(v1)
+   t = & p0.add_trans (0, 1);
+   t->code.stm = ir::Stm (ir::Stm::LOCK, v1->clone (), 0);
+   t->type = ir::Trans::SYN;
+   t->var  = 1;
+   t->offset = 0;
+   t->localvars.clear();
+
+   //  1 >  2 : lock(v2)
+   t = & p0.add_trans (1, 2);
+   t->code.stm = ir::Stm (ir::Stm::LOCK, v2->clone (), 0);
+   t->type = ir::Trans::SYN;
+   t->var  = 2;
+   t->offset = 0;
+   t->localvars.clear();
+
+   // Process 1
+   //  2 >  3 : unlock(v1)
+   t = & p0.add_trans (2, 3);
+   t->code.stm = ir::Stm (ir::Stm::UNLOCK, v1->clone (), 0);
+   t->type = ir::Trans::SYN;
+   t->var  = 1;
+   t->offset = 0;
+   t->localvars.clear();
+
+   //  3 >  4 : unlock(v2)
+   t = & p0.add_trans (3, 4);
+   t->code.stm = ir::Stm (ir::Stm::UNLOCK, v2->clone (), 0);
+   t->type = ir::Trans::SYN;
+   t->var  = 2;
+   t->offset = 0;
+   t->localvars.clear();
+
+   return m;
+}
 
 void test12 ()
 {
@@ -2431,7 +2493,7 @@ void test26()
 {
    //auto m = build_concur15_example ();
    //auto m = build_concur15_example1 ();
-   auto m = build_concur15_example2 ();
+   //auto m = build_concur15_example2 ();
    //auto m = build_mul_example2 ();
    //auto m = build_syn_example  ();
    //auto m = build_syn_example1 ();
@@ -2440,6 +2502,7 @@ void test26()
    //auto m = build_syn_example4 ();
    //auto m = build_syn_example5 ();
    //auto m = build_syn_example6 ();
+   auto m = build_syn_example7 ();
 
    m.get()->change_init_state({0,0,0});
    ir::simulate (m.get());

@@ -312,20 +312,20 @@ An event can be created in two cases:
 	
 	\begin{proof}
 		\begin{itemize}
-			\item
+		\item
 			($\leftarrow$) $e$ and $e'$ have a common parent $\rightarrow$ $e \icfl e'$
 			
 			$e$ and $e'$ sharing one parent means that  $e \cfl e'$. Moreover, $e$ and $e'$ are both in
 			en(C), so we have:
 			\begin{itemize}
-				\item
+			\item
 				$\lceil e \rceil \cup e'$ is a configuration.
-				\item
+			\item
 				$\lceil e' \rceil \cup e$ is a configuration.
 			\end{itemize} 
 			According to the definition of direct conflict, it is obvious that $e \icfl e'$.
 			
-			\item
+		\item
 			($\rightarrow$) $e \icfl e'$ $\rightarrow$ they have at least one parent in common.
 			
 			Assume that $e$ and $e'$ share no parent, because $\lceil e \rceil \cup e'$ and $\lceil
@@ -409,7 +409,7 @@ An event can be created in two cases:
 	A new event conflicting with an event $e$ labelling by transition $t$ is created by
 	combining \verb!e.pre_proc! and new \verb!pre_mem! and \verb!pre_readers! (for a WR).
 	Find $e'$ with the same transition, same \verb!pre_proc! but different \verb!pre_mem! or
-	\verb!pre_readers!. See \cref{a:cex_rd}, \cref{a:cex_syn} and \cref{a:cex_wr} for more
+	\verb!pre_readers!. See \cref{ss:cex_rd}, \cref{ss:cex_syn} and \cref{ss:cex_wr} for more
 	details.
 	
 	\begin{lemma}{Direct conflict in conflict extension}
@@ -426,14 +426,13 @@ An event can be created in two cases:
 
 
 \section{Unfolding construction}
-The algorithm to build the unfolding is to firsly explore a configuration from the bottom (initial state of system) by adding to it enable events one by one until reaching maximal events (there is no event enable at the state). At the place, we try to find an alternative to some event in the configuration. There may be several alternatives to a set of events but we choose the very first one found to be explored, the rest can be discovered in the coming times.
-The exploration can be described in the following: 
+The algorithm to build the unfolding is to firstly explore a configuration from the bottom (initial state of system) by adding one by one enabled events until reaching maximal events (there is no event enable at the state). At the place, we try to find an alternative to some event in the configuration. There may be several alternatives to a set of events but we choose the very first found one to be explored, the rest can be discovered in the coming times.
+The exploration can be described as the following: 
 \begin{enumerate}
 \item 
-	From the bottom ($C = \{\bot\}$), extend C by adding one of enabled event at the state of C until we reach a maximal
-	event.
+	From the bottom ($C = \{\bot\}$), extend C by adding one of enabled events at the state of C (initial state at the beginning) until we reach a maximal one.
 \item
-	Compute conflict extension of C which will be detailed in the following parts of this document.
+	Compute conflict extension for maximal configuration C (details in \cref{s:cex}).
 \item
 	Find an alternative to D after C by judging all combinations of events which are in direct conflict with
 	events in D individually. A combination is considered satisfied if it is conflict-free and causal-closed which means it
@@ -450,6 +449,7 @@ The exploration can be described in the following:
 \label{s:cex}
 Function \verb!compute_cex! computes conflict extension to a configuration C by generating all possible conflicting events for each one in C. Based on the type of transition an event is labelled with, either RD, WR or SYN, we have separate algorithms. 
 \subsubsection{WR conflicting events}
+\label{ss:cex_wr}
 \noindent
 To compute all events that conflict with a WR event $e$ labelled with transition $t$, do as the following:
 
@@ -491,8 +491,8 @@ To compute all events that conflict with a WR event $e$ labelled with transition
   	New event created in the unfolding will be added to \verb!cex!. If \verb!ex! is already in the
   	unfolding, it is definitely already in the \verb!cex!
   \item
-  	Update 'verb!dicfl! (set of directly conflicting event) for both \verb!ex! and other events which are in
-  	immediate conflict with it. Refer \cref{a:dicfl} to see more details.
+  	Update \verb!dicfl! (set of directly conflicting events) for both \verb!ex! and other events which are in
+  	immediate conflict with it. Refer \cref{a:dicfl} to see the algorithm.
   \item
     Set \verb!ew! = spikes[0].back() 
   \end{enumerate}
@@ -506,8 +506,8 @@ To compute all events that conflict with a WR event $e$ labelled with transition
 	$.  
 	\begin{enumerate}
 	\item
-		For each process $i$, starting from \verb!ee.proc_maxevt[i]!, go back by pointer \verb!pre_proc!
-		until we reach the first event $pm$ that read or write variable $t \rightarrow var$ or bottom	
+		For each process $i$, starting from \verb!ee.proc_maxevt[i]!, backtrack by pointer \verb!pre_proc!
+		until we reach bottom or the first event $pm$ that reads or writes variable $t \rightarrow var$.	
 	\item
 		Push it to \verb!max_varevt!.
 	\end{enumerate}
@@ -517,12 +517,27 @@ To compute all events that conflict with a WR event $e$ labelled with transition
 
 \begin{algorithm}
 	Given new conficting event \verb!ex! previously computed in $WR\_cex$ algorithm, the problem is to figure out which of \verb!pre_proc!, \verb!pre_mem! and \verb!pre_readers! are in direct conflict with \verb!ex!. 
-	
+\begin{itemize}
+\item
+	\verb!pre_proc! has no conflict with \verb!ex!
+\item
+	\verb!pre_mem! is not considered  in issue of conflict.
+\item
+	For each \verb!ex.pre_readers[i]!, do as the following:
+	\begin{itemize}
+	\item
+		If \verb!ex.pre_readers[i] == e.pre_readers[i]!, then there's no event in conflict with \verb!ex!
+		in \verb!i! branch. 
+	\item
+		If \verb!ex.pre_readers[i] < e.pre_readers[i]!, find \verb!ex!'s immediate successor \verb!es! by recursively tracking from \verb!e.pre_readers[i]!. Add \verb!ex! to \verb!es.dicfl! and reverse.
+	\end{itemize}	 
+\end{itemize}	
 \label{a: dicfl}
 \caption{Add to set of immediate conflict events}
 \end{algorithm}
 
 \subsubsection{RD conflicting events}
+\label{ss:cex_rd}
 For each event $e \in C$ such that \verb!e->trans == t!, repeat the following:
 \begin{enumerate}
 \item Set \verb!ep = e->pre_proc!
@@ -546,14 +561,15 @@ For each event $e \in C$ such that \verb!e->trans == t!, repeat the following:
 \end{enumerate}
 
 \subsubsection{SYN conflicting events}
+\label{ss:cex_syn}
 \noindent
 It is noticable for SYN events that an UNLOCK event can only be enabled from a LOCK and a LOCK is enabled from an UNLOCK.
 For each event $e \in C$ such that \verb!e->trans == t!, repeat the following:
 \begin{enumerate}
 \item Set \verb!ep = e->pre_proc!
 \item Set \verb!em = e->pre_mem!
-\item If $\verb!em! < \verb!ep!$, then goto End.
-\item Set \verb!em = em->pre_mem!
+\item If  \verb!em < ep!, then goto End.
+\item Set \verb!em = em->pre_mem->pre_mem! (skip the \verb!pre_mem! which does not have the same type of SYN)
 \item (Warning: check for the bottom event in previous calculation)
 \item
   If \verb!t! is enabled at the state of $[ep] \cup [em]$, then create (or retrieve) an event \verb!ex! such that
@@ -569,6 +585,60 @@ For each event $e \in C$ such that \verb!e->trans == t!, repeat the following:
 
 \subsection{Alternative}
 \noindent
+Given a configuration $C \subseteq U$ and a set of events $D \subset U$, an alternative to D after C is an configuration $J \subset U $ such that:
+\begin{itemize}
+\item 
+	$C \cup J$ is a configuration 						(1)
+\item
+	for all event $e \in D$ , there is some $e'\in C \cup J$ such that $e' \in  \icfl\{e\}$ 	(2)
+\end{itemize}
+
+
+
+\noindent
+We know that $\forall e \in D: $ $e \in cex(C)$ or $e \in en(C)$.
+\begin{enumerate}
+\item
+	If  $e \in cex(C)$, there exists an event $e' \in C: e' \icfl e$. So, e shouldn't be taken into account.
+\item
+	If $e \in en(C)$, do the followings to find out a possible J:
+\end{enumerate}
+
+\begin{itemize}
+\item 
+	$A = \{e_i \in D: e_i \in en(C)\}$.
+	Set up a \emph{comb} (over A),
+	an $n$-tuple $c \eqdef \tup{s_1, \ldots, s_n}$ of sequences $s_i \in A^*$
+	(n is the number of elements in A).
+	Each sequence $s_i$ is called a \emph{spike} 
+	which contains all events that are in immediate conflict with $e_{i} \in A$.(see \cref{a:dicfl} for direct conflict checking algorithm)
+	If there is a empty spike, ($e_i$ has no conflicting event), then there is no J.
+\item
+	Given a comb $c$ witout any empty spike, a \emph{combination} over $c$ is any $n$-tuple $a = \tup{e_1, \ldots, e_n} \in A^n$ such that $e_i \in A$ is one of the elements of the sequence $s_i \in A^*$, for $i \in \set{1, \ldots, n}$. \\
+	We should check if a combination $a$ is an alternative J we are looking for. To do that, check:
+	
+\begin{itemize}
+	\item
+		If $\exists e_i$: $e_i \cup C$ is not a configuration, condition (1) is not satisfied, 
+		then discard the combination
+	\item
+		If not, check if $a$ is conflict-free or not
+		\begin{itemize}
+			\item
+				If there exist a pair $(e_i, e_j): e_i \cfl e_j$, discard the combination.
+			\item
+				If $\tup{a_1, \ldots, a_n}$ is conflict free which means there does not exist any pair 
+				of events in conflict, J will be the union of all their local configuration:
+				$ J = \cup [e'_i]$. Condition (2) is satisfied.
+		\end{itemize}
+\end{itemize}
+\end{itemize}
+
+
+
+
+
+
 To find out an alternative to D after C, do as follows:
 \begin{enumerate}
 \item

@@ -1840,6 +1840,55 @@ std::unique_ptr<ir::Machine> build_syn_example7 ()
    return m;
 }
 
+std::unique_ptr<ir::Machine> build_syn_example8 ()
+{
+   /*
+    * 2 threadds
+    *
+    *
+    * memsize  = 3 = 1 var + 2 pc (1: lock variables)
+    * numprocs = 2
+    * numtrans = 2
+    *
+    * Thread 0:
+    * src dst  what
+    *   0   1  unlock(v2)
+
+
+    * Thread 1:
+    * src dst  what
+    *   0   1  unlock(v2)
+    */
+
+   ir::Trans * t;
+   std::unique_ptr<ir::Machine> m (new ir::Machine (3, 2, 2)); // 2 vars, 2 threads, 4 transitions
+   ir::Process & p0 = m->add_process (2); // 3 locations in this thread
+   ir::Process & p1 = m->add_process (2); // 3 locations in this thread
+
+   // variables v2
+   std::unique_ptr<ir::Var> v2 (ir::Var::make (2));
+
+   // Process 0
+   //  0 >  1 : unlock(v1)
+   t = & p0.add_trans (0, 1);
+   t->code.stm = ir::Stm (ir::Stm::UNLOCK, v2->clone (), 0);
+   t->type = ir::Trans::SYN;
+   t->var  = 2;
+   t->offset = 0;
+   t->localvars.clear();
+
+   // Process 1
+   //  0 >  1 : unlock(v1)
+   t = & p1.add_trans (0, 1);
+   t->code.stm = ir::Stm (ir::Stm::UNLOCK, v2->clone (), 0);
+   t->type = ir::Trans::SYN;
+   t->var  = 2;
+   t->offset = 0;
+   t->localvars.clear();
+
+   return m;
+}
+
 void test12 ()
 {
    //auto m = build_mul_example ();
@@ -2502,7 +2551,8 @@ void test26()
    //auto m = build_syn_example4 ();
    //auto m = build_syn_example5 ();
    //auto m = build_syn_example6 ();
-   auto m = build_syn_example7 ();
+   //auto m = build_syn_example7 ();
+   auto m = build_syn_example8 ();
 
    m.get()->change_init_state({0,0,0});
    ir::simulate (m.get());

@@ -3,7 +3,7 @@
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
 \usepackage[noadjust,nosort]{cite}
-\usepackage{amsmath}
+\usepackage[fleqn]{amsmath}
 \usepackage{amsfonts}
 \usepackage{amssymb}
 %\usepackage{MnSymbol}
@@ -373,19 +373,19 @@ An event can be created in two cases:
 	\fi
 	
 	\begin{algorithm}{}
-		Given xxxx two events $e$ and $e'$ in the enable set of configuration C, 
+		Given two events $e$ and $e'$ in the enable set of configuration C, 
 		do as follows to check the direct (immediate) conflict between them:
 		\begin{enumerate}
 			\item 
-			Don't care about \verb!pre_proc!. It does not affect the conflict.
+			Ignore \verb!pre_proc! because it does not affect the conflict at all.
 			\item
-			If \verb!this->trans->type! is RD or SYN, set \verb!parent = e.pre_mem!
+			If \verb!e.trans->type! is RD or SYN, set \verb!parent = e.pre_mem!
 			\item
-			If \verb!this->trans->type == WR!,
+			If \verb!e.trans->type == WR!,
 			
-			for each \verb!pre_readers[i]! $(i \in [0..numprocs])$,
+			for each \verb!e.pre_readers[i]! $(i \in [0..numprocs])$,
 			
-			set \verb!parent = pre_readers[i]!
+			set \verb!parent = e.pre_readers[i]!
 			
 		\end{enumerate}
 		Let's consider $parent$.
@@ -393,10 +393,10 @@ An event can be created in two cases:
 		\begin{itemize}
 			\item
 			\verb!parent->trans->type! is RD or SYN: 
-			If found(e) in \verb!parent.post_rws!, then $this$ and $e$ are in direct
+			If found(e') in \verb!parent.post_rws!, then $e$ and $e'$ are in immediate
 			conflict
 			\item
-			\verb!parent->trans->type! is WR: If found(this) and found(e) in the same 
+			\verb!parent->trans->type! is WR: If found(e) and found(e') in the same 
 			\verb!parent.post_mem[i]!, then they definitely
 			conflict immediately.
 		\end{itemize}
@@ -406,19 +406,24 @@ An event can be created in two cases:
 	\end{algorithm}
 	
 	\item
-	A new event conflicting with an event $e$ labelling by transition $t$ is created by
+	A new event conflicting with an event $e$ labelled with transition $t$ is created by
 	combining \verb!e.pre_proc! and new \verb!pre_mem! and \verb!pre_readers! (for a WR).
-	Find $e'$ with the same transition, same \verb!pre_proc! but different \verb!pre_mem! or
+	Find $ex$ with the same transition, same \verb!pre_proc! but different \verb!pre_mem! or
 	\verb!pre_readers!. See \cref{ss:cex_rd}, \cref{ss:cex_syn} and \cref{ss:cex_wr} for more
 	details.
 	
 	\begin{lemma}{Direct conflict in conflict extension}
 		\begin{itemize}
 			\item
-			If new event $e'$ is a SYN, RD, it will be in immidiate conflict with \verb!e.pre_mem!
+			If $ex$ is a SYN, RD, it will be in immidiate conflict with \verb!ex.post_rws! which can be discovered by backtracking from \verb!e.pre_mem!.
 			\item
-			If $e'$ is a WR, it will conflict directly with all \verb!e.pre_readers! which are
-			different from those of $e$
+			If $ex$ is a WR, it will conflict directly with several events according to \verb|ex.pre_readers|. For each \verb|ex.pre_readers[i]| with i=\{0..numprocs\}, do as follows:
+			\begin{itemize}
+				\item 
+					If \verb|e.pre_readers[i] = ex.pre_readers[i]|, then there is no directly conflicting event in branch $i$. Move to the next branch.
+				\item
+					If \verb|e.pre_readers[i] != ex.pre_readers[i]|, find such \verb|e'| that it is immediate successor of \verb|ex| and \verb|e'< e.pre_readers[i]|
+			\end{itemize}
 		\end{itemize}
 	\end{lemma}
 	
@@ -426,7 +431,7 @@ An event can be created in two cases:
 
 
 \section{Unfolding construction}
-The algorithm to build the unfolding is to firstly explore a configuration from the bottom (initial state of system) by adding one by one enabled events until reaching maximal events (there is no event enable at the state). At the place, we try to find an alternative to some event in the configuration. There may be several alternatives to a set of events but we choose the very first found one to be explored, the rest can be discovered in the coming times.
+The algorithm to build the unfolding is to firstly explore a configuration from the bottom (initial state of system) by adding one by one enabled events until reaching maximal events (there is no event enable at the state). At that place, we try to find an alternative to some event in the configuration. There may be a number of such alternatives but we take the very first found one to explore, the rest can be discovered in the coming times.
 The exploration can be described as the following: 
 \begin{enumerate}
 \item 
@@ -512,7 +517,7 @@ To compute all events that conflict with a WR event $e$ labelled with transition
 		Push it to \verb!max_varevt!.
 	\end{enumerate}
 \label{a:max}
-\caption{Fucntion compute maxevt}
+\caption{Function compute maxevt}
 \end{algorithm}
 
 \begin{algorithm}
@@ -586,12 +591,11 @@ For each event $e \in C$ such that \verb!e->trans == t!, repeat the following:
 \subsection{Alternative}
 \noindent
 Given a configuration $C \subseteq U$ and a set of events $D \subset U$, an alternative to D after C is an configuration $J \subset U $ such that:
-\begin{itemize}
-\item 
-	$C \cup J$ is a configuration 						(1)
-\item
-	for all event $e \in D$ , there is some $e'\in C \cup J$ such that $e' \in  \icfl\{e\}$ 	(2)
-\end{itemize}
+
+\begin{flalign}
+C \cup J \text{ is a configuration} \label{eq1}\\
+\text{for all event } e \in D \text{, there is some } e'\in C \cup J \text{ such that } e' \in  \icfl \{e\}  	\label{eq2}
+\end{flalign}
 
 
 
@@ -619,7 +623,7 @@ We know that $\forall e \in D: $ $e \in cex(C)$ or $e \in en(C)$.
 	
 \begin{itemize}
 	\item
-		If $\exists e_i$: $e_i \cup C$ is not a configuration, condition (1) is not satisfied, 
+		If $\exists e_i$: $e_i \cup C$ is not a configuration, condition \eqref{eq1} is not satisfied, 
 		then discard the combination
 	\item
 		If not, check if $a$ is conflict-free or not

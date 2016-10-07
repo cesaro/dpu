@@ -270,7 +270,7 @@ Finally, for \verb!WR! events :
 \end{enumerate}
 
 \section{Event and Conflict}
-\subsection{Direct conflict}
+\subsection{Immediate conflict}
 Two events $e$ and $e'$ are in \textit{immediate conflict} $e \icfl e' $ iff $e \cfl e'$ and both $[e] \cup \lceil e' \rceil$ and $ \lceil e \rceil \cup [e']$ are configuration. Saying non-mathematically, they take 
 
 To determine immediate conflict between two events $e$ and $e'$: 
@@ -429,6 +429,199 @@ An event can be created in two cases:
 	
 \end{enumerate}
 
+\subsection{General Conflict}
+\subsubsection{Definition}
+\subsubsectionmark{3.2.1}
+\subsubsection{Checking conflict between two events in the same tree}
+Tree are divided into layers whose events have the same depth and are in immediate conflict.
+e and e' are two events in that tree at depths $e.depth$ and $e'.depth$ respectively.
+\begin{itemize}
+	\item
+	If $e.depth = e'.depth$, then $e \icfl e'$
+	\item
+	If $e.depth \neq e'.depth$, without loss of any generality, assume $ depth(e) > depth(e')$ . Find an event $e": e" < e$ and $e".depth = e'.depth$ . If $e" \equiv e'$, then $e'$ and $e$ are in causality, else they are in conflict.
+\end{itemize}
+
+
+To quickly find $e"$ through the tree, we use the idea of skip list
+(see \ref{fig:example}).
+Accordingly, in each node, a list of skip predecessors $
+skip\_preds = (i_1, i_2,..,i_m)$ are stored, where $i_j$ $(j \in [1,m] )$ is the
+node's predecessor in $k^{j}$ distance of depth, k (k > 1) is a constant
+distance in depth choosen to skip.\\
+
+\noindent
+\textbf{Data structure:}
+Using template struct \verb!Node<T>:!
+\begin{itemize}
+	\item \textit{depth}: the distance from the root
+	\item \textit{*pre}: according to the type of tree, it points to node of T which is immediate predecessor (\verb!pre-proc! or \verb!pre_mem! in Event class)
+	\item \textit{skip\_preds}: list of pointers to its k-skip predecessors of type T.	
+	(T can be an event in the same process or touching the same variable)
+\end{itemize}
+
+To apply the algorithm of skip list to layered trees, we use a template class \verb!MultiNode<T>! (T is Event) which has the following attributes:
+\begin{itemize}
+	\item list of two \verb!Node! (first one for process, second one for variable)
+	\item a template function $pred()$ to locate the predecessor corresponding to type of \verb!Node!
+\end{itemize}
+
+Class Event inherits \verb!MultiNode<T>! and has two template function indicating which type of Node to take into account.
+\begin{itemize}
+	\item	
+	\verb!Node<Event> &proc!: return node in equivalant \textit{process} tree
+	\item	
+	\verb!Node<Event> &var!: return node in equivalant \textit{variable} tree 	
+\end{itemize}
+
+\noindent
+\textbf{Initialize a list of skip predecessors} \verb!skip_preds:!
+\begin{itemize}
+	\item
+	Firstly, we need to define the size $s$ of vector \verb!skip_preds! of a node. It depends on the depth of the node.
+	
+	$s = max(i \in [1,\infty]: e.depth \mod k^{i} = 0 )$ 
+	\item
+	Next, compute the entire list of skip predecessors for e. For every node, $e.skip\_preds[i]$ is a predecessor which is in a depth 			distance of $k^{i}$ with e, so that:
+	\begin{itemize}
+		\item
+		The first element of the list \verb!skip_preds[0]! indicates the predecessor which is in a depth distance of $k^1 = k$. It can 				be reached by backtracking with $pre$ which is actually \verb!pre_proc! or \verb!pre_mem! of corresponding event.
+		\item
+		For $\forall i \in [1,s]: skip\_preds[i] = max(\{e": e" < e$ and $e".depth \mod k^i = 0\})$ which can be computed by going back 			k times with $skip\_preds[i-1]$: \\
+		\verb!e.skip_preds[i] = e.skip_preds[i-1]....skip_preds[i-1]! (k times) 
+	\end{itemize}
+\end{itemize}
+
+\begin{algorithm}
+	\noindent
+	Assume $e.depth > e'.depth$, and , to reach e', do as follows:
+	\begin{enumerate}
+		\item
+		\verb!Set next = e!
+		\item
+		\verb!while! $next.depth \neq e'.depth$ \verb!do!
+		\begin{itemize}
+			\item
+			\verb!Set d  = next.depth - e'.depth!
+			\item
+			\verb!Set i  = 0!
+			\item
+			\verb!while! ($ next.depth \mod k^{i} = 0$)   \space \verb!do!
+			$i = i + 1$
+			\item
+			\verb!Set! $next = next.skip\_preds[i]$ 
+		\end{itemize} 
+		\item 
+		If $next \equiv e'$ then 
+		$e'< e$ 
+		
+		else $e'\cfl e$	 
+	\end{enumerate}
+	\caption{Decide the conflict between e and e' in the same tree}
+	\label{a:layer_tree}	
+\end{algorithm}
+
+\begin{algorithm}
+	Given two reads $e$ and $e'$.
+	\begin{enumerate}
+		\item
+		Set \verb!w1 = e.find_WR_pred() !
+		\verb!w2 = e'.find_WR_pred()!
+		\item
+		If $w_1 == w_2$
+		return false;
+		\item
+		If $w_1 \cfl w_2$
+		return true;
+		\item
+		If $w_2$ is a successor of $w_1$
+		\begin{itemize}
+			\item
+			Set $w'$ is WR predecessor of $w_2$ at the $w_1.depth + 1$
+			\item
+			Set $r_1$ = \verb!w'.pre_preaders[e->trans->proc.id]!
+			\item
+			If ($e$ < $r_1$) then $\lnot (e \cfl e')$
+			
+			else 	$e \cfl e'$;
+		\end{itemize}
+		else
+		\begin{itemize}
+			\item
+			Set $w'$ is WR predecessor of $w_1$ at the $w_2.depth + 1$
+			\item
+			Set $r_1$ = \verb!w'.pre_preaders[e'->trans->proc.id]!
+			\item
+			If ($e'$ < $r_1$) then $\lnot (e \cfl e')$
+			
+			else 	$e \cfl e'$;
+		\end{itemize}
+		
+	\end{enumerate}
+	\caption{Decide the conflict between two RDs}
+	\label{a:rds}	
+\end{algorithm}
+
+\begin{algorithm}
+	Given two events $e$ is a WR and $e'$ is a RD
+	\begin{enumerate}
+		\item
+		Set 	\verb!w2 = e'.find_WR_pred()!
+		\item
+		If $e == w_2$
+		return false;
+		\item
+		If $e \cfl w_2$
+		return true;
+		\item
+		If $w_2$ is a successor of $e$
+		then $e < e'$
+		else
+		\begin{itemize}
+			\item
+			Set $w'$ is WR predecessor at the $w_2.depth + 1$
+			\item
+			Set $r_1 = w'.pre\_preaders[e'->trans->proc.id]$
+			\item
+			If ($e'$ precedes $r_1$) then $\lnot (e \cfl e')$
+			
+			else 	$e \cfl e'$;
+		\end{itemize}
+		
+	\end{enumerate}
+	\caption{Decide the conflict between a WR and a RD}
+	\label{a:wrd}	
+\end{algorithm}
+
+\begin{algorithm}
+	Given two events touching different variables or 2 LOCs $e$ and $e'$.
+	Do the following:
+	\begin{enumerate}
+		\item
+		For each pair $(e_i, e_i')$ of maximal events of each process:
+		$e_i \in$ \verb!e.proc_maxevt! and $e_i' \in$ \verb!e'.proc_maxevt! do: \\
+		\begin{itemize}
+			\item
+			If $e_i$.\verb!check_conflict_same_tree(!$e_i'$ \verb!)! is $true$, then  return true;
+			\item
+			Else jump to 2
+		\end{itemize}
+		
+		\item
+		For each pair $(e_i, e_i')$ of maximal events of each process:
+		$e_i \in $ \verb!e.var_maxevt! and $e_i' \in$ \verb!e'.var_maxevt! do:\\
+		\begin{itemize}
+			\item
+			If $e_i$.\verb!check_conflict_same_tree(!$e_i'$ \verb!)! is $true$, then  return true;
+			\item
+			Else, return false;
+		\end{itemize}
+		
+	\end{enumerate}
+	\caption{Decide the conflict between 2 LOCs}
+	\label{a:arb}	
+\end{algorithm}
+
 
 \section{Unfolding construction}
 The algorithm to build the unfolding is to firstly explore a configuration from the bottom (initial state of system) by adding one by one enabled events until reaching maximal events (there is no event enable at the state). At that place, we try to find an alternative to some event in the configuration. There may be a number of such alternatives but we take the very first found one to explore, the rest can be discovered in the coming times.
@@ -568,7 +761,7 @@ For each event $e \in C$ such that \verb!e->trans == t!, repeat the following:
 \subsubsection{SYN conflicting events}
 \label{ss:cex_syn}
 \noindent
-It is noticable for SYN events that an UNLOCK event can only be enabled from a LOCK and a LOCK is enabled from an UNLOCK.
+It is noticable for SYN events that an UNLOCK event can only be enabled from a LOCK and reverse.
 For each event $e \in C$ such that \verb!e->trans == t!, repeat the following:
 \begin{enumerate}
 \item Set \verb!ep = e->pre_proc!
@@ -594,79 +787,73 @@ Given a configuration $C \subseteq U$ and a set of events $D \subset U$, an alte
 
 \begin{flalign}
 C \cup J \text{ is a configuration} \label{eq1}\\
-\text{for all event } e \in D \text{, there is some } e'\in C \cup J \text{ such that } e' \in  \icfl \{e\}  	\label{eq2}
+\text{For all event } e \in D \text{, there is some } e'\in C \cup J \text{ such that } e' \in  \icfl \{e\}  	\label{eq2}
 \end{flalign}
 
 
 
 \noindent
-We know that $\forall e \in D: $ $e \in cex(C)$ or $e \in en(C)$.
-\begin{enumerate}
-\item
-	If  $e \in cex(C)$, there exists an event $e' \in C: e' \icfl e$. So, e shouldn't be taken into account.
-\item
-	If $e \in en(C)$, do the followings to find out a possible J:
-\end{enumerate}
+We know that $\forall e \in D: $ $e \in cex(C)$ or $e \in en(C)$. Therefore, $\forall e \in D: e \in cex(C)$ (computed in \cref{s:cex}), there exists an event $e' \in C: e' \icfl e$ which implies that $e$ is definitely satisfied and then it should not be taken into account. In the other case, $e \notin cex(C)$, do as follows to find out a J if it exists:
 
 \begin{itemize}
 \item 
-	$A = \{e_i \in D: e_i \in en(C)\}$.
+	$A = \{e_i \in D: e_i \in en(C)\}$ (A is a D prunned any event in $cex(C)$). 
 	Set up a \emph{comb} (over A),
 	an $n$-tuple $c \eqdef \tup{s_1, \ldots, s_n}$ of sequences $s_i \in A^*$
-	(n is the number of elements in A).
+	($i \in  \set{0,\ldots ,n}$ with $n = \left\vert{A} \right\vert$).
 	Each sequence $s_i$ is called a \emph{spike} 
-	which contains all events that are in immediate conflict with $e_{i} \in A$.(see \cref{a:dicfl} for direct conflict checking algorithm)
-	If there is a empty spike, ($e_i$ has no conflicting event), then there is no J.
+	which contains all events that are in immediate conflict with $e_{i} \in A$ (see \cref{a:dicfl} for direct conflict checking algorithm).
+	If there is an empty spike, $e_i$ has no conflicting event, then there exists no J.
 \item
-	Given a comb $c$ witout any empty spike, a \emph{combination} over $c$ is any $n$-tuple $a = \tup{e_1, \ldots, e_n} \in A^n$ such that $e_i \in A$ is one of the elements of the sequence $s_i \in A^*$, for $i \in \set{1, \ldots, n}$. \\
-	We should check if a combination $a$ is an alternative J we are looking for. To do that, check:
-	
+	Given a comb $c$ witout any empty spike, a \emph{combination} over $c$ is any $n$-tuple $a = \tup{e_1, \ldots, e_n} \in A^n$ such that $e_i \in A$ is one element of the sequence $s_i \in A^*$, for $i \in \set{1, \ldots, n}$. \\
+	$a$ is an alternative we are looking for if it holds both \eqref{eq1} and \eqref{eq2} in the definition: 	
 \begin{itemize}
 	\item
-		If $\exists e_i$: $e_i \cup C$ is not a configuration, condition \eqref{eq1} is not satisfied, 
-		then discard the combination
+		If $\exists e_i \in a$: $e_i \cup C$ is not a configuration, it means \eqref{eq1} condition is not satisfied, then discard the combination.
 	\item
-		If not, check if $a$ is conflict-free or not
+		If \eqref{eq1} holds, check whether $a$ is conflict-free which means there is not any pair of event $(e_i, e_j)$ in conflict (see ...for conflict checking algorithm):
 		\begin{itemize}
 			\item
-				If there exist a pair $(e_i, e_j): e_i \cfl e_j$, discard the combination.
+				If there exist a pair $(e_i, e_j)$ such that $e_i \cfl e_j$, discard the combination.
 			\item
-				If $\tup{a_1, \ldots, a_n}$ is conflict free which means there does not exist any pair 
-				of events in conflict, J will be the union of all their local configuration:
-				$ J = \cup [e'_i]$. Condition (2) is satisfied.
+				If not, (2) condition is definitely satisfied. By then, J is formed as the union of local configurations of all events in $a$:
+				\begin{equation}
+				\nonumber
+					J = \cup [e_i] \text{ with } \forall  e_i \in a
+				\end{equation}
+				 
 		\end{itemize}
 \end{itemize}
 \end{itemize}
 
 
-
-
-
-
+\begin{algorithm}
 To find out an alternative to D after C, do as follows:
 \begin{enumerate}
-\item
-	Remove from D all events in cex(C) which are computed in previous section \cref{s:cex}
-\item
+	\item
+	Remove from D all events in cex(C). 
+	\item
 	Let $comb \eqdef \tup{s_1, \ldots, s_n}$ be the comb over D where 
-	$s_i$ are the events in direct conflict to $e_i$: $s_i$ = $e_i \rightarrow$ \verb!dicfl!
-\item
+	$s_i$ is a set of events in direct conflict with $e_i$: $s_i$ = $e_i \rightarrow$ \verb!dicfl!
+	\item
 	Remove from the $comb$ all events that are in conflict with any maximal event of C. If the removal leaves some empty spike, 
-	there is not any alternative no longer.
-\item
+	there obviously exists no alternative, so go to End
+	\item
 	Enumerate all combinations $\tup{e_1, \ldots, e_n}$ of $c$.
-\item
+	\item
 	For any of them, do:
 	\begin{itemize}
 		\item 
-    		If $\tup{e_1, \ldots, e_n}$ is conflict-free (use function \verb!check_cfl!), return $J = \cup [e_i]$. Remove from J those that are already in C.
-   		\item
-			If there exist any conflict among events in J, then discard J and come back to step 2
-			to take next combination.
+		If $\tup{e_1, \ldots, e_n}$ is conflict-free (use function \verb!check_cfl!), return $J = \cup [e_i]$. (Caution: Remember to remove from J those are already in C.
+		\item
+		If there exist any conflict among events in J, then discard J and come back to step 2
+		to take next combination.
 	\end{itemize}
-\item End.
+	\item End.
 \end{enumerate}
-%\caption{Computing an alternative J for D after C}
-%\label{a:alter}
+\caption{Computing an alternative J for D after C}
+\label{a:alter}
+\end{algorithm}
+
 
 \end{document}

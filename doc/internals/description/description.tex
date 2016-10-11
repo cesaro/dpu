@@ -103,14 +103,13 @@ Classes neccessary to model a system are State, Trans, Process:
 	\verb!Trans!: includes a numerous properties:
 	\begin{itemize}
 	\item
-		\verb!proc!: the process which it belongs to.
+		\verb!proc!: process a transition belongs to.
 	\item
-		\verb!src!: the source location of the process
+		\verb!src!: source of transition which implies the process location enabling transition
 	\item
-		\verb!dest!: a new location that the process can reach when the transitions is fired.
+		\verb!dest!: the target (a new location) process should reach when the transitions is fired.
 	\item
-		\verb!var!: an $int$ number implying pthe address  of the only global variable which is touched
-		 by transition in machine memory (\verb!tab! of \verb!State!)
+		\verb!var!: an $int$ number implying address in memory area of the only global variable which is touched by transition (\verb!tab! of \verb!State!)
 	\item
 		\verb!offset!: the offset address from the variable which is helpful just in case \verb!var! is an array.
 	\item
@@ -373,14 +372,14 @@ An event can be created in two cases:
 	\fi
 	
 	\begin{algorithm}{}
-		Given xxxx two events $e$ and $e'$ in the enable set of configuration C, 
-		do as follows to check the direct (immediate) conflict between them:
+		Given two events $e$ and $e'$ in enable set of configuration C, 
+		do as follows to check the direct conflict between them:
 		\begin{enumerate}
-			\item 
+		\item 
 			Don't care about \verb!pre_proc!. It does not affect the conflict.
-			\item
+		\item
 			If \verb!this->trans->type! is RD or SYN, set \verb!parent = e.pre_mem!
-			\item
+		\item
 			If \verb!this->trans->type == WR!,
 			
 			for each \verb!pre_readers[i]! $(i \in [0..numprocs])$,
@@ -409,7 +408,7 @@ An event can be created in two cases:
 	A new event conflicting with an event $e$ labelling by transition $t$ is created by
 	combining \verb!e.pre_proc! and new \verb!pre_mem! and \verb!pre_readers! (for a WR).
 	Find $e'$ with the same transition, same \verb!pre_proc! but different \verb!pre_mem! or
-	\verb!pre_readers!. See \cref{ss:cex_rd}, \cref{ss:cex_syn} and \cref{ss:cex_wr} for more
+	\verb!pre_readers!. See \cref{subsection:cex_rd}, \cref{subsection:cex_syn} and \cref{subsection:cex_wr} for more
 	details.
 	
 	\begin{lemma}{Direct conflict in conflict extension}
@@ -448,8 +447,9 @@ The exploration can be described as the following:
 \subsection{Conflict extensions}
 \label{s:cex}
 Function \verb!compute_cex! computes conflict extension to a configuration C by generating all possible conflicting events for each one in C. Based on the type of transition an event is labelled with, either RD, WR or SYN, we have separate algorithms. 
+
 \subsubsection{WR conflicting events}
-\label{ss:cex_wr}
+\label{subsection:cex_wr}
 \noindent
 To compute all events that conflict with a WR event $e$ labelled with transition $t$, do as the following:
 
@@ -537,7 +537,7 @@ To compute all events that conflict with a WR event $e$ labelled with transition
 \end{algorithm}
 
 \subsubsection{RD conflicting events}
-\label{ss:cex_rd}
+\label{subsection:cex_rd}
 For each event $e \in C$ such that \verb!e->trans == t!, repeat the following:
 \begin{enumerate}
 \item Set \verb!ep = e->pre_proc!
@@ -561,7 +561,7 @@ For each event $e \in C$ such that \verb!e->trans == t!, repeat the following:
 \end{enumerate}
 
 \subsubsection{SYN conflicting events}
-\label{ss:cex_syn}
+\label{subsection:cex_syn}
 \noindent
 It is noticable for SYN events that an UNLOCK event can only be enabled from a LOCK and a LOCK is enabled from an UNLOCK.
 For each event $e \in C$ such that \verb!e->trans == t!, repeat the following:

@@ -2554,7 +2554,7 @@ void test26()
    //auto m = build_syn_example7 ();
    auto m = build_syn_example8 ();
 
-   m.get()->change_init_state({0,0,0});
+   //m.get()->change_init_state({0,0,0});
    ir::simulate (m.get());
 
 

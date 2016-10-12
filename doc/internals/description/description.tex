@@ -271,35 +271,31 @@ Finally, for \verb!WR! events :
 \section{Event and Conflict}
 \subsection{Immediate conflict}
 Two events $e$ and $e'$ are in \textit{immediate conflict} $e \icfl e' $ iff $e \cfl e'$ and both $[e] \cup \lceil e' \rceil$ and $ \lceil e \rceil \cup [e']$ are configuration. Saying non-mathematically, they share one of their immediate predecessors, so-called parents.
-
-To determine immediate conflict between two events $e$ and $e'$: 
+Therefore, two events are in conflict only if they satisfy two condition:
 \begin{itemize}
-	\item
-	One of them is a LOC, there is no conflict at all.
-	\item
-	If they have the same predecessor \verb!e.pre_proc = e'.pre_proc!, the look at their local configuration.
-	\item
-	If they are in different processes (have different \verb!pre_proc!), look at one event's \verb!parent! \verb!e.pre_mem! (watch out the case where its parent is $bottom$ - a special WR)
-	\begin{itemize}
-		\item
-		\verb!parent! is RD or SYN: if we find $e'$ in its \verb!post_rws!, then they are in
-		conflict.
-		\item
-		\verb!parent! is WR: if we find $e$ and $e'$ in the same vector of \verb!e.post_mem!,
-		they are in conflict (e can be a WR, so it can appear in all vectors of 
-		\verb!e.post_mem!, not only the vector of its process)
-	\end{itemize}
-	
+\item
+	\textit{They have at least one parent in common which means they both are successors of an event.}
+\item
+	\textit{The union of their local configuration must be also a configuration.}
 \end{itemize}
 
-\subsubsection{Checking direct conflict}
-Every event in the unfolding should have a list of events which are in conflict with it, called $dicfl$. This set is updated when events are created or something which can cause changes in relationships among events happens.
+For alternative algorithm, in \verb!Event!, direct conflict events is stored as a vector of events, \textit{dicfl} which is updated whenever an event is created in the unfolding or others' appearances influenced on its relations.
 An event can be created in two cases:
 \begin{enumerate}
-	\item
-	A transition is enabled at the state of configuration, one event labelling by that is
-	created and added to enable set. At the time of creating an event, we need to update their $dicfl$. If there exist any $e'$ in en(C) which conflicts with $e$,
-	move $e'$ to cex(C) and update their direct conflict sets $dicfl$ at the same time. 		
+\item
+	When a transition is enabled at a configuration, a corresponding event labelled with it is
+	created and added to the configuration's enable set. By that time, we need to update $dicfl$ for 
+	the new one.
+\item
+	In the time of computing conflict extension, a new event conflicting with an event $e$, labelled
+	with transition $t$, is created by combining \verb!e.pre_proc! and new \verb!pre_mem! and 
+	\verb!pre_readers!(See \cref{subsec:cex} for more details)	
+\end{enumerate}
+
+We propose two different algorithms to decide the direct conflict for these two cases.
+
+\subsubsection{Checking direct conflict between two enable events.}
+Given $e$ and $e'$ both enabled at a configuration $C$, $e, e' \in en(C)$, we have a lemma.
 	
 	\begin{lemma}{Direct conflict between enable events}
 		\begin{itemize}
@@ -310,12 +306,13 @@ An event can be created in two cases:
 	\end{lemma}
 	
 	\begin{proof}
+	Two ways.
 		\begin{itemize}
 		\item
 			($\leftarrow$) $e$ and $e'$ have a common parent $\rightarrow$ $e \icfl e'$
 			
-			$e$ and $e'$ sharing one parent means that  $e \cfl e'$. Moreover, $e$ and $e'$ are both in
-			en(C), so we have:
+			$e$ and $e'$ sharing one parent means that  $e \cfl e'$. Moreover, $e$ and $e'$ are both 
+			in en(C), so we have:
 			\begin{itemize}
 			\item
 				$\lceil e \rceil \cup e'$ is a configuration.
@@ -332,44 +329,37 @@ An event can be created in two cases:
 		\end{itemize}			
 	\end{proof}			
 	
-	\iffalse			
-	Thank to \autoref{thm:lem1}, to decide if they are in conflict, just check their parents
-	together. If there is at least one shared parent between them, they are in direct conflict.
-	Otherwise, they are not. Use \verb!post_mem! field to check shared parents.
-	
-	Let us take the type of transition into account: 
-	Note that they are in a enable set of configuration, so they cannot share\verb!	pre_proc!.
+	\noindent
+	Thank to \autoref{thm:lem1}, to decide if $e$ and $e'$ are in conflict, we just need to check if
+	they are both successors of an event, which means their appearances in \verb!post_mem! of one 
+	parent.
+	Notice that they are in a enable set of configuration, so they cannot have the same 
+	\verb!pre_proc! (The system is deterministic). To determine immediate conflict between two
+	events $e$ and $e'$, do as follows: 
 	\begin{itemize}
-		\item
-		If either $e$ or $e'$ is a LOC: two events definitly share no parent (thank to the
-		deterministic feature of the model) which implies that they are not in conflict 
-		(including direct conflict).
-		\item
-		If they are two RDs or two SYNs or a pair of (RD, SYN):
+	\item
+		One of them is a LOC, there is definitely no conflict between them at all.
+	\item
+		If they have the same predecessor \verb!e.pre_proc = e'.pre_proc!, they are in the same
+		process as well as have the same source which implies they conflict.
+	\item
+		If they are in different processes (have different \verb!pre_proc!), look at one's 
+		\verb!parent! which will be \verb!e.pre_mem! 		if $e$ is a RD or SYN (We can do the
+		same to $e'$ when $e$ is a WR and $e'$ is a RD or SYN). The case of two WRs will be
+		seperately treated.
 		\begin{itemize}
-			\item
-			If \verb!e.pre_mem = e'.pre_mem!, they are not in conflict but concurrent.
-			\item
-			If we have \verb!e.pre_proc = e'.pre_mem! or 
-			\verb!e.pre_mem =  e'.pre_proc!, $e$ and $e'$ are in direct conflict.
-		\end{itemize}
-		
 		\item
-		If ($e$. $e'$) is a pair of (RD, WR) or (SYN, WR): 
-		\begin{itemize}
-			\item
-			If \verb!e.pre_mem = e'.pre_proc!, we have $e \icfl e'$
-			\item
-			If \verb!e.pre_mem! or \verb!e.pre_proc! is the same as one of 
-			\verb!e'.pre_readers!, it is definitely that $e \icfl e'$
-		\end{itemize}
-		
+			\verb!parent! is RD or SYN: if we find $e'$ in \verb!parent.post_rws!, then they are in
+			conflict.
 		\item
-		If both are WRs, check \verb!e.pre_proc! and \verb!e.pre_readers! with
-		\verb!e'.pre_proc! and all \verb!e'.pre_readers!. If there exist a pair with the
-		same index, $e$ and $e'$ conflict directly.
+			\verb!parent! is WR or bottom: if we find $e$ and $e'$ in the same vector of
+			\verb!parent.post_mem!, they are in conflict ($e$ and $e'$ can be a WR, so it can appear
+			 in all subvectors of \verb!parent.post_mem!, not only the vector of its process).
 	\end{itemize}
-	\fi
+	\item
+		Both $e$ and $e'$ are WRs: \verb!parent! takes \verb!e.pre_readers! in turn, if we find $e'$'s appearance in \verb!parent.post_mem[0]! ($e$ is in all subvectors of \verb!parent.post_mem!), they conflict. If not, move to next \verb!pre_readers!
+	
+\end{itemize}
 	
 	\begin{algorithm}{}
 
@@ -405,7 +395,8 @@ An event can be created in two cases:
 		\label{a:dicfl}
 	\end{algorithm}
 	
-	\item
+\subsubsection{Conflict between new conflicting event and the existing\\}
+\noindent
 	A new event conflicting with an event $e$ labelled with transition $t$ is created by
 	combining \verb!e.pre_proc! and new \verb!pre_mem! and \verb!pre_readers! (for a WR).
 
@@ -427,7 +418,7 @@ An event can be created in two cases:
 		\end{itemize}
 	\end{lemma}
 	
-\end{enumerate}
+
 
 \subsection{General Conflict}
 \subsubsection{Definition}
@@ -843,8 +834,8 @@ The exploration can be described as the following:
 	The exploration termines when no event is enabled
 \end{enumerate}
 
-\subsection{Conflict extensions}
-\label{subsec:cex}
+\subsection{Conflict extensions \label{subsec:cex}}
+
 Function \verb!compute_cex! computes conflict extension to a configuration C by generating all possible conflicting events for each one in C. Based on the type of transition an event is labelled with, either RD, WR or SYN, we have separate algorithms. 
 
 \subsubsection{WR conflicting events}

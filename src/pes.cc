@@ -777,7 +777,7 @@ const Event & Event:: find_latest_WR_pred() const
 
 
 /*
- * Check if two events are in immediate conflict, provided that they are both in enalbe set.
+ * Check if two events are in immediate conflict, provided that they are both in enable set.
  *    - Two events are in direct conflict if they both appear in a vector in post_mem of an parental event
  */
 

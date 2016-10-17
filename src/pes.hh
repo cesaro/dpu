@@ -135,6 +135,7 @@ public:
 
    int                   color; // to avoid re-read an event in printing functions.
    int                   in_bit; // to mark that an event is in cex or not: 1 - in, 0: not in
+   int                   maximal; // = 1 if the event is maximal, otherwise it is 0
 
    std::vector<Event *>  dicfl;  // set of direct conflicting events
    std::vector <int>     clock; // size = number of processes (to store clock for all its predecessors: pre_proc, pre_mem or pre_readers)
@@ -177,7 +178,7 @@ public:
    bool is_in_mutex() const;
    template <int idx>
    bool check_cfl_same_tree (const Event & e) const;
-   const bool found(Event *e, Event *parent) const;
+   bool found(const Event &e, Event *parent) const;
 
 
    Node<Event,3> &proc () { return node[0]; }

@@ -367,6 +367,7 @@ Event:: Event (Unfolding & u, Ident & ident)
 ,  val(0)
 ,  localvals(0)
 ,  color(0)
+,  maximal(0)
 {
    assert(this->is_bottom() == false);
    unsigned numprocs = u.m.procs.size();
@@ -408,6 +409,7 @@ Event::Event (Unfolding & u)
    , val(0)
    , localvals(0)
    , color(0)
+   , maximal(0)
 {
    // this is only for bottom event
    unsigned numprocs = u.m.procs.size();
@@ -776,10 +778,61 @@ const Event & Event:: find_latest_WR_pred() const
 }
 
 /*
- * Find event e in this' parent
+ * If e and this are both in the same vector post_mem or post_wrs of parent, return true
+ * else return false
  */
-const bool Event::found(Event *e, Event *parent) const
+bool Event::found(const Event &e, Event *parent) const
 {
+   std::vector<Event *>::iterator this_idx, e_idx;
+
+     // special case when parent is bottom, bottom as a special WR without transition.
+     if (parent->is_bottom())
+     {
+        for (unsigned i = 0; i < parent->post_mem.size(); i++)
+        {
+           this_idx = std::find(parent->post_mem[i].begin(), parent->post_mem[i].end(),this);
+           e_idx    = std::find(parent->post_mem[i].begin(), parent->post_mem[i].end(),&e);
+           if ( (this_idx != parent->post_mem[i].end()) && (e_idx != parent->post_mem[i].end()) )
+           {
+              DEBUG("%d cfl %d", this->idx, e.idx);
+              return true;
+           }
+        }
+
+        return false;
+     }
+
+     switch (parent->evtid.trans->type)
+     {
+        /* 'this' pointer is a child of 'parent', so it definitly appear in parent's post_wrs*/
+        case ir::Trans::RD:
+           e_idx  = std::find(parent->post_rws.begin(), parent->post_rws.end(), &e);
+           if (e_idx != parent->post_rws.end())
+              return true;
+           break;
+
+        case ir::Trans::WR:
+           for (unsigned i = 0; i< parent->post_mem.size(); i++)
+           {// if this and e are in the same process
+              this_idx = std::find(parent->post_mem[i].begin(), parent->post_mem[i].end(),this);
+              e_idx    = std::find(parent->post_mem[i].begin(), parent->post_mem[i].end(),&e);
+              if ( (this_idx != parent->post_mem[i].end()) && (e_idx != parent->post_mem[i].end()) )
+                 return true;
+           }
+           break;
+
+       case ir::Trans::SYN:
+          //DEBUG("Parent is a SYN");
+          e_idx  = std::find(parent->post_rws.begin(), parent->post_rws.end(), &e);
+          if (e_idx != parent->post_rws.end())
+             return true;
+          break;
+
+       case ir::Trans::LOC:
+          // nothing to do
+          break;
+     }
+return false;
 
 }
 
@@ -823,7 +876,7 @@ bool Event::check_dicfl( const Event & e )
    if (this->evtid.trans->type != ir::Trans::WR)
    {
       parent = evtid.pre_mem; // for RD, SYN
-      if this->found(e,parent)
+      if (this->found(e,parent))
          return true;
       else
          return false;
@@ -832,7 +885,7 @@ bool Event::check_dicfl( const Event & e )
       if (e.evtid.trans->type != ir::Trans::WR)
       {
          parent = e.evtid.pre_mem;
-         if e.found(this,parent)
+         if (e.found(*this,parent))
             return true;
          else
             return false;
@@ -842,62 +895,12 @@ bool Event::check_dicfl( const Event & e )
          for (int i = 0; i < this->evtid.pre_readers.size(); i++)
          {
             parent = this->evtid.pre_readers[i];
-            if e.found(this, parent)
+            if (e.found(*this, parent))
                return true;
             else
                return false;
          }
       }
-
-
-   std::vector<Event *>::iterator this_idx, e_idx;
-
-   // special case when parent is bottom, bottom as a special WR without transition.
-   if (parent->is_bottom())
-   {
-      for (unsigned i = 0; i < parent->post_mem.size(); i++)
-	   {
-	      this_idx = std::find(parent->post_mem[i].begin(), parent->post_mem[i].end(),this);
-	      e_idx    = std::find(parent->post_mem[i].begin(), parent->post_mem[i].end(),&e);
-	      if ( (this_idx != parent->post_mem[i].end()) && (e_idx != parent->post_mem[i].end()) )
-	      {
-	         DEBUG("%d cfl %d", this->idx, e.idx);
-	         return true;
-	      }
-	   }
-
-	   return false;
-   }
-
-   switch (parent->evtid.trans->type)
-   {
-      case ir::Trans::RD:
-         e_idx  = std::find(parent->post_rws.begin(), parent->post_rws.end(), &e);
-    	   if (e_idx != parent->post_rws.end())
-    	      return true;
-         break;
-
-      case ir::Trans::WR:
-         for (unsigned i = 0; i< parent->post_mem.size(); i++)
-         {// if this and e are in the same process
-            this_idx = std::find(parent->post_mem[i].begin(), parent->post_mem[i].end(),this);
-            e_idx    = std::find(parent->post_mem[i].begin(), parent->post_mem[i].end(),&e);
-            if ( (this_idx != parent->post_mem[i].end()) && (e_idx != parent->post_mem[i].end()) )
-               return true;
-         }
-         break;
-
-     case ir::Trans::SYN:
-        //DEBUG("Parent is a SYN");
-        e_idx  = std::find(parent->post_rws.begin(), parent->post_rws.end(), &e);
-        if (e_idx != parent->post_rws.end())
-           return true;
-        break;
-
-     case ir::Trans::LOC:
-        // nothing to do
-        break;
-   }
 
    return false;
 }
@@ -1420,7 +1423,10 @@ void Config::__update_encex (Event & e )
    gstate.enabled (enable);
 
    if (enable.empty() == true )
+   {
+      e.maximal = 1; // e is a maximal event
       return;
+   }
 
    DEBUG(" Transitions enabled:");
    for (auto t: enable)
@@ -2202,23 +2208,38 @@ void Unfolding:: uprint_dot()
       switch (e.evtid.trans->type)
       {
          case ir::Trans::LOC:
-            fs << e.idx << "[id="<< e.idx << ", label=\" " << e.dotstr() << " \" fillcolor=yellow];\n";
+            if (e.maximal == 1)
+               fs << e.idx << "[id="<< e.idx << ", label=\" " << e.dotstr() << " \", shape=box, style=bold, color=red, fillcolor=yellow];\n";
+            else
+               fs << e.idx << "[id="<< e.idx << ", label=\" " << e.dotstr() << " \" , shape=box, fillcolor=yellow];\n";
             fs << e.evtid.pre_proc->idx << "->" << e.idx << "[color=brown]\n";
             break;
          case ir::Trans::WR:
-            fs << e.idx << "[id="<< e.idx << ", label=\" " << e.dotstr() << " \" fillcolor=red];\n";
+            if (e.maximal == 1)
+               fs << e.idx << "[id="<< e.idx << ", label=\" " << e.dotstr() << " \" , shape=box, style=bold, color=red, fillcolor=red];\n";
+            else
+               fs << e.idx << "[id="<< e.idx << ", label=\" " << e.dotstr() << " \", shape=box, fillcolor=red];\n";
+
             fs << e.evtid.pre_proc->idx << "->" << e.idx << "[color=brown]\n";
             for (auto const & pre : e.evtid.pre_readers)
                fs << pre->idx << " -> " << e.idx << "\n";
             break;
          case ir::Trans::RD:
-            fs << e.idx << "[id="<< e.idx << ", label=\" " << e.dotstr() << " \" fillcolor=palegreen];\n";
+            if (e.maximal == 1)
+               fs << e.idx << "[id="<< e.idx << ", label=\" " << e.dotstr() << " \" , shape=box, style=bold, color=red, fillcolor=palegreen];\n";
+            else
+               fs << e.idx << "[id="<< e.idx << ", label=\" " << e.dotstr() << " \" , shape=box, fillcolor=palegreen];\n";
+
             fs << e.evtid.pre_proc->idx << "->" << e.idx << "[color=brown]\n";
             fs << e.evtid.pre_mem->idx << "->" << e.idx << "\n";
 
             break;
          case ir::Trans::SYN:
-            fs << e.idx << "[id="<< e.idx << ", label=\" " << e.dotstr() << " \" color=lightblue];\n";
+            if (e.maximal == 1)
+               fs << e.idx << "[id="<< e.idx << ", label=\" " << e.dotstr() << " \" , shape=box, style=bold, color=red, fillcolor=lightblue];\n";
+            else
+               fs << e.idx << "[id="<< e.idx << ", label=\" " << e.dotstr() << " \" , shape=box, fillcolor=lightblue];\n";
+
             fs << e.evtid.pre_proc->idx << "->" << e.idx << "[color=brown]\n";
             fs << e.evtid.pre_mem->idx << "->" << e.idx << "\n";
 

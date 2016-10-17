@@ -177,6 +177,7 @@ public:
    bool is_in_mutex() const;
    template <int idx>
    bool check_cfl_same_tree (const Event & e) const;
+   const bool found(Event *e, Event *parent) const;
 
 
    Node<Event,3> &proc () { return node[0]; }

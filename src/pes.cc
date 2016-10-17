@@ -775,6 +775,13 @@ const Event & Event:: find_latest_WR_pred() const
    }
 }
 
+/*
+ * Find event e in this' parent
+ */
+const bool Event::found(Event *e, Event *parent) const
+{
+
+}
 
 /*
  * Check if two events are in immediate conflict, provided that they are both in enable set.
@@ -807,12 +814,42 @@ bool Event::check_dicfl( const Event & e )
     */
 
    if ((this->evtid.pre_proc == e.evtid.pre_proc) && (this->evtid.trans->proc.id == e.evtid.trans->proc.id))
-      return true;
+      return true; // need to fix
 
 
    // in different pre_procs, touch the same variable => check pre_mem or pre_readers
    DEBUG("Check pre_mem for dicfl");
-   Event * parent = evtid.pre_mem; // for RD, SYN, WR events // not right for WR
+   Event * parent;
+   if (this->evtid.trans->type != ir::Trans::WR)
+   {
+      parent = evtid.pre_mem; // for RD, SYN
+      if this->found(e,parent)
+         return true;
+      else
+         return false;
+   }
+   else
+      if (e.evtid.trans->type != ir::Trans::WR)
+      {
+         parent = e.evtid.pre_mem;
+         if e.found(this,parent)
+            return true;
+         else
+            return false;
+      }
+      else // 2 WRs
+      {
+         for (int i = 0; i < this->evtid.pre_readers.size(); i++)
+         {
+            parent = this->evtid.pre_readers[i];
+            if e.found(this, parent)
+               return true;
+            else
+               return false;
+         }
+      }
+
+
    std::vector<Event *>::iterator this_idx, e_idx;
 
    // special case when parent is bottom, bottom as a special WR without transition.

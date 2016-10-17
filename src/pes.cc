@@ -1353,7 +1353,8 @@ void Config::add (unsigned idx)
 {
    assert(idx < en.size());
    Event & e = *en[idx];
-
+   /* remark that e is in current C (just added to C) */
+   e.inC = 1;
    DEBUG ("\n%p: Config.addidx: %s\n", this, e.str().c_str());
 
    /* move the element en[idx] out of enable set */
@@ -2702,6 +2703,7 @@ void Unfolding:: explore(Config & C, std::vector<Event*> & D, std::vector<Event*
       /*
        * Remove from A events which are already in C
        */
+#if 0
       Event * next;
       for (unsigned j = 0; j < C.latest_proc.size(); j++)
       {
@@ -2721,6 +2723,18 @@ void Unfolding:: explore(Config & C, std::vector<Event*> & D, std::vector<Event*
             next = next->evtid.pre_proc;
          }
       }
+#endif
+
+      for (unsigned i = 0; i < A.size(); i++)
+      {
+         if (A[i]->inC == 1)
+         {
+            //remove A[i]
+            A[i] = A.back();
+            A.pop_back();
+            i--;  //review new A[i]
+         }
+      }
 
       DEBUG("After removing events in C");
       DEBUG_("A = { ");
@@ -2728,7 +2742,7 @@ void Unfolding:: explore(Config & C, std::vector<Event*> & D, std::vector<Event*
                DEBUG_("%d ", A[i]->idx);
             DEBUG("}");
 
-
+#if 0
       DEBUG_(" C.en:{ ");
       for (auto & c : C.en)
       {
@@ -2747,6 +2761,26 @@ void Unfolding:: explore(Config & C, std::vector<Event*> & D, std::vector<Event*
          }
       }
       DEBUG("}");
+#endif
+
+      for (auto e: C.en)
+         e->inside = 1;
+
+      for (unsigned i = 0; i < A.size(); i++) // choose the first one in A which is also in C.en
+      {
+         if (A[i]->inside == 1)
+         {
+            pe = A[i];
+            /*remove A[i] */
+            A[i] = A.back();
+            A.pop_back();
+            // remove event from enable set is done in add function.
+            break;
+         }
+      }
+
+      for (auto e:C.en)
+         e->inside = 0;
    }
 
 
@@ -2789,7 +2823,10 @@ void Unfolding:: explore(Config & C, std::vector<Event*> & D, std::vector<Event*
       return;
    }
    else
+   {
       D.push_back(pe);
+      pe->inC = 0; // mark that pe is removed from C
+   }
    /*
     * Compute alternative to new D.
     */

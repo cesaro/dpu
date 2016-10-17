@@ -25,6 +25,8 @@
 \usepackage{hyperref}
 %\usepackage[linesnumbered,lined,noend,ruled]{algorithm2e}
 \usepackage[lined,noend,ruled]{algorithm2e}
+%\usepackage{algorithmic}
+\usepackage[noend]{algpseudocode}
 \usepackage[capitalise,english,nameinlink]{cleveref} % load after algorithm2e and hyperref
 
 \hypersetup{
@@ -360,42 +362,50 @@ Given $e$ and $e'$ both enabled at a configuration $C$, $e, e' \in en(C)$, we ha
 		Both $e$ and $e'$ are WRs: \verb!parent! takes \verb!e.pre_readers! in turn, if we find $e'$'s appearance in \verb!parent.post_mem[0]! ($e$ is in all subvectors of \verb!parent.post_mem!), they conflict. If not, move to next \verb!pre_readers!
 	
 \end{itemize}
-	
-	\begin{algorithm}{}
 
-		Given two events $e$ and $e'$ in enable set of configuration C, 
-		do as follows to check the direct conflict between them:
-		\begin{enumerate}
-		\item 
-			Don't care about \verb!pre_proc!. It does not affect the conflict.
-		\item
-			If \verb!this->trans->type! is RD or SYN, set \verb!parent = e.pre_mem!
-		\item
-			If \verb!this->trans->type == WR!,
-			
-			for each \verb!e.pre_readers[i]! $(i \in [0..numprocs])$,
-			
-			set \verb!parent = e.pre_readers[i]!
-			
-		\end{enumerate}
-		Let's consider $parent$.
-		
-		\begin{itemize}
-			\item
-			\verb!parent->trans->type! is RD or SYN: 
-			If found(e') in \verb!parent.post_rws!, then $e$ and $e'$ are in immediate
-			conflict
-			\item
-			\verb!parent->trans->type! is WR: If found(e) and found(e') in the same 
-			\verb!parent.post_mem[i]!, then they definitely
-			conflict immediately.
-		\end{itemize}
-		\noindent
-		\caption{Check direct conflict between two enabled events}
-		\label{a:dicfl}
-	\end{algorithm}
+\begin{comment}
+\begin{algorithm}
+\begin{algorithmic}[1]
+\Procedure{Checkdicfl}
+	%\If{a > b} 
+		%\Return false
+	%\EndIf
+		%	\If {e.trans.type != WR}
+		%		\State {parent = e.pre_mem}
+		%		\If {found(e', parent)}
+		%			\Return true
+		%		\Endif
+		%	\Endif
+\verb!e.trans->type = WR!, and \verb!e'.trans->type != WR!, set \verb!parent = e'.pre_mem!
+If found(e, parent), return true
+
+\verb!e.trans->type = WR! and \verb!e'.trans->type = WR!
+
+for each \verb!e.pre_readers[i]! $(i \in [0..numprocs])$,
+
+set \verb!parent = e.pre_readers[i]!
+if found(e',parent), return true
+Let's consider $parent$.
+
+\begin{itemize}
+	\item
+	\verb!parent->trans->type! is RD or SYN: 
+	If found(e') in \verb!parent.post_rws!, then $e$ and $e'$ are in immediate
+	conflict
+	\item
+	\verb!parent->trans->type! is WR: If found(e) and found(e') in the same 
+	\verb!parent.post_mem[i]!, then they definitely
+	conflict immediately.
+\end{itemize}
+
+\end{algorithmic}
+\caption{Check direct conflict between two enabled events}
+\label{a:dicfl}
+\end{algorithm}
+
+\end{comment}
 	
-\subsubsection{Conflict between new conflicting event and the existing\\}
+\subsubsection{Conflict for events in conflict extension}
 \noindent
 	A new event conflicting with an event $e$ labelled with transition $t$ is created by
 	combining \verb!e.pre_proc! and new \verb!pre_mem! and \verb!pre_readers! (for a WR).

@@ -2371,6 +2371,7 @@ void Unfolding:: find_an_alternative(Config & C, std::vector<Event *> D, std::ve
    DEBUG("}");
 
    // Keep in D only events which are not in C.cex
+   /*
    for (auto & c : C.cex)
    for (unsigned i = 0; i < D.size(); i++)
    {
@@ -2381,6 +2382,24 @@ void Unfolding:: find_an_alternative(Config & C, std::vector<Event *> D, std::ve
          D.pop_back();
       }
    }
+   */
+
+   for (auto c : C.cex)
+      c->inside = 1;
+
+   for (unsigned i = 0; i < D.size(); i++)
+   {
+      if (D[i]->inside == 1)
+      {
+         //remove D[i]
+         D[i] = D.back();
+         D.pop_back();
+         i--;
+      }
+   }
+   // set all inside back to 0
+   for (auto c : C.cex)
+      c->inside = 0;
 
 
    DEBUG_("   Prunned D = {");
@@ -2423,6 +2442,7 @@ void Unfolding:: find_an_alternative(Config & C, std::vector<Event *> D, std::ve
 
       while ((spikes[i].size() != 0) and (j < spikes[i].size()) )
       {
+         // check if there is any event in any spike already in D. If yes, remove it from spikes
          for (unsigned k = 0; k < D.size(); k++)
          {
             if (spikes[i][j] == D[k])
@@ -2576,7 +2596,6 @@ void Unfolding:: compute_alt(unsigned int i, const std::vector<std::vector<Event
 
          if (i == s.size() - 1)
          {
-            /*check if the combination is conflict-free or not*/
             DEBUG_("J = {");
             for (unsigned i = 0; i < J.size(); i++)
                DEBUG_("%d, ", J[i]->idx);
@@ -2625,14 +2644,10 @@ void Unfolding:: compute_alt(unsigned int i, const std::vector<std::vector<Event
                }
             }
 */
-
             DEBUG_("Jcopy = {");
             for (unsigned i = 0; i < Jcopy.size(); i++)
                DEBUG_("%d, ", Jcopy[i]->idx);
             DEBUG("}");
-
-
-
 
             /*
              * If J is conflict-free, then A is assigned to union of every element's local configuration.
@@ -2663,21 +2678,7 @@ void Unfolding:: compute_alt(unsigned int i, const std::vector<std::vector<Event
                */
 
               DEBUG("Remove duplica in A");
-              /*
-              for (unsigned i = 0; i < A.size()-1; i++)
-              {
-                 for (unsigned int j = i+1; j < A.size(); j++)
-                 {
-                    if (A[j] == A[i])
-                    {
-                       // remove A[j]
-                       A[j] = A.back();
-                       A.pop_back();
-                       j--;
-                    }
-                 }
-              }
-              */
+
               for (unsigned i = 0; i < A.size(); i++)
               {
                  A[i]->inside++;
@@ -2694,6 +2695,21 @@ void Unfolding:: compute_alt(unsigned int i, const std::vector<std::vector<Event
               //set all inside back to 0 for next usage
               for (unsigned i = 0; i < A.size(); i++)
                  A[i]->inside = 0;
+              /*
+                 for (unsigned i = 0; i < A.size()-1; i++)
+                 {
+                    for (unsigned int j = i+1; j < A.size(); j++)
+                       {
+                          if (A[j] == A[i])
+                          {
+                             // remove A[j]
+                             A[j] = A.back();
+                             A.pop_back();
+                             j--;
+                           }
+                        }
+                   }
+               */
 
               return; // go back to
             }
@@ -2779,7 +2795,8 @@ void Unfolding:: explore(Config & C, std::vector<Event*> & D, std::vector<Event*
 /*
  * Each event has a bit marking that it is in current configuration C or not.
  * - When an event is added to C (by add(idx) method), its inC bit is set to 1.
- * - When it is removed from C (added to disable set D), its inC is set to 0.
+ * - When it is removed from C (C'enable set is empty, and it's time to find alternative,
+ *   which means the last event is added to disable set D), its inC is set to 0.
  */
       for (unsigned i = 0; i < A.size(); i++)
       {

@@ -367,7 +367,9 @@ Event:: Event (Unfolding & u, Ident & ident)
 ,  val(0)
 ,  localvals(0)
 ,  color(0)
+,  inside(0)
 ,  maximal(0)
+,  inC(0)
 {
    assert(this->is_bottom() == false);
    unsigned numprocs = u.m.procs.size();
@@ -409,7 +411,9 @@ Event::Event (Unfolding & u)
    , val(0)
    , localvals(0)
    , color(0)
+   , inside(0)
    , maximal(0)
+   , inC(0)
 {
    // this is only for bottom event
    unsigned numprocs = u.m.procs.size();
@@ -2584,9 +2588,29 @@ void Unfolding:: compute_alt(unsigned int i, const std::vector<std::vector<Event
              * Check if two or more events in J are the same
              * To maintain J, copy J to Jcopy
              */
+
             std::vector<Event *>  Jcopy = J;
 
             DEBUG("Remove duplica in Jcopy");
+
+            for (unsigned i = 0; i < Jcopy.size(); i++)
+            {
+               Jcopy[i]->inside++;
+               if (Jcopy[i]->inside >1)
+               {
+                  // remove J[j]
+                  Jcopy[i]->inside--;
+                  Jcopy[i] = Jcopy.back();
+                  Jcopy.pop_back();
+                  i--;
+               }
+            }
+
+            //set all inside back to 0 for next usage
+            for (unsigned i = 0; i < Jcopy.size(); i++)
+               Jcopy[i]->inside = 0;
+
+/*
             for (unsigned i = 0; i < Jcopy.size()-1; i++)
             {
                for (unsigned int j = i+1; j < Jcopy.size(); j++)
@@ -2600,11 +2624,15 @@ void Unfolding:: compute_alt(unsigned int i, const std::vector<std::vector<Event
                   }
                }
             }
+*/
 
-            DEBUG_("J = {");
+            DEBUG_("Jcopy = {");
             for (unsigned i = 0; i < Jcopy.size(); i++)
                DEBUG_("%d, ", Jcopy[i]->idx);
             DEBUG("}");
+
+
+
 
             /*
              * If J is conflict-free, then A is assigned to union of every element's local configuration.
@@ -2635,6 +2663,7 @@ void Unfolding:: compute_alt(unsigned int i, const std::vector<std::vector<Event
                */
 
               DEBUG("Remove duplica in A");
+              /*
               for (unsigned i = 0; i < A.size()-1; i++)
               {
                  for (unsigned int j = i+1; j < A.size(); j++)
@@ -2648,6 +2677,23 @@ void Unfolding:: compute_alt(unsigned int i, const std::vector<std::vector<Event
                     }
                  }
               }
+              */
+              for (unsigned i = 0; i < A.size(); i++)
+              {
+                 A[i]->inside++;
+                 if (A[i]->inside >1)
+                 {
+                    // remove A[i]
+                    A[i]->inside--;
+                    A[i] = Jcopy.back();
+                    A.pop_back();
+                    i--;
+                 }
+              }
+
+              //set all inside back to 0 for next usage
+              for (unsigned i = 0; i < A.size(); i++)
+                 A[i]->inside = 0;
 
               return; // go back to
             }
@@ -2698,6 +2744,12 @@ void Unfolding:: explore(Config & C, std::vector<Event*> & D, std::vector<Event*
 
       DEBUG_("C = ");
       C.cprint_event();
+
+      DEBUG("C display by inC: {");
+      for (unsigned i = 0; i < evt.size(); i++)
+         if (evt[i].inC == 1)
+            DEBUG_("%d, ", evt[i].idx);
+      DEBUG("}");
       //choose the mutual event in A and C.en to add
       // DEBUG(" A is not empty");
       /*
@@ -2724,7 +2776,11 @@ void Unfolding:: explore(Config & C, std::vector<Event*> & D, std::vector<Event*
          }
       }
 #endif
-
+/*
+ * Each event has a bit marking that it is in current configuration C or not.
+ * - When an event is added to C (by add(idx) method), its inC bit is set to 1.
+ * - When it is removed from C (added to disable set D), its inC is set to 0.
+ */
       for (unsigned i = 0; i < A.size(); i++)
       {
          if (A[i]->inC == 1)
@@ -2820,6 +2876,7 @@ void Unfolding:: explore(Config & C, std::vector<Event*> & D, std::vector<Event*
    if (pe->evtid.trans->type == ir::Trans::LOC)
    {
       DEBUG("   There is a LOC in D. No alternative");
+      pe->inC = 0; // move it out of C
       return;
    }
    else

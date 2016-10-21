@@ -15,15 +15,16 @@
 
 include defs.mk
 
-.PHONY: fake all g test clean distclean prof dist compile tags run
+.PHONY: fake all g test clean distclean prof dist compile tags run dot
+	
 
 all : compile
 
 compile: $(TARGETS)
 
-r run: compile input.ll
+run: compile input.ll dot
 	./src/main
-
+	
 input.ll : benchmarks/basic/hello.ll src/rt/rtv.ll
 	llvm-link-$(LLVMVERS) -S $^ -o $@
 
@@ -35,7 +36,7 @@ src/rt/rtv.ll : src/rt/start.s src/rt/rt.bc
 $(TARGETS) : % : %.o $(OBJS)
 	@echo "LD  $@"
 	@$(CXX) $(LDFLAGS) -o $@ $^ $(LDLIBS)
-
+    
 #$(MINISAT)/build/release/lib/libminisat.a :
 #	cd $(MINISAT); make lr
 
@@ -48,7 +49,7 @@ tags : $(SRCS)
 
 g gdb : $(TARGETS)
 	gdb ./src/main
-
+		
 vars :
 	@echo "CC       $(CC)"
 	@echo "CXX      $(CXX)"
@@ -96,6 +97,8 @@ dist : all
 	cp -R examples/pr dist/examples/corbett/
 	for i in 02 04 05 08 10 20 30 40 50; do ./tools/mkdekker.py $$i > dist/examples/dekker/dek$$i.ll_net; done
 	for i in 02 03 04 05 06 07; do ./tools/mkdijkstra.py $$i > dist/examples/dijkstra/dij$$i.ll_net; done
-
+	
+ dot: $(DOTPNG)
+ 	     
 -include $(DEPS)
 

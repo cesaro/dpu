@@ -3,7 +3,7 @@
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
 \usepackage[noadjust,nosort]{cite}
-\usepackage{amsmath}
+\usepackage[fleqn]{amsmath}
 \usepackage{amsfonts}
 \usepackage{amssymb}
 %\usepackage{MnSymbol}
@@ -25,6 +25,8 @@
 \usepackage{hyperref}
 %\usepackage[linesnumbered,lined,noend,ruled]{algorithm2e}
 \usepackage[lined,noend,ruled]{algorithm2e}
+%\usepackage{algorithmic}
+\usepackage[noend]{algpseudocode}
 \usepackage[capitalise,english,nameinlink]{cleveref} % load after algorithm2e and hyperref
 
 \hypersetup{
@@ -103,14 +105,13 @@ Classes neccessary to model a system are State, Trans, Process:
 	\verb!Trans!: includes a numerous properties:
 	\begin{itemize}
 	\item
-		\verb!proc!: the process which it belongs to.
+		\verb!proc!: process a transition belongs to.
 	\item
-		\verb!src!: the source location of the process
+		\verb!src!: source of transition which implies the process location enabling transition
 	\item
-		\verb!dest!: a new location that the process can reach when the transitions is fired.
+		\verb!dest!: the target (a new location) process should reach when the transitions is fired.
 	\item
-		\verb!var!: an $int$ number implying pthe address  of the only global variable which is touched
-		 by transition in machine memory (\verb!tab! of \verb!State!)
+		\verb!var!: an $int$ number implying address in memory area of the only global variable which is touched by transition (\verb!tab! of \verb!State!)
 	\item
 		\verb!offset!: the offset address from the variable which is helpful just in case \verb!var! is an array.
 	\item
@@ -270,37 +271,33 @@ Finally, for \verb!WR! events :
 \end{enumerate}
 
 \section{Event and Conflict}
-\subsection{Direct conflict}
-Two events $e$ and $e'$ are in \textit{immediate conflict} $e \icfl e' $ iff $e \cfl e'$ and both $[e] \cup \lceil e' \rceil$ and $ \lceil e \rceil \cup [e']$ are configuration. Saying non-mathematically, they take 
-
-To determine immediate conflict between two events $e$ and $e'$: 
+\subsection{Immediate conflict}
+Two events $e$ and $e'$ are in \textit{immediate conflict} $e \icfl e' $ iff $e \cfl e'$ and both $[e] \cup \lceil e' \rceil$ and $ \lceil e \rceil \cup [e']$ are configuration. Saying non-mathematically, they share one of their immediate predecessors, so-called parents.
+Therefore, two events are in conflict only if they satisfy two condition:
 \begin{itemize}
-	\item
-	One of them is a LOC, there is no conflict at all.
-	\item
-	If they have the same predecessor \verb!e.pre_proc = e'.pre_proc!, the look at their local configuration.
-	\item
-	If they are in different processes (have different \verb!pre_proc!), look at one event's \verb!parent! \verb!e.pre_mem! (watch out the case where its parent is $bottom$ - a special WR)
-	\begin{itemize}
-		\item
-		\verb!parent! is RD or SYN: if we find $e'$ in its \verb!post_rws!, then they are in
-		conflict.
-		\item
-		\verb!parent! is WR: if we find $e$ and $e'$ in the same vector of \verb!e.post_mem!,
-		they are in conflict (e can be a WR, so it can appear in all vectors of 
-		\verb!e.post_mem!, not only the vector of its process)
-	\end{itemize}
-	
+\item
+	\textit{They have at least one parent in common which means they both are successors of an event.}
+\item
+	\textit{The union of their local configuration must be also a configuration.}
 \end{itemize}
 
-\subsubsection{Checking direct conflict}
-Every event in the unfolding should have a list of events which are in conflict with it, called $dicfl$. This set is updated when events are created or something which can cause changes in relationships among events happens.
+For alternative algorithm, in \verb!Event!, direct conflict events is stored as a vector of events, \textit{dicfl} which is updated whenever an event is created in the unfolding or others' appearances influenced on its relations.
 An event can be created in two cases:
 \begin{enumerate}
-	\item
-	A transition is enabled at the state of configuration, one event labelling by that is
-	created and added to enable set. At the time of creating an event, we need to update their $dicfl$. If there exist any $e'$ in en(C) which conflicts with $e$,
-	move $e'$ to cex(C) and update their direct conflict sets $dicfl$ at the same time. 		
+\item
+	When a transition is enabled at a configuration, a corresponding event labelled with it is
+	created and added to the configuration's enable set. By that time, we need to update $dicfl$ for 
+	the new one.
+\item
+	In the time of computing conflict extension, a new event conflicting with an event $e$, labelled
+	with transition $t$, is created by combining \verb!e.pre_proc! and new \verb!pre_mem! and 
+	\verb!pre_readers!(See \cref{subsec:cex} for more details)	
+\end{enumerate}
+
+We propose two different algorithms to decide the direct conflict for these two cases.
+
+\subsubsection{Checking direct conflict between two enable events.}
+Given $e$ and $e'$ both enabled at a configuration $C$, $e, e' \in en(C)$, we have a lemma.
 	
 	\begin{lemma}{Direct conflict between enable events}
 		\begin{itemize}
@@ -311,12 +308,13 @@ An event can be created in two cases:
 	\end{lemma}
 	
 	\begin{proof}
+	Two ways.
 		\begin{itemize}
 		\item
 			($\leftarrow$) $e$ and $e'$ have a common parent $\rightarrow$ $e \icfl e'$
 			
-			$e$ and $e'$ sharing one parent means that  $e \cfl e'$. Moreover, $e$ and $e'$ are both in
-			en(C), so we have:
+			$e$ and $e'$ sharing one parent means that  $e \cfl e'$. Moreover, $e$ and $e'$ are both 
+			in en(C), so we have:
 			\begin{itemize}
 			\item
 				$\lceil e \rceil \cup e'$ is a configuration.
@@ -333,100 +331,501 @@ An event can be created in two cases:
 		\end{itemize}			
 	\end{proof}			
 	
-	\iffalse			
-	Thank to \autoref{thm:lem1}, to decide if they are in conflict, just check their parents
-	together. If there is at least one shared parent between them, they are in direct conflict.
-	Otherwise, they are not. Use \verb!post_mem! field to check shared parents.
-	
-	Let us take the type of transition into account: 
-	Note that they are in a enable set of configuration, so they cannot share\verb!	pre_proc!.
+	\noindent
+	Thank to \autoref{thm:lem1}, to decide if $e$ and $e'$ are in conflict, we just need to check if
+	they are both successors of an event, which means their appearances in \verb!post_mem! of one 
+	parent.
+	Notice that they are in a enable set of configuration, so they cannot have the same 
+	\verb!pre_proc! (The system is deterministic). To determine immediate conflict between two
+	events $e$ and $e'$, do as follows: 
 	\begin{itemize}
-		\item
-		If either $e$ or $e'$ is a LOC: two events definitly share no parent (thank to the
-		deterministic feature of the model) which implies that they are not in conflict 
-		(including direct conflict).
-		\item
-		If they are two RDs or two SYNs or a pair of (RD, SYN):
-		\begin{itemize}
-			\item
-			If \verb!e.pre_mem = e'.pre_mem!, they are not in conflict but concurrent.
-			\item
-			If we have \verb!e.pre_proc = e'.pre_mem! or 
-			\verb!e.pre_mem =  e'.pre_proc!, $e$ and $e'$ are in direct conflict.
-		\end{itemize}
-		
-		\item
-		If ($e$. $e'$) is a pair of (RD, WR) or (SYN, WR): 
-		\begin{itemize}
-			\item
-			If \verb!e.pre_mem = e'.pre_proc!, we have $e \icfl e'$
-			\item
-			If \verb!e.pre_mem! or \verb!e.pre_proc! is the same as one of 
-			\verb!e'.pre_readers!, it is definitely that $e \icfl e'$
-		\end{itemize}
-		
-		\item
-		If both are WRs, check \verb!e.pre_proc! and \verb!e.pre_readers! with
-		\verb!e'.pre_proc! and all \verb!e'.pre_readers!. If there exist a pair with the
-		same index, $e$ and $e'$ conflict directly.
-	\end{itemize}
-	\fi
-	
-	\begin{algorithm}{}
-		Given xxxx two events $e$ and $e'$ in the enable set of configuration C, 
-		do as follows to check the direct (immediate) conflict between them:
-		\begin{enumerate}
-			\item 
-			Don't care about \verb!pre_proc!. It does not affect the conflict.
-			\item
-			If \verb!this->trans->type! is RD or SYN, set \verb!parent = e.pre_mem!
-			\item
-			If \verb!this->trans->type == WR!,
-			
-			for each \verb!pre_readers[i]! $(i \in [0..numprocs])$,
-			
-			set \verb!parent = pre_readers[i]!
-			
-		\end{enumerate}
-		Let's consider $parent$.
-		
-		\begin{itemize}
-			\item
-			\verb!parent->trans->type! is RD or SYN: 
-			If found(e) in \verb!parent.post_rws!, then $this$ and $e$ are in direct
-			conflict
-			\item
-			\verb!parent->trans->type! is WR: If found(this) and found(e) in the same 
-			\verb!parent.post_mem[i]!, then they definitely
-			conflict immediately.
-		\end{itemize}
-		\noindent
-		\caption{Check direct conflict between two enabled events}
-		\label{a:dicfl}
-	\end{algorithm}
-	
 	\item
-	A new event conflicting with an event $e$ labelling by transition $t$ is created by
+		One of them is a LOC, there is definitely no conflict between them at all.
+	\item
+		If they have the same predecessor \verb!e.pre_proc = e'.pre_proc!, they are in the same
+		process as well as have the same source which implies they conflict.
+	\item
+		If they are in different processes (have different \verb!pre_proc!), look at one's 
+		\verb!parent! which will be \verb!e.pre_mem! 		if $e$ is a RD or SYN (We can do the
+		same to $e'$ when $e$ is a WR and $e'$ is a RD or SYN). The case of two WRs will be
+		seperately treated.
+		\begin{itemize}
+		\item
+			\verb!parent! is RD or SYN: if we find $e'$ in \verb!parent.post_rws!, then they are in
+			conflict.
+		\item
+			\verb!parent! is WR or bottom: if we find $e$ and $e'$ in the same vector of
+			\verb!parent.post_mem!, they are in conflict ($e$ and $e'$ can be a WR, so it can appear
+			 in all subvectors of \verb!parent.post_mem!, not only the vector of its process).
+	\end{itemize}
+	\item
+		Both $e$ and $e'$ are WRs: \verb!parent! takes \verb!e.pre_readers! in turn, if we find $e'$'s appearance in \verb!parent.post_mem[0]! ($e$ is in all subvectors of \verb!parent.post_mem!), they conflict. If not, move to next \verb!pre_readers!
+	
+\end{itemize}
+
+\begin{comment}
+\begin{algorithm}
+\begin{algorithmic}[1]
+\Procedure{Checkdicfl}
+	%\If{a > b} 
+		%\Return false
+	%\EndIf
+		%	\If {e.trans.type != WR}
+		%		\State {parent = e.pre_mem}
+		%		\If {found(e', parent)}
+		%			\Return true
+		%		\Endif
+		%	\Endif
+\verb!e.trans->type = WR!, and \verb!e'.trans->type != WR!, set \verb!parent = e'.pre_mem!
+If found(e, parent), return true
+
+\verb!e.trans->type = WR! and \verb!e'.trans->type = WR!
+
+for each \verb!e.pre_readers[i]! $(i \in [0..numprocs])$,
+
+set \verb!parent = e.pre_readers[i]!
+if found(e',parent), return true
+Let's consider $parent$.
+
+\begin{itemize}
+	\item
+	\verb!parent->trans->type! is RD or SYN: 
+	If found(e') in \verb!parent.post_rws!, then $e$ and $e'$ are in immediate
+	conflict
+	\item
+	\verb!parent->trans->type! is WR: If found(e) and found(e') in the same 
+	\verb!parent.post_mem[i]!, then they definitely
+	conflict immediately.
+\end{itemize}
+
+\end{algorithmic}
+\caption{Check direct conflict between two enabled events}
+\label{a:dicfl}
+\end{algorithm}
+
+\end{comment}
+	
+\subsubsection{Conflict for events in conflict extension}
+\noindent
+	A new event conflicting with an event $e$ labelled with transition $t$ is created by
 	combining \verb!e.pre_proc! and new \verb!pre_mem! and \verb!pre_readers! (for a WR).
+
 	Find $e'$ with the same transition, same \verb!pre_proc! but different \verb!pre_mem! or
-	\verb!pre_readers!. See \cref{ss:cex_rd}, \cref{ss:cex_syn} and \cref{ss:cex_wr} for more
-	details.
+	\verb!pre_readers!. See \cref{subsection:cex_rd}, \cref{subsection:cex_syn} and \cref{subsection:cex_wr} for more details.
 	
 	\begin{lemma}{Direct conflict in conflict extension}
 		\begin{itemize}
 			\item
-			If new event $e'$ is a SYN, RD, it will be in immidiate conflict with \verb!e.pre_mem!
+			If $ex$ is a SYN, RD, it will be in immidiate conflict with \verb!ex.post_rws! which can be discovered by backtracking from \verb!e.pre_mem!.
 			\item
-			If $e'$ is a WR, it will conflict directly with all \verb!e.pre_readers! which are
-			different from those of $e$
+			If $ex$ is a WR, it will conflict directly with several events according to \verb|ex.pre_readers|. For each \verb|ex.pre_readers[i]| with i=\{0..numprocs\}, do as follows:
+			\begin{itemize}
+				\item 
+					If \verb|e.pre_readers[i] = ex.pre_readers[i]|, then there is no directly conflicting event in branch $i$. Move to the next branch.
+				\item
+					If \verb|e.pre_readers[i] != ex.pre_readers[i]|, find such \verb|e'| that it is immediate successor of \verb|ex| and \verb|e'< e.pre_readers[i]|
+			\end{itemize}
 		\end{itemize}
 	\end{lemma}
 	
+
+
+\subsection{General Conflict}
+\subsubsection{Definition}
+Two events $e$ and $e'$ conflict if they input from the same source which means they have at least one predecessor in common.
+
+\subsubsection{Checking conflict between two arbitrary events\\}
+\noindent
+Given two arbitrary events $e$ and $e'$ in the unfolding, do as follows to specify the relation between them, conflict or not.
+\begin{enumerate}
+	\item e and e' are in the same process: $p(e) = p(e')$, then apply \cref{a:layer_tree} to determine conflict between ones in the same tree. We have one tree of events for each process.
+	\item e and e' are in different processes: $p(e)\neq p(e')$
+	\begin{itemize}
+		\item
+		They touch the same variable: $v(e) = v(e')$ and are two write events: $ type(e) = type(e') = WR$ , then apply \cref{a:layer_tree} for tree of WR events. We have one WR event tree for each variable of the model. 
+		\item
+		They touch the same variable: $v(e) = v(e')$ and are two mutex events: $ type(h(e)) = type(h(e')) = SYN$, then apply \cref{a:layer_tree} for tree of SYNs. Each mutex variable has  a corresponding tree of events touching it.
+		\item
+		They touch the same variable: $v(e) = v(e')$ and they are two RDs. Two RDs are usually concurrent even though they touch the same variable. Therefore, their relation depends mainly on their WR predecessors. Apply \cref{a:rds} for two RDs: 
+		
+		Assume $w_1$, $w_2$ are the nearest WR causal predecessor of $e$ and $e'$ respectively. Because $e$ and $e'$ modify the same variable, so apply the same-tree-conflict-checking algorithm \cref{a:layer_tree} to determine the relation
+		between two WRs (they are either inconflict or in causality), and then
+		\begin{itemize}
+			\item
+			If $w_1 \equiv w_2$, then $e$ and $e'$ are concurrent: $e \co e'$ (which implies that $\lnot (e \cfl e')$).
+			\item
+			I $w_1 \cfl w_2$, then necessarily we have $e \cfl e'$.
+			\item
+			If not, then either $w_1 < w_2$ or $w_2 < w_1$; \wlogg, let's assume that $w_1 < w_2$.
+			Two cases are possible:
+			\begin{align}
+				e < w_2 \label{ca1} \\
+				or \nonumber \\
+				\lnot (e < w_2) \text{ which implies that } e \cfl w_2 \text{, then } e \cfl e' \label{ca2}
+			\end{align}
+			
+			To check wether \eqref{ca1} or \eqref{ca2} holds, we find $w'$, the only WR causal predecessor of $w_2$ at depth $\depth{w_1} + 1$.
+			Let $r_1$ be the RD event 
+			\verb!w'->pre_readers[e->trans->proc.id]!, then it is clearly that $r_1$ and $e$ are in the same process.
+			If $ e' < r_1$, then we are at case \eqref{ca2}, otherwise ($e < r_1$), we are at case \eqref{ca1}.
+		\end{itemize}
+		\item 
+		They touch the same variable: $v(e) = v(e')$ and $e$ is a WR and $e'$ is a RD. Do the following to figure out their relation (see \cref{a:wrd}):
+		
+		Find $w_2$, the latest WR causal predecessor of $e'$, then apply same-tree-conflict-checking algorithm \cref{a:layer_tree} for WR tree to determine $e$ (a WR) and $w_2$ to conflict or not.
+		\begin{itemize}
+			\item
+			If $w_2 = e$, then $e < e'$, which implies that $\lnot (e \cfl e')$
+			\item
+			If $w_2 \cfl e$ , then sequentially $e \cfl e'$
+			\item
+			If not, then either $ w_2< e$ or $e < w_2$:
+			\begin{itemize}
+				\item
+				If $ e < w_2 $, we also have $w_2 < e'$, so $e < e'$, which means that $\lnot (e \cfl e')$
+				\item
+				If $w_2 < e$, then two cases are possible:
+				\begin{align}
+					e' < e \label{wr1} \\
+					or \nonumber \\
+					\lnot (e < e') \label{wr2}
+				\end{align}
+				 
+				Here, from e, we find $w'$, WR causal predecessor of $e$ at depth $\depth{w_2} + 1$.
+				Let $r_1$ be the RD event immediately precedes $w'$ ($r_1 = $\verb!w'->pre_readers[e->trans->proc.id]!), then $r_1$ and $e$ are obviously in the same process. 
+				If $r_1 < e$, then we are at case \eqref{wr1} which means $e$ and $e'$ do not conflict at all, otherwise $_\lnot (r_1 < e) $, and we are at case \eqref{wr2} which implies that $e \cfl e'$.
+			\end{itemize}
+		\end{itemize}
+		
+		\item Others where two events touch different variables: $v(e) \neq v(e')$) or there is at least a LOC, the problem is slightly more sofisticated. It is necessary to store more information in an event.	
+		\begin{itemize}
+			\item 
+			For each event $e$, we store two vectors: \verb!var_maxevt! and \verb!pro_maxevt! respectively are vectors of maximal events in e' local configuration for all variables and all processes in the model.
+			\begin{itemize}
+				\item
+				Formally, \verb!var_maxevt! $ = (e_1, e_2...,e_m)$ where $m$ is the number of variables in 
+				the model and $e_i$ is the maximal event (RD, SYN, WR) in $e$'s local configuration which 
+				touches $v_i$ variable :
+				\begin{align}
+				e_i \in  \left[ e \right]: v(e_i) = v_i \text{ and }  \nexists e_i' \in \left[ e \right] :
+				e_i < e_i' \text{ and } v(e_i') = v_i \nonumber
+				\end{align}
+				
+				\item
+				\verb!proc_maxevt!$ = (e_1, e_2...,e_n)$ where  n is the number of processes in the
+				model and $e_i$ is the maximal event of process $p_i$ in $e$'s local configuration:
+				\begin{align}
+				e_i \in  \left[ e \right]: p(e_i) = p_i \text{ and } 
+				\nexists e_i' \in \left[ e \right]:
+				e_i < e_i' \text{ and } p(e_i') = p_i \nonumber 
+				\end{align}
+				
+			\end{itemize}				
+			\item
+			Having these data, apply \cref{a:arb} to check conflict between two arbitrary events:
+			\begin{itemize}
+				\item
+				Apply \cref{a:layer_tree} to check conflict for all pairs of events $(e_i, e_i')$ where $e_i \in $ \verb!e.var_maxevt! 	
+				and $e_i'\in $ \verb!e'.var_maxevt! touch the same variable $v_i$
+				\item
+				Apply \cref{a:layer_tree} to check conflict for all pairs of events: $(e_j, e_j')$ where $e_j \in $ \verb!e.proc_maxevt! 	
+				and $e_j'\in $ \verb!e'.proc_maxevt! in the same process $p_j$
+			\end{itemize}
+			
+			If there exist any pair $(e_i, e_i')$ such that $e_i \cfl e_i'$, then we necessarily have $e \cfl e'$			
+		\end{itemize}	
+	\end{itemize}
+\end{enumerate}
+
+\noindent
+\textbf{Data Structure}
+An event $e$ has two vectors \verb!proc_maxevt! and \verb!var_maxevt!:
+\begin{itemize}
+	\item
+	\verb!proc_maxevt! = $(e_1, e_2...,e_n)$ (n is the number of processes) stores pointers to maximal events for all processes $v_i$ in the e's local configuration.
+	\item
+	\verb!var_maxevt! = $(e_1, e_2...,e_n)$ (n is the number of global variables) stores pointers to maximal events for all global variables $v_i$ in e's local configuration.	
+\end{itemize}
+
+\noindent
+\textbf{Initialize vectors of maximal events}
+\begin{enumerate}
+	\item {Initialize \verb!proc_maxevt!:}
+	\begin{itemize}
+	\item
+		If $e$ is a \verb!LOC!:
+		\begin{itemize}
+		\nonumber
+		\item[-]
+			\verb!e.proc_maxevt = e.pre_proc.proc_maxevt!
+		\item[-]
+			\verb!e.proc_maxevt[e.trans->proc.id] = e!		
+		\end{itemize}
+		
+	\item
+		If $e$ is a \verb!RD! or \verb!SYN! in process $p_i$: 
+		\begin{itemize}
+		\item[-]	
+			\verb!e.proc_maxevt[p_i.id] = e!
+		\item[-]
+			$\forall p_j \neq p_i$: 
+			\verb! e.proc_maxevt[!$p_j$ \verb!] = max(e.pre_proc.proc_maxevt[! $p_j$ \verb!], e.pre_mem.proc_maxevt[!$p_j$ \verb!])!
+	
+	\end{itemize}
+		
+	\item
+		If $e$ is a \verb!WR!: 
+		\begin{itemize}
+		\item[-]		
+			\verb!e.proc_maxevt[!$p_i$\verb!] = e!
+		\item[-]
+			$\forall p_j \neq p_i$: \\
+			\verb!e.proc_maxevt[!$p_j$\verb!] = max(e.pre_proc.proc_maxevt[!$p_j$\verb!],max(e.pre_readers[k])[!$p_j$\verb!])!
+		while $pre\_readers[k]$ is the previous reader corresponding to process $k$ 
+		\end{itemize}
+	\end{itemize}
+	
+	\item {Initialize \verb!var_maxevt!:}
+	\begin{itemize}
+		\item
+		If $e$ is a $LOC$:
+		
+		\verb!e.var_maxevt = e.pre_proc.proc_maxevt!
+		\item
+		If $e$ is a $RD$ or $SYN$ touching variable $v_i$: 
+		
+		\verb!e.var_maxevt[!$v_i$ \verb!] = e!\\
+		$\forall p_j \neq p_i$: \\
+		\verb! e.var_maxevt[!$p_j$ \verb!] = max(e.pre_proc.var_maxevt[! $p_j$ \verb!], e.pre_mem.proc_maxevt[!$p_j$ \verb!])!
+		
+		\item
+		If $e$ is a $WR$: 
+		
+		\verb!e.proc_maxevt[p_i] = e!
+		
+		$\forall p_j \neq p_i$:
+		
+		\verb!e.proc_maxevt[!$p_j$\verb!] = max(e.pre_proc.proc_maxevt[!$p_j$\verb!], max(e.pre_readers[k])[!$p_j$\verb!])!
+		while $pre\_readers[k]$ is the previous reader corresponding to process k 
+	\end{itemize}	
 \end{enumerate}
 
 
+\subsubsection{Checking conflict between two events in the same tree}
+\begin{figure}
+	\subfloat[original tree]{
+		\includegraphics[scale=0.2]{tree.png}
+	}
+	\subfloat[$k^{1}$ tree]{
+		\includegraphics[scale=0.3]{tree1.png}
+	}
+	\subfloat[$k^{2}$ tree]{
+		\includegraphics[scale=0.3]{tree2.png}
+	}
+	
+	\caption{Trees with k=2 \label{fig:example}}
+\end{figure}
+
+Tree are divided into layers whose events have the same depth and are in immediate conflict.
+$e$ and $e'$ are two events in that tree at depths $e.depth$ and $e'.depth$ respectively.
+\begin{itemize}
+	\item
+	If \verb!e.depth = e'.depth!, then $e \icfl e'$
+	\item
+	If \verb!e.depth! $\neq$ \verb!e'.depth!, without loss of any generality, assume  \verb!depth(e) > depth(e')! . Find an event \verb!e": e" < e! and \verb!e".depth = e'.depth! . If $e" \equiv e'$, then $e'$ and $e$ are in causality, else they are in conflict.
+\end{itemize}
+
+\noindent
+To quickly find $e"$ through a tree, we apply the idea of skip list (see Fig.\ref{fig:example} for illustration).
+Accordingly, in each node, a list of skip predecessors $
+skip\_preds = (i_1, i_2,..,i_m)$ are stored, where $i_j$ $(j \in [1,m] )$ is the causal predecessor in $k^{j}$ distance of depth, $k$ $(k > 1)$ is a constant distance in depth which is choosen manually (by experience) to skip through a tree.\\
+
+\noindent
+\textbf{Data structure:}
+To apply the algorithm of skip list to layered trees, we use a two template class \verb!Node<T,S,SS>! \verb!MultiNode<T,S,SS>! (T is Event) which has the following attributes:
+\begin{enumerate}
+\item 
+	Template struct \verb!Node<T,S,SS>:!
+	\begin{itemize}
+		\item \textit{depth}: the distance from the root
+		\item \textit{*pre}: points to immediate causal predecessor of type T (\verb!pre-proc! or \verb!pre_mem! in Event class)
+		\item \textit{skip\_preds}: list of pointers to its $k$-skip predecessors of type T.	
+		(T can be an event in the same process or touching the same variable)
+	\end{itemize}
+\item
+	Class template \verb!MultiNode<T,S,SS>!
+	\begin{itemize}
+	\item
+		A list of two \verb!Node!s, repectively corresponding to process and variable nodes.
+	\item
+		A template function $pred()$ to locate the immediate causal predecessor corresponding to type of \verb!Node!
+	\item
+		S: 
+	\item
+		SS: skip
+	\end{itemize}
+\end{enumerate}
+
+\noindent
+Class Event inherits \verb!MultiNode<T,S,SS>! and has two template functions indicating the type of Node.
+\begin{itemize}
+\item
+	\verb!Node<Event> &proc!: return node in equivalent \textit{process} tree
+\item	
+	\verb!Node<Event> &var!: return node in equivalent \textit{variable} tree 	
+\end{itemize}
+
+\noindent
+\textbf{Initialize a list of skip predecessors} \verb!skip_preds:!
+\begin{enumerate}
+\item
+	Define the size $s$ of vector \verb!skip_preds! of a node. It depends on the depth of the node.
+	
+	$s = max(i \in [1,\infty]: e.depth \mod k^{i} = 0 )$ 
+\item
+	Compute the entire list of skip predecessors for e. For every node, $e.skip\_preds[i]$ is a predecessor at a depth distance of $k^{i}$ from e, so that:
+	\begin{itemize}
+	\item
+		The first element of the list \verb!skip_preds[0]! points to the predecessor at a depth distance of $k^1 = k$ which can be reached by backtracking with $pre$ (actually \verb!e.pre_proc! or \verb!e.pre_mem!)
+	\item
+		For $\forall i \in [1,s]: skip\_preds[i] = max(\{e": e" < e$ and $e".depth \mod k^i = 0\})$ which can be computed by recursively exploring $k$ times with $skip\_preds[i-1]$: \\
+		\verb!e.skip_preds[i] = e.skip_preds[i-1]....skip_preds[i-1]! (k times) 
+	\end{itemize}
+\end{enumerate}
+
+\begin{algorithm}
+	\noindent
+	Assume $e.depth > e'.depth$, and , to reach e', do as follows:
+	\begin{enumerate}
+		\item
+		\verb!Set next = e!
+		\item
+		\verb!while! $next.depth \neq e'.depth$ \verb!do!
+		\begin{itemize}
+			\item
+			\verb!Set d  = next.depth - e'.depth!
+			\item
+			\verb!Set i  = 0!
+			\item
+			\verb!while! ($ next.depth \mod k^{i} = 0$)   \space \verb!do!
+			$i = i + 1$
+			\item
+			\verb!Set! $next = next.skip\_preds[i]$ 
+		\end{itemize} 
+		\item 
+		If $next \equiv e'$ then 
+		$e'< e$ 
+		
+		else $e'\cfl e$	 
+	\end{enumerate}
+	\caption{Decide the conflict between e and e' in the same tree}
+	\label{a:layer_tree}	
+\end{algorithm}
+
+\begin{algorithm}
+	Given two reads $e$ and $e'$.
+	\begin{enumerate}
+		\item
+		Set \verb!w1 = e.find_WR_pred() !
+		\verb!w2 = e'.find_WR_pred()!
+		\item
+		If $w_1 == w_2$
+		return false;
+		\item
+		If $w_1 \cfl w_2$
+		return true;
+		\item
+		If $w_2$ is a successor of $w_1$
+		\begin{itemize}
+			\item
+			Set $w'$ is WR predecessor of $w_2$ at the $w_1.depth + 1$
+			\item
+			Set $r_1$ = \verb!w'.pre_preaders[e->trans->proc.id]!
+			\item
+			If ($e$ < $r_1$) then $\lnot (e \cfl e')$
+			
+			else 	$e \cfl e'$;
+		\end{itemize}
+		else
+		\begin{itemize}
+			\item
+			Set $w'$ is WR predecessor of $w_1$ at the $w_2.depth + 1$
+			\item
+			Set $r_1$ = \verb!w'.pre_preaders[e'->trans->proc.id]!
+			\item
+			If ($e'$ < $r_1$) then $\lnot (e \cfl e')$
+			
+			else 	$e \cfl e'$;
+		\end{itemize}
+		
+	\end{enumerate}
+	\caption{Decide the conflict between two RDs}
+	\label{a:rds}	
+\end{algorithm}
+
+\begin{algorithm}
+	Given two events $e$ is a WR and $e'$ is a RD
+	\begin{enumerate}
+	\item
+		Set 	\verb!w2 = e'.find_WR_pred()!
+	\item
+		If $e \equiv w_2$
+		return false;
+	\item
+		If $e \cfl w_2$
+		return true;
+	\item
+		If $w_2$ is a successor of $e$, then $e < e'$
+	\item
+		Else
+		\begin{itemize}
+			\item
+			Set $w'$ is WR predecessor at the $w_2.depth + 1$
+			\item
+			Set $r_1 = w'.pre\_preaders[e'->trans->proc.id]$
+			\item
+			If ($e'$ < $r_1$) then $\lnot (e \cfl e')$
+			
+			else 	$e \cfl e'$;
+		\end{itemize}
+		
+	\end{enumerate}
+	\caption{Decide the conflict between a WR and a RD}
+	\label{a:wrd}	
+\end{algorithm}
+
+\begin{algorithm}
+	Given two events touching different variables or 2 LOCs $e$ and $e'$.
+	Do the following:
+	\begin{enumerate}
+		\item
+		For each pair $(e_i, e_i')$ of maximal events of each process:
+		$e_i \in$ \verb!e.proc_maxevt! and $e_i' \in$ \verb!e'.proc_maxevt! do: \\
+		\begin{itemize}
+			\item
+			If $e_i$.\verb!check_conflict_same_tree(!$e_i'$ \verb!)! is $true$, then  return true;
+			\item
+			Else jump to 2
+		\end{itemize}
+		
+		\item
+		For each pair $(e_i, e_i')$ of maximal events of each process:
+		$e_i \in $ \verb!e.var_maxevt! and $e_i' \in$ \verb!e'.var_maxevt! do:\\
+		\begin{itemize}
+			\item
+			If $e_i$.\verb!check_conflict_same_tree(!$e_i'$ \verb!)! is $true$, then  return true;
+			\item
+			Else, return false;
+		\end{itemize}
+		
+	\end{enumerate}
+	\caption{Decide the conflict between 2 LOCs}
+	\label{a:arb}	
+\end{algorithm}
+
+
 \section{Unfolding construction}
-The algorithm to build the unfolding is to firstly explore a configuration from the bottom (initial state of system) by adding one by one enabled events until reaching maximal events (there is no event enable at the state). At the place, we try to find an alternative to some event in the configuration. There may be several alternatives to a set of events but we choose the very first found one to be explored, the rest can be discovered in the coming times.
+The algorithm to build the unfolding is to firstly explore a configuration from the bottom (initial state of system) by adding one by one enabled events until reaching maximal events (there is no event enable at the state). At that place, we try to find an alternative to some event in the configuration. There may be a number of such alternatives but we take the very first found one to explore, the rest can be discovered in the coming times.
 The exploration can be described as the following: 
 \begin{enumerate}
 \item 
@@ -445,11 +844,12 @@ The exploration can be described as the following:
 	The exploration termines when no event is enabled
 \end{enumerate}
 
-\subsection{Conflict extensions}
-\label{s:cex}
+\subsection{Conflict extensions \label{subsec:cex}}
+
 Function \verb!compute_cex! computes conflict extension to a configuration C by generating all possible conflicting events for each one in C. Based on the type of transition an event is labelled with, either RD, WR or SYN, we have separate algorithms. 
+
 \subsubsection{WR conflicting events}
-\label{ss:cex_wr}
+\label{subsection:cex_wr}
 \noindent
 To compute all events that conflict with a WR event $e$ labelled with transition $t$, do as the following:
 
@@ -511,8 +911,7 @@ To compute all events that conflict with a WR event $e$ labelled with transition
 	\item
 		Push it to \verb!max_varevt!.
 	\end{enumerate}
-\label{a:max}
-\caption{Fucntion compute maxevt}
+\caption{Function compute maxevt \label{a:max}}
 \end{algorithm}
 
 \begin{algorithm}
@@ -537,7 +936,7 @@ To compute all events that conflict with a WR event $e$ labelled with transition
 \end{algorithm}
 
 \subsubsection{RD conflicting events}
-\label{ss:cex_rd}
+\label{subsection:cex_rd}
 For each event $e \in C$ such that \verb!e->trans == t!, repeat the following:
 \begin{enumerate}
 \item Set \verb!ep = e->pre_proc!
@@ -561,9 +960,9 @@ For each event $e \in C$ such that \verb!e->trans == t!, repeat the following:
 \end{enumerate}
 
 \subsubsection{SYN conflicting events}
-\label{ss:cex_syn}
+\label{subsection:cex_syn}
 \noindent
-It is noticable for SYN events that an UNLOCK event can only be enabled from a LOCK and a LOCK is enabled from an UNLOCK.
+It is noticable for SYN events that an UNLOCK event can only be enabled from a LOCK and reverse.
 For each event $e \in C$ such that \verb!e->trans == t!, repeat the following:
 \begin{enumerate}
 \item Set \verb!ep = e->pre_proc!
@@ -586,83 +985,76 @@ For each event $e \in C$ such that \verb!e->trans == t!, repeat the following:
 \subsection{Alternative}
 \noindent
 Given a configuration $C \subseteq U$ and a set of events $D \subset U$, an alternative to D after C is an configuration $J \subset U $ such that:
-\begin{itemize}
-\item 
-	$C \cup J$ is a configuration 						(1)
-\item
-	for all event $e \in D$ , there is some $e'\in C \cup J$ such that $e' \in  \icfl\{e\}$ 	(2)
-\end{itemize}
+
+\begin{flalign}
+C \cup J \text{ is a configuration} \label{eq1}\\
+\text{For all event } e \in D \text{, there is some } e'\in C \cup J \text{ such that } e' \in  \icfl \{e\}  	\label{eq2}
+\end{flalign}
 
 
 
 \noindent
-We know that $\forall e \in D: $ $e \in cex(C)$ or $e \in en(C)$.
-\begin{enumerate}
-\item
-	If  $e \in cex(C)$, there exists an event $e' \in C: e' \icfl e$. So, e shouldn't be taken into account.
-\item
-	If $e \in en(C)$, do the followings to find out a possible J:
-\end{enumerate}
+We know that $\forall e \in D: $ $e \in cex(C)$ or $e \in en(C)$. Therefore, $\forall e \in D: e \in cex(C)$ (computed in \cref{subsec:cex}), there exists an event $e' \in C: e' \icfl e$ which implies that $e$ is definitely satisfied and then it should not be taken into account. In the other case, $e \notin cex(C)$, do as follows to find out a J if it exists:
 
 \begin{itemize}
 \item 
-	$A = \{e_i \in D: e_i \in en(C)\}$.
+	$A = \{e_i \in D: e_i \in en(C)\}$ (A is a D prunned any event in $cex(C)$). 
 	Set up a \emph{comb} (over A),
 	an $n$-tuple $c \eqdef \tup{s_1, \ldots, s_n}$ of sequences $s_i \in A^*$
-	(n is the number of elements in A).
+	($i \in  \set{0,\ldots ,n}$ with $n = \left\vert{A} \right\vert$).
 	Each sequence $s_i$ is called a \emph{spike} 
-	which contains all events that are in immediate conflict with $e_{i} \in A$.(see \cref{a:dicfl} for direct conflict checking algorithm)
-	If there is a empty spike, ($e_i$ has no conflicting event), then there is no J.
+	which contains all events that are in immediate conflict with $e_{i} \in A$ (see \cref{a:dicfl} for direct conflict checking algorithm).
+	If there is an empty spike, $e_i$ has no conflicting event, then there exists no J.
 \item
-	Given a comb $c$ witout any empty spike, a \emph{combination} over $c$ is any $n$-tuple $a = \tup{e_1, \ldots, e_n} \in A^n$ such that $e_i \in A$ is one of the elements of the sequence $s_i \in A^*$, for $i \in \set{1, \ldots, n}$. \\
-	We should check if a combination $a$ is an alternative J we are looking for. To do that, check:
-	
+	Given a comb $c$ witout any empty spike, a \emph{combination} over $c$ is any $n$-tuple $a = \tup{e_1, \ldots, e_n} \in A^n$ such that $e_i \in A$ is one element of the sequence $s_i \in A^*$, for $i \in \set{1, \ldots, n}$. \\
+	$a$ is an alternative we are looking for if it holds both \eqref{eq1} and \eqref{eq2} in the definition: 	
 \begin{itemize}
 	\item
-		If $\exists e_i$: $e_i \cup C$ is not a configuration, condition (1) is not satisfied, 
-		then discard the combination
+		If $\exists e_i \in a$: $e_i \cup C$ is not a configuration, it means \eqref{eq1} condition is not satisfied, then discard the combination.
 	\item
-		If not, check if $a$ is conflict-free or not
+		If \eqref{eq1} holds, check whether $a$ is conflict-free which means there is not any pair of event $(e_i, e_j)$ in conflict (see ...for conflict checking algorithm):
 		\begin{itemize}
 			\item
-				If there exist a pair $(e_i, e_j): e_i \cfl e_j$, discard the combination.
+				If there exist a pair $(e_i, e_j)$ such that $e_i \cfl e_j$, discard the combination.
 			\item
-				If $\tup{a_1, \ldots, a_n}$ is conflict free which means there does not exist any pair 
-				of events in conflict, J will be the union of all their local configuration:
-				$ J = \cup [e'_i]$. Condition (2) is satisfied.
+				If not, (2) condition is definitely satisfied. By then, J is formed as the union of local configurations of all events in $a$:
+				\begin{equation}
+				\nonumber
+					J = \cup [e_i] \text{ with } \forall  e_i \in a
+				\end{equation}
+				 
 		\end{itemize}
 \end{itemize}
 \end{itemize}
 
 
-
-
-
-
+\begin{algorithm}
 To find out an alternative to D after C, do as follows:
 \begin{enumerate}
-\item
-	Remove from D all events in cex(C) which are computed in previous section \cref{s:cex}
-\item
+	\item
+	Remove from D all events in cex(C). 
+	\item
 	Let $comb \eqdef \tup{s_1, \ldots, s_n}$ be the comb over D where 
-	$s_i$ are the events in direct conflict to $e_i$: $s_i$ = $e_i \rightarrow$ \verb!dicfl!
-\item
+	$s_i$ is a set of events in direct conflict with $e_i$: $s_i$ = $e_i \rightarrow$ \verb!dicfl!
+	\item
 	Remove from the $comb$ all events that are in conflict with any maximal event of C. If the removal leaves some empty spike, 
-	there is not any alternative no longer.
-\item
+	there obviously exists no alternative, so go to End
+	\item
 	Enumerate all combinations $\tup{e_1, \ldots, e_n}$ of $c$.
-\item
+	\item
 	For any of them, do:
 	\begin{itemize}
 		\item 
-    		If $\tup{e_1, \ldots, e_n}$ is conflict-free (use function \verb!check_cfl!), return $J = \cup [e_i]$. Remove from J those that are already in C.
-   		\item
-			If there exist any conflict among events in J, then discard J and come back to step 2
-			to take next combination.
+		If $\tup{e_1, \ldots, e_n}$ is conflict-free (use function \verb!check_cfl!), return $J = \cup [e_i]$. (Caution: Remember to remove from J those are already in C.
+		\item
+		If there exist any conflict among events in J, then discard J and come back to step 2
+		to take next combination.
 	\end{itemize}
-\item End.
+	\item End.
 \end{enumerate}
-%\caption{Computing an alternative J for D after C}
-%\label{a:alter}
+\caption{Computing an alternative J for D after C}
+\label{a:alter}
+\end{algorithm}
+
 
 \end{document}

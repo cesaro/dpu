@@ -70,6 +70,12 @@ CPP:=$(CROSS)cpp$(VERS)
 LEX:=flex
 YACC:=bison
 
+#dot file input
+ODIR=output
+DOT_FILES=$(wildcard $(ODIR)/*.dot)
+DOTPNG=$(DOT_FILES:.dot=.png)
+#DOTPNG = $(patsubst %.dot,%.png, $(DOT_FILES))
+
 %.d : %.c
 	@echo "DEP $<"
 	@set -e; $(CC) -MM -MT $*.o $(CFLAGS) $(CPPFLAGS) $< | \
@@ -105,9 +111,10 @@ YACC:=bison
 	@echo "DOT $<"
 	@dot -T pdf < $< > $@
 
-%.jpg : %.dot
+%.png : %.dot
 	@echo "DOT $<"
-	@dot -T jpg < $< > $@
+	@dot -Tpng < $< > $@
+	
 
 CFLAGS_:=-Wall -Wextra -std=c11
 CXXFLAGS_:=-Wall -Wextra -std=c++11 -O3

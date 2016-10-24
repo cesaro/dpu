@@ -367,6 +367,9 @@ Event:: Event (Unfolding & u, Ident & ident)
 ,  val(0)
 ,  localvals(0)
 ,  color(0)
+,  inside(0)
+,  maximal(0)
+,  inC(0)
 {
    assert(this->is_bottom() == false);
    unsigned numprocs = u.m.procs.size();
@@ -408,6 +411,9 @@ Event::Event (Unfolding & u)
    , val(0)
    , localvals(0)
    , color(0)
+   , inside(0)
+   , maximal(0)
+   , inC(0)
 {
    // this is only for bottom event
    unsigned numprocs = u.m.procs.size();
@@ -775,9 +781,67 @@ const Event & Event:: find_latest_WR_pred() const
    }
 }
 
+/*
+ * If e and this are both in the same vector post_mem or post_wrs of parent, return true
+ * else return false
+ */
+bool Event::found(const Event &e, Event *parent) const
+{
+   std::vector<Event *>::iterator this_idx, e_idx;
+
+     // special case when parent is bottom, bottom as a special WR without transition.
+     if (parent->is_bottom())
+     {
+        for (unsigned i = 0; i < parent->post_mem.size(); i++)
+        {
+           this_idx = std::find(parent->post_mem[i].begin(), parent->post_mem[i].end(),this);
+           e_idx    = std::find(parent->post_mem[i].begin(), parent->post_mem[i].end(),&e);
+           if ( (this_idx != parent->post_mem[i].end()) && (e_idx != parent->post_mem[i].end()) )
+           {
+              DEBUG("%d cfl %d", this->idx, e.idx);
+              return true;
+           }
+        }
+
+        return false;
+     }
+
+     switch (parent->evtid.trans->type)
+     {
+        /* 'this' pointer is a child of 'parent', so it definitly appear in parent's post_wrs*/
+        case ir::Trans::RD:
+           e_idx  = std::find(parent->post_rws.begin(), parent->post_rws.end(), &e);
+           if (e_idx != parent->post_rws.end())
+              return true;
+           break;
+
+        case ir::Trans::WR:
+           for (unsigned i = 0; i< parent->post_mem.size(); i++)
+           {// if this and e are in the same process
+              this_idx = std::find(parent->post_mem[i].begin(), parent->post_mem[i].end(),this);
+              e_idx    = std::find(parent->post_mem[i].begin(), parent->post_mem[i].end(),&e);
+              if ( (this_idx != parent->post_mem[i].end()) && (e_idx != parent->post_mem[i].end()) )
+                 return true;
+           }
+           break;
+
+       case ir::Trans::SYN:
+          //DEBUG("Parent is a SYN");
+          e_idx  = std::find(parent->post_rws.begin(), parent->post_rws.end(), &e);
+          if (e_idx != parent->post_rws.end())
+             return true;
+          break;
+
+       case ir::Trans::LOC:
+          // nothing to do
+          break;
+     }
+return false;
+
+}
 
 /*
- * Check if two events are in immediate conflict, provided that they are both in enalbe set.
+ * Check if two events are in immediate conflict, provided that they are both in enable set.
  *    - Two events are in direct conflict if they both appear in a vector in post_mem of an parental event
  */
 
@@ -807,60 +871,40 @@ bool Event::check_dicfl( const Event & e )
     */
 
    if ((this->evtid.pre_proc == e.evtid.pre_proc) && (this->evtid.trans->proc.id == e.evtid.trans->proc.id))
-      return true;
+      return true; // need to fix
 
 
    // in different pre_procs, touch the same variable => check pre_mem or pre_readers
    DEBUG("Check pre_mem for dicfl");
-   Event * parent = evtid.pre_mem; // for RD, SYN, WR events // not right for WR
-   std::vector<Event *>::iterator this_idx, e_idx;
-
-   // special case when parent is bottom, bottom as a special WR without transition.
-   if (parent->is_bottom())
+   Event * parent;
+   if (this->evtid.trans->type != ir::Trans::WR)
    {
-      for (unsigned i = 0; i < parent->post_mem.size(); i++)
-	   {
-	      this_idx = std::find(parent->post_mem[i].begin(), parent->post_mem[i].end(),this);
-	      e_idx    = std::find(parent->post_mem[i].begin(), parent->post_mem[i].end(),&e);
-	      if ( (this_idx != parent->post_mem[i].end()) && (e_idx != parent->post_mem[i].end()) )
-	      {
-	         DEBUG("%d cfl %d", this->idx, e.idx);
-	         return true;
-	      }
-	   }
-
-	   return false;
+      parent = evtid.pre_mem; // for RD, SYN
+      if (this->found(e,parent))
+         return true;
+      else
+         return false;
    }
-
-   switch (parent->evtid.trans->type)
-   {
-      case ir::Trans::RD:
-         e_idx  = std::find(parent->post_rws.begin(), parent->post_rws.end(), &e);
-    	   if (e_idx != parent->post_rws.end())
-    	      return true;
-         break;
-
-      case ir::Trans::WR:
-         for (unsigned i = 0; i< parent->post_mem.size(); i++)
-         {// if this and e are in the same process
-            this_idx = std::find(parent->post_mem[i].begin(), parent->post_mem[i].end(),this);
-            e_idx    = std::find(parent->post_mem[i].begin(), parent->post_mem[i].end(),&e);
-            if ( (this_idx != parent->post_mem[i].end()) && (e_idx != parent->post_mem[i].end()) )
+   else
+      if (e.evtid.trans->type != ir::Trans::WR)
+      {
+         parent = e.evtid.pre_mem;
+         if (e.found(*this,parent))
+            return true;
+         else
+            return false;
+      }
+      else // 2 WRs
+      {
+         for (int i = 0; i < this->evtid.pre_readers.size(); i++)
+         {
+            parent = this->evtid.pre_readers[i];
+            if (e.found(*this, parent))
                return true;
+            else
+               return false;
          }
-         break;
-
-     case ir::Trans::SYN:
-        //DEBUG("Parent is a SYN");
-        e_idx  = std::find(parent->post_rws.begin(), parent->post_rws.end(), &e);
-        if (e_idx != parent->post_rws.end())
-           return true;
-        break;
-
-     case ir::Trans::LOC:
-        // nothing to do
-        break;
-   }
+      }
 
    return false;
 }
@@ -1313,7 +1357,8 @@ void Config::add (unsigned idx)
 {
    assert(idx < en.size());
    Event & e = *en[idx];
-
+   /* remark that e is in current C (just added to C) */
+   e.inC = 1;
    DEBUG ("\n%p: Config.addidx: %s\n", this, e.str().c_str());
 
    /* move the element en[idx] out of enable set */
@@ -1383,7 +1428,10 @@ void Config::__update_encex (Event & e )
    gstate.enabled (enable);
 
    if (enable.empty() == true )
+   {
+      e.maximal = 1; // e is a maximal event
       return;
+   }
 
    DEBUG(" Transitions enabled:");
    for (auto t: enable)
@@ -2165,23 +2213,38 @@ void Unfolding:: uprint_dot()
       switch (e.evtid.trans->type)
       {
          case ir::Trans::LOC:
-            fs << e.idx << "[id="<< e.idx << ", label=\" " << e.dotstr() << " \" fillcolor=yellow];\n";
+            if (e.maximal == 1)
+               fs << e.idx << "[id="<< e.idx << ", label=\" " << e.dotstr() << " \", shape=box, style=bold, color=red, fillcolor=yellow];\n";
+            else
+               fs << e.idx << "[id="<< e.idx << ", label=\" " << e.dotstr() << " \" , shape=box, fillcolor=yellow];\n";
             fs << e.evtid.pre_proc->idx << "->" << e.idx << "[color=brown]\n";
             break;
          case ir::Trans::WR:
-            fs << e.idx << "[id="<< e.idx << ", label=\" " << e.dotstr() << " \" fillcolor=red];\n";
+            if (e.maximal == 1)
+               fs << e.idx << "[id="<< e.idx << ", label=\" " << e.dotstr() << " \" , shape=box, style=bold, color=red, fillcolor=red];\n";
+            else
+               fs << e.idx << "[id="<< e.idx << ", label=\" " << e.dotstr() << " \", shape=box, fillcolor=red];\n";
+
             fs << e.evtid.pre_proc->idx << "->" << e.idx << "[color=brown]\n";
             for (auto const & pre : e.evtid.pre_readers)
                fs << pre->idx << " -> " << e.idx << "\n";
             break;
          case ir::Trans::RD:
-            fs << e.idx << "[id="<< e.idx << ", label=\" " << e.dotstr() << " \" fillcolor=palegreen];\n";
+            if (e.maximal == 1)
+               fs << e.idx << "[id="<< e.idx << ", label=\" " << e.dotstr() << " \" , shape=box, style=bold, color=red, fillcolor=palegreen];\n";
+            else
+               fs << e.idx << "[id="<< e.idx << ", label=\" " << e.dotstr() << " \" , shape=box, fillcolor=palegreen];\n";
+
             fs << e.evtid.pre_proc->idx << "->" << e.idx << "[color=brown]\n";
             fs << e.evtid.pre_mem->idx << "->" << e.idx << "\n";
 
             break;
          case ir::Trans::SYN:
-            fs << e.idx << "[id="<< e.idx << ", label=\" " << e.dotstr() << " \" color=lightblue];\n";
+            if (e.maximal == 1)
+               fs << e.idx << "[id="<< e.idx << ", label=\" " << e.dotstr() << " \" , shape=box, style=bold, color=red, fillcolor=lightblue];\n";
+            else
+               fs << e.idx << "[id="<< e.idx << ", label=\" " << e.dotstr() << " \" , shape=box, fillcolor=lightblue];\n";
+
             fs << e.evtid.pre_proc->idx << "->" << e.idx << "[color=brown]\n";
             fs << e.evtid.pre_mem->idx << "->" << e.idx << "\n";
 
@@ -2308,6 +2371,7 @@ void Unfolding:: find_an_alternative(Config & C, std::vector<Event *> D, std::ve
    DEBUG("}");
 
    // Keep in D only events which are not in C.cex
+   /*
    for (auto & c : C.cex)
    for (unsigned i = 0; i < D.size(); i++)
    {
@@ -2318,6 +2382,24 @@ void Unfolding:: find_an_alternative(Config & C, std::vector<Event *> D, std::ve
          D.pop_back();
       }
    }
+   */
+
+   for (auto c : C.cex)
+      c->inside = 1;
+
+   for (unsigned i = 0; i < D.size(); i++)
+   {
+      if (D[i]->inside == 1)
+      {
+         //remove D[i]
+         D[i] = D.back();
+         D.pop_back();
+         i--;
+      }
+   }
+   // set all inside back to 0
+   for (auto c : C.cex)
+      c->inside = 0;
 
 
    DEBUG_("   Prunned D = {");
@@ -2360,6 +2442,7 @@ void Unfolding:: find_an_alternative(Config & C, std::vector<Event *> D, std::ve
 
       while ((spikes[i].size() != 0) and (j < spikes[i].size()) )
       {
+         // check if there is any event in any spike already in D. If yes, remove it from spikes
          for (unsigned k = 0; k < D.size(); k++)
          {
             if (spikes[i][j] == D[k])
@@ -2513,7 +2596,6 @@ void Unfolding:: compute_alt(unsigned int i, const std::vector<std::vector<Event
 
          if (i == s.size() - 1)
          {
-            /*check if the combination is conflict-free or not*/
             DEBUG_("J = {");
             for (unsigned i = 0; i < J.size(); i++)
                DEBUG_("%d, ", J[i]->idx);
@@ -2525,9 +2607,29 @@ void Unfolding:: compute_alt(unsigned int i, const std::vector<std::vector<Event
              * Check if two or more events in J are the same
              * To maintain J, copy J to Jcopy
              */
+
             std::vector<Event *>  Jcopy = J;
 
             DEBUG("Remove duplica in Jcopy");
+
+            for (unsigned i = 0; i < Jcopy.size(); i++)
+            {
+               Jcopy[i]->inside++;
+               if (Jcopy[i]->inside >1)
+               {
+                  // remove J[j]
+                  Jcopy[i]->inside--;
+                  Jcopy[i] = Jcopy.back();
+                  Jcopy.pop_back();
+                  i--;
+               }
+            }
+
+            //set all inside back to 0 for next usage
+            for (unsigned i = 0; i < Jcopy.size(); i++)
+               Jcopy[i]->inside = 0;
+
+/*
             for (unsigned i = 0; i < Jcopy.size()-1; i++)
             {
                for (unsigned int j = i+1; j < Jcopy.size(); j++)
@@ -2541,8 +2643,8 @@ void Unfolding:: compute_alt(unsigned int i, const std::vector<std::vector<Event
                   }
                }
             }
-
-            DEBUG_("J = {");
+*/
+            DEBUG_("Jcopy = {");
             for (unsigned i = 0; i < Jcopy.size(); i++)
                DEBUG_("%d, ", Jcopy[i]->idx);
             DEBUG("}");
@@ -2576,19 +2678,38 @@ void Unfolding:: compute_alt(unsigned int i, const std::vector<std::vector<Event
                */
 
               DEBUG("Remove duplica in A");
-              for (unsigned i = 0; i < A.size()-1; i++)
+
+              for (unsigned i = 0; i < A.size(); i++)
               {
-                 for (unsigned int j = i+1; j < A.size(); j++)
+                 A[i]->inside++;
+                 if (A[i]->inside >1)
                  {
-                    if (A[j] == A[i])
-                    {
-                       // remove A[j]
-                       A[j] = A.back();
-                       A.pop_back();
-                       j--;
-                    }
+                    // remove A[i]
+                    A[i]->inside--;
+                    A[i] = Jcopy.back();
+                    A.pop_back();
+                    i--;
                  }
               }
+
+              //set all inside back to 0 for next usage
+              for (unsigned i = 0; i < A.size(); i++)
+                 A[i]->inside = 0;
+              /*
+                 for (unsigned i = 0; i < A.size()-1; i++)
+                 {
+                    for (unsigned int j = i+1; j < A.size(); j++)
+                       {
+                          if (A[j] == A[i])
+                          {
+                             // remove A[j]
+                             A[j] = A.back();
+                             A.pop_back();
+                             j--;
+                           }
+                        }
+                   }
+               */
 
               return; // go back to
             }
@@ -2639,11 +2760,18 @@ void Unfolding:: explore(Config & C, std::vector<Event*> & D, std::vector<Event*
 
       DEBUG_("C = ");
       C.cprint_event();
+
+      DEBUG("C display by inC: {");
+      for (unsigned i = 0; i < evt.size(); i++)
+         if (evt[i].inC == 1)
+            DEBUG_("%d, ", evt[i].idx);
+      DEBUG("}");
       //choose the mutual event in A and C.en to add
       // DEBUG(" A is not empty");
       /*
        * Remove from A events which are already in C
        */
+#if 0
       Event * next;
       for (unsigned j = 0; j < C.latest_proc.size(); j++)
       {
@@ -2663,6 +2791,23 @@ void Unfolding:: explore(Config & C, std::vector<Event*> & D, std::vector<Event*
             next = next->evtid.pre_proc;
          }
       }
+#endif
+/*
+ * Each event has a bit marking that it is in current configuration C or not.
+ * - When an event is added to C (by add(idx) method), its inC bit is set to 1.
+ * - When it is removed from C (C'enable set is empty, and it's time to find alternative,
+ *   which means the last event is added to disable set D), its inC is set to 0.
+ */
+      for (unsigned i = 0; i < A.size(); i++)
+      {
+         if (A[i]->inC == 1)
+         {
+            //remove A[i]
+            A[i] = A.back();
+            A.pop_back();
+            i--;  //review new A[i]
+         }
+      }
 
       DEBUG("After removing events in C");
       DEBUG_("A = { ");
@@ -2670,7 +2815,7 @@ void Unfolding:: explore(Config & C, std::vector<Event*> & D, std::vector<Event*
                DEBUG_("%d ", A[i]->idx);
             DEBUG("}");
 
-
+#if 0
       DEBUG_(" C.en:{ ");
       for (auto & c : C.en)
       {
@@ -2689,6 +2834,26 @@ void Unfolding:: explore(Config & C, std::vector<Event*> & D, std::vector<Event*
          }
       }
       DEBUG("}");
+#endif
+
+      for (auto e: C.en)
+         e->inside = 1;
+
+      for (unsigned i = 0; i < A.size(); i++) // choose the first one in A which is also in C.en
+      {
+         if (A[i]->inside == 1)
+         {
+            pe = A[i];
+            /*remove A[i] */
+            A[i] = A.back();
+            A.pop_back();
+            // remove event from enable set is done in add function.
+            break;
+         }
+      }
+
+      for (auto e:C.en)
+         e->inside = 0;
    }
 
 
@@ -2728,10 +2893,14 @@ void Unfolding:: explore(Config & C, std::vector<Event*> & D, std::vector<Event*
    if (pe->evtid.trans->type == ir::Trans::LOC)
    {
       DEBUG("   There is a LOC in D. No alternative");
+      pe->inC = 0; // move it out of C
       return;
    }
    else
+   {
       D.push_back(pe);
+      pe->inC = 0; // mark that pe is removed from C
+   }
    /*
     * Compute alternative to new D.
     */

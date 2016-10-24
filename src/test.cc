@@ -2541,7 +2541,7 @@ void test25()
 void test26()
 {
    //auto m = build_concur15_example ();
-   //auto m = build_concur15_example1 ();
+   auto m = build_concur15_example1 ();
    //auto m = build_concur15_example2 ();
    //auto m = build_mul_example2 ();
    //auto m = build_syn_example  ();
@@ -2552,9 +2552,9 @@ void test26()
    //auto m = build_syn_example5 ();
    //auto m = build_syn_example6 ();
    //auto m = build_syn_example7 ();
-   auto m = build_syn_example8 ();
+   //auto m = build_syn_example8 ();
 
-   m.get()->change_init_state({0,0,0});
+   //m.get()->change_init_state({0,0,0});
    ir::simulate (m.get());
 
 
@@ -2569,10 +2569,17 @@ void test26()
    u.uprint_dot();
 }
 
-
+class A{
+public:
+   int   val;
+   int   card;
+   A(int v, int c){ val = v; card = c;}
+};
 void test27()
 {
+   // Remove duplica
    std::vector<int> vt = {1,1,2,3,4,1,1,5,2,3,5, 100,100};
+
    for (int i = 0; i < vt.size() - 1; i++)
       for (int j = i+1; j < vt.size(); j++)
    {
@@ -2583,8 +2590,10 @@ void test27()
          j--;
       }
    }
+
    DEBUG("vt after removing");
    for (int i = 0; i < vt.size(); i++)
       DEBUG_("%d  ", vt[i]);
 
 }
+

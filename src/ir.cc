@@ -13,10 +13,10 @@
 namespace ir
 {
 
-Machine::Machine (unsigned memsize, unsigned numprocs, unsigned numtrans)
-   : memsize (memsize)
-   , init_state (_init_state)
-   , _init_state (*this)
+Machine::Machine (unsigned memsize, unsigned numprocs, unsigned numtrans) :
+   memsize (memsize),
+   init_state (_init_state),
+   _init_state (*this)
 {
    if (numtrans == 0) numtrans = numprocs * 128;
    DEBUG ("%p: Machine.ctor: memsize %u numprocs %u numtrans %u",
@@ -420,7 +420,7 @@ void simulate (Machine * m)
     std::vector<ir::Trans*> ena;
     unsigned seed, i;
 
-    seed = std::time (0); // use current time as seed for random
+    seed = std::time (0); // use current time as seed to get random numbers
     //seed = 1234;
     DEBUG ("Using seed %u", seed);
     std::srand (seed);
@@ -440,7 +440,6 @@ void simulate (Machine * m)
        ena[i]->fire (s);
     }
     DEBUG ("END simulation");
-
- }
+}
 
 } // namespace ir

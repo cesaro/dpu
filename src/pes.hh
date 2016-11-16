@@ -331,7 +331,10 @@ protected:
 };
 
 // implementation of templates
-#include "pes.hpp"
+#include "event.hpp"
+#include "unfolding.hpp"
+#include "process.hpp"
+#include "eventbox.hpp"
 
 } // namespace dpu
 

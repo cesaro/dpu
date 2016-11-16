@@ -2,161 +2,129 @@
 #ifndef __PES_HH_
 #define __PES_HH_
 
-#include "ir.hh"
 #include <unordered_map>
 #include <functional>
 
-/*
- * Event:
- * - take unf and trans as arguments
- * - constructror: private
- * -
- * Unfolding:
- * - class friend with Event
- * - call unf.add_event();
- * - add method: dot_print for config and unf
- * -
- *
- */
+#include "config.h"
+#include "verbosity.h"
+#include "vclock.hh"
+#include "misc.hh"
 
-namespace pes
+//#include "cfltree.hh"
+
+namespace dpu
 {
-class Config;
-class Unfolding;
+
 class Event;
+class EventBox;
+class EventIt;
+class Process;
+class Unfolding;
+class BaseConfig;
 
-//-------template class Node ---------
-template <class T, int SS>
-class Node
+typedef uint64_t Addr;
+
+enum class ActionType
 {
+   // loads
+   RD8,
+   RD16,
+   RD32,
+   RD64,
+   // stores
+   WR8,
+   WR16,
+   WR32,
+   WR64,
+   // memory management
+   MALLOC,
+   FREE,
+   // threads
+   THCREAT,
+   THSTART,
+   THEXIT,
+   THJOIN,
+   // locks
+   //MTXINIT,
+   MTXLOCK,
+   MTXUNLK,
+};
+
+const char *action_type_str (ActionType t);
+const char *action_type_str (unsigned t);
+
+/// Action (type, val)
+struct Action
+{
+   ActionType type;
+   Addr addr;
+   uint64_t val;
+
+   void pretty_print ();
+};
+
+class Event // : public MultiNode<Event,2,3> // 2 trees, skip step = 3
+{
+private:
+   Event *_pre_other;
 public:
-   unsigned depth;
-   T * pre; // immediate predecessor
-   T ** skip_preds;
 
-   Node();
-   Node(int idx, Event * pr);
-   void set_up(int idx, Event * pr);
-   int compute_size();
-   void set_skip_preds(int idx);
-   void print_skip_preds();
+   /// THSTART(), creat is the corresponding THCREAT (or null for p0)
+   inline Event (Event *creat);
+   /// THCREAT(tid) or THEXIT(), one predecessor (in the process)
+   inline Event (Action ac);
+   /// THJOIN(tid), MTXLOCK(addr), MTXUNLK(addr), two predecessors (process, memory/exit)
+   inline Event (Action ac, Event *m);
 
-   template <int idx>
-   T & find_pred(int d) const;
-};
-//-------template class MultiNode------
-template <class T, int S, int SS> // S: number of trees, SS: skip step
-class MultiNode
-{
-public:
-   Node<T,SS> node[S];
+   struct {
+      /// True iff this event is the first one in its own EventBox
+      int boxfirst : 1;
+      /// True iff this event is the last one in its own EventBox
+      int boxlast : 1;
+      /// FIXME - True iff this event has no causal successors in the unfolding
+      //int ismax : 1;
+      /// True iff this event is in some configuration
+      int inc : 1;
+   } flags;
 
-   MultiNode() = default;
-   MultiNode(T * pp, T * pm);
-};
+   /// the blue action performed by this event
+   Action action;
+   /// a list of red actions that the thread performed between Events pre() and this
+   std::vector<Action> redbox;
+   /// the vector clock
+   Vclock vclock;
+   /// color mark for various algorithms
+   unsigned color;
+   /// all the causal successors of this event
+   std::vector<Event*> post;
+   /// FIXME
+   Event *next;
 
-//-----Ident class-------------
-class Ident
-{
-public:
-   const ir::Trans * trans;
-   Event * pre_proc;
-   Event * pre_mem;
-   std::vector<Event *> pre_readers;
+   /// predecessor in my thread, or null if THSTART
+   inline Event *pre_proc ();
+   /// predecessor in another thread (if any), or null
+   inline Event *pre_other ();
 
-public:
-   Ident();
-   Ident(const ir::Trans * t, Event * pp, Event * pm, std::vector<Event*> pr);
-   Ident(const ir::Trans & t, const Config & c);
-   Ident(const Ident & id);
-   std::string str() const;
-   bool operator == (const Ident & id) const;
-};
-//-------template hash function for pointer----
-template<typename Tval>
-struct MyTemplatePointerHash {
-    size_t operator()(const Tval* val) const
-    {
-       static const size_t shift = (size_t)log2(1 + sizeof(Tval));
-       return (size_t)(val) >> shift;
-    }
-};
-template <typename V>
-struct MyVectorHash
-{
-   size_t operator() (const std::vector<V *> v) const
-   {
-      if (v.empty())
-         return (size_t) 0;
+   /// true iff this event is the THSTART event of thread 0
+   inline bool is_bottom ();
 
-      size_t it = (size_t) v[0] >> 3;
-      for (int i = 1; i < v.size(); i++)
-         it = it ^ ((size_t) v[i] >> 3);// shift a bit to the right, 3 for 64 bit, 1 for 32 bi
-      return it;
-    }
-};
-//--------struct IdHasher--------
-template <class T> struct IdHasher;
-template<> struct IdHasher<Ident>
-{
-   std::size_t operator() (const Ident& k) const
-   {
-      std::size_t h1 = MyTemplatePointerHash<ir::Trans>() (k.trans);
-      std::size_t h2 = MyTemplatePointerHash<Event>() (k.pre_proc);
-      std::size_t h3 = MyTemplatePointerHash<Event>() (k.pre_mem);
-      std::size_t h4 = MyVectorHash<Event>() (k.pre_readers);
+   /// returns the pid of the process to which this event belongs
+   inline unsigned pid ();
+   /// returns the process to which this event belongs
+   inline Process *proc ();
 
-      return h1^h2^h3^h4;
+   /// tests pointer equality of two events
+   inline bool operator == (const Event &) const;
+   /// returns a human-readable description of the event
+   std::string str () const;
 
-   }
-};
+private:
+   inline void post_add (Event * const succ);
 
-//--------class Event------------
-class Event: public MultiNode<Event,2,3> // 2 trees, skip step = 3
-{
-public:
-   unsigned int          idx;
-   Ident                 evtid;
+   inline EventBox *box_above () const;
+   inline EventBox *box_below () const;
 
-   std::vector<Event *>  post_proc;  // set of successors in the same process
-
-   /*
-    *  Only for WR events
-    *  Each vector of children events for a process
-    */
-   std::vector< std::vector<Event *> >   post_mem; // a vector of numprocs subvectors??? size = number of variable
-   std::vector<Event * >                 post_wr; // WR children of a WR trans
-
-   //only for RD and SYN events
-   std::vector <Event *>                 post_rws; // any operation after a RD, SYN
-
-   uint32_t              val; //??? value for global variable?
-   std::vector<uint32_t> localvals; //???
-
-   int                   color; // to avoid re-read an event in printing functions.
-   int                   inside; // to mark that an event is in cex or not: 1 - in, 0: not in
-   int                   maximal; // = 1 if the event is maximal, otherwise it is 0
-   int                   inC; // =1 if the event is in C, else it is equal 0
-
-   std::vector<Event *>  dicfl;  // set of direct conflicting events
-   std::vector <int>     clock; // size = number of processes (to store clock for all its predecessors: pre_proc, pre_mem or pre_readers)
-   //store maximal events in the event's local configuration for all variables
-   std::vector <Event *> var_maxevt; // size of number of variables
-   std::vector <Event *> proc_maxevt; // size of number of processes
-
-
-
-   bool         operator ==   (const Event &) const;
-   Event & 	    operator =    (const Event &);
-   std::string  str           () const;
-   std::string dotstr         () const;
-
-
-   // Constructors
-   Event() = default;
-   Event (Unfolding & u);
-   Event (Unfolding & u, Ident & ident);
-
+#if 0
    //void mk_history (const Config & c);
    void update_parents();
    void eprint_debug();
@@ -181,29 +149,153 @@ public:
    bool check_cfl_same_tree (const Event & e) const;
    bool found(const Event &e, Event *parent) const;
 
-
-   Node<Event,3> &proc () { return node[0]; }
-   Node<Event,3> &var  () { return node[1]; }
+   //Node<Event,3> &proc () { return node[0]; }
+   //Node<Event,3> &var  () { return node[1]; }
 
    //void set_skip_preds(int idx, int step);
-   void print_proc_skip_preds(){ proc().print_skip_preds();}
-   void print_var_skip_preds() { var().print_skip_preds();}
+   //void print_proc_skip_preds(){ proc().print_skip_preds();}
+   //void print_var_skip_preds() { var().print_skip_preds();}
 
-   friend class Node<Event,3>;
-   friend Unfolding;
+   //friend class Node<Event,3>;
+#endif
+
+   friend class EventIt;
+};
 
 
-}; // end of class Event
+class Unfolding
+{
+public:
+   inline Unfolding ();
 
+   void dump ();
+   void print_dot (FILE *f);
+
+   /// returns a pointer to the process number p
+   inline Process *proc (unsigned p) const;
+
+   /// returns the number of processes currently present in this unfolding
+   unsigned num_procs () { return nrp; }
+
+   /// The following methods create or retrieve existing events from the unfolding
+   /// THSTART(), creat is the corresponding THCREAT (or null for p0);
+   /// this will create a new process if a new event needs to be created
+   inline Event *event (Event *creat);
+   /// THCREAT(tid) or THEXIT(), one predecessor (in the process)
+   inline Event *event (Action ac, Event *p);
+   /// THJOIN(tid), MTXLOCK(addr), MTXUNLK(addr), two predecessors (process, memory/exit)
+   inline Event *event (Action ac, Event *p, Event *m);
+
+   /// maximum number of processes in the unfolding
+   static constexpr size_t MAX_PROC = CONFIG_MAX_PROCESSES;
+   /// FIXME
+   static constexpr size_t PROC_SIZE = alignp2 (CONFIG_MAX_EVENTS_PER_PROCCESS * sizeof (Event));
+   /// FIXME
+   static constexpr size_t ALIGN = PROC_SIZE * alignp2 (MAX_PROC);
+
+   /// extracts the pid to which an object belongs (Process, EventBox, Event)
+   static unsigned ptr2pid (const void *ptr)
+      { return (((size_t) ptr) >> int2msb (PROC_SIZE)) & int2mask (MAX_PROC - 1); }
+   static unsigned ptr2pindex (const void *ptr)
+      { return int2mask (PROC_SIZE - 1) & (size_t) ptr; }
+   static Process *ptr2proc (const void *ptr)
+      { return (Process *) (((size_t) ptr) & ~int2mask (PROC_SIZE - 1)); }
+private :
+   /// memory space where Processes, EventBoxes and Events will be stored
+   char *procs;
+   /// number of processes created using new_proc (<= MAX_PROC)
+   unsigned nrp;
+
+   /// creates a new process in the unfolding; creat is the corrsponding THCREAT
+   /// event
+   inline Process *new_proc (Event *creat);
+};
+
+class EventBox
+{
+public:
+   /// constructor
+   inline EventBox (Event *pre);
+   /// first event contained in the box, undefined if the box contains no event
+   inline Event *event_above () const;
+   /// the last event of the box below, undefined if this is the first box
+   inline Event *event_below () const;
+   /// process causal predecessor of all events in the box
+   inline Event *pre () const;
+   /// returns the id of the process containing this event box
+   inline unsigned pid () const;
+
+private:
+   /// the event that causally precedes all events in this box
+   Event *_pre;
+};
+
+class Process
+{
+public :
+   inline Process (Event *creat);
+
+   void dump ();
+
+   /// iterator over the events in this process
+   inline EventIt begin ();
+   inline EventIt end ();
+
+   /// returns the pid of this process
+   inline unsigned pid () const;
+   /// returns the offset of a pointer within the memory pool of this process
+   inline size_t offset (void *ptr) const;
+
+   /// returns the THSTART event of this process
+   inline Event *first_event () const;
+
+   /// THCREAT(tid), THEXIT(), one predecessor (in the process)
+   inline Event *add_event_1p (Action ac, Event *p);
+   /// THJOIN(tid), MTXLOCK(addr), MTXUNLK(addr), two predecessors (process, memory/exit)
+   inline Event *add_event_2p (Action ac, Event *p, Event *m);
+
+private :
+   /// last event inserted in the memory pool of this process
+   Event *last;
+
+   inline EventBox *first_box () const;
+};
+
+class EventIt
+{
+public :
+   bool operator== (const EventIt &other) const
+      { return e == other.e; }
+   bool operator!= (const EventIt &other) const
+      { return e != other.e; }
+
+   EventIt &operator++ ()
+      { e = e->flags.boxlast ? e->box_above()->event_above() : e + 1; return *this; }
+   EventIt operator++ (int x)
+      { EventIt copy = *this; ++(*this); return copy; }
+
+   Event &operator* ()
+      { return *e; }
+   Event *operator-> ()
+      { return e; }
+
+private:
+   /// the event currently pointed by this iterator
+   Event *e;
+
+   /// constructor
+   EventIt (Event *e) :
+      e (e)
+      { }
+   friend class Process;
+};
 
 /*
  *  class to represent a configuration in unfolding
  */
-class Config
+class BaseConfig
 {
 public:
-   ir::State                        gstate;
-   Unfolding  &                     unf;
    /*
     * latest_proc : Processes -> Events
     * initialzed by memsize but actually we use only the last (memsize - numprocs) elements
@@ -219,67 +311,29 @@ public:
    std::vector<Event*>              en;
    std::vector<Event*>              cex;
 
-
-   Config (Unfolding & u); // creates an empty configuration
-   Config (const Config & c);
-   
    void add (const Event & e); // update the cut and the new event
    void add (unsigned idx); // update the cut and the new event
    void add_any ();
-   void compute_cex ();
-   void add_to_cex(Event * temp);
-   void RD_cex(Event * e);
-   void SYN_cex(Event * e);
-   void WR_cex(Event * e);
-   void compute_combi(unsigned int i, const std::vector<std::vector<Event *>> & s, std::vector<Event *> combi, Event * e);
 
-   void cprint_debug () const;
-   void cprint_event() const ;
-   void cprint_dot(std::string &, std::string &);
-   void cprint_dot();
+   /// creates a copy of this configuration
+   BaseConfig clone ();
+   /// prints the configuration in stdout
+   void dump ();
+   
+   /// creates an empty configuration
+   BaseConfig (const Unfolding &u);
+   /// creates a local configuration
+   BaseConfig (const Unfolding &u, Event &e);
+   
+protected:
+   /// map from process id (int) to maximal event in that process
+   Event **max;
+};
 
-private:
-   void __update_encex (Event & e);
-   void __print_en() const;
-   void __print_cex() const;
-   void remove_cfl (Event & e); // modify e.dicfl
-}; // end of class Config
+// implementation of templates
+#include "pes.hpp"
 
-//----------------
-class Unfolding
-{
-public:
-   static unsigned count; // count number of events.
-   std::vector<Event>    evt; // events actually in the unfolding
-   std::unordered_map <Ident, Event *, IdHasher<Ident>>    evttab;
-   ir::Machine &         m;
-   Event *               bottom;
-   int                   colorflag;
-
-
-   Unfolding (ir::Machine & ma);
-   void create_event(ir::Trans & t, Config &);
-   Event & find_or_add(Ident & id);
-
-
-   void uprint_debug();
-   void uprint_dot();
-
-   void explore(Config & C, std::vector<Event *> & D, std::vector<Event *> & A);
-   void explore_rnd_config ();
-   void explore_driven_config ();
-   void find_an_alternative(Config & C, std::vector<Event *> D, std::vector<Event *> & J, std::vector<Event *> & A );
-   void compute_alt(unsigned int i, const std::vector<std::vector<Event *>> & s, std::vector<Event *> & combi, std::vector<Event *> & A);
-   friend Event;
-   void test_conflict();
-
-private :
-   void __create_bottom ();
-
-}; // end of class Unfolding
-
-} // namespace pes
+} // namespace dpu
 
 #endif
-
 

@@ -22,7 +22,7 @@ all : compile
 
 compile: $(TARGETS)
 
-run: compile input.ll dot
+run: compile dot
 	./src/main
 	
 input.ll : benchmarks/basic/hello.ll src/rt/rtv.ll
@@ -98,7 +98,7 @@ dist : all
 	for i in 02 04 05 08 10 20 30 40 50; do ./tools/mkdekker.py $$i > dist/examples/dekker/dek$$i.ll_net; done
 	for i in 02 03 04 05 06 07; do ./tools/mkdijkstra.py $$i > dist/examples/dijkstra/dij$$i.ll_net; done
 	
- dot: $(DOTPNG)
+dot: $(DOTPNG)
  	     
 -include $(DEPS)
 

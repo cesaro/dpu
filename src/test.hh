@@ -28,4 +28,9 @@ void test24 ();
 void test25 ();
 void test26 ();
 void test27 ();
+void test28 ();
+void test29 ();
+void test30 ();
+void test31 ();
+void test32 ();
 #endif

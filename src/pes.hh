@@ -169,10 +169,11 @@ public:
    inline Unfolding ();
 
    void dump ();
-   void print_dot (FILE *f);
+   //void print_dot (FILE *f);
+   void print_dot();
 
-   /// returns a pointer to the process number p
-   inline Process *proc (unsigned p) const;
+   /// returns a pointer to the process number pid
+   inline Process *proc (unsigned pid) const;
 
    /// returns the number of processes currently present in this unfolding
    unsigned num_procs () { return nrp; }
@@ -325,7 +326,7 @@ public:
    /// creates a local configuration
    BaseConfig (const Unfolding &u, Event &e);
    
-protected:
+public:
    /// map from process id (int) to maximal event in that process
    Event **max;
 };

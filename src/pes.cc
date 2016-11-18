@@ -169,7 +169,6 @@ std::string Event::str () const
 }
 
 
-
 #if 0
 /*
  * Methods for class Node
@@ -3054,6 +3053,92 @@ void Unfolding:: explore(Config & C, std::vector<Event*> & D, std::vector<Event*
    DEBUG("");
 }
 #endif
+
+void Unfolding::print_dot ()
+{
+#if 0
+   /* Create a folder namely output in case it hasn't existed. Work only in Linux */
+      DEBUG("\n%p: Unfolding.uprint_dot:", this);
+      const char * mydir = "output";
+      struct stat st;
+      if ((stat(mydir, &st) == 0) && (((st.st_mode) & S_IFMT) == S_IFDIR))
+         DEBUG(" Directory %s already exists", mydir);
+      else
+      {
+         const int dir_err = mkdir("output", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+         if (-1 == dir_err)
+            DEBUG("Directory output has just been created!");
+      }
+
+      std::ofstream fs("output/unf.dot", std::fstream::out);
+      std::string caption = "Concur example";
+      DEBUG_(" Unfolding is exported to dot file: \"dpu/output/unf.dot\"");
+      fs << "Digraph RGraph {\n";
+      fs << "label = \"Unfolding: " << caption <<"\"";
+      fs << "node [shape=rectangle, fontsize=10, style=\"filled, solid\", align=right]";
+      fs << "edge [style=filled]";
+
+      for(auto const & e : evt)
+      {
+         if (e.is_bottom())
+         {
+            fs << e.idx << "[label=\"" << e.dotstr() <<" \"]\n";
+            //fs << e.idx << "[label = bottom]\n";
+            continue;
+         }
+
+         switch (e.evtid.trans->type)
+         {
+            case ir::Trans::LOC:
+               if (e.maximal == 1)
+                  fs << e.idx << "[id="<< e.idx << ", label=\" " << e.dotstr() << " \", shape=box, style=bold, color=red, fillcolor=yellow];\n";
+               else
+                  fs << e.idx << "[id="<< e.idx << ", label=\" " << e.dotstr() << " \" , shape=box, fillcolor=yellow];\n";
+               fs << e.evtid.pre_proc->idx << "->" << e.idx << "[color=brown]\n";
+               break;
+            case ir::Trans::WR:
+               if (e.maximal == 1)
+                  fs << e.idx << "[id="<< e.idx << ", label=\" " << e.dotstr() << " \" , shape=box, style=bold, color=red, fillcolor=red];\n";
+               else
+                  fs << e.idx << "[id="<< e.idx << ", label=\" " << e.dotstr() << " \", shape=box, fillcolor=red];\n";
+
+               fs << e.evtid.pre_proc->idx << "->" << e.idx << "[color=brown]\n";
+               for (auto const & pre : e.evtid.pre_readers)
+                  fs << pre->idx << " -> " << e.idx << "\n";
+               break;
+            case ir::Trans::RD:
+               if (e.maximal == 1)
+                  fs << e.idx << "[id="<< e.idx << ", label=\" " << e.dotstr() << " \" , shape=box, style=bold, color=red, fillcolor=palegreen];\n";
+               else
+                  fs << e.idx << "[id="<< e.idx << ", label=\" " << e.dotstr() << " \" , shape=box, fillcolor=palegreen];\n";
+
+               fs << e.evtid.pre_proc->idx << "->" << e.idx << "[color=brown]\n";
+               fs << e.evtid.pre_mem->idx << "->" << e.idx << "\n";
+
+               break;
+            case ir::Trans::SYN:
+               if (e.maximal == 1)
+                  fs << e.idx << "[id="<< e.idx << ", label=\" " << e.dotstr() << " \" , shape=box, style=bold, color=red, fillcolor=lightblue];\n";
+               else
+                  fs << e.idx << "[id="<< e.idx << ", label=\" " << e.dotstr() << " \" , shape=box, fillcolor=lightblue];\n";
+
+               fs << e.evtid.pre_proc->idx << "->" << e.idx << "[color=brown]\n";
+               fs << e.evtid.pre_mem->idx << "->" << e.idx << "\n";
+
+               break;
+         }
+
+         /* print conflicting edge */
+         for (unsigned i = 0; i < e.dicfl.size(); i++)
+            if (e.dicfl[i]->idx > e.idx ) // don't repeat drawing the same conflict
+               fs << e.idx << "->" << e.dicfl[i]->idx << "[dir=none, color=red, style=dashed]\n";
+      }
+
+      fs << "}";
+      fs.close();
+      DEBUG(" successfully\n");
+#endif
+}
 
 } // end of namespace
 

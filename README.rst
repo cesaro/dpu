@@ -16,7 +16,7 @@ x compilar
 x hacer un test
 x escribir el iterador de eventos de un proceso
 x limpiar el .hh
-- check alignment Event / Event box
+x check alignment Event / Event box
 - escribir la funcion de busqeuda en los post para los Unfolding::event
 - steroids -> unf
 - design unfolder class

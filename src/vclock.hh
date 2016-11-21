@@ -1,6 +1,8 @@
 
-#ifndef __Vclock_HH_
-#define __Vclock_HH_
+#ifndef __VCLOCK_HH_
+#define __VCLOCK_HH_
+
+#include <vector>
 
 namespace dpu
 {

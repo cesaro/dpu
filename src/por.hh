@@ -1,7 +1,7 @@
 
 
-#ifndef __REPLAY_HH_
-#define __REPLAY_HH_
+#ifndef __POR_HH_
+#define __POR_HH_
 #include "pes.hh"
 
 namespace dpu

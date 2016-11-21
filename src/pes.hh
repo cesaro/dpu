@@ -299,24 +299,7 @@ private:
 class BaseConfig
 {
 public:
-   /*
-    * latest_proc : Processes -> Events
-    * initialzed by memsize but actually we use only the last (memsize - numprocs) elements
-    * latest_wr   : Variables -> Events
-    * latest_op   : (Processes x Variables) -> Events, size = numprocs x memsize
-    *
-    * where Variables is ALL variables
-    */
-   std::vector<Event*>              latest_proc;
-   std::vector<Event*>              latest_wr;
-   std::vector<std::vector<Event*>> latest_op;
-
-   std::vector<Event*>              en;
-   std::vector<Event*>              cex;
-
    void add (const Event & e); // update the cut and the new event
-   void add (unsigned idx); // update the cut and the new event
-   void add_any ();
 
    /// creates a copy of this configuration
    BaseConfig clone ();
@@ -329,7 +312,7 @@ public:
    BaseConfig (const Unfolding &u, Event &e);
    
 public:
-   /// map from process id (int) to maximal event in that process
+   /// map from process id (int) to maximal event in that process (size = u.num_procs())
    Event **max;
 };
 

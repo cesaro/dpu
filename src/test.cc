@@ -309,12 +309,19 @@ void test30()
    printf("ex.vclock: ");
    ex->vclock.print();
 
-
    u.dump ();
    u.print_dot();
 
+   printf ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n");
+
+#if 0
+   BaseConfig c (u);
+   c.add (es);
+   c.add (ec);
+   c.add (ej); // not a config
+   c.dump ();
+#endif
+
    //BaseConfig c;
    //c.build();
-
-
 }

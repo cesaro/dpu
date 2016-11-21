@@ -69,7 +69,7 @@ class Event // : public MultiNode<Event,2,3> // 2 trees, skip step = 3
 private:
    Event *_pre_other;
 public:
-
+   int idx;
    /// THSTART(), creat is the corresponding THCREAT (or null for p0)
    inline Event (Event *creat);
    /// THCREAT(tid) or THEXIT(), one predecessor (in the process)
@@ -118,6 +118,7 @@ public:
    inline bool operator == (const Event &) const;
    /// returns a human-readable description of the event
    std::string str () const;
+   std::string dotstr() const;
 
 private:
    inline void post_add (Event * const succ);
@@ -167,13 +168,15 @@ private:
 class Unfolding
 {
 public:
+   static unsigned count;
    inline Unfolding ();
 
    void dump ();
-   void print_dot (FILE *f);
+   //void print_dot (FILE *f);
+   void print_dot();
 
-   /// returns a pointer to the process number p
-   inline Process *proc (unsigned p) const;
+   /// returns a pointer to the process number pid
+   inline Process *proc (unsigned pid) const;
 
    /// returns the number of processes currently present in this unfolding
    unsigned num_procs () { return nrp; }
@@ -303,24 +306,7 @@ private:
 class BaseConfig
 {
 public:
-   /*
-    * latest_proc : Processes -> Events
-    * initialzed by memsize but actually we use only the last (memsize - numprocs) elements
-    * latest_wr   : Variables -> Events
-    * latest_op   : (Processes x Variables) -> Events, size = numprocs x memsize
-    *
-    * where Variables is ALL variables
-    */
-   std::vector<Event*>              latest_proc;
-   std::vector<Event*>              latest_wr;
-   std::vector<std::vector<Event*>> latest_op;
-
-   std::vector<Event*>              en;
-   std::vector<Event*>              cex;
-
    void add (const Event & e); // update the cut and the new event
-   void add (unsigned idx); // update the cut and the new event
-   void add_any ();
 
    /// creates a copy of this configuration
    BaseConfig clone ();
@@ -332,8 +318,8 @@ public:
    /// creates a local configuration
    BaseConfig (const Unfolding &u, Event &e);
    
-protected:
-   /// map from process id (int) to maximal event in that process
+public:
+   /// map from process id (int) to maximal event in that process (size = u.num_procs())
    Event **max;
 };
 

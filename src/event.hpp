@@ -1,11 +1,11 @@
 
 /// THSTART(), creat is the corresponding THCREAT (or null for p0)
-inline Event::Event (Event *creat) :
-   _pre_other (creat),
+inline Event::Event (Event *creat)
+:  _pre_other (creat),
    flags ({.boxfirst = 1, .boxlast = 0, .inc = 0}),
    action ({.type = ActionType::THSTART}),
    redbox (),
-   vclock (), // FIXME what to put here?
+   vclock(),
    color (0),
    post ()
 {
@@ -18,6 +18,13 @@ inline Event::Event (Event *creat) :
          this, pid(), action_type_str (action.type), pre_proc(), creat);
 
    if (creat) creat->post_add (this);
+   if (creat == nullptr)
+      vclock.add_clock(0,0);
+   else
+   {
+      vclock = creat->vclock;
+      vclock.add_clock(pid(),0);
+   }
 }
 
 /// THCREAT(tid) or THEXIT(), one predecessor (in the process)
@@ -26,7 +33,7 @@ inline Event::Event (Action ac) :
    flags ({.boxfirst = 0, .boxlast = 0, .inc = 0}),
    action (ac),
    redbox (),
-   vclock (), // FIXME what to put here?
+   vclock(pre_proc()->vclock),
    color (0),
    post ()
 {
@@ -37,6 +44,7 @@ inline Event::Event (Action ac) :
          this, pid(), action_type_str (action.type), pre_proc(), pre_other());
    
    pre_proc()->post_add (this);
+   vclock.inc_clock(pid());
 }
 
 /// THJOIN(tid), MTXLOCK(addr), MTXUNLK(addr), two predecessors (process, memory/exit)
@@ -45,7 +53,7 @@ inline Event::Event (Action ac, Event *m) :
    flags ({.boxfirst = 0, .boxlast = 0, .inc = 0}),
    action (ac),
    redbox (),
-   vclock (), // FIXME what to put here?
+   vclock (pre_proc()->vclock, m->vclock), // FIXME what to put here?
    color (0),
    post ()
 {
@@ -58,6 +66,7 @@ inline Event::Event (Action ac, Event *m) :
 
    pre_proc()->post_add (this);
    if (m) m->post_add (this);
+   vclock.inc_clock(pid());
 }
 
 inline void Event::post_add (Event * succ)

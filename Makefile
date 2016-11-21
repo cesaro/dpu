@@ -62,9 +62,11 @@ vars :
 	@echo "SRCS     $(SRCS)"
 	@echo "OBJS     $(OBJS)"
 	@echo "DEPS     $(DEPS)"
+	@echo "DOTPNG   $(DOTPNG)"
 
 clean :
 	@rm -f $(TARGETS) $(MOBJS) $(OBJS)
+	@rm -f output/*.png
 	@rm -f src/rt/rt.ll
 	@rm -f src/rt/rtv.ll
 	@echo Cleaning done.

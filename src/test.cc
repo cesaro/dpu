@@ -192,3 +192,109 @@ for (int i = 0; i < 2; i++)
    u.dump ();
 }
 }
+
+void test30()
+{
+#if 0
+   Vclock v1(0,1), v2(1,2), v3(2,4);
+   Vclock v4(v1,v2), v5(v2,v3);
+   Vclock v6(v4,v5);
+
+   printf("v1:\n");
+   v1.print();
+
+   printf("v2:\n");
+   v2.print();
+
+   printf("v3:\n");
+   v3.print();
+
+   printf("v4 = v1 + v2:\n");
+   v4.print();
+
+   printf("v5 = v2 + v3:\n");
+   v5.print();
+
+   printf("v6 = v4 + v5:\n");
+   v6.print();
+
+   // compare
+   if (v5 == v6)
+      printf("v5 = v6 \n");
+   else
+      if (v5 < v6)
+         printf("v5 < v6 \n");
+      else
+         if (v5 > v6)
+            printf("v5 > v6 \n");
+         else
+            printf("We can't compare them \n");
+
+   if (v6 > v5)
+      printf("v6 > v5");
+
+   if (v4 == v5)
+         printf("v4 = v5 \n");
+      else
+         if (v4 < v5)
+            printf("v4 < v5 \n");
+         else
+            if (v4 > v5)
+               printf("v4 > v5 \n");
+            else
+               printf("We can't compare them \n");
+
+
+   if (v1 < v4)
+      printf("v1 < v4");
+   else
+      printf("can't compare");
+
+#endif
+
+   Unfolding u;
+
+   /*
+    * Thread 0: start, creat, join, exit
+    * Thread 1: start, exit
+    */
+
+   Event *es, *ec, *ej, *ex, *es1, *ex1;
+
+   // start
+   es = u.event (nullptr); // bottom
+
+   // creat
+   ec = u.event ({.type = ActionType::THCREAT}, es);
+
+   // start in thread 1
+   es1 = u.event (ec);
+
+   // exit in thread 1
+   ex1 = u.event ({.type = ActionType::THEXIT}, es1);
+
+   // join
+   ej = u.event ({.type = ActionType::THJOIN}, ec, ex1);
+
+   // exit
+   ex = u.event ({.type = ActionType::THEXIT}, ej);
+
+   printf("ex.vclock: ");
+   ex->vclock.print();
+
+   u.dump ();
+   u.print_dot();
+
+   printf ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n");
+
+#if 0
+   BaseConfig c (u);
+   c.add (es);
+   c.add (ec);
+   c.add (ej); // not a config
+   c.dump ();
+#endif
+
+   //BaseConfig c;
+   //c.build();
+}

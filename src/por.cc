@@ -1,6 +1,7 @@
 /* Get a replay of a configuration */
+#include "por.hh"
+
 #include <vector>
-#include "replay.hh"
 
 namespace dpu
 {

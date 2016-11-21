@@ -168,6 +168,91 @@ std::string Event::str () const
    return "";
 }
 
+std::string Event::dotstr () const
+{
+   return "";
+}
+
+void Unfolding::print_dot ()
+{
+   int count = 0;
+   /* Create a folder namely output in case it hasn't existed. Work only in Linux */
+   DEBUG("\n%p: Unfolding.uprint_dot:", this);
+   const char * mydir = "output";
+   struct stat st;
+   if ((stat(mydir, &st) == 0) && (((st.st_mode) & S_IFMT) == S_IFDIR))
+      DEBUG(" Directory %s already exists", mydir);
+   else
+   {
+      const int dir_err = mkdir("output", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+      if (-1 == dir_err)
+         DEBUG("Directory output has just been created!");
+   }
+
+   std::ofstream fs("output/unf.dot", std::fstream::out);
+   std::string caption = "Concur example";
+   DEBUG_(" Unfolding is exported to dot file: \"output/unf.dot\"");
+
+   fs << "Digraph RGraph \n {\n";
+   fs << "label = \"Unfolding: " << caption <<"\" \n";
+   fs << "node [shape=rectangle, fontsize=10, style=\"filled, solid\", align=right] \n";
+   fs << "edge [style=filled] \n";
+
+   std::string bcolor;
+   for (unsigned i = 0; i < num_procs(); i++)
+   {
+      Process *p = proc (i);
+      for (Event &e : *p)
+      {
+         e.idx = count;
+         /*
+         if (e.is_bottom())
+            fs << e.idx << "[label=\"" << "BOTTOM \n vclock: "
+               << e.vclock.print_dot() <<" \"]\n";
+         else
+         */
+
+         switch (e.action.type)
+         {
+            case ActionType::MTXLOCK:
+            case ActionType::MTXUNLK:
+               bcolor = "red";
+               break;
+            case ActionType::THSTART:
+               bcolor = "lightblue";
+               break;
+            case ActionType::THEXIT:
+               bcolor = "yellow";
+               break;
+            default:
+               bcolor = "grey";
+               break;
+         }
+
+         fs << e.idx << "[label=\"" << "Proc: "<<p->pid() << " - "<< action_type_str(e.action.type) <<"\n vclock:("
+            << e.vclock.print_dot() <<" )\", color= " << bcolor << "]\n";
+         count++;
+      }
+   }
+
+   for (unsigned i = 0; i < num_procs(); i++)
+   {
+      Process *p = proc (i);
+      for (Event &e : *p)
+      {
+         if (e.pre_other() != nullptr)
+            fs << e.pre_other()->idx << "->" << e.idx << "[color=brown]\n";
+
+         if (e.pre_proc() != nullptr)
+            fs << e.pre_proc()->idx << "->" << e.idx << "[color=brown]\n";
+      }
+   }
+
+   fs << "}";
+   fs.close();
+   DEBUG(" successfully\n");
+}
+
 
 
 #if 0

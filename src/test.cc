@@ -313,8 +313,8 @@ void test30()
    u.dump ();
    u.print_dot();
 
-   BaseConfig c;
-   c.build();
+   //BaseConfig c;
+   //c.build();
 
 
 }

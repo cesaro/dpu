@@ -191,7 +191,7 @@ void Unfolding::print_dot ()
 
    std::ofstream fs("output/unf.dot", std::fstream::out);
    std::string caption = "Concur example";
-   DEBUG_(" Unfolding is exported to dot file: \"dpu/output/unf.dot\"");
+   DEBUG_(" Unfolding is exported to dot file: \"output/unf.dot\"");
 
    fs << "Digraph RGraph \n {\n";
    fs << "label = \"Unfolding: " << caption <<"\" \n";

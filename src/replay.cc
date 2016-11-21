@@ -20,7 +20,7 @@ void basic_conf_to_replay (BaseConfig &c, std::vector<int> &replay)
       }
    }
 
-   bool unmarked = true;
+   bool unmarked = true; // there is some event in the configuration unmarked
    while (unmarked)
    {
       for (unsigned i = 0; i < size; i++)

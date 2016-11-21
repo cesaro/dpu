@@ -21,8 +21,9 @@ public:
 
    void add_clock(int pid, int count);
    void inc_clock(int pid);
-   int get_size();
+   int get_size()const;
    void print();
+   std::string print_dot();
 
 private:
    std::vector<std::pair<int,int> > tab;

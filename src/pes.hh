@@ -68,7 +68,7 @@ class Event // : public MultiNode<Event,2,3> // 2 trees, skip step = 3
 private:
    Event *_pre_other;
 public:
-
+   int idx;
    /// THSTART(), creat is the corresponding THCREAT (or null for p0)
    inline Event (Event *creat);
    /// THCREAT(tid) or THEXIT(), one predecessor (in the process)
@@ -117,6 +117,7 @@ public:
    inline bool operator == (const Event &) const;
    /// returns a human-readable description of the event
    std::string str () const;
+   std::string dotstr() const;
 
 private:
    inline void post_add (Event * const succ);
@@ -166,6 +167,7 @@ private:
 class Unfolding
 {
 public:
+   static unsigned count;
    inline Unfolding ();
 
    void dump ();

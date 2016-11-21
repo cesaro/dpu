@@ -311,5 +311,10 @@ void test30()
 
 
    u.dump ();
+   u.print_dot();
+
+   BaseConfig c;
+   c.build();
+
 
 }

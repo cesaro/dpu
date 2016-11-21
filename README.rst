@@ -22,6 +22,12 @@ x check alignment Event / Event box
 - design unfolder class
 
 Huyen:
-- vclocks
+
+x vclocks
+x Unfolding::print_dot
+- BaseConfig
 - BaseConfig -> replay
-- Unfolding::print_dot
+- compute_cex (u, c)
+- fdfdsf
+
+

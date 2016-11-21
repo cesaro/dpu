@@ -18,11 +18,11 @@ include defs.mk
 .PHONY: fake all g test clean distclean prof dist compile tags run dot
 	
 
-all : compile
+all : compile run dot
 
 compile: $(TARGETS)
 
-run: compile dot
+run: compile
 	./src/main
 	
 input.ll : benchmarks/basic/hello.ll src/rt/rtv.ll

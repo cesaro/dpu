@@ -61,6 +61,7 @@ struct Action
    uint64_t val;
 
    void pretty_print ();
+   inline bool operator == (const Action &other) const;
 };
 
 class Event // : public MultiNode<Event,2,3> // 2 trees, skip step = 3
@@ -209,6 +210,12 @@ private :
    /// creates a new process in the unfolding; creat is the corrsponding THCREAT
    /// event
    inline Process *new_proc (Event *creat);
+
+   /// returns the (only) immediate process causal successor of p with action *ac, or NULL
+   inline Event *find1 (Action *ac, Event *p);
+   /// returns the (only) immediate causal successor of {p,m} with action *ac, or NULL
+   inline Event *find2 (Action *ac, Event *p, Event *m);
+
 };
 
 class EventBox
@@ -331,6 +338,7 @@ protected:
 };
 
 // implementation of templates
+#include "action.hpp"
 #include "event.hpp"
 #include "unfolding.hpp"
 #include "process.hpp"
@@ -339,4 +347,5 @@ protected:
 } // namespace dpu
 
 #endif
+
 

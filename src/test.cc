@@ -135,6 +135,9 @@ void test28 ()
     */
    Event *es, *ec, *ej, *ex, *es1, *ex1;
 
+for (int i = 0; i < 2; i++)
+{
+   printf ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n");
    // start
    es = u.event (0);
    ASSERT (es->is_bottom ());
@@ -188,34 +191,4 @@ void test28 ()
 
    u.dump ();
 }
-
-void test29 ()
-{
-   Unfolding u;
-
-   /*
-    * Thread 0: start, creat, join, exit
-    * Thread 1: start, exit
-    */
-   Event *es, *ec, *ej, *ex, *es1, *ex1;
-
-   // start
-   es = u.event (nullptr); // bottom
-
-   // creat
-   ec = u.event ({.type = ActionType::THCREAT}, es);
-
-   // start in thread 1
-   es1 = u.event (ec);
-
-   // exit in thread 1
-   ex1 = u.event ({.type = ActionType::THEXIT}, es1);
-
-   // join
-   ej = u.event ({.type = ActionType::THJOIN}, ec, ex1);
-
-   // exit
-   ex = u.event ({.type = ActionType::THEXIT}, ej);
-
-   u.dump ();
 }

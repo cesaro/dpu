@@ -107,7 +107,6 @@ inline EventBox *Event::box_below () const
    return ((EventBox *) this) - 1;
 }
 
-
 inline bool Event::operator == (const Event &other) const
 {
    return this == &other;

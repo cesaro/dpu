@@ -35,15 +35,30 @@ inline Process *Unfolding::proc (unsigned p) const
 /// create a new process
 inline Event *Unfolding::event (Event *creat)
 {
-   // FIXME check if the event exists already
-   if (creat == 0) return proc(0)->first_event();
+   // if creat is null, we return bottom, already present in the unfolding
+   if (creat == 0)
+   {
+      ASSERT (proc(0)->first_event());
+      ASSERT (proc(0)->first_event()->action.type == ActionType::THSTART);
+      return proc(0)->first_event();
+   }
 
-   // for the time being
-   ASSERT (creat->pid() == 0);
+   // otherwise we are searching for the root event in a process that we might
+   // or might not already created; if creat has a causal successor, then our
+   // root event must be in the first position in the post vector
+   if (creat->post.size())
+   {
+      ASSERT (creat->post[0]);
+      ASSERT (creat->post[0]->action.type == ActionType::THSTART);
+      ASSERT (creat->pid() < creat->post[0]->pid());
+      for (int i = 1; i < creat->post.size(); i++)
+         ASSERT (creat->post[i]->action.type != ActionType::THSTART);
+      return creat->post[0];
+   }
 
+   // otherwise we need to create a new process and return its root
    Process *p = new_proc (creat);
    ASSERT (p);
-   ASSERT (p->pid() == 1); // for the time being :)
    Event *e = p->first_event();
    ASSERT (e->flags.boxfirst);
    return e;
@@ -52,22 +67,31 @@ inline Event *Unfolding::event (Event *creat)
 /// THCREAT(tid) or THEXIT(), one predecessor (in the process)
 inline Event *Unfolding::event (Action ac, Event *p)
 {
+   Event *e;
+
    ASSERT (p);
 
-   // FIXME check if the event exists already
-   if (false) return 0;
+   // if the event already exist, we return it
+   e = find1 (&ac, p);
+   if (e) return e;
 
+   // otherwise we create it
    return p->proc()->add_event_1p (ac, p);
 }
 
 /// THJOIN(tid), MTXLOCK(addr), MTXUNLK(addr), two predecessors (process, memory/exit)
 inline Event *Unfolding::event (Action ac, Event *p, Event *m)
 {
+   Event *e;
+
    ASSERT (p);
+   ASSERT (m);
 
-   // FIXME check if the event exists already
-   if (false) return 0;
+   // if the event already exist, we return it
+   e = find2 (&ac, p, m);
+   if (e) return e;
 
+   // otherwise we create it
    return p->proc()->add_event_2p (ac, p, m);
 }
 
@@ -83,3 +107,37 @@ inline Process *Unfolding::new_proc (Event *creat)
    return new (p) Process (creat);
 }
 
+inline Event *Unfolding::find1 (Action *ac, Event *p)
+{
+   // p should have 0 or 1 causal successor, and its action should be ac
+   ASSERT (p->post.size() == 0 or p->post.size() == 1);
+   ASSERT (p->post.size() == 0 or p->post[0]->action == *ac);
+
+   if (p->post.size() == 0) return 0;
+   return p->post[0];
+}
+
+inline Event *Unfolding::find2 (Action *ac, Event *p, Event *m)
+{
+#ifdef CONFIG_DEBUG
+   // exactly one event with preset {p,m} ...
+   int count = 0;
+   for (Event *e : p->post)
+   {
+      if (e->pre_other() == m) count++;
+   }
+   ASSERT (count <= 1);
+#endif
+
+   // FIXME - we could choose here p or m depending on the size of the post
+   for (Event *e : p->post)
+   {
+      if (e->pre_other() == m)
+      {
+         // ... and that event is action *ac
+         ASSERT (e->action == *ac);
+         return e;
+      }
+   }
+   return 0;
+}

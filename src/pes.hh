@@ -110,7 +110,7 @@ public:
    inline bool is_bottom ();
 
    /// returns the pid of the process to which this event belongs
-   inline unsigned pid ();
+   inline unsigned pid () const;
    /// returns the process to which this event belongs
    inline Process *proc ();
 
@@ -179,7 +179,7 @@ public:
    inline Process *proc (unsigned pid) const;
 
    /// returns the number of processes currently present in this unfolding
-   unsigned num_procs () { return nrp; }
+   unsigned num_procs () const { return nrp; }
 
    /// The following methods create or retrieve existing events from the unfolding
    /// THSTART(), creat is the corresponding THCREAT (or null for p0);

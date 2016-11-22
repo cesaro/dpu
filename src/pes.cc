@@ -10,6 +10,7 @@
 
 #include <cstdint>
 #include <cstdlib>
+#include <stdlib.h>
 #include <cstdio>
 #include <cmath>
 #include <cassert>
@@ -253,8 +254,54 @@ void Unfolding::print_dot ()
    DEBUG(" successfully\n");
 }
 
+#if 0
+void BaseConfig::add(const Event & e)
+{
+   //update the configuration
+   *max[e.pid()] = e;
+}
+//-------
+BaseConfig BaseConfig::clone ()
+{
 
+}
+//----- prints the configuration in stdout
+void BaseConfig::dump ()
+{
+   for (unsigned i = 0; i < )
+   {
+      while (e->action.type != ActionType::THSTART)
+      {
+         DEBUG ("  e %-16p pid %2d pre-proc %-16p pre-other %-16p fst/lst %d/%d action %s",
+                  e, e->pid(), e->pre_proc(), e->pre_other(),
+                  e->flags.boxfirst ? 1 : 0,
+                  e->flags.boxlast ? 1 : 0,
+                  action_type_str (e->action.type));
+      }
+   }
 
+}
+
+/// creates an empty configuration
+BaseConfig::BaseConfig (const Unfolding &u)
+{
+   const unsigned size = u.num_procs();
+   max = (Event **) malloc(size * sizeof(Event *));
+
+   for (unsigned int i = 0; i < size; i++)
+      max[i] = nullptr;
+}
+/// creates a local configuration
+BaseConfig::BaseConfig (const Unfolding &u, Event &e)
+{
+   const unsigned size = u.num_procs();
+   max = (Event **) malloc(size * sizeof(Event *));
+   for (unsigned int i = 0; i < size; i++)
+      max[i] = nullptr;
+
+   *max[e.pid()] = e;
+}
+#endif
 #if 0
 /*
  * Methods for class Node

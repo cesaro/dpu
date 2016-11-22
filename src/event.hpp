@@ -74,7 +74,7 @@ inline void Event::post_add (Event * succ)
    post.push_back (succ);
 }
 
-inline unsigned Event::pid ()
+inline unsigned Event::pid () const
 {
    return Unfolding::ptr2pid (this);
 }

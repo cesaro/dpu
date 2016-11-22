@@ -60,4 +60,9 @@ void basic_conf_to_replay (Unfolding &u, BaseConfig &c, std::vector<int> &replay
    }
 
 }
+void compute_cex(Unfolding & u, BaseConfig & c)
+{
+
+}
+
 } // end of namespace

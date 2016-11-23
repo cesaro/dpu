@@ -169,11 +169,6 @@ std::string Event::str () const
    return "";
 }
 
-std::string Event::dotstr () const
-{
-   return "";
-}
-
 void Unfolding::print_dot ()
 {
    int count = 0;
@@ -254,54 +249,113 @@ void Unfolding::print_dot ()
    DEBUG(" successfully\n");
 }
 
-#if 0
-void BaseConfig::add(const Event & e)
+void BaseConfig::add(Event & e)
 {
    //update the configuration
-   *max[e.pid()] = e;
+   DEBUG("Add an event to proc %d",e.pid());
+
+   max[e.pid()] = &e;
+/*
+   unsigned int size = 0;
+
+      while ((*max)->is_bottom() == false)
+      {
+         size++;
+         max = max + 1;
+      }
+
+      for (unsigned i = 0; i < size; i++)
+      {
+         DEBUG("max.type: %s",action_type_str(max[i]->action.type));
+      }
+*/
+      DEBUG("finish adding");
 }
 //-------
 BaseConfig BaseConfig::clone ()
 {
+   return *this;
 
 }
 //----- prints the configuration in stdout
 void BaseConfig::dump ()
 {
-   for (unsigned i = 0; i < )
+  /*
+   while (max++ != nullptr)
    {
-      while (e->action.type != ActionType::THSTART)
+      size++;
+      //max = max +1;
+   }
+   */
+   Event * pe;
+   DEBUG("size = %d", size);
+
+
+   for (unsigned i = 0; i < size; i++ )
+   {
+      DEBUG("Proc %d", i);
+     // DEBUG("max.type: %s",action_type_str(max[i]->action.type));
+      pe = max[i] ;
+      while (pe->action.type != ActionType::THSTART)
       {
          DEBUG ("  e %-16p pid %2d pre-proc %-16p pre-other %-16p fst/lst %d/%d action %s",
-                  e, e->pid(), e->pre_proc(), e->pre_other(),
-                  e->flags.boxfirst ? 1 : 0,
-                  e->flags.boxlast ? 1 : 0,
-                  action_type_str (e->action.type));
+               pe, max[i]->pid(), pe->pre_proc(), pe->pre_other(),
+               pe->flags.boxfirst ? 1 : 0,
+               pe->flags.boxlast ? 1 : 0,
+               action_type_str (pe->action.type));
+
+         pe = pe->pre_proc();
       }
    }
-
 }
 
 /// creates an empty configuration
 BaseConfig::BaseConfig (const Unfolding &u)
 {
-   const unsigned size = u.num_procs();
+   size = u.num_procs();
+   DEBUG("Initial size = %d", size);
    max = (Event **) malloc(size * sizeof(Event *));
+
+   // max = new Event*[size + 1];
+   //DEBUG("size of max: %d", sizeof(max));
+   //DEBUG("size of event ptr: %d", sizeof(Event*));
+   //DEBUG("num_proc: %d, max = %d", size, sizeof(max)/sizeof(Event*));
 
    for (unsigned int i = 0; i < size; i++)
       max[i] = nullptr;
+
+   /*
+   //put bottom at the end of max
+   Process * p = u.proc(0);
+   Event * bottom = p->first_event();
+   *(max + size) = bottom; // mark the end of array
+   */
 }
+
 /// creates a local configuration
 BaseConfig::BaseConfig (const Unfolding &u, Event &e)
 {
-   const unsigned size = u.num_procs();
+   size = u.num_procs();
+   DEBUG("Initial size = %d", size);
    max = (Event **) malloc(size * sizeof(Event *));
+   //max = new Event *[size];
+
+   DEBUG("Initialize unfolding with bottom");
+
    for (unsigned int i = 0; i < size; i++)
       max[i] = nullptr;
 
-   *max[e.pid()] = e;
+/*
+   //put bottom at the end of max
+   Process * p = u.proc(0);
+   Event * bottom = p->first_event();
+   *(max + size) = bottom; // mark the end of array
+*/
+   max[e.pid()] = &e;
+
+   DEBUG("BaseConfig.ctor: Done");
 }
-#endif
+
 #if 0
 /*
  * Methods for class Node

@@ -118,7 +118,6 @@ public:
    inline bool operator == (const Event &) const;
    /// returns a human-readable description of the event
    std::string str () const;
-   std::string dotstr() const;
 
 private:
    inline void post_add (Event * const succ);
@@ -168,7 +167,7 @@ private:
 class Unfolding
 {
 public:
-   static unsigned count;
+   //static unsigned count;
    inline Unfolding ();
 
    void dump ();
@@ -306,7 +305,7 @@ private:
 class BaseConfig
 {
 public:
-   void add (const Event & e); // update the cut and the new event
+   void add (Event & e); // update the cut and the new event
 
    /// creates a copy of this configuration
    BaseConfig clone ();
@@ -321,6 +320,7 @@ public:
 public:
    /// map from process id (int) to maximal event in that process (size = u.num_procs())
    Event **max;
+   int size;
 };
 
 // implementation of templates

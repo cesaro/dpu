@@ -12,6 +12,7 @@
 #include "misc.hh"
 #include "test.hh"
 #include "pes.hh"
+#include "por.hh"
 
 
 using namespace dpu;
@@ -195,7 +196,62 @@ for (int i = 0; i < 2; i++)
 
 void test30()
 {
-#if 0
+   Unfolding u;
+
+   /*
+    * Thread 0: start, creat, join, exit
+    * Thread 1: start, exit
+    */
+
+   Event *es, *ec, *ej, *ex, *es1, *ex1;
+
+   // start
+   es = u.event (nullptr); // bottom
+
+   // creat
+   ec = u.event ({.type = ActionType::THCREAT}, es);
+
+   // start in thread 1
+   es1 = u.event (ec);
+
+   // exit in thread 1
+   ex1 = u.event ({.type = ActionType::THEXIT}, es1);
+
+   // join
+   ej = u.event ({.type = ActionType::THJOIN}, ec, ex1);
+
+   // exit
+   ex = u.event ({.type = ActionType::THEXIT}, ej);
+
+   printf("ex.vclock: ");
+   ex->vclock.print();
+
+   u.dump ();
+   u.print_dot();
+
+   printf ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n");
+
+
+   BaseConfig c(u,*es);
+   //c.add (*es);
+   c.add (*ec);
+   c.add(*es1);
+   c.add(*ex1);
+   c.add (*ej);
+   c.add(*ex);
+
+   c.dump ();
+   std::vector<int> replay;
+   basic_conf_to_replay(u,c,replay);
+   DEBUG_("Replay:");
+   for (unsigned i = 0; i < replay.size(); i=i+2)
+      DEBUG_("%d-%d ", replay[i], replay[i+1]);
+
+}
+//-----------------
+void test31()
+{
+
    Vclock v1(0,1), v2(1,2), v3(2,4);
    Vclock v4(v1,v2), v5(v2,v3);
    Vclock v6(v4,v5);
@@ -249,52 +305,4 @@ void test30()
       printf("v1 < v4");
    else
       printf("can't compare");
-
-#endif
-
-   Unfolding u;
-
-   /*
-    * Thread 0: start, creat, join, exit
-    * Thread 1: start, exit
-    */
-
-   Event *es, *ec, *ej, *ex, *es1, *ex1;
-
-   // start
-   es = u.event (nullptr); // bottom
-
-   // creat
-   ec = u.event ({.type = ActionType::THCREAT}, es);
-
-   // start in thread 1
-   es1 = u.event (ec);
-
-   // exit in thread 1
-   ex1 = u.event ({.type = ActionType::THEXIT}, es1);
-
-   // join
-   ej = u.event ({.type = ActionType::THJOIN}, ec, ex1);
-
-   // exit
-   ex = u.event ({.type = ActionType::THEXIT}, ej);
-
-   printf("ex.vclock: ");
-   ex->vclock.print();
-
-   u.dump ();
-   u.print_dot();
-
-   printf ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n");
-
-#if 0
-   BaseConfig c (u);
-   c.add (es);
-   c.add (ec);
-   c.add (ej); // not a config
-   c.dump ();
-#endif
-
-   //BaseConfig c;
-   //c.build();
 }

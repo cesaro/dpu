@@ -255,21 +255,6 @@ void BaseConfig::add(Event & e)
    DEBUG("Add an event to proc %d",e.pid());
 
    max[e.pid()] = &e;
-/*
-   unsigned int size = 0;
-
-      while ((*max)->is_bottom() == false)
-      {
-         size++;
-         max = max + 1;
-      }
-
-      for (unsigned i = 0; i < size; i++)
-      {
-         DEBUG("max.type: %s",action_type_str(max[i]->action.type));
-      }
-*/
-      DEBUG("finish adding");
 }
 //-------
 BaseConfig BaseConfig::clone ()
@@ -315,11 +300,6 @@ BaseConfig::BaseConfig (const Unfolding &u)
    size = u.num_procs();
    DEBUG("Initial size = %d", size);
    max = (Event **) malloc(size * sizeof(Event *));
-
-   // max = new Event*[size + 1];
-   //DEBUG("size of max: %d", sizeof(max));
-   //DEBUG("size of event ptr: %d", sizeof(Event*));
-   //DEBUG("num_proc: %d, max = %d", size, sizeof(max)/sizeof(Event*));
 
    for (unsigned int i = 0; i < size; i++)
       max[i] = nullptr;

@@ -251,35 +251,31 @@ void Unfolding::print_dot ()
 
 void BaseConfig::add(Event & e)
 {
-   //update the configuration
+   ///update the configuration
    DEBUG("Add an event to proc %d",e.pid());
-
    max[e.pid()] = &e;
 }
+
 //-------
 BaseConfig BaseConfig::clone ()
 {
    return *this;
-
 }
+
 //----- prints the configuration in stdout
 void BaseConfig::dump ()
 {
-  /*
-   while (max++ != nullptr)
-   {
-      size++;
-      //max = max +1;
-   }
-   */
-   Event * pe;
-   DEBUG("size = %d", size);
+   DEBUG("==========Dumping==================");
+   int size = 0;
+   while (max[size]->is_bottom() == false)
+       size++;
 
+   Event * pe;
+   DEBUG("Size of max: %d", size);
 
    for (unsigned i = 0; i < size; i++ )
    {
       DEBUG("Proc %d", i);
-     // DEBUG("max.type: %s",action_type_str(max[i]->action.type));
       pe = max[i] ;
       while (pe->action.type != ActionType::THSTART)
       {
@@ -291,46 +287,52 @@ void BaseConfig::dump ()
 
          pe = pe->pre_proc();
       }
+      // print THSTART event
+      DEBUG ("  e %-16p pid %2d pre-proc %-16p pre-other %-16p fst/lst %d/%d action %s",
+               pe, max[i]->pid(), pe->pre_proc(), pe->pre_other(),
+               pe->flags.boxfirst ? 1 : 0,
+               pe->flags.boxlast ? 1 : 0,
+               action_type_str (pe->action.type));
+
    }
+   DEBUG("==========End of dumping===========");
 }
 
 /// creates an empty configuration
 BaseConfig::BaseConfig (const Unfolding &u)
 {
-   size = u.num_procs();
+   int size = u.num_procs();
    DEBUG("Initial size = %d", size);
-   max = (Event **) malloc(size * sizeof(Event *));
+   max = (Event **) malloc((size +1) * sizeof(Event *));
 
    for (unsigned int i = 0; i < size; i++)
       max[i] = nullptr;
 
-   /*
+
    //put bottom at the end of max
    Process * p = u.proc(0);
    Event * bottom = p->first_event();
-   *(max + size) = bottom; // mark the end of array
-   */
+   max[size] = bottom; // mark the end of array
 }
 
 /// creates a local configuration
 BaseConfig::BaseConfig (const Unfolding &u, Event &e)
 {
-   size = u.num_procs();
+   int size = u.num_procs();
    DEBUG("Initial size = %d", size);
-   max = (Event **) malloc(size * sizeof(Event *));
-   //max = new Event *[size];
+   max = (Event **) malloc((size +1) * sizeof(Event *));
 
    DEBUG("Initialize unfolding with bottom");
 
    for (unsigned int i = 0; i < size; i++)
       max[i] = nullptr;
 
-/*
+
    //put bottom at the end of max
    Process * p = u.proc(0);
    Event * bottom = p->first_event();
-   *(max + size) = bottom; // mark the end of array
-*/
+   max[size] = bottom; // mark the end of array
+
    max[e.pid()] = &e;
 
    DEBUG("BaseConfig.ctor: Done");

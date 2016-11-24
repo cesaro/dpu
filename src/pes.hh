@@ -320,7 +320,7 @@ public:
 public:
    /// map from process id (int) to maximal event in that process (size = u.num_procs())
    Event **max;
-   int size;
+   //int size;
 };
 
 // implementation of templates

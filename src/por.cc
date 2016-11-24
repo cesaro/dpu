@@ -8,11 +8,11 @@ namespace dpu
 
 void basic_conf_to_replay (Unfolding &u, BaseConfig &c, std::vector<int> &replay)
 {
+   int size = u.num_procs();
    DEBUG("Start computing replay");
    Event * pe;
 
-   DEBUG("c.size=%d", c.size);
-   for (unsigned i = 0; i < c.size; i++)
+   for (unsigned i = 0; i < size; i++)
    {
       pe = c.max[i];
       pe->next = nullptr; //max[i].next = nullptr
@@ -39,7 +39,7 @@ void basic_conf_to_replay (Unfolding &u, BaseConfig &c, std::vector<int> &replay
    bool unmarked = true; // there is some event in the configuration unmarked
    while (unmarked)
    {
-      for (unsigned i = 0; i < c.size; i++)
+      for (unsigned i = 0; i < size; i++)
       {
          pe = (c.max[i]->proc())->first_event();
 //         DEBUG("%s type", action_type_str(pe->action.type));
@@ -74,11 +74,11 @@ void basic_conf_to_replay (Unfolding &u, BaseConfig &c, std::vector<int> &replay
 
       // terminate when all maximal events are marked.
       unsigned int j;
-      for (j = 0; j < c.size; j++)
+      for (j = 0; j < size; j++)
          if (c.max[j]->color == 0)
             break;
 
-      if (j == c.size)
+      if (j == size)
          unmarked = false;
    }
 
@@ -124,7 +124,8 @@ void LOCK_cex(Unfolding &u, Event *e)
 void compute_cex(Unfolding & u, BaseConfig & c)
 {
    Event *e;
-   for (unsigned i = 0; i < c.size; i++)
+   int size = u.num_procs();
+   for (unsigned i = 0; i < size; i++)
    {
       e = c.max[i];
       while (e->action.type == ActionType::THSTART)

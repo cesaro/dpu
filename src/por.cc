@@ -1,4 +1,4 @@
-/* Get a replay of a configuration */
+///* Get a replay of a configuration */
 #include "por.hh"
 
 #include <vector>
@@ -9,7 +9,7 @@ namespace dpu
 void basic_conf_to_replay (Unfolding &u, BaseConfig &c, std::vector<int> &replay)
 {
    int size = u.num_procs();
-   DEBUG("Start computing replay");
+   DEBUG("==========Get replay====");
    Event * pe;
 
    for (unsigned i = 0; i < size; i++)
@@ -25,16 +25,6 @@ void basic_conf_to_replay (Unfolding &u, BaseConfig &c, std::vector<int> &replay
          pe = pe->pre_proc();
       }
    }
-
-//   for (unsigned i = 0; i < c.size; i++)
-//   {
-//      pe = c.max[i]->proc()->first_event();
-//      while (pe)
-//      {
-//         DEBUG("%s type", action_type_str(pe->action.type));
-//         pe = pe->next;
-//      }
-//   }
 
    bool unmarked = true; // there is some event in the configuration unmarked
    while (unmarked)
@@ -82,10 +72,10 @@ void basic_conf_to_replay (Unfolding &u, BaseConfig &c, std::vector<int> &replay
          unmarked = false;
    }
 
+//   DEBUG("=====End of computing replay====");
+
 }
-
-
-
+/// Compute conflicting extension for a LOCK
 void LOCK_cex(Unfolding &u, Event *e)
 {
    DEBUG("\n %p, id:%d: LOCK_cex", e);
@@ -95,7 +85,7 @@ void LOCK_cex(Unfolding &u, Event *e)
 
    while (!(em->is_bottom()) and (em->vclock > ep->vclock)) //em is not a predecessor of ep
    {
-      pr_mem   = em->pre_other()->pre_other(); // skip 2
+      pr_mem = em->pre_other()->pre_other(); // skip 2
 
       /*
        * Check if pr_mem < ep
@@ -106,23 +96,24 @@ void LOCK_cex(Unfolding &u, Event *e)
        *  Need to check the event's history before adding it to the unf
        * Don't add events which are already in the unf
        */
-     // Event * newevt = u.event(e->action, ep, pr_mem);
 
-      // add new event newevt to set of dicfl of em and verse. Refer to the doc for more details
-//      if (newevt->idx == u.back().idx)
-//      {
-//         add_to_dicfl(em, newevt);
-//         add_to_dicfl(newevt, em);
-//      }
+      Event * newevt = u.event(e->action, ep, pr_mem);
+      DEBUG("New event:");
+      DEBUG ("  e %-16p pid %2d pre-proc %-16p pre-other %-16p fst/lst %d/%d action %s",
+               newevt, newevt->pid(), newevt->pre_proc(), newevt->pre_other(),
+               newevt->flags.boxfirst ? 1 : 0,
+               newevt->flags.boxlast ? 1 : 0,
+               action_type_str (newevt->action.type));
+
 
       // move the pointer to the next
-      //em = pr_mem;
       em = em->pre_other()->pre_other();
    }
 }
 
 void compute_cex(Unfolding & u, BaseConfig & c)
 {
+   DEBUG("==========Compute cex====");
    Event *e;
    int size = u.num_procs();
    for (unsigned i = 0; i < size; i++)

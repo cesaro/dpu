@@ -203,7 +203,7 @@ void test30()
     * Thread 1: start, exit
     */
 
-   Event *es, *ec, *ej, *ex, *es1, *ex1;
+   Event *es, *ec, *el, *eu, *ej, *ex, *es1, *ex1 ;
 
    // start
    es = u.event (nullptr); // bottom
@@ -217,8 +217,15 @@ void test30()
    // exit in thread 1
    ex1 = u.event ({.type = ActionType::THEXIT}, es1);
 
+   // lock
+   //el = u.event ({.type = ActionType::MTXLOCK}, ec, nullptr);
+   el = u.event ({.type = ActionType::MTXLOCK}, ec, es);
+
+   //unlock
+   eu = u.event ({.type = ActionType::MTXUNLK}, el, el);
+
    // join
-   ej = u.event ({.type = ActionType::THJOIN}, ec, ex1);
+   ej = u.event ({.type = ActionType::THJOIN}, eu, ex1);
 
    // exit
    ex = u.event ({.type = ActionType::THEXIT}, ej);
@@ -235,6 +242,8 @@ void test30()
    BaseConfig c(u,*es);
    //c.add (*es);
    c.add (*ec);
+   c.add(*el);
+   c.add(*eu);
    c.add(*es1);
    c.add(*ex1);
    c.add (*ej);

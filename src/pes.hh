@@ -323,7 +323,7 @@ public:
    Event **max;
 };
 
-// implementation of templates
+// implementation of inline methods
 #include "action.hpp"
 #include "event.hpp"
 #include "unfolding.hpp"

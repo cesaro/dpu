@@ -14,6 +14,7 @@
 # this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+# == llvm ==
 LLVMVERS=3.7
 #LLVMCXXFLAGS=-I$(shell llvm-config-$(LLVMVERS) --includedir)
 LLVMCXXFLAGS=$(shell llvm-config-$(LLVMVERS) --cppflags)
@@ -21,19 +22,19 @@ LLVMLDFLAGS=$(shell llvm-config-$(LLVMVERS) --ldflags)
 #LLVMLIBS=$(shell llvm-config-$(LLVMVERS) --libs --system-libs)
 LLVMLIBS=$(shell llvm-config-$(LLVMVERS) --libs all) -lz -lpthread -lffi -lncurses -ldl -lm
 
+# == steroids ==
+STIDCPPFLAGS=-I ../steroid/include/
+STIDLDFLAGS=-L ../steroid/src/
+STIDLDLIBS=-Wl,-Bstatic -lsteroids -Wl,-Bdynamic
+
 # traditional variables
-#CFLAGS:=-Wall -Wextra -std=c11 -pg
-#CFLAGS:=-Wall -Wextra -std=c11 -g
+DEFS=-D_POSIX_C_SOURCE=200809L -D__STDC_LIMIT_MACROS -D__STDC_FORMAT_MACROS 
 CFLAGS:=-Wall -std=c11 -g
-#CXXFLAGS:=-Wall -Wextra -std=c++11 -O3
-#CXXFLAGS:=-Wall -Wextra -std=c++11 -pg
-#CXXFLAGS:=-Wall -Wextra -std=c++11 -g
 CXXFLAGS:=-Wall -std=c++11 -g
-#CPPFLAGS:=-I src/ -D_POSIX_C_SOURCE=200809L -D__STDC_LIMIT_MACROS -D__STDC_FORMAT_MACROS -D NDEBUG
-CPPFLAGS:=-I src/ -D_POSIX_C_SOURCE=200809L -D__STDC_LIMIT_MACROS -D__STDC_FORMAT_MACROS $(LLVMCXXFLAGS)
+CPPFLAGS:=-I src/ $(LLVMCXXFLAGS) $(STIDCPPFLAGS)
 #LDFLAGS:=-dead_strip -static
-LDFLAGS:=$(LLVMLDFLAGS)
-LDLIBS=$(LLVMLIBS)
+LDFLAGS:=$(LLVMLDFLAGS) $(STIDLDFLAGS)
+LDLIBS=$(STIDLDLIBS) $(LLVMLIBS)
 
 # source code
 SRCS:=$(wildcard src/*.c src/*.cc src/*/*.c src/*/*.cc src/*/*/*.c src/*/*/*.cc)

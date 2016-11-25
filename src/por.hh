@@ -6,6 +6,7 @@
 
 namespace dpu
 {
+
 void basic_conf_to_replay (BaseConfig &c, std::vector<int> &replay);
 
 } //end of namespace

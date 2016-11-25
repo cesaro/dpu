@@ -16,6 +16,7 @@
 
 #include "vclock.hh"
 #include "verbosity.h"
+#include "misc.hh"
 
 namespace dpu{
 
@@ -170,6 +171,9 @@ std::pair<int, int> Vclock:: operator[] (int pid)
    for (unsigned int i = 0; i < tab.size(); i++)
       if (tab[i].first == pid)
          return tab[i];
+
+   throw std::range_error (fmt
+         ("Trying to access pid %d in vclock %p: no such process", pid, this));
 }
 //-----------------
 void Vclock::add_clock(int pid, int count )

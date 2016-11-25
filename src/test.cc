@@ -136,62 +136,62 @@ void test28 ()
     */
    Event *es, *ec, *ej, *ex, *es1, *ex1;
 
-for (int i = 0; i < 2; i++)
-{
-   printf ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n");
-   // start
-   es = u.event (0);
-   ASSERT (es->is_bottom ());
-   ASSERT (es->flags.boxfirst);
-   ASSERT (!es->flags.boxlast);
-   ASSERT (es->action.type == ActionType::THSTART);
-   ASSERT (es->pre_proc() == 0);
-   ASSERT (es->pre_other() == 0);
+   for (int i = 0; i < 2; i++)
+   {
+      printf ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n");
+      // start
+      es = u.event (0);
+      ASSERT (es->is_bottom ());
+      ASSERT (es->flags.boxfirst);
+      ASSERT (!es->flags.boxlast);
+      ASSERT (es->action.type == ActionType::THSTART);
+      ASSERT (es->pre_proc() == 0);
+      ASSERT (es->pre_other() == 0);
 
-   // creat
-   ec = u.event ({.type = ActionType::THCREAT}, es);
-   ASSERT (ec->pre_proc() == es);
-   ASSERT (ec->pre_other() == 0);
-   ASSERT (ec->action.type == ActionType::THCREAT);
-   ASSERT (!ec->flags.boxlast and !ec->flags.boxfirst);
-   ASSERT (ec->pre_proc()->post.size() == 1);
-   ASSERT (ec->pre_proc()->post[0] = ec);
+      // creat
+      ec = u.event ({.type = ActionType::THCREAT}, es);
+      ASSERT (ec->pre_proc() == es);
+      ASSERT (ec->pre_other() == 0);
+      ASSERT (ec->action.type == ActionType::THCREAT);
+      ASSERT (!ec->flags.boxlast and !ec->flags.boxfirst);
+      ASSERT (ec->pre_proc()->post.size() == 1);
+      ASSERT (ec->pre_proc()->post[0] = ec);
 
-   // start in thread 1
-   es1 = u.event (ec);
-   ASSERT (es1->flags.boxfirst and !es1->flags.boxlast);
-   ASSERT (es1->action.type == ActionType::THSTART);
-   ASSERT (es1->pre_proc() == 0);
-   ASSERT (es1->pre_other() == ec);
+      // start in thread 1
+      es1 = u.event (ec);
+      ASSERT (es1->flags.boxfirst and !es1->flags.boxlast);
+      ASSERT (es1->action.type == ActionType::THSTART);
+      ASSERT (es1->pre_proc() == 0);
+      ASSERT (es1->pre_other() == ec);
 
-   // exit in thread 1
-   ex1 = u.event ({.type = ActionType::THEXIT}, es1);
-   ASSERT (!ex1->flags.boxfirst and !ex1->flags.boxlast);
-   ASSERT (ex1->action.type == ActionType::THEXIT);
-   ASSERT (ex1->pre_proc() == es1);
-   ASSERT (ex1->pre_other() == 0);
+      // exit in thread 1
+      ex1 = u.event ({.type = ActionType::THEXIT}, es1);
+      ASSERT (!ex1->flags.boxfirst and !ex1->flags.boxlast);
+      ASSERT (ex1->action.type == ActionType::THEXIT);
+      ASSERT (ex1->pre_proc() == es1);
+      ASSERT (ex1->pre_other() == 0);
 
-   // join
-   ej = u.event ({.type = ActionType::THJOIN}, ec, ex1);
-   ASSERT (ej->pre_proc() == ec);
-   ASSERT (ej->pre_other() == ex1);
-   ASSERT (ej->action.type == ActionType::THJOIN);
-   ASSERT (!ej->flags.boxlast and !ej->flags.boxfirst);
-   ASSERT (ej->pre_proc()->post.size() == 2);
-   ASSERT (ej->pre_proc()->post[0] = es1);
-   ASSERT (ej->pre_proc()->post[1] = ej);
+      // join
+      ej = u.event ({.type = ActionType::THJOIN}, ec, ex1);
+      ASSERT (ej->pre_proc() == ec);
+      ASSERT (ej->pre_other() == ex1);
+      ASSERT (ej->action.type == ActionType::THJOIN);
+      ASSERT (!ej->flags.boxlast and !ej->flags.boxfirst);
+      ASSERT (ej->pre_proc()->post.size() == 2);
+      ASSERT (ej->pre_proc()->post[0] = es1);
+      ASSERT (ej->pre_proc()->post[1] = ej);
 
-   // exit
-   ex = u.event ({.type = ActionType::THEXIT}, ej);
-   ASSERT (!ex->flags.boxfirst);
-   ASSERT (ex->action.type == ActionType::THEXIT);
-   ASSERT (ex->pre_proc() == ej);
-   ASSERT (ex->pre_other() == 0);
-   ASSERT (ex->pre_proc()->post.size() == 1);
-   ASSERT (ex->pre_proc()->post[0] = ex);
+      // exit
+      ex = u.event ({.type = ActionType::THEXIT}, ej);
+      ASSERT (!ex->flags.boxfirst);
+      ASSERT (ex->action.type == ActionType::THEXIT);
+      ASSERT (ex->pre_proc() == ej);
+      ASSERT (ex->pre_other() == 0);
+      ASSERT (ex->pre_proc()->post.size() == 1);
+      ASSERT (ex->pre_proc()->post[0] = ex);
 
-   u.dump ();
-}
+      u.dump ();
+   }
 }
 
 void test30()
@@ -218,8 +218,7 @@ void test30()
    ex1 = u.event ({.type = ActionType::THEXIT}, es1);
 
    // lock
-   //el = u.event ({.type = ActionType::MTXLOCK}, ec, nullptr);
-   el = u.event ({.type = ActionType::MTXLOCK}, ec, es);
+   el = u.event ({.type = ActionType::MTXLOCK}, ec, nullptr);
 
    //unlock
    eu = u.event ({.type = ActionType::MTXUNLK}, el, el);
@@ -238,16 +237,15 @@ void test30()
 
    printf ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n");
 
-
-   BaseConfig c(u,*es);
-   //c.add (*es);
-   c.add (*ec);
-   c.add(*el);
-   c.add(*eu);
-   c.add(*es1);
-   c.add(*ex1);
-   c.add (*ej);
-   c.add(*ex);
+   BaseConfig c(u);
+   c.add (es);
+   c.add (ec);
+   c.add (el);
+   c.add (eu);
+   c.add (es1);
+   c.add (ex1);
+   c.add (ej);
+   c.add (ex);
 
    c.dump ();
    std::vector<int> replay;

@@ -31,6 +31,7 @@ x Unfolding::print_dot
 - BaseConfig
 - BaseConfig -> replay
 - compute_cex (u, c)
+- fix conf2replay, bug when c.max contains null pointers
 
 Improvements
 ============

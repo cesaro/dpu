@@ -312,10 +312,19 @@ void BaseConfig::add (Event *e)
    // process; the following assertion is necessary but not sufficient to
    // guarantee it
    if (e->pre_other())
+   {
+      ASSERT (max[e->pre_other()->pid()]);
       ASSERT (e->pre_other()->vclock[e->pre_other()->pid()] <=
             max[e->pre_other()->pid()]->vclock[e->pre_other()->pid()]);
+   }
 
    max[e->pid()] = e;
+}
+
+void BaseConfig::reset ()
+{
+   unsigned i;
+   for (i = 0; i < size; i++) max[i] = 0;
 }
 
 //----- prints the configuration in stdout

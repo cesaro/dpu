@@ -248,12 +248,17 @@ void test30()
    c.add (ex);
 
    c.dump ();
+   printf ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n");
+   c.reset ();
+   c.add (es);
+   c.dump();
+
+   printf ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n");
    std::vector<int> replay;
-   basic_conf_to_replay(u,c,replay);
+   basic_conf_to_replay(u, c, replay);
    DEBUG_("Replay:");
    for (unsigned i = 0; i < replay.size(); i=i+2)
       DEBUG_("%d-%d ", replay[i], replay[i+1]);
-
 }
 //-----------------
 void test31()
@@ -294,7 +299,7 @@ void test31()
             printf("We can't compare them \n");
 
    if (v6 > v5)
-      printf("v6 > v5");
+      printf("v6 > v5\n");
 
    if (v4 == v5)
          printf("v4 = v5 \n");
@@ -309,7 +314,7 @@ void test31()
 
 
    if (v1 < v4)
-      printf("v1 < v4");
+      printf("v1 < v4\n");
    else
-      printf("can't compare");
+      printf("can't compare\n");
 }

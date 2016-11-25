@@ -317,8 +317,8 @@ public:
    /// add the event to the configuration
    void add (Event *e);
 
-   /// creates a copy of this configuration
-   BaseConfig clone ();
+   /// empties the configuration
+   void reset ();
    /// prints the configuration in stdout
    void dump ();
    

@@ -18,7 +18,7 @@ include defs.mk
 .PHONY: fake all g test clean distclean prof dist compile tags run dot
 	
 
-all : compile run dot
+all : compile
 
 compile: $(TARGETS)
 

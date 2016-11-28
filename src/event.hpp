@@ -53,7 +53,7 @@ inline Event::Event (Action ac, Event *m) :
    flags ({.boxfirst = 0, .boxlast = 0, .inc = 0}),
    action (ac),
    redbox (),
-   vclock (pre_proc()->vclock, m->vclock), // FIXME what to put here?
+   vclock (pre_proc()->vclock),
    color (0),
    post ()
 {

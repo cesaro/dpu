@@ -10,6 +10,7 @@
 
 #include <cstdint>
 #include <cstdlib>
+#include <cstring>
 #include <stdlib.h>
 #include <cstdio>
 #include <cmath>
@@ -249,93 +250,106 @@ void Unfolding::print_dot ()
    DEBUG(" successfully\n");
 }
 
-void BaseConfig::add(Event & e)
+/// creates an empty configuration
+BaseConfig::BaseConfig (const Unfolding &u) :
+   size (u.num_procs()),
+   max (new Event* [size])
 {
-   ///update the configuration
-   DEBUG("Add an event to proc %d",e.pid());
-   max[e.pid()] = &e;
+   int i;
+   DEBUG ("BaseConfig.ctor: this %p u.nump %d", this, size);
+
+   // initialize the size elements of the vector to null
+   for (i = 0; i < size; i++)
+      max[i] = nullptr;
 }
 
-//-------
-BaseConfig BaseConfig::clone ()
+/// creates a local configuration
+BaseConfig::BaseConfig (const Unfolding &u, Event &e) :
+   size (u.num_procs()),
+   max (new Event* [size])
 {
-   return *this;
+   int i;
+   DEBUG ("BaseConfig.ctor: this %p u.nump %d e %p", this, size, &e);
+
+   // initialize the size elements of the vector to null
+   for (i = 0; i < size; i++)
+      max[i] = nullptr;
+
+   // add the event e to its own process
+   max[e.pid()] = &e;
+
+   // now we should scan [e] to find the maximal events in each process, but I
+   // don't have time to write this code
+   ASSERT (0);
+}
+
+/// copy constructor
+BaseConfig::BaseConfig (const BaseConfig &other) :
+   size (other.size),
+   max (new Event* [size])
+{
+   // copy the pointers
+   memcpy (max, other.max, size * sizeof (Event*));
+}
+
+BaseConfig::~BaseConfig ()
+{
+   // delete the memory in the vector
+   delete[] max;
+}
+
+void BaseConfig::add (Event *e)
+{
+   DEBUG("BaseConfig.add: this %p e %p e.pid %d", this, e, e->pid());
+   ASSERT (e->pid() < size);
+
+   // the unfolding might have changed the number of process after this
+   // configuration was constructed; assert it didn't happen
+   ASSERT (e->pid() < size);
+   // pre-proc must be the event max[e.pid()]
+   ASSERT (e->pre_proc() == max[e->pid()]);
+   // similarly, pre_other needs to be a causal predecessor of the max in that
+   // process; the following assertion is necessary but not sufficient to
+   // guarantee it
+   if (e->pre_other())
+   {
+      ASSERT (max[e->pre_other()->pid()]);
+      ASSERT (e->pre_other()->vclock[e->pre_other()->pid()] <=
+            max[e->pre_other()->pid()]->vclock[e->pre_other()->pid()]);
+   }
+
+   max[e->pid()] = e;
+}
+
+void BaseConfig::reset ()
+{
+   unsigned i;
+   for (i = 0; i < size; i++) max[i] = 0;
 }
 
 //----- prints the configuration in stdout
 void BaseConfig::dump ()
 {
-   DEBUG("==========Dumping==================");
-   int size = 0;
-   while (max[size]->is_bottom() == false)
-       size++;
+   Event * e;
+   unsigned i;
 
-   Event * pe;
-   DEBUG("Size of max: %d", size);
-
-   for (unsigned i = 0; i < size; i++ )
+   DEBUG("== begin config =="); 
+   for (i = 0; i < size; i++)
    {
-      DEBUG("Proc %d", i);
-      pe = max[i] ;
-      while (pe->action.type != ActionType::THSTART)
+      e = max[i] ;
+      DEBUG("Proc %d, max %p", i, e);
+      while (e)
       {
          DEBUG ("  e %-16p pid %2d pre-proc %-16p pre-other %-16p fst/lst %d/%d action %s",
-               pe, max[i]->pid(), pe->pre_proc(), pe->pre_other(),
-               pe->flags.boxfirst ? 1 : 0,
-               pe->flags.boxlast ? 1 : 0,
-               action_type_str (pe->action.type));
+               e, max[i]->pid(), e->pre_proc(), e->pre_other(),
+               e->flags.boxfirst ? 1 : 0,
+               e->flags.boxlast ? 1 : 0,
+               action_type_str (e->action.type));
 
-         pe = pe->pre_proc();
+         e = e->pre_proc();
       }
-      // print THSTART event
-      DEBUG ("  e %-16p pid %2d pre-proc %-16p pre-other %-16p fst/lst %d/%d action %s",
-               pe, max[i]->pid(), pe->pre_proc(), pe->pre_other(),
-               pe->flags.boxfirst ? 1 : 0,
-               pe->flags.boxlast ? 1 : 0,
-               action_type_str (pe->action.type));
-
    }
-   DEBUG("==========End of dumping===========");
-}
-
-/// creates an empty configuration
-BaseConfig::BaseConfig (const Unfolding &u)
-{
-   int size = u.num_procs();
-   DEBUG("Initial size = %d", size);
-   max = (Event **) malloc((size +1) * sizeof(Event *));
-
-   for (unsigned int i = 0; i < size; i++)
-      max[i] = nullptr;
-
-
-   //put bottom at the end of max
-   Process * p = u.proc(0);
-   Event * bottom = p->first_event();
-   max[size] = bottom; // mark the end of array
-}
-
-/// creates a local configuration
-BaseConfig::BaseConfig (const Unfolding &u, Event &e)
-{
-   int size = u.num_procs();
-   DEBUG("Initial size = %d", size);
-   max = (Event **) malloc((size +1) * sizeof(Event *));
-
-   DEBUG("Initialize unfolding with bottom");
-
-   for (unsigned int i = 0; i < size; i++)
-      max[i] = nullptr;
-
-
-   //put bottom at the end of max
-   Process * p = u.proc(0);
-   Event * bottom = p->first_event();
-   max[size] = bottom; // mark the end of array
-
-   max[e.pid()] = &e;
-
-   DEBUG("BaseConfig.ctor: Done");
+   DEBUG("== end config =="); 
 }
 
 #if 0

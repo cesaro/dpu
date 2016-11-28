@@ -56,6 +56,8 @@ vars :
 	@echo "CFLAGS   $(CFLAGS)"
 	@echo "CPPFLAGS $(CPPFLAGS)"
 	@echo "CXXFLAGS $(CXXFLAGS)"
+	@echo "LDFLAGS  $(LDFLAGS)"
+	@echo "LDLIBS   $(LDLIBS)"
 	@echo "TARGETS  $(TARGETS)"
 	@echo "MSRCS    $(MSRCS)"
 	@echo "MOBJS    $(MOBJS)"

@@ -70,6 +70,7 @@ inline Event *Unfolding::event (Action ac, Event *p)
    Event *e;
 
    ASSERT (p);
+   ASSERT (ac.type == ActionType::THCREAT or ac.type == ActionType::THEXIT);
 
    // if the event already exist, we return it
    e = find1 (&ac, p);
@@ -84,8 +85,11 @@ inline Event *Unfolding::event (Action ac, Event *p, Event *m)
 {
    Event *e;
 
+   // checking that this method was correctly invoked
    ASSERT (p);
-   ASSERT (m);
+   if (ac.type == ActionType::THJOIN) ASSERT (m and m->action.type == ActionType::THEXIT);
+   if (ac.type == ActionType::MTXLOCK) ASSERT (!m or m->action.type == ActionType::MTXUNLK);
+   if (ac.type == ActionType::MTXUNLK) ASSERT (m or m->action.type == ActionType::MTXLOCK);
 
    // if the event already exist, we return it
    e = find2 (&ac, p, m);

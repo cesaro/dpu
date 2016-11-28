@@ -16,6 +16,7 @@
 
 #include "vclock.hh"
 #include "verbosity.h"
+#include "misc.hh"
 
 namespace dpu{
 
@@ -26,7 +27,7 @@ Vclock::Vclock()
    mask = 0;
 }
 
-Vclock::Vclock(int tid, int count)
+Vclock::Vclock(unsigned tid, int count)
 :mask(0)
 {
    tab.push_back(std::make_pair(tid,count));
@@ -50,11 +51,11 @@ unsigned int countSetBits(unsigned int n)
   return count;
 }
 
-Vclock::Vclock (const Vclock &v1, const Vclock &v2)
-:tab(v1.tab),
- mask(v1.mask)
+Vclock::Vclock (const Vclock &v1, const Vclock &v2) :
+   tab(v1.tab),
+   mask(v1.mask)
 {
-   int tid, size;
+   unsigned tid, size;
    if ((mask & v2.mask) == 0) // v1 has no shared component with v2
    {
       size = tab.size() + v2.tab.size();
@@ -164,21 +165,23 @@ void Vclock::operator= (const Vclock &other)
    tab   =  other.tab;
 }
 //---------------
-std::pair<int, int> Vclock:: operator[] (int pid)
+int Vclock:: operator[] (unsigned pid)
 {
    ASSERT(mask && ((uint64_t)1 << pid));
-   for (unsigned int i = 0; i < tab.size(); i++)
+   for (unsigned i = 0; i < tab.size(); i++)
       if (tab[i].first == pid)
-         return tab[i];
+         return tab[i].second;
+
+   return -1;
 }
 //-----------------
-void Vclock::add_clock(int pid, int count )
+void Vclock::add_clock(unsigned pid, int count)
 {
    tab.push_back(std::make_pair(pid,count));
    mask |= ((uint64_t)1 << pid);
 }
 //-----------------
-void Vclock::inc_clock(int pid)
+void Vclock::inc_clock(unsigned pid)
 {
    ASSERT(mask && (1 << pid));
    for (unsigned int i = 0; i < tab.size(); i++)

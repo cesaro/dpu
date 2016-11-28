@@ -305,25 +305,31 @@ private:
 class BaseConfig
 {
 public:
-   void add (Event & e); // update the cut and the new event
+   /// creates an empty configuration
+   BaseConfig (const Unfolding &u);
+   /// copy constructor
+   BaseConfig (const BaseConfig &other);
+   /// creates a local configuration (unimplemented!)
+   BaseConfig (const Unfolding &u, Event &e);
+   /// destructor
+   ~BaseConfig ();
+   
+   /// add the event to the configuration
+   void add (Event *e);
 
-   /// creates a copy of this configuration
-   BaseConfig clone ();
+   /// empties the configuration
+   void reset ();
    /// prints the configuration in stdout
    void dump ();
    
-   /// creates an empty configuration
-   BaseConfig (const Unfolding &u);
-   /// creates a local configuration
-   BaseConfig (const Unfolding &u, Event &e);
-   
 public:
-   /// map from process id (int) to maximal event in that process (size = u.num_procs())
+   /// size of the map below (u.num_procs())
+   int size;
+   /// map from process id (int) to maximal event in that process
    Event **max;
-   //int size;
 };
 
-// implementation of templates
+// implementation of inline methods
 #include "action.hpp"
 #include "event.hpp"
 #include "unfolding.hpp"

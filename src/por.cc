@@ -8,20 +8,26 @@ namespace dpu
 
 void basic_conf_to_replay (Unfolding &u, BaseConfig &c, std::vector<int> &replay)
 {
-   int size = u.num_procs();
-   DEBUG("==========Get replay====");
+   int size;
+   unsigned i;
    Event * pe;
 
-   for (unsigned i = 0; i < size; i++)
+   DEBUG("==========Get replay====");
+   ASSERT (u.num_procs() == c.size);
+   size = c.size;
+
+   for (i = 0; i < c.size; i++)
    {
       pe = c.max[i];
-      pe->next = nullptr; //max[i].next = nullptr
-      //DEBUG("%s type", action_type_str(pe->action.type));
-      while (pe->action.type != ActionType::THSTART)
+      // skip null pointers
+      if (!pe) continue;
+
+      // set up the pointer next in all events of one process
+      pe->next = nullptr;
+      while (pe->pre_proc())
       {
          pe->color = 0;
          pe->pre_proc()->next = pe; // next event in the same process
-         //pe->pre_other()->next  = pe;
          pe = pe->pre_proc();
       }
    }
@@ -31,7 +37,7 @@ void basic_conf_to_replay (Unfolding &u, BaseConfig &c, std::vector<int> &replay
    {
       for (unsigned i = 0; i < size; i++)
       {
-         pe = (c.max[i]->proc())->first_event();
+         pe = u.proc(i)->first_event();
 //         DEBUG("%s type", action_type_str(pe->action.type));
 
          while (pe)
@@ -44,7 +50,7 @@ void basic_conf_to_replay (Unfolding &u, BaseConfig &c, std::vector<int> &replay
 //                  DEBUG("pre_other marked");
 //                  DEBUG("pe->pid: %d", pe->pid());
 
-                  if ((replay.empty()) || (replay.at(replay.size()-2) != pe->pid()))
+                  if ((replay.empty()) or (replay.at(replay.size()-2) != pe->pid()))
                   {
                      replay.push_back(pe->pid());
                      replay.push_back(1);
@@ -63,6 +69,8 @@ void basic_conf_to_replay (Unfolding &u, BaseConfig &c, std::vector<int> &replay
       }
 
       // terminate when all maximal events are marked.
+      // FIXME there is a bug here - improve this using a counter in the
+      // previous while loop
       unsigned int j;
       for (j = 0; j < size; j++)
          if (c.max[j]->color == 0)

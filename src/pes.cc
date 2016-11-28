@@ -306,6 +306,7 @@ void BaseConfig::add (Event *e)
    // the unfolding might have changed the number of process after this
    // configuration was constructed; assert it didn't happen
    ASSERT (e->pid() < size);
+
    // pre-proc must be the event max[e.pid()]
    ASSERT (e->pre_proc() == max[e->pid()]);
    // similarly, pre_other needs to be a causal predecessor of the max in that
@@ -319,6 +320,8 @@ void BaseConfig::add (Event *e)
    }
 
    max[e->pid()] = e;
+   // FIXME: errors when adding exit1
+   DEBUG("finish");
 }
 
 void BaseConfig::reset ()

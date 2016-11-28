@@ -57,6 +57,7 @@ inline Event::Event (Action ac, Event *m) :
    color (0),
    post ()
 {
+   DEBUG("add event");
    // m could be null (eg, first lock of an execution)
    ASSERT (pre_proc() != 0);
    ASSERT (pre_other() == m);
@@ -66,6 +67,10 @@ inline Event::Event (Action ac, Event *m) :
 
    pre_proc()->post_add (this);
    if (m) m->post_add (this);
+   // when m is nullptr, just increase the clock, else take the maximal of two vectors
+   if (m)
+      vclock = vclock + m->vclock;
+
    vclock.inc_clock(pid());
 }
 

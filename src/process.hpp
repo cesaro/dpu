@@ -106,9 +106,11 @@ inline Event * Process::add_event_2p (Action ac, Event *p, Event *m)
 
    if (p == last)
    {
+      // FIXME: errors when adding the first LOCK
       // add one event at the end of the pool
       e = last + 1;
       new (e) Event (ac, m);
+
    }
    else
    {

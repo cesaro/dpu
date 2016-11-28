@@ -12,9 +12,11 @@ void basic_conf_to_replay (Unfolding &u, BaseConfig &c, std::vector<int> &replay
    unsigned i;
    Event * pe;
 
-   DEBUG("==========Get replay====");
+   DEBUG("==========basic_conf_to_replay====");
    ASSERT (u.num_procs() == c.size);
    size = c.size;
+
+   // set up the pointer next in all events of one process
 
    for (i = 0; i < c.size; i++)
    {
@@ -22,7 +24,6 @@ void basic_conf_to_replay (Unfolding &u, BaseConfig &c, std::vector<int> &replay
       // skip null pointers
       if (!pe) continue;
 
-      // set up the pointer next in all events of one process
       pe->next = nullptr;
       while (pe->pre_proc())
       {
@@ -33,12 +34,21 @@ void basic_conf_to_replay (Unfolding &u, BaseConfig &c, std::vector<int> &replay
    }
 
    bool unmarked = true; // there is some event in the configuration unmarked
+   int counter = 0;
    while (unmarked)
    {
       for (unsigned i = 0; i < size; i++)
       {
+         DEBUG("Proc %d", i);
+         if (!c.max[i])
+            {
+               counter++;
+               continue;
+            }
          pe = u.proc(i)->first_event();
-//         DEBUG("%s type", action_type_str(pe->action.type));
+         ASSERT(pe);
+//         FIXME: proc 1 has no event but the first_event() still returns a THSTART
+         DEBUG("%s type", action_type_str(pe->action.type));
 
          while (pe)
          {
@@ -47,7 +57,7 @@ void basic_conf_to_replay (Unfolding &u, BaseConfig &c, std::vector<int> &replay
             else
                if (((pe->pre_other() == nullptr) || (pe->pre_other()->color == 1)))
                {
-//                  DEBUG("pre_other marked");
+//                  DEBUG("pre_other marked or nil-> add");
 //                  DEBUG("pe->pid: %d", pe->pid());
 
                   if ((replay.empty()) or (replay.at(replay.size()-2) != pe->pid()))
@@ -62,6 +72,9 @@ void basic_conf_to_replay (Unfolding &u, BaseConfig &c, std::vector<int> &replay
 
                   pe->color = 1;
                   pe = pe->next;
+
+                  if (pe == nullptr)
+                     counter++;
                }
                else
                   break; // break while, then move to next process
@@ -71,12 +84,7 @@ void basic_conf_to_replay (Unfolding &u, BaseConfig &c, std::vector<int> &replay
       // terminate when all maximal events are marked.
       // FIXME there is a bug here - improve this using a counter in the
       // previous while loop
-      unsigned int j;
-      for (j = 0; j < size; j++)
-         if (c.max[j]->color == 0)
-            break;
-
-      if (j == size)
+      if (counter == size)
          unmarked = false;
    }
 
@@ -95,15 +103,15 @@ void LOCK_cex(Unfolding &u, Event *e)
    {
       pr_mem = em->pre_other()->pre_other(); // skip 2
 
-      /*
-       * Check if pr_mem < ep
-       */
+      ///Check if pr_mem < ep
       if (ep->vclock > pr_mem->vclock)
+      {
+         DEBUG("ep > pr_mem");
          return;
-      /*
-       *  Need to check the event's history before adding it to the unf
-       * Don't add events which are already in the unf
-       */
+      }
+
+      ///Need to check the event's history before adding it to the unf
+      ///Don't add events which are already in the unf
 
       Event * newevt = u.event(e->action, ep, pr_mem);
       DEBUG("New event:");

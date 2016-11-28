@@ -203,7 +203,7 @@ void test30()
     * Thread 1: start, exit
     */
 
-   Event *es, *ec, *el, *eu, *ej, *ex, *es1, *ex1 ;
+   Event *es, *ec, *el, *eu, *ej, *ex, *es1, *ex1, *el1, *eu1 ;
 
    // start
    es = u.event (nullptr); // bottom
@@ -212,16 +212,23 @@ void test30()
    ec = u.event ({.type = ActionType::THCREAT}, es);
 
    // start in thread 1
-   es1 = u.event (ec);
-
-   // exit in thread 1
-   ex1 = u.event ({.type = ActionType::THEXIT}, es1);
+   es1 = u.event (ec); // START must be immediately created after its process creation.???
 
    // lock
    el = u.event ({.type = ActionType::MTXLOCK}, ec, nullptr);
 
    //unlock
    eu = u.event ({.type = ActionType::MTXUNLK}, el, el);
+
+
+   // lock
+   el1 = u.event ({.type = ActionType::MTXLOCK}, es1, eu);
+
+   //unlock
+   eu1 = u.event ({.type = ActionType::MTXUNLK}, el1, el1);
+
+   //exit in thread 1
+   ex1 = u.event ({.type = ActionType::THEXIT}, eu1);
 
    // join
    ej = u.event ({.type = ActionType::THJOIN}, eu, ex1);
@@ -238,20 +245,26 @@ void test30()
    printf ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n");
 
    BaseConfig c(u);
+
    c.add (es);
    c.add (ec);
    c.add (el);
    c.add (eu);
    c.add (es1);
+   c.add (el1);
+   c.add (eu1);
    c.add (ex1);
    c.add (ej);
    c.add (ex);
-
    c.dump ();
-   printf ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n");
-   c.reset ();
-   c.add (es);
-   c.dump();
+
+//   printf ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n");
+//   c.reset ();
+//   c.add (es);
+//   c.add(ec);
+//   c.add (el);
+//   c.add (eu);
+//   c.dump();
 
    printf ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n");
    std::vector<int> replay;
@@ -259,6 +272,10 @@ void test30()
    DEBUG_("Replay:");
    for (unsigned i = 0; i < replay.size(); i=i+2)
       DEBUG_("%d-%d ", replay[i], replay[i+1]);
+
+   DEBUG("\nxxxxxxxxxxxxxxxxxxxx");
+   compute_cex(u,c);
+   u.dump();
 }
 //-----------------
 void test31()

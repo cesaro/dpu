@@ -31,7 +31,11 @@ x Unfolding::print_dot
 - BaseConfig
 - BaseConfig -> replay
 - compute_cex (u, c)
-- fix conf2replay, bug when c.max contains null pointers
+- fix conf2replay, bug when c.max contains null pointers : fixed. 
+==========
+Questions:
+THSTART event must be created immediately after the THCREAT?
+If not, there is a bug.
 
 Improvements
 ============

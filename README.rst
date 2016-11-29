@@ -34,8 +34,12 @@ x Unfolding::print_dot
 - fix conf2replay, bug when c.max contains null pointers : fixed. 
 ==========
 Questions:
-THSTART event must be created immediately after the THCREAT?
-If not, there is a bug.
+- THSTART event must be created immediately after the THCREAT?
+  If not, there is a bug.
+
+BUGs:
+- Create a conflicting event, pre_proc's address is changed to new one. It is back when printing the event.
+
 
 Improvements
 ============

@@ -1,7 +1,8 @@
 
 /// THSTART(), creat is the corresponding THCREAT (or null for p0)
-inline Event::Event (Event *creat)
-:  _pre_other (creat),
+inline Event::Event (Event *creat):
+//   MultiNode(),
+   _pre_other (creat),
    flags ({.boxfirst = 1, .boxlast = 0, .inc = 0}),
    action ({.type = ActionType::THSTART}),
    redbox (),
@@ -14,7 +15,7 @@ inline Event::Event (Event *creat)
    ASSERT (pre_other() == creat);
    ASSERT (!creat or creat->action.type == ActionType::THCREAT);
 
-   DEBUG ("Event.ctor: this %p pid %u action %s pre-proc %p pre-other %p",
+   DEBUG ("Event.ctor: this %p pid %u action %s pre-proc %p pre-other %p bf 1",
          this, pid(), action_type_str (action.type), pre_proc(), creat);
 
    if (creat) creat->post_add (this);
@@ -28,9 +29,10 @@ inline Event::Event (Event *creat)
 }
 
 /// THCREAT(tid) or THEXIT(), one predecessor (in the process)
-inline Event::Event (Action ac) :
+inline Event::Event (Action ac, bool bf) :
+ //  MultiNode(),
    _pre_other (0),
-   flags ({.boxfirst = 0, .boxlast = 0, .inc = 0}),
+   flags ({.boxfirst = bf, .boxlast = 0, .inc = 0}),
    action (ac),
    redbox (),
    vclock(pre_proc()->vclock),
@@ -40,38 +42,39 @@ inline Event::Event (Action ac) :
    ASSERT (pre_proc() != 0);
    ASSERT (pre_other() == 0);
 
-   DEBUG ("Event.ctor: this %p pid %u action %s pre-proc %p pre-other %p",
-         this, pid(), action_type_str (action.type), pre_proc(), pre_other());
+   DEBUG ("Event.ctor: this %p pid %u action %s pre-proc %p pre-other %p bf %d",
+         this, pid(), action_type_str (action.type), pre_proc(), pre_other(), bf);
    
    pre_proc()->post_add (this);
    vclock.inc_clock(pid());
 }
 
 /// THJOIN(tid), MTXLOCK(addr), MTXUNLK(addr), two predecessors (process, memory/exit)
-inline Event::Event (Action ac, Event *m) :
+inline Event::Event (Action ac, Event *m, bool bf) :
    _pre_other (m),
-   flags ({.boxfirst = 0, .boxlast = 0, .inc = 0}),
+   flags ({.boxfirst = bf, .boxlast = 0, .inc = 0}),
    action (ac),
    redbox (),
-   vclock (pre_proc()->vclock),
+   vclock (pre_proc()->vclock), // here, pre_proc is different from the one passed to unf.event(ac, p, m)
    color (0),
    post ()
 {
-   DEBUG("add event");
    // m could be null (eg, first lock of an execution)
    ASSERT (pre_proc() != 0);
    ASSERT (pre_other() == m);
 
-   DEBUG ("Event.ctor: this %p pid %u action %s pre-proc %p pre-other %p",
-         this, pid(), action_type_str (action.type), pre_proc(), pre_other());
+//   DEBUG("pre_proc %p", pre_proc());
+   DEBUG ("Event.ctor: this %p pid %u action %s pre-proc %p pre-other %p bf %d",
+         this, pid(), action_type_str (action.type), pre_proc(), pre_other(), bf);
 
    pre_proc()->post_add (this);
    if (m) m->post_add (this);
    // when m is nullptr, just increase the clock, else take the maximal of two vectors
+
    if (m)
       vclock = vclock + m->vclock;
 
-   vclock.inc_clock(pid());
+   vclock.inc_clock(pid()); // pre_proc causes errors in function inc_clock()
 }
 
 inline void Event::post_add (Event * succ)
@@ -125,4 +128,6 @@ inline bool Event::operator == (const Event &other) const
 {
    return this == &other;
 }
+
+
 

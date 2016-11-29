@@ -2,6 +2,8 @@
 #ifndef __CFLTREE_HH_
 #define __CFLTREE_HH_
 
+namespace dpu{
+class Event;
 //-------template class Node ---------
 template <class T, int SS>
 class Node
@@ -20,6 +22,10 @@ public:
 
    template <int idx>
    T & find_pred(int d) const;
+
+   template <int idx>
+   bool is_pred(T &n) const;
+
 };
 
 //-------template class MultiNode------
@@ -29,8 +35,9 @@ class MultiNode
 public:
    Node<T,SS> node[S];
 
-   MultiNode() = default;
+   MultiNode();
    MultiNode(T * pp, T * pm);
 };
 
 #endif
+} // end of namespace

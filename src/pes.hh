@@ -10,7 +10,7 @@
 #include "vclock.hh"
 #include "misc.hh"
 
-//#include "cfltree.hh"
+#include "cfltree.hh"
 
 namespace dpu
 {
@@ -73,9 +73,9 @@ public:
    /// THSTART(), creat is the corresponding THCREAT (or null for p0)
    inline Event (Event *creat);
    /// THCREAT(tid) or THEXIT(), one predecessor (in the process)
-   inline Event (Action ac);
+   inline Event (Action ac, bool boxfirst);
    /// THJOIN(tid), MTXLOCK(addr), MTXUNLK(addr), two predecessors (process, memory/exit)
-   inline Event (Action ac, Event *m);
+   inline Event (Action ac, Event *m, bool boxfirst);
 
    struct {
       /// True iff this event is the first one in its own EventBox
@@ -119,11 +119,17 @@ public:
    /// returns a human-readable description of the event
    std::string str () const;
 
+   bool is_pred_of (const Event *e);
+   bool in_cfl_with (const Event *e);
+   bool in_icfl_with (const Event *e); // Cesar
+
 private:
    inline void post_add (Event * const succ);
 
    inline EventBox *box_above () const;
    inline EventBox *box_below () const;
+
+   std::vector<Event*> maxproc;
 
 #if 0
    //void mk_history (const Config & c);

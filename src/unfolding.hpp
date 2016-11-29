@@ -51,6 +51,7 @@ inline Event *Unfolding::event (Event *creat)
       ASSERT (creat->post[0]);
       ASSERT (creat->post[0]->action.type == ActionType::THSTART);
       ASSERT (creat->pid() < creat->post[0]->pid());
+
       for (int i = 1; i < creat->post.size(); i++)
          ASSERT (creat->post[i]->action.type != ActionType::THSTART);
       return creat->post[0];

@@ -68,7 +68,7 @@ inline Event *Process::add_event_1p (Action ac, Event *p)
    {
       // add one event at the end of the pool
       e = last + 1;
-      new (e) Event (ac);
+      new (e) Event (ac, false);
    }
    else
    {
@@ -76,7 +76,7 @@ inline Event *Process::add_event_1p (Action ac, Event *p)
       last->flags.boxlast = 1;
       EventBox *b = new (last + 1) EventBox (p);
       e = b->event_above ();
-      new (e) Event (ac);
+      new (e) Event (ac, true);
       e->flags.boxfirst = 1;
    }
 
@@ -109,7 +109,7 @@ inline Event * Process::add_event_2p (Action ac, Event *p, Event *m)
       // FIXME: errors when adding the first LOCK
       // add one event at the end of the pool
       e = last + 1;
-      new (e) Event (ac, m);
+      new (e) Event (ac, m, false);
 
    }
    else
@@ -118,7 +118,7 @@ inline Event * Process::add_event_2p (Action ac, Event *p, Event *m)
       last->flags.boxlast = 1;
       EventBox *b = new (last + 1) EventBox (p);
       e = b->event_above ();
-      new (e) Event (ac, m);
+      new (e) Event (ac, m, true);
       e->flags.boxfirst = 1;
    }
 

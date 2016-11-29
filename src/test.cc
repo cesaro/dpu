@@ -257,13 +257,13 @@ void test30()
    c.add (ex);
    c.dump ();
 
-//   printf ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n");
-//   c.reset ();
-//   c.add (es);
-//   c.add(ec);
-//   c.add (el);
-//   c.add (eu);
-//   c.dump();
+   printf ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n");
+   c.reset ();
+   c.add (es);
+   c.add(ec);
+   c.add (el);
+   c.add (eu);
+   c.dump();
 
    printf ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n");
    std::vector<int> replay;
@@ -271,11 +271,6 @@ void test30()
    DEBUG_("Replay:");
    for (unsigned i = 0; i < replay.size(); i=i+2)
       DEBUG_("%d-%d ", replay[i], replay[i+1]);
-
-   DEBUG("\nxxxxxxxxxxxxxxxxxxxx");
-   compute_cex(u,c);
-   u.dump();
-   u.print_dot();
 }
 //-----------------
 void test31()
@@ -334,4 +329,88 @@ void test31()
       printf("v1 < v4\n");
    else
       printf("can't compare\n");
+}
+//-----------------------
+void test32()
+{
+   DEBUG("Test compute_cex");
+   Unfolding u;
+
+     /*
+      * Thread 0: start, creat, join, exit
+      * Thread 1: start, exit
+      */
+
+     Event *es, *ec, *el, *eu, *ell, *euu, *ej, *ex; // Process 0
+     Event *es1, *ex1, *el1,*eu1, *ell1, *euu1 ; // Process 1
+
+     // start
+     es = u.event (nullptr); // bottom
+
+     // creat proc 1
+     ec = u.event ({.type = ActionType::THCREAT}, es);
+
+     // start in thread 1
+     es1 = u.event (ec); // START must be immediately created after its process creation.???
+
+     // lock
+     el = u.event ({.type = ActionType::MTXLOCK}, ec, nullptr);
+
+     //unlock
+     eu = u.event ({.type = ActionType::MTXUNLK}, el, el);
+
+     // lock
+     ell = u.event ({.type = ActionType::MTXLOCK}, eu, eu);
+
+     //unlock
+     euu = u.event ({.type = ActionType::MTXUNLK}, ell, ell);
+
+
+     /// Process 1
+     // lock
+     el1 = u.event ({.type = ActionType::MTXLOCK}, es1, euu);
+
+     //unlock
+     eu1 = u.event ({.type = ActionType::MTXUNLK}, el1, el1);
+
+     // lock
+     ell1 = u.event ({.type = ActionType::MTXLOCK}, eu1, eu1);
+
+     //unlock
+     euu1 = u.event ({.type = ActionType::MTXUNLK}, ell1, ell1);
+
+     //exit in thread 1
+     ex1 = u.event ({.type = ActionType::THEXIT}, euu1);
+
+
+     // Process 0
+     // join
+     ej = u.event ({.type = ActionType::THJOIN}, euu, ex1);
+
+     // exit
+     ex = u.event ({.type = ActionType::THEXIT}, ej);
+
+     BaseConfig c(u);
+     c.add (es);
+     c.add (ec);
+     c.add (el);
+     c.add (eu);
+     c.add (ell);
+     c.add (euu);
+     c.add (es1);
+     c.add (el1);
+     c.add (eu1);
+     c.add (ell1);
+     c.add (euu1);
+     c.add (ex1);
+     c.add (ej);
+     c.add (ex);
+     c.dump();
+
+     u.dump();
+      DEBUG("\nxxxxxxxxxxxxxxxxxxxx");
+      compute_cex(u,c);
+      u.dump();
+      u.print_dot();
+
 }

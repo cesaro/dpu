@@ -144,7 +144,7 @@ bool Vclock::operator> (const Vclock &other) const
 
    if ((other.mask & (mask ^ other.mask)) == 0) // other is subset of this
    {
-      printf("other is a subset of this");
+      //printf("other is a subset of this");
       for (unsigned int i = 0; i < tab.size(); i++)
       {
          tid   = tab[i].first;
@@ -225,7 +225,7 @@ void Vclock::add_clock(unsigned pid, int count)
 //-----------------
 void Vclock::inc_clock(unsigned pid)
 {
-   ASSERT(mask && ((uint64_t)1 << pid));
+   //ASSERT(mask && ((uint64_t)1 << pid));
    for (unsigned int i = 0; i < tab.size(); i++)
       if (tab[i].first == pid)
          tab[i].second++;

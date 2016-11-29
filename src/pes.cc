@@ -232,6 +232,7 @@ void Unfolding::print_dot ()
       }
    }
 
+   /// print edges
    for (unsigned i = 0; i < num_procs(); i++)
    {
       Process *p = proc (i);
@@ -244,6 +245,8 @@ void Unfolding::print_dot ()
             fs << e.pre_proc()->idx << "->" << e.idx << "[color=brown]\n";
       }
    }
+
+   /// print conflict
 
    fs << "}";
    fs.close();
@@ -355,7 +358,6 @@ void BaseConfig::dump ()
    DEBUG("== end config =="); 
 }
 
-#if 0
 /*
  * Methods for class Node
  */
@@ -394,7 +396,7 @@ void Node<T,SS>:: set_skip_preds(int idx)
       return;
    }
 
-   assert(size > 0);
+   ASSERT(size > 0);
 
    /* mallocate the skip_preds */
    skip_preds = (Event**) malloc(sizeof(Event*) * size);
@@ -508,7 +510,7 @@ T & Node<T,SS>:: find_pred(int d) const
 {
    T * next = nullptr;;
    int i, dis = this->depth - d;
-   assert (dis != 0); // at the beginning dis != 0
+   ASSERT(dis != 0); // at the beginning dis != 0
 
    // initial next for the very first time
    //DEBUG("dis = %d", dis);
@@ -542,6 +544,13 @@ T & Node<T,SS>:: find_pred(int d) const
  * Methods for class MultiNode
  */
 template <class T, int S, int SS> // S: number of trees, SS: skip step
+MultiNode<T,S,SS> ::MultiNode()
+{
+//   node[0]  = new Node<T,S>();
+//   node[1]  = new Node<T,S>();
+}
+
+template <class T, int S, int SS> // S: number of trees, SS: skip step
 MultiNode<T,S,SS> :: MultiNode(T * pp, T * pm)
 {
    DEBUG("Set up node[0]");
@@ -549,6 +558,9 @@ MultiNode<T,S,SS> :: MultiNode(T * pp, T * pm)
    DEBUG("Set up node[1]");
    node[1].set_up(1,pm);
 }
+
+
+#if 0
 //---------------------
 Ident:: Ident()
 : trans (nullptr)

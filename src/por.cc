@@ -94,25 +94,51 @@ void basic_conf_to_replay (Unfolding &u, BaseConfig &c, std::vector<int> &replay
 /// Compute conflicting extension for a LOCK
 void LOCK_cex(Unfolding &u, Event *e)
 {
-   DEBUG("\n %p, id:%d: LOCK_cex", e);
-   Event * ep, * em, *pr_mem;
+   DEBUG("\n %p: LOCK_cex", e);
+   Event * ep, * em, *pr_mem, *newevt;
    ep = e->pre_proc();
    em = e->pre_other();
 
-   while (!(em->is_bottom()) and (em->vclock > ep->vclock)) //em is not a predecessor of ep
+   if (em == nullptr)
    {
+      DEBUG("   No conflicting event");
+      return;
+   }
+
+   ASSERT(em)
+
+  // while ((em != nullptr) and (ep->vclock < em->vclock)) //em is not a predecessor of ep
+   while (em)
+   {
+      if (em->vclock < ep->vclock)
+         break;
+
       pr_mem = em->pre_other()->pre_other(); // skip 2
 
+//      DEBUG("pr_mem: %p", pr_mem);
+
+      /// The first LOCK's pre_other is nullptr
+      if (pr_mem == nullptr)
+      {
+         newevt = u.event(e->action, ep, pr_mem);
+         DEBUG("New event:");
+         DEBUG ("  e %-16p pid %2d pre-proc %-16p pre-other %-16p fst/lst %d/%d action %s",
+                  newevt, newevt->pid(), newevt->pre_proc(), newevt->pre_other(),
+                  newevt->flags.boxfirst ? 1 : 0,
+                  newevt->flags.boxlast ? 1 : 0,
+                  action_type_str (newevt->action.type));
+         return;
+      }
+
       ///Check if pr_mem < ep
+
       if (ep->vclock > pr_mem->vclock)
       {
          DEBUG("ep > pr_mem");
          return;
       }
 
-      ///Need to check the event's history before adding it to the unf
-      ///Don't add events which are already in the unf
-
+      DEBUG("ep < pr_mem");
       Event * newevt = u.event(e->action, ep, pr_mem);
       DEBUG("New event:");
       DEBUG ("  e %-16p pid %2d pre-proc %-16p pre-other %-16p fst/lst %d/%d action %s",
@@ -123,8 +149,10 @@ void LOCK_cex(Unfolding &u, Event *e)
 
 
       // move the pointer to the next
-      em = em->pre_other()->pre_other();
+      em = pr_mem;
    }
+
+   DEBUG("   Finish LOCK_cex");
 }
 
 void compute_cex(Unfolding & u, BaseConfig & c)
@@ -135,10 +163,11 @@ void compute_cex(Unfolding & u, BaseConfig & c)
    for (unsigned i = 0; i < size; i++)
    {
       e = c.max[i];
-      while (e->action.type == ActionType::THSTART)
+      while (e->action.type != ActionType::THSTART)
       {
          if (e->action.type == ActionType::MTXLOCK)
             LOCK_cex(u,e);
+
          e = e->pre_proc();
       }
    }

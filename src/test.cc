@@ -240,7 +240,6 @@ void test30()
    ex->vclock.print();
 
    u.dump ();
-   u.print_dot();
 
    printf ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n");
 
@@ -276,6 +275,7 @@ void test30()
    DEBUG("\nxxxxxxxxxxxxxxxxxxxx");
    compute_cex(u,c);
    u.dump();
+   u.print_dot();
 }
 //-----------------
 void test31()

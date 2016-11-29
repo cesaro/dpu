@@ -169,7 +169,7 @@ Vclock Vclock::operator+ (const Vclock &other)
 {
    Vclock sum(*this);
    unsigned tid, size;
-   if ((mask & other.mask) == 0) // v1 has no shared component with v2
+   if ((mask & other.mask) == 0) // this has no shared component with other
    {
       size = tab.size() + other.tab.size();
       sum.tab.reserve(size);
@@ -178,7 +178,7 @@ Vclock Vclock::operator+ (const Vclock &other)
    }
    else
    {
-      int difbits = mask ^ other.mask; // XOR two masks
+      int difbits = sum.mask ^ other.mask; // XOR two masks
       if (difbits == 0) // all threads are the same in both vectors
       {
          for (unsigned int i = 0; i < other.tab.size(); i++)

@@ -90,7 +90,7 @@ inline Event *Unfolding::event (Action ac, Event *p, Event *m)
    if (m == 0)
    {
       ASSERT (ac.type == ActionType::MTXLOCK); // for the first MTXLOCK
-      DEBUG("the first LOCK");
+      DEBUG("The first LOCK");
    }
    else
    {
@@ -101,7 +101,6 @@ inline Event *Unfolding::event (Action ac, Event *p, Event *m)
    // if the event already exist, we return it
    e = find2 (&ac, p, m);
    if (e) return e;
-   DEBUG("Loi o dau?");
    // otherwise we create it
    return p->proc()->add_event_2p (ac, p, m);
 }

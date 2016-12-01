@@ -9,7 +9,6 @@
 #include "verbosity.h"
 #include "vclock.hh"
 #include "misc.hh"
-
 #include "cfltree.hh"
 
 namespace dpu
@@ -64,12 +63,48 @@ struct Action
    inline bool operator == (const Action &other) const;
 };
 
-class Event // : public MultiNode<Event,2,3> // 2 trees, skip step = 3
+//-------template class Node ---------
+template <class T, int SS>
+class Node
+{
+public:
+   unsigned depth;
+   T * pre; // immediate predecessor
+   T ** skip_preds;
+
+   inline Node();
+   inline Node(int idx, Event * pr);
+   inline void set_up(int idx, Event * pr);
+   inline int compute_size();
+   inline void set_skip_preds(int idx);
+   inline void print_skip_preds();
+
+   template <int idx>
+   inline T & find_pred(int d);
+
+   //template <int idx>
+  // inline bool is_pred_of(Node &n) const;
+
+};
+
+//-------template class MultiNode------
+template <class T, int S, int SS> // S: number of trees, SS: skip step
+class MultiNode
+{
+public:
+   Node<T,SS> node[S];
+
+   inline MultiNode();
+   inline MultiNode(T * pp, T * pm);
+};
+
+class Event : public MultiNode<Event,2,3> // 2 trees, skip step = 3
 {
 private:
    Event *_pre_other;
 public:
    int idx;
+   int inside; // a flag to mark that an event is inside some set or not
    /// THSTART(), creat is the corresponding THCREAT (or null for p0)
    inline Event (Event *creat);
    /// THCREAT(tid) or THEXIT(), one predecessor (in the process)
@@ -106,9 +141,6 @@ public:
    /// predecessor in another thread (if any), or null
    inline Event *pre_other ();
 
-   /// true iff this event is the THSTART event of thread 0
-   inline bool is_bottom ();
-
    /// returns the pid of the process to which this event belongs
    inline unsigned pid () const;
    /// returns the process to which this event belongs
@@ -118,10 +150,13 @@ public:
    inline bool operator == (const Event &) const;
    /// returns a human-readable description of the event
    std::string str () const;
+   std::vector<Event *> local_config();
 
-   bool is_pred_of (const Event *e);
-   bool in_cfl_with (const Event *e);
-   bool in_icfl_with (const Event *e); // Cesar
+   /// true iff this event is the THSTART event of thread 0
+   inline bool is_bottom ();
+   inline bool is_pred_of (const Event *e) const;
+   inline bool in_cfl_with (const Event *e);
+   inline bool in_icfl_with (const Event *e); // Cesar
 
 private:
    inline void post_add (Event * const succ);
@@ -311,6 +346,7 @@ private:
 class BaseConfig
 {
 public:
+   std::vector<Event *> cex;
    /// creates an empty configuration
    BaseConfig (const Unfolding &u);
    /// copy constructor
@@ -328,7 +364,7 @@ public:
    /// prints the configuration in stdout
    void dump ();
    
-public:
+public: // public is what I want????
    /// size of the map below (u.num_procs())
    int size;
    /// map from process id (int) to maximal event in that process
@@ -341,6 +377,7 @@ public:
 #include "unfolding.hpp"
 #include "process.hpp"
 #include "eventbox.hpp"
+#include "cfltree.hpp"
 
 } // namespace dpu
 

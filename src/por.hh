@@ -8,6 +8,12 @@ namespace dpu
 {
 void basic_conf_to_replay (Unfolding &u, BaseConfig &c, std::vector<int> &replay);
 void compute_cex(Unfolding & u, BaseConfig & c);
+bool check_cfl_same_tree(int idx, const Event & e1, const Event & e2);
+bool check_2difs(Event & e1, Event & e2);
+bool check_cfl(Event & e1, Event & e2 );
+void find_an_alternative(BaseConfig & C, std::vector<Event *> D, std::vector<Event *> & J, std::vector<Event *> & A );
+void compute_alt(unsigned int i, const std::vector<std::vector<Event *>> & s, std::vector<Event *> & J, std::vector<Event *> & A);
+
 
 } //end of namespace
 #endif

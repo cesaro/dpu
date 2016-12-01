@@ -1,7 +1,6 @@
-
 /// THSTART(), creat is the corresponding THCREAT (or null for p0)
 inline Event::Event (Event *creat):
-//   MultiNode(),
+  // MultiNode(),
    _pre_other (creat),
    flags ({.boxfirst = 1, .boxlast = 0, .inc = 0}),
    action ({.type = ActionType::THSTART}),
@@ -30,7 +29,7 @@ inline Event::Event (Event *creat):
 
 /// THCREAT(tid) or THEXIT(), one predecessor (in the process)
 inline Event::Event (Action ac, bool bf) :
- //  MultiNode(),
+   //MultiNode(),
    _pre_other (0),
    flags ({.boxfirst = bf, .boxlast = 0, .inc = 0}),
    action (ac),
@@ -51,6 +50,7 @@ inline Event::Event (Action ac, bool bf) :
 
 /// THJOIN(tid), MTXLOCK(addr), MTXUNLK(addr), two predecessors (process, memory/exit)
 inline Event::Event (Action ac, Event *m, bool bf) :
+   //MultiNode(),
    _pre_other (m),
    flags ({.boxfirst = bf, .boxlast = 0, .inc = 0}),
    action (ac),
@@ -127,6 +127,11 @@ inline EventBox *Event::box_below () const
 inline bool Event::operator == (const Event &other) const
 {
    return this == &other;
+}
+
+inline bool Event::is_pred_of (const Event *e) const
+{
+   return false;
 }
 
 

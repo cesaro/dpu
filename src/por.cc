@@ -192,7 +192,10 @@ void compute_cex(Unfolding & u, BaseConfig & c)
 /// Check conflict between two events in the same tree depending on the idx
 bool check_cfl_same_tree(int idx, const Event & e1, const Event & e2)
 {
+   DEBUG("Check conflict in the same tree");
    int d1, d2;
+   ASSERT(e1.pid() == e2.pid() || (e1.action.addr == e2.action.addr));
+
    d1 = e1.node[idx].depth;
    d2 = e2.node[idx].depth;
 

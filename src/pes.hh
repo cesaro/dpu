@@ -63,42 +63,41 @@ struct Action
    inline bool operator == (const Action &other) const;
 };
 
-//-------template class Node ---------
-template <class T, int SS>
-class Node
-{
-public:
-   unsigned depth;
-   T * pre; // immediate predecessor
-   T ** skip_preds;
+////-------template class Node ---------
+//template <class T, int SS>
+//class Node
+//{
+//public:
+//   unsigned depth;
+//   T * pre; // immediate predecessor
+//   T ** skip_preds;
+//
+//   inline Node();
+//   inline Node(int idx, Event * pr);
+//   inline void set_up(int idx, Event * pr);
+//   inline int compute_size();
+//   inline void set_skip_preds(int idx);
+//   inline void print_skip_preds();
+//
+//   template <int idx>
+//   inline T & find_pred(int d) const;
+//
+//   template <int idx>
+//   inline bool is_pred(Node &n) const;
+//};
+//
+////-------template class MultiNode------
+//template <class T, int S, int SS> // S: number of trees, SS: skip step
+//class MultiNode
+//{
+//public:
+//   Node<T,SS> node[S];
+//
+//   inline MultiNode();
+//   inline MultiNode(T * pp, T * pm);
+//};
 
-   inline Node();
-   inline Node(int idx, Event * pr);
-   inline void set_up(int idx, Event * pr);
-   inline int compute_size();
-   inline void set_skip_preds(int idx);
-   inline void print_skip_preds();
-
-   template <int idx>
-   inline T & find_pred(int d);
-
-   //template <int idx>
-  // inline bool is_pred_of(Node &n) const;
-
-};
-
-//-------template class MultiNode------
-template <class T, int S, int SS> // S: number of trees, SS: skip step
-class MultiNode
-{
-public:
-   Node<T,SS> node[S];
-
-   inline MultiNode();
-   inline MultiNode(T * pp, T * pm);
-};
-
-class Event : public MultiNode<Event,2,3> // 2 trees, skip step = 3
+class Event : public MultiNode<Event,3> // 2 trees, skip step = 3
 {
 private:
    Event *_pre_other;
@@ -144,7 +143,7 @@ public:
    /// returns the pid of the process to which this event belongs
    inline unsigned pid () const;
    /// returns the process to which this event belongs
-   inline Process *proc ();
+   inline Process *proc () const;
 
    /// tests pointer equality of two events
    inline bool operator == (const Event &) const;
@@ -160,6 +159,7 @@ public:
 
 private:
    inline void post_add (Event * const succ);
+   inline Event *pre_proc (bool bf);
 
    inline EventBox *box_above () const;
    inline EventBox *box_below () const;
@@ -377,7 +377,6 @@ public: // public is what I want????
 #include "unfolding.hpp"
 #include "process.hpp"
 #include "eventbox.hpp"
-#include "cfltree.hpp"
 
 } // namespace dpu
 

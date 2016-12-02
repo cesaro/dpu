@@ -2,48 +2,55 @@
  * cfltree.cc
  */
 
-/*
- * Methods for class Node
- */
+///*
+// * Methods for class Node
+// */
+////-----------------------
+//template <class T, int SS >
+//inline Node<T,SS>::Node()
+//{
+//   depth = 0;
+//   pre   = nullptr;
+//   skip_preds = nullptr;
+//}
+
 //-----------------------
 template <class T, int SS >
-inline Node<T,SS>::Node()
+inline Node<T,SS>::Node(int idx, T * pr) :
+   depth (pr ? pr->node[idx].depth + 1 : 0),
+   pre (pr),
+   skip_preds (__ctor_skip_preds (idx))
 {
-   depth = 0;
-   pre   = nullptr;
-   skip_preds = nullptr;
+   DEBUG("Node<?,%d>.ctor: idx %d depth %d pre %p skip-preds %p",
+         SS, idx, depth, pre, skip_preds);
+}
+
+template <class T, int SS >
+Node<T,SS>::~Node ()
+{
+   delete [] skip_preds;
 }
 
 //-----------------------
 template <class T, int SS >
-inline Node<T,SS>::Node(int idx, Event * pr)
+inline T **Node<T,SS>::__ctor_skip_preds (int idx)
 {
-   //DEBUG("   -  Set up nodes");
-   pre      = pr;
-   depth    = pre->nodep[idx].depth + 1;
-   // initialize skip_preds here
-   set_skip_preds(idx);
-}
-//-----------------------
-template <class T, int SS >
-inline void Node<T,SS>:: set_skip_preds(int idx)
-{
-   DEBUG_("     + SET NODE[%d]", idx);
+//   DEBUG_("     + SET NODE[%d]", idx);
    // including immediate predecessor
-   int size = this->compute_size();
-   DEBUG("Size of skip_preds = %d", size);
+   int size = __ctor_compute_size_skip_preds();
+   DEBUG(" + Size of skip_preds = %d", size);
 
    // initialize the elements
    if (size == 0)
    {
       DEBUG("   No skip_pred");
-      return;
+      return nullptr;
    }
 
    ASSERT(size > 0);
 
-   /* mallocate the skip_preds */
-   skip_preds = (Event**) malloc(sizeof(Event*) * size);
+   /* allocate the skip_preds */
+   T ** skip_preds = new T* [size];
 
    // the first element skip_preds[0]
    T * p = pre;
@@ -75,23 +82,34 @@ inline void Node<T,SS>:: set_skip_preds(int idx)
          skip_preds[i] = p;
       }
    }
-   print_skip_preds();
+
+   //print_skip_preds();
+   return skip_preds;
 }
-//-----------------------
-template <class T, int SS >
-inline void Node<T,SS>:: set_up(int idx, Event * pr)
-{
-   pre      = pr;
-   depth    = pre->node[idx].depth + 1;
-   // initialize skip_preds here
-   //DEBUG("Set skip preds");
-   set_skip_preds(idx);
-}
+
+
+////-----------------------
+//template <class T, int SS >
+//inline void Node<T,SS>:: set_up(int idx, Event * pr)
+//{
+//   if (pr == nullptr)
+//   {
+//      pr = nullptr;
+//      depth = 0;
+//      return;
+//   }
+//
+//   pre      = pr;
+//   depth    = pre->node[idx].depth + 1;
+//   // initialize skip_preds here
+//   //DEBUG("Set skip preds");
+//   set_skip_preds(idx);
+//}
 //---------------------
 template <class T, int SS >
-inline int Node<T,SS>::compute_size()
+inline int Node<T,SS>::__ctor_compute_size_skip_preds()
 {
-   int d = this->depth;
+   unsigned d = depth;
    int skip = SS;
    //DEBUG("cmpsize.depth = %d", d);
    if ((d == 0) or (d < skip)) return 0;
@@ -107,30 +125,31 @@ inline int Node<T,SS>::compute_size()
    }
    return --temp;
 }
-//-------------------
-template <class T, int SS >
-inline void Node<T,SS>:: print_skip_preds()
-{
-   DEBUG_("Node: %p", this);
-   DEBUG_(", depth: %d", this->depth);
-   DEBUG_(", Pre: %p", this->pre);
-   int size = compute_size();
-   if (size == 0)
-   {
-      DEBUG_(", No skip predecessor\n");
-      return;
-   }
-   DEBUG_(", Skip_preds: ");
-   for (unsigned i = 0; i < size; i++)
-   {
-      if (i == size-1)
-         DEBUG_ ("%p", skip_preds[i]);
-      else
-         DEBUG_ ("%p, ", skip_preds[i]);
-   }
 
-   DEBUG_("\n");
-}
+////-------------------
+//template <class T, int SS >
+//inline void Node<T,SS>:: print_skip_preds()
+//{
+//   DEBUG_(" + Node: %p", this);
+//   DEBUG_(", depth: %d", this->depth);
+//   DEBUG_(", Pre: %p", this->pre);
+//   int size = compute_size();
+//   if (size == 0)
+//   {
+//      DEBUG_(", No skip predecessor\n");
+//      return;
+//   }
+//   DEBUG_(", Skip_preds: ");
+//   for (unsigned i = 0; i < size; i++)
+//   {
+//      if (i == size-1)
+//         DEBUG_ ("%p", skip_preds[i]);
+//      else
+//         DEBUG_ ("%p, ", skip_preds[i]);
+//   }
+//
+//   DEBUG_("\n");
+//}
 //----------
 
 inline int max_skip(int d, int base)
@@ -152,10 +171,10 @@ inline int max_skip(int d, int base)
  */
 template <class T, int SS >
 template <int idx>
-inline T & Node<T,SS>:: find_pred(int d)
+inline T & Node<T,SS>:: find_pred(int d) const
 {
    T * next = nullptr;
-   ASSET(this->depth > d);
+   ASSERT(this->depth > d);
    int i, dis = this->depth - d;
    ASSERT(dis != 0); // at the beginning dis != 0
 
@@ -176,7 +195,7 @@ inline T & Node<T,SS>:: find_pred(int d)
    while (dis != 0)
    {
       i = max_skip(dis,SS);
-      DEBUG("i = %d", i);
+//      DEBUG("i = %d", i);
       if (i == 0)
          next = next->node[idx].pre;
       else
@@ -187,11 +206,11 @@ inline T & Node<T,SS>:: find_pred(int d)
    //DEBUG("next = %d", next->idx);
    return *next;
 }
-#if 0
+
 //-----------
 template <class T, int SS >
-//template <int idx>
-inline bool Node<T,SS>::is_pred_of(Node &n) const
+template <int idx>
+inline bool Node<T,SS>::is_pred(Node &n) const
 {
    if (n.depth < this->depth) return false;
 
@@ -203,24 +222,21 @@ inline bool Node<T,SS>::is_pred_of(Node &n) const
 
    return false;
 }
-#endif
+
 /*
  * Methods for class MultiNode
  */
-template <class T, int S, int SS> // S: number of trees, SS: skip step
-inline MultiNode<T,S,SS> ::MultiNode()
+template <class T, int SS> // SS: skip step
+inline MultiNode<T,SS> :: MultiNode(T *p0, T *p1) :
+   node {{0, p0}, {1, p1}}
 {
+   DEBUG("Set up node[0,1]");
 }
 
-template <class T, int S, int SS> // S: number of trees, SS: skip step
-inline MultiNode<T,S,SS> :: MultiNode(T * pp, T * pm)
+template <class T, int SS> // SS: skip step
+inline MultiNode<T,SS> :: MultiNode(T *p0) :
+   node {{0, p0}, {1, nullptr}}
 {
-   DEBUG("Set up node[0]");
-   node[0].set_up(0,pp);
-   DEBUG("Set up node[1]");
-   node[1].set_up(1,pm);
+   DEBUG("Set up node[0,1]");
 }
-
-
-
 

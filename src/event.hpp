@@ -1,6 +1,6 @@
 /// THSTART(), creat is the corresponding THCREAT (or null for p0)
-inline Event::Event (Event *creat):
-  // MultiNode(),
+inline Event::Event (Event *creat) :
+   MultiNode(nullptr),
    _pre_other (creat),
    flags ({.boxfirst = 1, .boxlast = 0, .inc = 0}),
    action ({.type = ActionType::THSTART}),
@@ -29,7 +29,7 @@ inline Event::Event (Event *creat):
 
 /// THCREAT(tid) or THEXIT(), one predecessor (in the process)
 inline Event::Event (Action ac, bool bf) :
-   //MultiNode(),
+   MultiNode(pre_proc(bf)),
    _pre_other (0),
    flags ({.boxfirst = bf, .boxlast = 0, .inc = 0}),
    action (ac),
@@ -46,11 +46,12 @@ inline Event::Event (Action ac, bool bf) :
    
    pre_proc()->post_add (this);
    vclock.inc_clock(pid());
+
 }
 
 /// THJOIN(tid), MTXLOCK(addr), MTXUNLK(addr), two predecessors (process, memory/exit)
 inline Event::Event (Action ac, Event *m, bool bf) :
-   //MultiNode(),
+   MultiNode(pre_proc(bf), m),
    _pre_other (m),
    flags ({.boxfirst = bf, .boxlast = 0, .inc = 0}),
    action (ac),
@@ -86,15 +87,19 @@ inline unsigned Event::pid () const
 {
    return Unfolding::ptr2pid (this);
 }
-
 inline Event *Event::pre_proc ()
 {
    ASSERT (action.type != ActionType::THSTART or flags.boxfirst);
+   return pre_proc (flags.boxfirst);
+}
+
+inline Event *Event::pre_proc (bool bf)
+{
 
    // if this is the first in the box, then make magic with the addresses ...
    // if the vent is the THSTART (root of the tree), the EventBox::pre already
    // stores a null pointer ;)
-   if (flags.boxfirst) return box_below()->pre();
+   if (bf) return box_below()->pre();
    
    // otherwise it's the precessor in the box
    return this - 1;
@@ -110,7 +115,7 @@ inline bool Event::is_bottom ()
    return action.type == ActionType::THSTART and pid () == 0;
 }
 
-inline Process *Event::proc ()
+inline Process *Event::proc () const
 {
    return Unfolding::ptr2proc (this);
 }
@@ -129,8 +134,36 @@ inline bool Event::operator == (const Event &other) const
    return this == &other;
 }
 
+/// need to make sure that this->node[i].depth < e->node[i].depth
 inline bool Event::is_pred_of (const Event *e) const
 {
+   Event *ee;
+   DEBUG("this->pid: %d",this->pid());
+   DEBUG("e->pid: %d",e->pid());
+
+
+   if ((this->pid() == e->pid()) and (this->node[0].depth < e->node[0].depth))
+   {
+      ee = &e->node[0].find_pred<0>(this->node[0].depth);
+//      DEBUG("ee: %p",ee);
+//      DEBUG("this: %p",this);
+      if (ee == this)
+         return true;
+   }
+
+//   DEBUG("this->depth: %d",this->node[1].depth);
+//   DEBUG("e->depth: %d",e->node[1].depth);
+
+   DEBUG("this->addr: %p",this->action.addr);
+   DEBUG("e->addr: %p",e->action.addr);
+  // if ((this->action.addr) and (e->action.addr) and (this->action.addr == e->action.addr))
+    if (this->action.addr == e->action.addr)
+   {
+      ee = &e->node[1].find_pred<1>(this->node[1].depth);
+      if (ee == this)
+         return true;
+   }
+
    return false;
 }
 

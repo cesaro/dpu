@@ -106,6 +106,7 @@ public:
    int inside; // a flag to mark that an event is inside some set or not
    /// THSTART(), creat is the corresponding THCREAT (or null for p0)
    inline Event (Event *creat);
+//   inline Event (Event *creat, int numprocs);
    /// THCREAT(tid) or THEXIT(), one predecessor (in the process)
    inline Event (Action ac, bool boxfirst);
    /// THJOIN(tid), MTXLOCK(addr), MTXUNLK(addr), two predecessors (process, memory/exit)
@@ -153,6 +154,7 @@ public:
 
    /// true iff this event is the THSTART event of thread 0
    inline bool is_bottom ();
+   inline bool is_pred_same_tree_of (const Event *e) const;
    inline bool is_pred_of (const Event *e) const;
    inline bool in_cfl_with (const Event *e);
    inline bool in_icfl_with (const Event *e); // Cesar
@@ -368,7 +370,7 @@ public: // public is what I want????
    /// size of the map below (u.num_procs())
    int size;
    /// map from process id (int) to maximal event in that process
-   Event **max;
+   Event **max; // size of max = number of procs???
 };
 
 // implementation of inline methods

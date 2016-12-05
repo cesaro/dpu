@@ -1,13 +1,15 @@
 /// THSTART(), creat is the corresponding THCREAT (or null for p0)
 inline Event::Event (Event *creat) :
+//inline Event::Event (Event *creat, int numprocs) :
    MultiNode(nullptr),
    _pre_other (creat),
    flags ({.boxfirst = 1, .boxlast = 0, .inc = 0}),
    action ({.type = ActionType::THSTART}),
    redbox (),
-   vclock(),
+   vclock(0,0),
    color (0),
    post ()
+   //maxproc(creat ? create->maxproc : clear())
 {
    ASSERT (action.type == ActionType::THSTART);
    ASSERT (pre_proc() == 0);
@@ -18,12 +20,26 @@ inline Event::Event (Event *creat) :
          this, pid(), action_type_str (action.type), pre_proc(), creat);
 
    if (creat) creat->post_add (this);
+
    if (creat == nullptr)
       vclock.add_clock(0,0);
    else
    {
       vclock = creat->vclock;
       vclock.add_clock(pid(),0);
+   }
+
+
+   if (maxproc.size() < pid())
+   {
+      for (int i = maxproc.size(); i < pid()- 1; i++)
+         maxproc.push_back(nullptr);
+
+      maxproc.push_back(this);
+   }
+   else
+   {
+      maxproc[pid()] = this;
    }
 }
 
@@ -36,7 +52,8 @@ inline Event::Event (Action ac, bool bf) :
    redbox (),
    vclock(pre_proc()->vclock),
    color (0),
-   post ()
+   post (),
+   maxproc(pre_proc()->maxproc)
 {
    ASSERT (pre_proc() != 0);
    ASSERT (pre_other() == 0);
@@ -45,8 +62,9 @@ inline Event::Event (Action ac, bool bf) :
          this, pid(), action_type_str (action.type), pre_proc(), pre_other(), bf);
    
    pre_proc()->post_add (this);
-   vclock.inc_clock(pid());
+   vclock.inc_clock(pid()); // wrong because pid() is not the index of proc in the vector
 
+   maxproc[pid()] = this;
 }
 
 /// THJOIN(tid), MTXLOCK(addr), MTXUNLK(addr), two predecessors (process, memory/exit)
@@ -56,9 +74,10 @@ inline Event::Event (Action ac, Event *m, bool bf) :
    flags ({.boxfirst = bf, .boxlast = 0, .inc = 0}),
    action (ac),
    redbox (),
-   vclock (pre_proc()->vclock), // here, pre_proc is different from the one passed to unf.event(ac, p, m)
+   vclock (m ? pre_proc()->vclock + m->vclock : pre_proc()->vclock), // here, pre_proc is different from the one passed to unf.event(ac, p, m)
    color (0),
-   post ()
+   post (),
+   maxproc(pre_proc()->maxproc)
 {
    // m could be null (eg, first lock of an execution)
    ASSERT (pre_proc() != 0);
@@ -76,6 +95,27 @@ inline Event::Event (Action ac, Event *m, bool bf) :
       vclock = vclock + m->vclock;
 
    vclock.inc_clock(pid()); // pre_proc causes errors in function inc_clock()
+
+   if (m)
+   {
+      if (maxproc.size() >= m->maxproc.size())
+      {
+         for (int i = 0; i < m->maxproc.size(); i++)
+            if (maxproc[i]->is_pred_same_tree_of(m->maxproc[i])) // is_pred in the same tree of process
+               maxproc[i] = m-> maxproc[i];
+      }
+      else
+      {
+         for (int i = 0; i < maxproc.size(); i++)
+            if (maxproc[i]->is_pred_same_tree_of(m->maxproc[i]))
+               maxproc[i] = m-> maxproc[i];
+         for (int i = maxproc.size(); i < m->maxproc.size(); i++)
+            maxproc.push_back(m->maxproc[i]);
+      }
+
+   }
+
+   maxproc[pid()] = this;
 }
 
 inline void Event::post_add (Event * succ)
@@ -132,6 +172,11 @@ inline EventBox *Event::box_below () const
 inline bool Event::operator == (const Event &other) const
 {
    return this == &other;
+}
+
+inline bool Event::is_pred_same_tree_of (const Event *e) const
+{
+   return true;
 }
 
 /// need to make sure that this->node[i].depth < e->node[i].depth

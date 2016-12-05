@@ -87,24 +87,6 @@ inline T **Node<T,SS>::__ctor_skip_preds (int idx)
    return skip_preds;
 }
 
-
-////-----------------------
-//template <class T, int SS >
-//inline void Node<T,SS>:: set_up(int idx, Event * pr)
-//{
-//   if (pr == nullptr)
-//   {
-//      pr = nullptr;
-//      depth = 0;
-//      return;
-//   }
-//
-//   pre      = pr;
-//   depth    = pre->node[idx].depth + 1;
-//   // initialize skip_preds here
-//   //DEBUG("Set skip preds");
-//   set_skip_preds(idx);
-//}
 //---------------------
 template <class T, int SS >
 inline int Node<T,SS>::__ctor_compute_size_skip_preds()
@@ -209,7 +191,7 @@ inline T & Node<T,SS>:: find_pred(int d) const
 
 //-----------
 template <class T, int SS >
-template <int idx>
+//template <int idx>
 inline bool Node<T,SS>::is_pred(Node &n) const
 {
    if (n.depth < this->depth) return false;

@@ -250,91 +250,19 @@ void Unfolding::print_dot ()
    DEBUG(" successfully\n");
 }
 
-/// creates an empty configuration
-BaseConfig::BaseConfig (const Unfolding &u) :
-   size (u.num_procs()),
-   max (new Event* [size])
+void Cut::dump ()
 {
-   int i;
-   DEBUG ("BaseConfig.ctor: this %p u.nump %d", this, size);
-
-   // initialize the size elements of the vector to null
-   for (i = 0; i < size; i++)
-      max[i] = nullptr;
+   DEBUG("== begin cut =="); 
+   __dump_cut ();
+   DEBUG("== end cut =="); 
 }
 
-/// creates a local configuration
-BaseConfig::BaseConfig (const Unfolding &u, Event &e) :
-   size (u.num_procs()),
-   max (new Event* [size])
-{
-   int i;
-   DEBUG ("BaseConfig.ctor: this %p u.nump %d e %p", this, size, &e);
-
-   // initialize the size elements of the vector to null
-   for (i = 0; i < size; i++)
-      max[i] = nullptr;
-
-   // add the event e to its own process
-   max[e.pid()] = &e;
-
-   // now we should scan [e] to find the maximal events in each process, but I
-   // don't have time to write this code
-   ASSERT (0);
-}
-
-/// copy constructor
-BaseConfig::BaseConfig (const BaseConfig &other) :
-   size (other.size),
-   max (new Event* [size])
-{
-   // copy the pointers
-   memcpy (max, other.max, size * sizeof (Event*));
-}
-
-BaseConfig::~BaseConfig ()
-{
-   // delete the memory in the vector
-   delete[] max;
-}
-
-void BaseConfig::add (Event *e)
-{
-   DEBUG("BaseConfig.add: this %p e %p e.pid %d", this, e, e->pid());
-   ASSERT (e->pid() < size);
-
-   // the unfolding might have changed the number of process after this
-   // configuration was constructed; assert it didn't happen
-   ASSERT (e->pid() < size);
-   // pre-proc must be the event max[e.pid()]
-   ASSERT (e->pre_proc() == max[e->pid()]);
-   // similarly, pre_other needs to be a causal predecessor of the max in that
-   // process; the following assertion is necessary but not sufficient to
-   // guarantee it
-   if (e->pre_other())
-   {
-      ASSERT (max[e->pre_other()->pid()]);
-      ASSERT (e->pre_other()->vclock[e->pre_other()->pid()] <=
-            max[e->pre_other()->pid()]->vclock[e->pre_other()->pid()]);
-   }
-
-   max[e->pid()] = e;
-}
-
-void BaseConfig::reset ()
-{
-   unsigned i;
-   for (i = 0; i < size; i++) max[i] = 0;
-}
-
-//----- prints the configuration in stdout
-void BaseConfig::dump ()
+void Cut::__dump_cut ()
 {
    Event * e;
    unsigned i;
 
-   DEBUG("== begin config =="); 
-   for (i = 0; i < size; i++)
+   for (i = 0; i < nrp; i++)
    {
       e = max[i] ;
       DEBUG("Proc %d, max %p", i, e);
@@ -349,8 +277,24 @@ void BaseConfig::dump ()
          e = e->pre_proc();
       }
    }
+}
+
+void Config::dump ()
+{
+   DEBUG("== begin config =="); 
+   __dump_cut ();
+   __dump_mutexes ();
    DEBUG("== end config =="); 
 }
+
+void Config::__dump_mutexes ()
+{
+   for (auto &pair : mutexmax)
+   {
+      DEBUG ("Addr %-#16lx e %p", pair.first, pair.second);
+   }
+}
+
 
 #if 0
 /*

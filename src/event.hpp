@@ -65,7 +65,7 @@ inline Event::Event (Action ac, Event *m) :
          this, pid(), action_type_str (action.type), pre_proc(), pre_other());
 
    pre_proc()->post_add (this);
-   if (m) m->post_add (this);
+   if (m and pre_proc() != m) m->post_add (this);
    vclock.inc_clock(pid());
 }
 

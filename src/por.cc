@@ -6,19 +6,19 @@
 namespace dpu
 {
 
-void basic_conf_to_replay (Unfolding &u, BaseConfig &c, std::vector<int> &replay)
+void basic_conf_to_replay (Unfolding &u, Cut &c, std::vector<int> &replay)
 {
-   int size;
+   int nrp;
    unsigned i;
    Event * pe;
 
    DEBUG("==========Get replay====");
-   ASSERT (u.num_procs() == c.size);
-   size = c.size;
+   ASSERT (u.num_procs() == c.num_procs());
+   nrp = c.num_procs();
 
-   for (i = 0; i < c.size; i++)
+   for (i = 0; i < nrp; i++)
    {
-      pe = c.max[i];
+      pe = c[i];
       // skip null pointers
       if (!pe) continue;
 
@@ -35,7 +35,7 @@ void basic_conf_to_replay (Unfolding &u, BaseConfig &c, std::vector<int> &replay
    bool unmarked = true; // there is some event in the configuration unmarked
    while (unmarked)
    {
-      for (unsigned i = 0; i < size; i++)
+      for (unsigned i = 0; i < nrp; i++)
       {
          pe = u.proc(i)->first_event();
 //         DEBUG("%s type", action_type_str(pe->action.type));
@@ -72,11 +72,11 @@ void basic_conf_to_replay (Unfolding &u, BaseConfig &c, std::vector<int> &replay
       // FIXME there is a bug here - improve this using a counter in the
       // previous while loop
       unsigned int j;
-      for (j = 0; j < size; j++)
-         if (c.max[j]->color == 0)
+      for (j = 0; j < nrp; j++)
+         if (c[j]->color == 0)
             break;
 
-      if (j == size)
+      if (j == nrp)
          unmarked = false;
    }
 
@@ -119,14 +119,14 @@ void LOCK_cex(Unfolding &u, Event *e)
    }
 }
 
-void compute_cex(Unfolding & u, BaseConfig & c)
+void compute_cex(Unfolding & u, Cut & c)
 {
    DEBUG("==========Compute cex====");
    Event *e;
    int size = u.num_procs();
    for (unsigned i = 0; i < size; i++)
    {
-      e = c.max[i];
+      e = c[i];
       while (e->action.type == ActionType::THSTART)
       {
          if (e->action.type == ActionType::MTXLOCK)

@@ -194,16 +194,15 @@ void test28 ()
    }
 }
 
-void test30()
+Unfolding mk_unf1 ()
 {
    Unfolding u;
+   Event *es, *ec, *el, *eu, *ej, *ex, *es1, *ex1 ;
 
    /*
     * Thread 0: start, creat, join, exit
     * Thread 1: start, exit
     */
-
-   Event *es, *ec, *el, *eu, *ej, *ex, *es1, *ex1 ;
 
    // start
    es = u.event (nullptr); // bottom
@@ -229,6 +228,43 @@ void test30()
    // exit
    ex = u.event ({.type = ActionType::THEXIT}, ej);
 
+   return u;
+}
+
+void test30()
+{
+   Event *es, *ec, *el, *eu, *ej, *ex, *es1, *ex1 ;
+   Unfolding u;
+
+   /*
+    * Thread 0: start, creat, join, exit
+    * Thread 1: start, exit
+    */
+
+   // start
+   es = u.event (nullptr); // bottom
+
+   // creat
+   ec = u.event ({.type = ActionType::THCREAT, .val = 1}, es);
+
+   // start in thread 1
+   es1 = u.event (ec);
+
+   // exit in thread 1
+   ex1 = u.event ({.type = ActionType::THEXIT}, es1);
+
+   // lock
+   el = u.event ({.type = ActionType::MTXLOCK, .addr = 0x100}, ec, nullptr);
+
+   //unlock
+   eu = u.event ({.type = ActionType::MTXUNLK, .addr = 0x100}, el, el);
+
+   // join
+   ej = u.event ({.type = ActionType::THJOIN, .val = 1}, eu, ex1);
+
+   // exit
+   ex = u.event ({.type = ActionType::THEXIT}, ej);
+
    printf("ex.vclock: ");
    ex->vclock.print();
 
@@ -237,7 +273,7 @@ void test30()
 
    printf ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n");
 
-   BaseConfig c(u);
+   Cut c(u);
    c.add (es);
    c.add (ec);
    c.add (el);
@@ -249,7 +285,7 @@ void test30()
 
    c.dump ();
    printf ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n");
-   c.reset ();
+   c.clear ();
    c.add (es);
    c.dump();
 
@@ -317,4 +353,69 @@ void test31()
       printf("v1 < v4\n");
    else
       printf("can't compare\n");
+}
+
+void test32()
+{
+   Event *es, *ec, *el, *eu, *ej, *ex, *es1, *ex1 ;
+   Unfolding u;
+
+   /*
+    * Thread 0: start, creat, join, exit
+    * Thread 1: start, exit
+    */
+
+   // start
+   es = u.event (nullptr); // bottom
+
+   // creat
+   ec = u.event ({.type = ActionType::THCREAT, .val = 1}, es);
+
+   // start in thread 1
+   es1 = u.event (ec);
+
+   // exit in thread 1
+   ex1 = u.event ({.type = ActionType::THEXIT}, es1);
+
+   // lock
+   el = u.event ({.type = ActionType::MTXLOCK, .addr = 0x100}, ec, nullptr);
+
+   //unlock
+   eu = u.event ({.type = ActionType::MTXUNLK, .addr = 0x100}, el, el);
+
+   // join
+   ej = u.event ({.type = ActionType::THJOIN, .val = 1}, eu, ex1);
+
+   // exit
+   ex = u.event ({.type = ActionType::THEXIT}, ej);
+
+   printf("ex.vclock: ");
+   ex->vclock.print();
+
+   u.dump ();
+   u.print_dot();
+   printf ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n");
+
+   Config c(u);
+   c.dump ();
+   printf ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n");
+
+   c.add (es);
+   c.add (ec);
+   c.add (el);
+   c.dump ();
+   printf ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n");
+
+   c.add (eu);
+   c.add (es1);
+   c.add (ex1);
+   c.add (ej);
+   c.add (ex);
+   c.dump ();
+   printf ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n");
+
+   c.clear ();
+   c.add (es);
+   c.dump();
+   printf ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n");
 }

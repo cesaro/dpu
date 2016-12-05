@@ -12,7 +12,8 @@ int main (int, char **)
    if (user and strcmp (user, "cesar") == 0)
    {
       // for Cesar
-      test31 ();
+      test32 ();
+      //test30 ();
    }
    else
    {

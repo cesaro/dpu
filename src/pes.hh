@@ -169,6 +169,8 @@ class Unfolding
 public:
    //static unsigned count;
    inline Unfolding ();
+   Unfolding (const Unfolding &other) = delete; // no copy constructor
+   inline Unfolding (const Unfolding &&other);
 
    void dump ();
    //void print_dot (FILE *f);
@@ -300,33 +302,70 @@ private:
 };
 
 /*
- *  class to represent a configuration in unfolding
+ *  class to represent a cut
  */
-class BaseConfig
+class Cut
 {
 public:
    /// creates an empty configuration
-   BaseConfig (const Unfolding &u);
+   inline Cut (const Unfolding &u);
    /// copy constructor
-   BaseConfig (const BaseConfig &other);
+   inline Cut (const Cut &other);
    /// creates a local configuration (unimplemented!)
-   BaseConfig (const Unfolding &u, Event &e);
+   inline Cut (const Unfolding &u, Event &e);
    /// destructor
-   ~BaseConfig ();
+   inline ~Cut ();
    
    /// add the event to the configuration
-   void add (Event *e);
+   inline void add (Event *e);
 
    /// empties the configuration
-   void reset ();
-   /// prints the configuration in stdout
+   inline void clear ();
+   /// prints the cut in stdout
    void dump ();
+
+   /// returns the maximal event of process pid in the cut
+   inline Event *operator[] (unsigned pid);
+
+   /// returns the number of processes of the unfolding
+   inline unsigned num_procs ();
    
-public:
+protected:
    /// size of the map below (u.num_procs())
-   int size;
+   unsigned nrp;
    /// map from process id (int) to maximal event in that process
    Event **max;
+
+   void __dump_cut ();
+};
+
+/*
+ *  class to represent a configuration
+ */
+class Config : public Cut
+{
+public:
+   /// creates an empty configuration
+   inline Config (const Unfolding &u);
+   /// copy constructor
+   inline Config (const Config &other);
+   
+   /// add the event to the configuration
+   inline void add (Event *e);
+
+   /// empties the configuration
+   inline void clear ();
+   /// prints the cut in stdout
+   void dump ();
+
+   inline Event *proc_max (unsigned pid);
+   inline Event *mutex_max (Addr a);
+   
+public:
+   /// map from lock addresss to events
+   std::unordered_map<Addr,Event*> mutexmax;
+
+   void __dump_mutexes ();
 };
 
 // implementation of inline methods
@@ -335,9 +374,10 @@ public:
 #include "unfolding.hpp"
 #include "process.hpp"
 #include "eventbox.hpp"
+#include "cut.hpp"
+#include "config.hpp"
 
 } // namespace dpu
 
 #endif
-
 

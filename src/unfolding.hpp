@@ -124,7 +124,7 @@ inline Process *Unfolding::new_proc (Event *creat)
    // construct the process object, increment nrp
    p = (void*) (procs + nrp * PROC_SIZE);
    nrp++;
-   return new (p) Process (creat);
+   return new (p) Process (creat, *this);
 }
 
 inline Event *Unfolding::find1 (Action *ac, Event *p)

@@ -1,5 +1,5 @@
 
-inline Process::Process (Event *creat)
+inline Process::Process (Event *creat, Unfolding & u)
 {
    DEBUG ("Process.ctor: this %p pid %d sizeof %d", this, pid(), sizeof (Process));
 

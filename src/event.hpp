@@ -7,8 +7,8 @@ inline Event::Event (Event *creat) :
    redbox (),
    vclock(0,0),
    color (0),
-   post ()
-   //maxproc(creat ? create->maxproc : clear())
+   post (),
+   cut(pid() + 1)
 {
    ASSERT (action.type == ActionType::THSTART);
    ASSERT (pre_proc() == 0);
@@ -28,18 +28,11 @@ inline Event::Event (Event *creat) :
       vclock.add_clock(pid(),0);
    }
 
+   if (creat)
+      for (int i = 0; i < creat->cut.num_procs(); i++)
+         cut[i] = creat->cut[i];
 
-   if (maxproc.size() < pid())
-   {
-      for (int i = maxproc.size(); i < pid()- 1; i++)
-         maxproc.push_back(nullptr);
-
-      maxproc.push_back(this);
-   }
-   else
-   {
-      maxproc[pid()] = this;
-   }
+   cut.add(this);
 }
 
 /// THCREAT(tid) or THEXIT(), one predecessor (in the process)
@@ -52,7 +45,7 @@ inline Event::Event (Action ac, bool bf) :
    vclock(pre_proc()->vclock),
    color (0),
    post (),
-   maxproc(pre_proc()->maxproc)
+   cut(pre_proc()->cut)
 {
    ASSERT (pre_proc() != 0);
    ASSERT (pre_other() == 0);
@@ -63,7 +56,8 @@ inline Event::Event (Action ac, bool bf) :
    pre_proc()->post_add (this);
    vclock.inc_clock(pid()); // wrong because pid() is not the index of proc in the vector
 
-   maxproc[pid()] = this;
+//   cut[pid()] = this;
+   cut.add(this);
 }
 
 /// THJOIN(tid), MTXLOCK(addr), MTXUNLK(addr), two predecessors (process, memory/exit)
@@ -78,7 +72,7 @@ inline Event::Event (Action ac, Event *m, bool bf) :
    vclock (m ? pre_proc()->vclock + m->vclock : pre_proc()->vclock),
    color (0),
    post (),
-   maxproc(pre_proc()->maxproc)
+   cut(m ? Cut(pre_proc()->cut, m->cut) : pre_proc()->cut)
 {
    // m could be null (eg, first lock of an execution)
    ASSERT (pre_proc() != 0);
@@ -99,26 +93,7 @@ inline Event::Event (Action ac, Event *m, bool bf) :
    }
    vclock.inc_clock (pid());
 
-   if (m)
-   {
-      if (maxproc.size() >= m->maxproc.size())
-      {
-         for (int i = 0; i < m->maxproc.size(); i++)
-            if (maxproc[i]->is_pred_same_tree_of(m->maxproc[i])) // is_pred in the same tree of process
-               maxproc[i] = m-> maxproc[i];
-      }
-      else
-      {
-         for (int i = 0; i < maxproc.size(); i++)
-            if (maxproc[i]->is_pred_same_tree_of(m->maxproc[i]))
-               maxproc[i] = m-> maxproc[i];
-         for (int i = maxproc.size(); i < m->maxproc.size(); i++)
-            maxproc.push_back(m->maxproc[i]);
-      }
-
-   }
-
-   maxproc[pid()] = this;
+   cut.add(this);
 }
 
 inline void Event::post_add (Event * succ)
@@ -182,40 +157,28 @@ inline bool Event::operator == (const Event &other) const
    return this == &other;
 }
 
-inline bool Event::is_pred_same_tree_of (const Event *e) const
-{
-   return true;
-}
-
-/// need to make sure that this->node[i].depth < e->node[i].depth
 inline bool Event::is_pred_of (const Event *e) const
 {
    Event *ee;
-   DEBUG("this->pid: %d",this->pid());
+   DEBUG("this->pid: %d",pid());
    DEBUG("e->pid: %d",e->pid());
 
 
-   if ((this->pid() == e->pid()) and (this->node[0].depth < e->node[0].depth))
+   if (pid() == e->pid())
    {
-      ee = &e->node[0].find_pred<0>(this->node[0].depth);
-//      DEBUG("ee: %p",ee);
-//      DEBUG("this: %p",this);
-      if (ee == this)
-         return true;
+//      ee = find_pred()
    }
+//      return node[0].is_pred(e->node[0]);
+
 
 //   DEBUG("this->depth: %d",this->node[1].depth);
 //   DEBUG("e->depth: %d",e->node[1].depth);
 
    DEBUG("this->addr: %p",this->action.addr);
    DEBUG("e->addr: %p",e->action.addr);
-  // if ((this->action.addr) and (e->action.addr) and (this->action.addr == e->action.addr))
-    if (this->action.addr == e->action.addr)
-   {
-      ee = &e->node[1].find_pred<1>(this->node[1].depth);
-      if (ee == this)
-         return true;
-   }
+
+   if (this->action.addr == e->action.addr)
+//      return node[1].is_pred(e->node[1]);
 
    return false;
 }

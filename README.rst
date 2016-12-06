@@ -33,16 +33,20 @@ x BaseConfig
 x BaseConfig -> replay
 x compute_cex (u, c)
 x fix conf2replay, bug when c.max contains null pointers : fixed. 
-- 
+- compute_alt (BaseConfig &c, const std::vector<Event*> d, 
 
-compute_alt (BaseConfig &c, const std::vector<Event*> d, 
-==========
-Questions:
-- THSTART event must be created immediately after the THCREAT?
+Questions
+=========
+- H: THSTART event must be created immediately after the THCREAT?
   If not, there is a bug.
+- C: No, you just need to invoke Unfolding::event(cr), where cr is the
+  corresponding THCREAT; you can do it at any moment, and there should be no bug
+  related to that
 
-BUGs:
-- Create a conflicting event, pre_proc's address is changed to new one. It is back when printing the event.
+Bugs
+====
+x Create a conflicting event, pre_proc's address is changed to new one. It is
+  back when printing the event.
 
 
 Improvements
@@ -60,7 +64,6 @@ Improvements
   depths, but depths that are now ordered, as well. This seems to have no impact
   if we are going to only use these clocks only for recovering causaly
   information inside of configurations.
-
 
 - translate e->action.val on thread creation, so that it contains the pid in the
   unfolding, not the one in steroids

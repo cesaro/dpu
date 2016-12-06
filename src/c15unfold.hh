@@ -5,6 +5,8 @@
 #include "stid/executor.hh"
 #include "stid/action_stream.hh"
 
+#undef DEBUG // exported by <llvm/ExecutionEngine/ExecutionEngine.h>
+
 #include "pes.hh"
 
 namespace dpu
@@ -14,12 +16,12 @@ class Disset
 {
 public:
    Disset ();
-   typedef struct {
+   typedef struct __elem {
       Event *e;
       unsigned idx;
       unsigned disabler;
       /// next element in the list of justified or unjustified events
-      Elem *next;
+      __elem *next;
    } Elem;
 
    /// the set D in the C'15 algorithm
@@ -42,7 +44,7 @@ public:
    void trail_pop (unsigned idx);
 };
 
-class Trail : std:vector<Event*>
+class Trail : public std::vector<Event*>
 {
    void push (Event *e)
       { std::vector<Event*>::push_back (e); }
@@ -57,7 +59,7 @@ class C15unfolder
 public:
    Unfolding u;
    Trail trail;
-   Dissset d;
+   Disset d;
 
    // dynamic executor
    llvm::Module *m;
@@ -74,9 +76,9 @@ public:
    void explore ();
 
 private:
-   void stream_to_events (action_streamt &s, BaseConfig &c);
-   conf_to_replay (C, rep)
-   find_cex (C)
+   void stream_to_events (action_streamt &s, Config &c);
+   void conf_to_replay (Cut &c, std::vector<int> &replay);
+   void compute_cex (Config &c);
 };
 
 } //end of namespace

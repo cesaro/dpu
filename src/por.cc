@@ -44,12 +44,21 @@ void cut_to_replay (Unfolding &u, Cut &c, std::vector<int> &replay)
          e = cc[i];
          DEBUG ("Context switch to proc %d, event %p", i, e);
          count = 0;
+         // we replay as many events as possible on process i
          for (e = cc[i]; e; e = e->next)
          {
+            // if event has non-visited causal predecessor, abort this process
             if (e->pre_other() and e->pre_other()->color != green) break;
             e->color = green;
             count++;
+            if (e->action.type == ActionType::THCREAT)
+            {
+               // put in the cut the THSTART corresponding to a THCREAT if the
+               // original cut contains at least one event from that process
+               if (c[e->action.val]) cc[e->action.val] = u.event (e);
+            }
          }
+
          if (count)
          {
             cc[i] = e;
@@ -59,6 +68,7 @@ void cut_to_replay (Unfolding &u, Cut &c, std::vector<int> &replay)
          }
       }
    }
+   replay.push_back (-1);
 }
 
 /// Compute conflicting extension for a LOCK

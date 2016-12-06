@@ -153,6 +153,7 @@ inline bool Event::operator == (const Event &other) const
 
 inline bool Event::is_pred_of (const Event *e) const
 {
+#if 0
    Event *ee;
    DEBUG("this->pid: %d",pid());
    DEBUG("e->pid: %d",e->pid());
@@ -174,6 +175,8 @@ inline bool Event::is_pred_of (const Event *e) const
    if (this->action.addr == e->action.addr)
 //      return node[1].is_pred(e->node[1]);
 
+   return false;
+#endif
    return false;
 }
 

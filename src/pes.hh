@@ -237,7 +237,7 @@ public:
    Unfolding (const Unfolding &other) = delete; // no copy constructor
    inline Unfolding (const Unfolding &&other);
 
-   void dump ();
+   void dump () const;
    //void print_dot (FILE *f);
    void print_dot();
 

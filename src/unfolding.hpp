@@ -29,7 +29,7 @@ inline Unfolding::Unfolding () :
 
 inline Unfolding::Unfolding (const Unfolding &&other)
 {
-   // FIXME
+   // FIXME - to be implemented
    ASSERT (0);
 }
 

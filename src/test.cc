@@ -251,10 +251,9 @@ void test30()
 
    u.dump ();
    printf ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n");
-   es->cut.dump ();
-   return;
 
    Cut c(u);
+#if 0
    c.add (es);
    c.add (ec);
    c.add (el);
@@ -266,21 +265,28 @@ void test30()
    c.add (ej);
    c.add (ex);
    c.dump ();
+#endif
 
+#if 1
    printf ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n");
    c.clear ();
    c.add (es);
-   c.add(ec);
+   c.add (ec);
    c.add (el);
    c.add (eu);
    c.dump();
+#endif
 
    printf ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n");
    std::vector<int> replay;
    cut_to_replay(u, c, replay);
-   DEBUG_("Replay:");
-   for (unsigned i = 0; i < replay.size(); i=i+2)
-      DEBUG_("%d-%d ", replay[i], replay[i+1]);
+   DEBUG_("Replay: ");
+   for (unsigned i = 0; i < replay.size(); i++)
+   {
+      DEBUG_ ("%d ", replay[i]);
+      if (i % 2 == 1) DEBUG_ (" ");
+   }
+   DEBUG ("");
 }
 //-----------------
 void test31()
@@ -571,3 +577,4 @@ void test34()
      else
         DEBUG("not in conflict");
 }
+

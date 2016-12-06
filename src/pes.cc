@@ -123,7 +123,7 @@ void Action::pretty_print ()
    }
 }
 
-void Unfolding::dump ()
+void Unfolding::dump () const
 {
    printf ("== unfolding begin ==\n");
    printf (" this %p nrp %u\n", this, nrp);

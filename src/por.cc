@@ -6,92 +6,63 @@
 namespace dpu
 {
 
-void basic_conf_to_replay (Unfolding &u, BaseConfig &c, std::vector<int> &replay)
+void cut_to_replay (Unfolding &u, Cut &c, std::vector<int> &replay)
 {
-   int size;
-   unsigned i;
-   Event * pe;
+   int nrp, count;
+   unsigned i, green;
+   bool progress;
+   Event *e, *ee;
+   Cut cc (u);
 
-   DEBUG("==========basic_conf_to_replay====");
-   ASSERT (u.num_procs() == c.size);
-   size = c.size;
+   //DEBUG("==========basic_conf_to_replay====");
+   ASSERT (u.num_procs() == c.num_procs());
+   nrp = c.num_procs();
 
-   // set up the pointer next in all events of one process
-
-   for (i = 0; i < c.size; i++)
+   // set up the Event's next pointer
+   for (i = 0; i < nrp; i++)
    {
-      pe = c.max[i];
-      // skip null pointers
-      if (!pe) continue;
-
-      pe->next = nullptr;
-      while (pe->pre_proc())
-      {
-         pe->color = 0;
-         pe->pre_proc()->next = pe; // next event in the same process
-         pe = pe->pre_proc();
-      }
+      ee = nullptr;
+      for (e = c[i]; e; ee = e, e = e->pre_proc()) e->next = ee;
    }
 
-   bool unmarked = true; // there is some event in the configuration unmarked
-   int counter = 0;
-   while (unmarked)
+   // we use a second cut cc to run forward up to completion of cut c
+   // we start by adding bottom to the cut
+   cc.add (u.proc(0)->first_event());
+   ASSERT (cc[0] and cc[0]->is_bottom ());
+
+   // get a fresh color, we call it green
+   green = u.get_fresh_color ();
+
+   // in a round-robbin fashion, we run each process until we cannot continue in
+   // that process; this continues until we are unable to make progress
+   progress = true;
+   while (progress)
    {
-      for (unsigned i = 0; i < size; i++)
+      progress = false;
+      for (i = 0; i < nrp; i++)
       {
-         DEBUG("Proc %d", i);
-         if (!c.max[i])
+         e = cc[i];
+         DEBUG ("Context switch to proc %d, event %p", i, e);
+         count = 0;
+         for (e = cc[i]; e; e = e->next)
          {
-            counter++;
-            continue;
+            if (e->pre_other() and e->pre_other()->color != green) break;
+            e->color = green;
+            count++;
          }
-         pe = u.proc(i)->first_event();
-         ASSERT(pe);
-//         FIXME: proc 1 has no event but the first_event() still returns a THSTART
-         DEBUG("%s type", action_type_str(pe->action.type));
-
-         while (pe)
+         if (count)
          {
-            if (pe->color == 1)
-               pe = pe->next;
-            else
-               if (((pe->pre_other() == nullptr) || (pe->pre_other()->color == 1)))
-               {
-//                  DEBUG("pre_other marked or nil-> add");
-//                  DEBUG("pe->pid: %d", pe->pid());
-
-                  if ((replay.empty()) or (replay.at(replay.size()-2) != pe->pid()))
-                  {
-                     replay.push_back(pe->pid());
-                     replay.push_back(1);
-                  }
-                  else
-                  {
-                     replay.back()++;
-                  }
-
-                  pe->color = 1;
-                  pe = pe->next;
-
-                  if (pe == nullptr)
-                     counter++;
-               }
-               else
-                  break; // break while, then move to next process
+            cc[i] = e;
+            replay.push_back (i);
+            replay.push_back (count);
+            progress = true;
          }
       }
-
-      // terminate when all maximal events are marked.
-      // FIXME there is a bug here - improve this using a counter in the
-      // previous while loop
-      if (counter == size)
-         unmarked = false;
    }
-//   DEBUG("=====End of computing replay====");
 }
 
 /// Compute conflicting extension for a LOCK
-void LOCK_cex(Unfolding &u, BaseConfig & c, Event *e)
+void LOCK_cex (Unfolding &u, Config &c, Event *e)
 {
    DEBUG("\n %p: LOCK_cex", e);
    Event * ep, * em, *pr_mem, *newevt;
@@ -165,26 +136,23 @@ void LOCK_cex(Unfolding &u, BaseConfig & c, Event *e)
    DEBUG("   Finish LOCK_cex");
 }
 
-void compute_cex(Unfolding & u, BaseConfig & c)
+void compute_cex (Unfolding &u, Config &c)
 {
-   DEBUG("==========Compute cex====");
+   unsigned i;
    Event *e;
-   int size = u.num_procs();
-   for (unsigned i = 0; i < size; i++)
-   {
-      e = c.max[i];
-      if (!e) continue;
 
-      while (e->action.type != ActionType::THSTART)
+   DEBUG("==========Compute cex====");
+
+   // FIXME -- Cesar: improve this to use only the address trees in c.mutexmax
+   for (i = 0; i < c.num_procs(); i++)
+   {
+      for (e = c[i]; e; e = e->pre_proc())
       {
          if (e->action.type == ActionType::MTXLOCK)
          {
 //            DEBUG("e: %p, type: %s",e, action_type_str(e->action.type));
             LOCK_cex(u,c,e);
          }
-
-
-         e = e->pre_proc();
       }
    }
 }
@@ -408,7 +376,7 @@ void compute_alt(unsigned int i, const std::vector<std::vector<Event *>> & s, st
 /*
  * Try to find an alternative if it exists
  */
-void find_an_alternative(BaseConfig & C, std::vector<Event *> D, std::vector<Event *> & J, std::vector<Event *> & A ) // we only want to modify D in the scope of this function
+void find_an_alternative(Config & C, std::vector<Event *> D, std::vector<Event *> & J, std::vector<Event *> & A ) // we only want to modify D in the scope of this function
 {
    std::vector<std::vector<Event *>> spikes;
 
@@ -522,12 +490,12 @@ void find_an_alternative(BaseConfig & C, std::vector<Event *> D, std::vector<Eve
 
       while ((spikes[i].size() != 0) and (j < spikes[i].size()) )
       {
-         for (int k = 0; k < C.size; k++)
+         for (int k = 0; k < C.num_procs(); k++)
          {
-            if (check_cfl(*spikes[i][j],*C.max[k]))
+            if (check_cfl(*spikes[i][j],*C[k]))
             {
                   //remove spike[i][j]
-               DEBUG_("    %p cfl with %p", spikes[i][j], C.max[k]);
+               DEBUG_("    %p cfl with %p", spikes[i][j], C[k]);
                DEBUG("->Remove %d", spikes[i][j]->idx);
                spikes[i][j] = spikes[i].back();
                spikes[i].pop_back();

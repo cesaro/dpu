@@ -23,6 +23,7 @@ x escribir la funcion de busqeuda en los post para los Unfolding::event
 - how to represent conflict?
 - steroids -> unf
 - design unfolder class
+- in_icfl_with (Event e);
 
 Huyen:
 
@@ -59,4 +60,8 @@ Improvements
   depths, but depths that are now ordered, as well. This seems to have no impact
   if we are going to only use these clocks only for recovering causaly
   information inside of configurations.
+
+
+- translate e->action.val on thread creation, so that it contains the pid in the
+  unfolding, not the one in steroids
 

@@ -1,6 +1,5 @@
 /// THSTART(), creat is the corresponding THCREAT (or null for p0)
 inline Event::Event (Event *creat) :
-//inline Event::Event (Event *creat, int numprocs) :
    MultiNode(nullptr),
    _pre_other (creat),
    flags ({.boxfirst = 1, .boxlast = 0, .inc = 0}),
@@ -74,7 +73,9 @@ inline Event::Event (Action ac, Event *m, bool bf) :
    flags ({.boxfirst = bf, .boxlast = 0, .inc = 0}),
    action (ac),
    redbox (),
-   vclock (m ? pre_proc()->vclock + m->vclock : pre_proc()->vclock), // here, pre_proc is different from the one passed to unf.event(ac, p, m)
+   // FIXME -- ???
+   // here, pre_proc is different from the one passed to unf.event(ac, p, m)
+   vclock (m ? pre_proc()->vclock + m->vclock : pre_proc()->vclock),
    color (0),
    post (),
    maxproc(pre_proc()->maxproc)
@@ -87,14 +88,16 @@ inline Event::Event (Action ac, Event *m, bool bf) :
    DEBUG ("Event.ctor: this %p pid %u action %s pre-proc %p pre-other %p bf %d",
          this, pid(), action_type_str (action.type), pre_proc(), pre_other(), bf);
 
+   // update postsets and clocks
    pre_proc()->post_add (this);
-   if (m) m->post_add (this);
-   // when m is nullptr, just increase the clock, else take the maximal of two vectors
-
    if (m)
-      vclock = vclock + m->vclock;
-
-   vclock.inc_clock(pid()); // pre_proc causes errors in function inc_clock()
+   {
+      if (pre_proc() != m) m->post_add (this);
+      // FIXME - I commented out next line, as the clock should be correctly
+      // constructed by now. Cesar
+      //vclock = vclock + m->vclock;
+   }
+   vclock.inc_clock (pid());
 
    if (m)
    {
@@ -158,6 +161,11 @@ inline bool Event::is_bottom ()
 inline Process *Event::proc () const
 {
    return Unfolding::ptr2proc (this);
+}
+
+inline unsigned Event::depth_proc () const
+{
+   return node[0].depth;
 }
 
 inline EventBox *Event::box_above () const

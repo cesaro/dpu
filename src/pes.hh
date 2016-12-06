@@ -19,7 +19,6 @@ class EventBox;
 class EventIt;
 class Process;
 class Unfolding;
-class BaseConfig;
 
 typedef uint64_t Addr;
 
@@ -63,40 +62,6 @@ struct Action
    inline bool operator == (const Action &other) const;
 };
 
-////-------template class Node ---------
-//template <class T, int SS>
-//class Node
-//{
-//public:
-//   unsigned depth;
-//   T * pre; // immediate predecessor
-//   T ** skip_preds;
-//
-//   inline Node();
-//   inline Node(int idx, Event * pr);
-//   inline void set_up(int idx, Event * pr);
-//   inline int compute_size();
-//   inline void set_skip_preds(int idx);
-//   inline void print_skip_preds();
-//
-//   template <int idx>
-//   inline T & find_pred(int d) const;
-//
-//   template <int idx>
-//   inline bool is_pred(Node &n) const;
-//};
-//
-////-------template class MultiNode------
-//template <class T, int S, int SS> // S: number of trees, SS: skip step
-//class MultiNode
-//{
-//public:
-//   Node<T,SS> node[S];
-//
-//   inline MultiNode();
-//   inline MultiNode(T * pp, T * pm);
-//};
-
 class Event : public MultiNode<Event,3> // 2 trees, skip step = 3
 {
 private:
@@ -106,7 +71,6 @@ public:
    int inside; // a flag to mark that an event is inside some set or not
    /// THSTART(), creat is the corresponding THCREAT (or null for p0)
    inline Event (Event *creat);
-//   inline Event (Event *creat, int numprocs);
    /// THCREAT(tid) or THEXIT(), one predecessor (in the process)
    inline Event (Action ac, bool boxfirst);
    /// THJOIN(tid), MTXLOCK(addr), MTXUNLK(addr), two predecessors (process, memory/exit)
@@ -146,6 +110,8 @@ public:
    /// returns the process to which this event belongs
    inline Process *proc () const;
 
+   inline unsigned depth_proc () const;
+
    /// tests pointer equality of two events
    inline bool operator == (const Event &) const;
    /// returns a human-readable description of the event
@@ -166,6 +132,7 @@ private:
    inline EventBox *box_above () const;
    inline EventBox *box_below () const;
 
+   // FIXME -- this should be a Cut instead of a std::vector, see below
    std::vector<Event*> maxproc;
 
 #if 0
@@ -212,6 +179,8 @@ class Unfolding
 public:
    //static unsigned count;
    inline Unfolding ();
+   Unfolding (const Unfolding &other) = delete; // no copy constructor
+   inline Unfolding (const Unfolding &&other);
 
    void dump ();
    //void print_dot (FILE *f);
@@ -232,6 +201,9 @@ public:
    /// THJOIN(tid), MTXLOCK(addr), MTXUNLK(addr), two predecessors (process, memory/exit)
    inline Event *event (Action ac, Event *p, Event *m);
 
+   /// returns a new fresh color
+   inline unsigned get_fresh_color ();
+
    /// maximum number of processes in the unfolding
    static constexpr size_t MAX_PROC = CONFIG_MAX_PROCESSES;
    /// FIXME
@@ -251,6 +223,8 @@ private :
    char *procs;
    /// number of processes created using new_proc (<= MAX_PROC)
    unsigned nrp;
+   /// a fresh color, used for Events or anywhere else
+   unsigned color;
 
    /// creates a new process in the unfolding; creat is the corrsponding THCREAT
    /// event
@@ -260,7 +234,6 @@ private :
    inline Event *find1 (Action *ac, Event *p);
    /// returns the (only) immediate causal successor of {p,m} with action *ac, or NULL
    inline Event *find2 (Action *ac, Event *p, Event *m);
-
 };
 
 class EventBox
@@ -343,34 +316,77 @@ private:
 };
 
 /*
- *  class to represent a configuration in unfolding
+ *  class to represent a cut
  */
-class BaseConfig
+class Cut
 {
 public:
+   /// FIXME - is this necessary?
    std::vector<Event *> cex;
-   /// creates an empty configuration
-   BaseConfig (const Unfolding &u);
+   /// creates an empty cut for u.num_procs processes
+   inline Cut (const Unfolding &u);
+   /// creates an empty cut for n processes
+   inline Cut (unsigned n);
    /// copy constructor
-   BaseConfig (const BaseConfig &other);
-   /// creates a local configuration (unimplemented!)
-   BaseConfig (const Unfolding &u, Event &e);
+   inline Cut (const Cut &other);
+   /// max of two cuts
+   inline Cut (const Cut &c1, const Cut &c2);
    /// destructor
-   ~BaseConfig ();
+   inline ~Cut ();
    
-   /// add the event to the configuration
-   void add (Event *e);
+   /// add the event to the cut
+   inline void add (Event *e);
 
    /// empties the configuration
-   void reset ();
-   /// prints the configuration in stdout
+   inline void clear ();
+   /// prints the cut in stdout
    void dump ();
+
+   /// returns the maximal event of process pid in the cut
+   inline Event *operator[] (unsigned pid) const;
+   inline Event *&operator[] (unsigned pid);
+
+   /// returns the number of processes of the unfolding
+   inline unsigned num_procs () const;
    
-public: // public is what I want????
+protected:
    /// size of the map below (u.num_procs())
-   int size;
+   unsigned nrp;
    /// map from process id (int) to maximal event in that process
-   Event **max; // size of max = number of procs???
+   Event **max;
+
+   void __dump_cut ();
+};
+
+/*
+ *  class to represent a configuration
+ */
+class Config : public Cut
+{
+public:
+   /// creates an empty configuration
+   inline Config (const Unfolding &u);
+   /// copy constructor
+   inline Config (const Config &other);
+   
+   /// add the event to the configuration
+   inline void add (Event *e);
+
+   /// empties the configuration
+   inline void clear ();
+   /// prints the cut in stdout
+   void dump ();
+
+   /// maximal event for the given pid, or nullptr
+   inline Event *proc_max (unsigned pid);
+   /// maximal event for the given address (or THCREAT/EXIT if pid is given)
+   inline Event *mutex_max (Addr a);
+   
+public:
+   /// map from lock addresss to events
+   std::unordered_map<Addr,Event*> mutexmax;
+
+   void __dump_mutexes ();
 };
 
 // implementation of inline methods
@@ -379,9 +395,10 @@ public: // public is what I want????
 #include "unfolding.hpp"
 #include "process.hpp"
 #include "eventbox.hpp"
+#include "cut.hpp"
+#include "config.hpp"
 
 } // namespace dpu
 
 #endif
-
 

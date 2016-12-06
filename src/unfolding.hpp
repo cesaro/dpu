@@ -1,6 +1,7 @@
 
 inline Unfolding::Unfolding () :
-   nrp (0)
+   nrp (0),
+   color (1)
 {
    static_assert (MAX_PROC >= 2, "At lest 2 processes");
    static_assert (PROC_SIZE >= sizeof (Process), "Proccess size too small");
@@ -25,6 +26,13 @@ inline Unfolding::Unfolding () :
 
    DEBUG ("Unfolding.ctor: done, procs %p", procs);
 }
+
+inline Unfolding::Unfolding (const Unfolding &&other)
+{
+   // FIXME
+   ASSERT (0);
+}
+
 
 inline Process *Unfolding::proc (unsigned p) const
 {
@@ -88,17 +96,18 @@ inline Event *Unfolding::event (Action ac, Event *p, Event *m)
 
    // checking that this method was correctly invoked
    ASSERT (p);
-   if (m == 0)
+   if (ac.type == ActionType::THJOIN) ASSERT (m and m->action.type == ActionType::THEXIT);
+   if (ac.type == ActionType::MTXLOCK)
    {
-      ASSERT (ac.type == ActionType::MTXLOCK); // for the first MTXLOCK
-      DEBUG("The first LOCK");
+      ASSERT (ac.addr > nrp);
+      ASSERT (!m or m->action.type == ActionType::MTXUNLK);
    }
-   else
+   if (ac.type == ActionType::MTXUNLK)
    {
-      if (ac.type == ActionType::THJOIN) ASSERT (m and m->action.type == ActionType::THEXIT);
-      if (ac.type == ActionType::MTXLOCK) ASSERT (!m or m->action.type == ActionType::MTXUNLK);
-      if (ac.type == ActionType::MTXUNLK) ASSERT (m or m->action.type == ActionType::MTXLOCK);
+      ASSERT (ac.addr > nrp);
+      ASSERT (m and m->action.type == ActionType::MTXLOCK);
    }
+
    // if the event already exist, we return it
    e = find2 (&ac, p, m);
    if (e) return e;
@@ -151,4 +160,10 @@ inline Event *Unfolding::find2 (Action *ac, Event *p, Event *m)
       }
    }
    return 0;
+}
+
+inline unsigned Unfolding::get_fresh_color ()
+{
+   color++;
+   return color;
 }

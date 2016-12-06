@@ -196,42 +196,53 @@ void test28 ()
 
 void test30()
 {
+   Event *es, *ec, *el, *eu, *ej, *ex, *es1, *ex1, *el1, *eu1 ;
    Unfolding u;
 
    /*
-    * Thread 0: start, creat, join, exit
-    * Thread 1: start, exit
+    * Th 0           Th 1
+    * -------------- ---------------
+    * start    
+    * creat
+    * lock 0x100
+    * unlock 0x100
+    *                start
+    *                lock 0x100
+    *                unlock 0x100
+    *                exit
+    * join
+    * exit
     */
-
-   Event *es, *ec, *el, *eu, *ej, *ex, *es1, *ex1, *el1, *eu1 ;
 
    // start
    es = u.event (nullptr); // bottom
 
    // creat
-   ec = u.event ({.type = ActionType::THCREAT}, es);
+   ec = u.event ({.type = ActionType::THCREAT, .val = 1}, es);
+
+   // lock
+   el = u.event ({.type = ActionType::MTXLOCK, .addr = 0x100}, ec, nullptr);
+
+   //unlock
+   eu = u.event ({.type = ActionType::MTXUNLK, .addr = 0x100}, el, el);
 
    // start in thread 1
-   es1 = u.event (ec); // START must be immediately created after its process creation.???
+   es1 = u.event (ec);
+   // H: START must be immediately created after its process creation?
+   // C: No, you just need to call Unfolding::event () passing the corresponding
+   // create, at any moment
 
    // lock
-   el = u.event ({.type = ActionType::MTXLOCK}, ec, nullptr);
+   el1 = u.event ({.type = ActionType::MTXLOCK, .addr = 0x100}, es1, eu);
 
    //unlock
-   eu = u.event ({.type = ActionType::MTXUNLK}, el, el);
+   eu1 = u.event ({.type = ActionType::MTXUNLK, .addr = 0x100}, el1, el1);
 
-
-   // lock
-   el1 = u.event ({.type = ActionType::MTXLOCK}, es1, eu);
-
-   //unlock
-   eu1 = u.event ({.type = ActionType::MTXUNLK}, el1, el1);
-
-   //exit in thread 1
+   // exit in thread 1
    ex1 = u.event ({.type = ActionType::THEXIT}, eu1);
 
    // join
-   ej = u.event ({.type = ActionType::THJOIN}, eu, ex1);
+   ej = u.event ({.type = ActionType::THJOIN, .val = 1}, eu, ex1);
 
    // exit
    ex = u.event ({.type = ActionType::THEXIT}, ej);
@@ -240,11 +251,9 @@ void test30()
    ex->vclock.print();
 
    u.dump ();
-
    printf ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n");
 
-   BaseConfig c(u);
-
+   Cut c(u);
    c.add (es);
    c.add (ec);
    c.add (el);
@@ -258,7 +267,7 @@ void test30()
    c.dump ();
 
    printf ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n");
-   c.reset ();
+   c.clear ();
    c.add (es);
    c.add(ec);
    c.add (el);
@@ -267,7 +276,7 @@ void test30()
 
    printf ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n");
    std::vector<int> replay;
-   basic_conf_to_replay(u, c, replay);
+   cut_to_replay(u, c, replay);
    DEBUG_("Replay:");
    for (unsigned i = 0; i < replay.size(); i=i+2)
       DEBUG_("%d-%d ", replay[i], replay[i+1]);
@@ -330,92 +339,157 @@ void test31()
    else
       printf("can't compare\n");
 }
-//-----------------------
+
 void test32()
+{
+   Event *es, *ec, *el, *eu, *ej, *ex, *es1, *ex1 ;
+   Unfolding u;
+
+   /*
+    * Thread 0: start, creat, join, exit
+    * Thread 1: start, exit
+    */
+
+   // start
+   es = u.event (nullptr); // bottom
+
+   // creat
+   ec = u.event ({.type = ActionType::THCREAT, .val = 1}, es);
+
+   // start in thread 1
+   es1 = u.event (ec);
+
+   // exit in thread 1
+   ex1 = u.event ({.type = ActionType::THEXIT}, es1);
+
+   // lock
+   el = u.event ({.type = ActionType::MTXLOCK, .addr = 0x100}, ec, nullptr);
+
+   //unlock
+   eu = u.event ({.type = ActionType::MTXUNLK, .addr = 0x100}, el, el);
+
+   // join
+   ej = u.event ({.type = ActionType::THJOIN, .val = 1}, eu, ex1);
+
+   // exit
+   ex = u.event ({.type = ActionType::THEXIT}, ej);
+
+   printf("ex.vclock: ");
+   ex->vclock.print();
+
+   u.dump ();
+   u.print_dot();
+   printf ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n");
+
+   Config c(u);
+   c.dump ();
+   printf ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n");
+
+   c.add (es);
+   c.add (ec);
+   c.add (el);
+   c.dump ();
+   printf ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n");
+
+   c.add (eu);
+   c.add (es1);
+   c.add (ex1);
+   c.add (ej);
+   c.add (ex);
+   c.dump ();
+   printf ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n");
+
+   c.clear ();
+   c.add (es);
+   c.dump();
+   printf ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n");
+}
+
+//-----------------------
+void test33()
 {
    DEBUG("Test compute_cex");
    Unfolding u;
 
-     /*
-      * Thread 0: start, creat, join, exit
-      * Thread 1: start, exit
-      */
+   /*
+    * Thread 0: start, creat, join, exit
+    * Thread 1: start, exit
+    */
 
-     Event *es, *ec, *el, *eu, *ell, *euu, *ej, *ex; // Process 0
-     Event *es1, *ex1, *el1,*eu1, *ell1, *euu1 ; // Process 1
+   Event *es, *ec, *el, *eu, *ell, *euu, *ej, *ex; // Process 0
+   Event *es1, *ex1, *el1,*eu1, *ell1, *euu1 ; // Process 1
 
-     // start
-     es = u.event (nullptr); // bottom
+   // start
+   es = u.event (nullptr); // bottom
 
-     // creat proc 1
-     ec = u.event ({.type = ActionType::THCREAT}, es);
+   // creat proc 1
+   ec = u.event ({.type = ActionType::THCREAT}, es);
 
-     // start in thread 1
-     es1 = u.event (ec); // START must be immediately created after its process creation.???
+   // start in thread 1
+   es1 = u.event (ec); // START must be immediately created after its process creation.???
 
-     // lock
-     el = u.event ({.type = ActionType::MTXLOCK}, ec, nullptr);
+   // lock
+   el = u.event ({.type = ActionType::MTXLOCK}, ec, nullptr);
 
-     //unlock
-     eu = u.event ({.type = ActionType::MTXUNLK}, el, el);
+   //unlock
+   eu = u.event ({.type = ActionType::MTXUNLK}, el, el);
 
-     // lock
-     ell = u.event ({.type = ActionType::MTXLOCK}, eu, eu);
+   // lock
+   ell = u.event ({.type = ActionType::MTXLOCK}, eu, eu);
 
-     //unlock
-     euu = u.event ({.type = ActionType::MTXUNLK}, ell, ell);
-
-
-     /// Process 1
-     // lock
-     el1 = u.event ({.type = ActionType::MTXLOCK}, es1, euu);
-
-     //unlock
-     eu1 = u.event ({.type = ActionType::MTXUNLK}, el1, el1);
-
-     // lock
-     ell1 = u.event ({.type = ActionType::MTXLOCK}, eu1, eu1);
-
-     //unlock
-     euu1 = u.event ({.type = ActionType::MTXUNLK}, ell1, ell1);
-
-     //exit in thread 1
-     ex1 = u.event ({.type = ActionType::THEXIT}, euu1);
+   //unlock
+   euu = u.event ({.type = ActionType::MTXUNLK}, ell, ell);
 
 
-     // Process 0
-     // join
-     ej = u.event ({.type = ActionType::THJOIN}, euu, ex1);
+   /// Process 1
+   // lock
+   el1 = u.event ({.type = ActionType::MTXLOCK}, es1, euu);
 
-     // exit
-     ex = u.event ({.type = ActionType::THEXIT}, ej);
+   //unlock
+   eu1 = u.event ({.type = ActionType::MTXUNLK}, el1, el1);
 
-     BaseConfig c(u);
-     c.add (es);
-     c.add (ec);
-     c.add (el);
-     c.add (eu);
-     c.add (ell);
-     c.add (euu);
-     c.add (es1);
-     c.add (el1);
-     c.add (eu1);
-     c.add (ell1);
-     c.add (euu1);
-     c.add (ex1);
-     c.add (ej);
-     c.add (ex);
-     c.dump();
+   // lock
+   ell1 = u.event ({.type = ActionType::MTXLOCK}, eu1, eu1);
 
-     u.dump();
-      DEBUG("\nxxxxxxxxxxxxxxxxxxxx");
-      compute_cex(u,c);
-      u.dump();
-      u.print_dot();
+   //unlock
+   euu1 = u.event ({.type = ActionType::MTXUNLK}, ell1, ell1);
 
+   //exit in thread 1
+   ex1 = u.event ({.type = ActionType::THEXIT}, euu1);
+
+
+   // Process 0
+   // join
+   ej = u.event ({.type = ActionType::THJOIN}, euu, ex1);
+
+   // exit
+   ex = u.event ({.type = ActionType::THEXIT}, ej);
+
+   Config c(u);
+   c.add (es);
+   c.add (ec);
+   c.add (el);
+   c.add (eu);
+   c.add (ell);
+   c.add (euu);
+   c.add (es1);
+   c.add (el1);
+   c.add (eu1);
+   c.add (ell1);
+   c.add (euu1);
+   c.add (ex1);
+   c.add (ej);
+   c.add (ex);
+   c.dump();
+
+   u.dump();
+   DEBUG("\nxxxxxxxxxxxxxxxxxxxx");
+   compute_cex(u,c);
+   u.dump();
+   u.print_dot();
 }
 
-void test33()
+void test34()
 {
    Unfolding u;
 
@@ -493,5 +567,4 @@ void test33()
         DEBUG("in conflict");
      else
         DEBUG("not in conflict");
-
 }

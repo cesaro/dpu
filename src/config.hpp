@@ -1,0 +1,86 @@
+
+/// creates an empty configuration
+inline Config::Config (const Unfolding &u) :
+   Cut (u),
+   mutexmax ()
+{
+   DEBUG ("Config.ctor: this %p", this);
+}
+
+/// copy constructor
+inline Config::Config (const Config &other) :
+   Cut (other),
+   mutexmax (other.mutexmax)
+{
+   DEBUG ("Config.ctor: this %p other %p (copy)", this, &other);
+}
+
+inline void Config::add (Event *e)
+{
+   DEBUG("Config.add: this %p e %p e.pid %d", this, e, e->pid());
+   ASSERT (e);
+   ASSERT (e->pid() < nrp);
+
+   // the unfolding might have changed the number of process after this
+   // configuration was constructed; assert it didn't happen
+   ASSERT (e->pid() < nrp);
+   // pre-proc must be the event max[e.pid()]
+   ASSERT (e->pre_proc() == max[e->pid()]);
+   // the pid() and the address of the event need to be different
+   if (e->action.type == ActionType::MTXLOCK or e->action.type == ActionType::MTXUNLK)
+      ASSERT (e->pid() < e->action.addr);
+
+   // update tables
+   max[e->pid()] = e;
+   switch (e->action.type)
+   {
+   case ActionType::THCREAT   :
+      ASSERT (mutex_max (e->action.val) == 0);
+      mutexmax[e->action.val] = e;
+      break;
+
+   case ActionType::THEXIT    :
+      ASSERT (! e->pre_other());
+      if (e->pid() != 0)
+      {
+         // for all but the first thread, we keep track of the creat/exit
+         // actions in the mutexmax table using the pid as an address
+         ASSERT (mutex_max (e->pid()));
+         ASSERT (mutex_max (e->pid())->action.type == ActionType::THCREAT);
+         mutexmax[e->pid()] = e;
+      }
+      break;
+
+   case ActionType::MTXLOCK   :
+   case ActionType::MTXUNLK   :
+      ASSERT (mutex_max (e->action.addr) == e->pre_other());
+      mutexmax[e->action.addr] = e;
+      break;
+
+   case ActionType::THJOIN   :
+      ASSERT (e->pre_other());
+      ASSERT (e->pre_other()->action.type == ActionType::THEXIT);
+      ASSERT (e->pre_other()->pid() == e->action.val);
+   
+   default :
+      break;
+   }
+}
+
+inline void Config::clear ()
+{
+   Cut::clear ();
+   mutexmax.clear();
+}
+
+inline Event *Config::proc_max (unsigned pid)
+{
+   return (*this)[pid]; // inherited Cut::operator[]
+}
+
+inline Event *Config::mutex_max (Addr a)
+{
+   auto it = mutexmax.find (a);
+   return it == mutexmax.end() ? 0 : it->second;
+}
+

@@ -19,6 +19,8 @@ class EventBox;
 class EventIt;
 class Process;
 class Unfolding;
+//class Cut;
+//class Config;
 
 typedef uint64_t Addr;
 
@@ -60,6 +62,49 @@ struct Action
 
    void pretty_print ();
    inline bool operator == (const Action &other) const;
+};
+
+/*
+ *  class to represent a cut
+ */
+class Cut
+{
+public:
+   /// FIXME - is this necessary?
+   std::vector<Event *> cex;
+   /// creates an empty cut for u.num_procs processes
+   inline Cut (const Unfolding &u);
+   /// creates an empty cut for n processes
+   inline Cut (unsigned n);
+   /// copy constructor
+   inline Cut (const Cut &other);
+   /// max of two cuts
+   inline Cut (const Cut &c1, const Cut &c2);
+   /// destructor
+   inline ~Cut ();
+
+   /// add the event to the cut
+   inline void add (Event *e);
+
+   /// empties the configuration
+   inline void clear ();
+   /// prints the cut in stdout
+   void dump ();
+
+   /// returns the maximal event of process pid in the cut
+   inline Event *operator[] (unsigned pid) const;
+   inline Event *&operator[] (unsigned pid);
+
+   /// returns the number of processes of the unfolding
+   inline unsigned num_procs () const;
+
+protected:
+   /// size of the map below (u.num_procs())
+   unsigned nrp;
+   /// map from process id (int) to maximal event in that process
+   Event **max;
+
+   void __dump_cut ();
 };
 
 class Event : public MultiNode<Event,3> // 2 trees, skip step = 3
@@ -120,10 +165,11 @@ public:
 
    /// true iff this event is the THSTART event of thread 0
    inline bool is_bottom ();
-   inline bool is_pred_same_tree_of (const Event *e) const;
    inline bool is_pred_of (const Event *e) const;
    inline bool in_cfl_with (const Event *e);
    inline bool in_icfl_with (const Event *e); // Cesar
+
+   Cut cut;
 
 private:
    inline void post_add (Event * const succ);
@@ -133,7 +179,6 @@ private:
    inline EventBox *box_below () const;
 
    // FIXME -- this should be a Cut instead of a std::vector, see below
-   std::vector<Event*> maxproc;
 
 #if 0
    //void mk_history (const Config & c);
@@ -258,7 +303,7 @@ private:
 class Process
 {
 public :
-   inline Process (Event *creat);
+   inline Process (Event *creat, Unfolding &u);
 
    void dump ();
 
@@ -313,49 +358,6 @@ private:
       e (e)
       { }
    friend class Process;
-};
-
-/*
- *  class to represent a cut
- */
-class Cut
-{
-public:
-   /// FIXME - is this necessary?
-   std::vector<Event *> cex;
-   /// creates an empty cut for u.num_procs processes
-   inline Cut (const Unfolding &u);
-   /// creates an empty cut for n processes
-   inline Cut (unsigned n);
-   /// copy constructor
-   inline Cut (const Cut &other);
-   /// max of two cuts
-   inline Cut (const Cut &c1, const Cut &c2);
-   /// destructor
-   inline ~Cut ();
-   
-   /// add the event to the cut
-   inline void add (Event *e);
-
-   /// empties the configuration
-   inline void clear ();
-   /// prints the cut in stdout
-   void dump ();
-
-   /// returns the maximal event of process pid in the cut
-   inline Event *operator[] (unsigned pid) const;
-   inline Event *&operator[] (unsigned pid);
-
-   /// returns the number of processes of the unfolding
-   inline unsigned num_procs () const;
-   
-protected:
-   /// size of the map below (u.num_procs())
-   unsigned nrp;
-   /// map from process id (int) to maximal event in that process
-   Event **max;
-
-   void __dump_cut ();
 };
 
 /*

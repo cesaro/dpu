@@ -23,7 +23,7 @@ inline Cut::Cut (const Cut &other) :
    nrp (other.nrp),
    max (new Event* [nrp])
 {
-   DEBUG ("Cut.ctor: this %p other %p (copy)", this, &other);
+   DEBUG ("Cut.ctor: this %p other %p nrp %d (copy)", this, &other, nrp);
    // copy the pointers
    memcpy (max, other.max, nrp * sizeof (Event*));
 }
@@ -33,7 +33,7 @@ inline Cut::Cut (const Cut &c1, const Cut &c2) :
    max (new Event* [nrp])
 {
    unsigned i;
-   DEBUG ("Cut.ctor: this %p c1 %p c2 %p (max)", this, &c1, &c2);
+   DEBUG ("Cut.ctor: this %p c1 %p c2 %p nrp %d (max)", this, &c1, &c2, nrp);
    for (i = 0; i < nrp; i++)
    {
       if (! c1[i])
@@ -53,30 +53,34 @@ inline Cut::Cut (const Cut &c1, const Cut &c2) :
 inline Cut::~Cut ()
 {
    // delete the memory in the vector
-   DEBUG ("Cut.dtor: this %p", this);
+   DEBUG ("Cut.dtor: this %p nrp %d", this, nrp);
    delete[] max;
 }
 
 inline void Cut::add (Event *e)
 {
    DEBUG("Cut.add: this %p e %p e.pid %d", this, e, e->pid());
+   DEBUG("nrp: %d",nrp);
    ASSERT (e);
    ASSERT (e->pid() < nrp);
 
    // the unfolding might have changed the number of process after this
    // configuration was constructed; assert it didn't happen
    ASSERT (e->pid() < nrp);
+
    // pre-proc must be the event max[e.pid()]
+
    ASSERT (e->pre_proc() == max[e->pid()]);
+
    // similarly, pre_other needs to be a causal predecessor of the max in that
    // process; the following assertion is necessary but not sufficient to
    // guarantee it
-   if (e->pre_other())
-   {
-      ASSERT (max[e->pre_other()->pid()]);
-      ASSERT (e->pre_other()->vclock[e->pre_other()->pid()] <=
-            max[e->pre_other()->pid()]->vclock[e->pre_other()->pid()]);
-   }
+//   if (e->pre_other())
+//   {
+//      ASSERT (max[e->pre_other()->pid()]);
+//      ASSERT (e->pre_other()->vclock[e->pre_other()->pid()] <=
+//            max[e->pre_other()->pid()]->vclock[e->pre_other()->pid()]);
+//   }
 
    max[e->pid()] = e;
 }

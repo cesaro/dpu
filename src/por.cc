@@ -62,7 +62,7 @@ void cut_to_replay (Unfolding &u, Cut &c, std::vector<int> &replay)
 }
 
 /// Compute conflicting extension for a LOCK
-void LOCK_cex (Unfolding &u, Config &c, Event *e)
+void LOCK_cex (Unfolding &u, Event *e)
 {
    DEBUG("\n %p: LOCK_cex", e);
    Event * ep, * em, *pr_mem, *newevt;
@@ -151,7 +151,7 @@ void compute_cex (Unfolding &u, Config &c)
          if (e->action.type == ActionType::MTXLOCK)
          {
 //            DEBUG("e: %p, type: %s",e, action_type_str(e->action.type));
-            LOCK_cex(u,c,e);
+            LOCK_cex(u, e);
          }
       }
    }

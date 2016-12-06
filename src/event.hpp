@@ -165,10 +165,7 @@ inline bool Event::is_pred_of (const Event *e) const
 
 
    if (pid() == e->pid())
-   {
-//      ee = find_pred()
-   }
-//      return node[0].is_pred(e->node[0]);
+      return node[0].is_pred<0>(e->node[0]);
 
 
 //   DEBUG("this->depth: %d",this->node[1].depth);
@@ -178,7 +175,7 @@ inline bool Event::is_pred_of (const Event *e) const
    DEBUG("e->addr: %p",e->action.addr);
 
    if (this->action.addr == e->action.addr)
-//      return node[1].is_pred(e->node[1]);
+      return node[1].is_pred<1>(e->node[1]);
 
    return false;
 }

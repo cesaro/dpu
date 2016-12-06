@@ -191,15 +191,15 @@ inline T & Node<T,SS>:: find_pred(int d) const
 
 //-----------
 template <class T, int SS >
-//template <int idx>
+template <int idx>
 inline bool Node<T,SS>::is_pred(Node &n) const
 {
    if (n.depth < depth) return false;
 
    ASSERT(n.depth > depth);
-   T * e = n.find_pred(depth);
+   T * e = n.find_pred<idx>(depth);
 
-   if (e == this) return true;
+//   if (e.node[idx] == this) return true;
 
    return false;
 }

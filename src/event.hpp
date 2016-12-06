@@ -165,8 +165,11 @@ inline bool Event::is_pred_of (const Event *e) const
 
 
    if (pid() == e->pid())
-      return node[0].is_pred<0>(e->node[0]);
-
+   {
+      ee = &e->node[0].find_pred<0>(node[0].depth);
+      if (ee == this)
+         return true;
+   }
 
 //   DEBUG("this->depth: %d",this->node[1].depth);
 //   DEBUG("e->depth: %d",e->node[1].depth);
@@ -175,7 +178,22 @@ inline bool Event::is_pred_of (const Event *e) const
    DEBUG("e->addr: %p",e->action.addr);
 
    if (this->action.addr == e->action.addr)
-      return node[1].is_pred<1>(e->node[1]);
+   {
+      ee = &e->node[1].find_pred<1>(node[1].depth);
+      if (ee == this)
+         return true;
+   }
+
+   if (cut.num_procs() < e->cut.num_procs())
+   {
+      for (int i = 0; i < cut.num_procs(); i++)
+      {
+         ee = & e->cut[i]->node[0].find_pred<0>(cut[i]->node[0].depth);
+         if (ee != cut[i])
+            return false;
+      }
+      return true;
+   }
 
    return false;
 }

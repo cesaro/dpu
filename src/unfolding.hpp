@@ -39,7 +39,7 @@ inline Process *Unfolding::proc (unsigned p) const
    return (Process *) (procs + p * PROC_SIZE);
 }
 
-/// THSTART() for process != 0, creat is the corresponding THCREAT; this will
+/// THSTART(), creat is the corresponding THCREAT; this will
 /// create a new process
 inline Event *Unfolding::event (Event *creat)
 {
@@ -52,7 +52,7 @@ inline Event *Unfolding::event (Event *creat)
    }
 
    // otherwise we are searching for the root event in a process that we might
-   // or might not already created; if creat has a causal successor, then our
+   // or might not have already created; if creat has a causal successor, then our
    // root event must be in the first position in the post vector
    if (creat->post.size())
    {

@@ -89,7 +89,9 @@ public:
    /// empties the configuration
    inline void clear ();
    /// prints the cut in stdout
-   void dump ();
+   void dump () const;
+   /// returns a human-readable description
+   std::string str () const;
 
    /// returns the maximal event of process pid in the cut
    inline Event *operator[] (unsigned pid) const;
@@ -98,13 +100,20 @@ public:
    /// returns the number of processes of the unfolding
    inline unsigned num_procs () const;
 
+
 protected:
    /// size of the map below (u.num_procs())
    unsigned nrp;
    /// map from process id (int) to maximal event in that process
    Event **max;
 
-   void __dump_cut ();
+   void __dump_cut () const;
+private :
+   // class Event uses the following three constructors
+   inline Cut (unsigned n, Event *e);
+   inline Cut (const Cut &other, Event *e);
+   inline Cut (const Cut &c1, const Cut &c2, Event *e);
+   friend class Event;
 };
 
 class Event : public MultiNode<Event,3> // 2 trees, skip step = 3
@@ -169,7 +178,8 @@ public:
    inline bool in_cfl_with (const Event *e);
    inline bool in_icfl_with (const Event *e); // Cesar
 
-   Cut cut;
+   /// the cut of the local configuration of the event
+   const Cut cut;
 
 private:
    inline void post_add (Event * const succ);

@@ -12,6 +12,7 @@ inline Cut::Cut (unsigned n) :
 {
    int i;
    DEBUG ("Cut.ctor: this %p nrp %d", this, nrp);
+   ASSERT (nrp >= 1);
 
    // initialize the size elements of the vector to null
    for (i = 0; i < nrp; i++)
@@ -34,6 +35,15 @@ inline Cut::Cut (const Cut &c1, const Cut &c2) :
 {
    unsigned i;
    DEBUG ("Cut.ctor: this %p c1 %p c2 %p nrp %d (max)", this, &c1, &c2, nrp);
+
+   // optimization for the case when both cuts are the same (very often)
+   if (&c1 == &c2)
+   {
+      memcpy (max, c1.max, nrp * sizeof (Event*));
+      return;
+   }
+
+   // otherwise we compute the maximum per process
    for (i = 0; i < nrp; i++)
    {
       if (! c1[i])
@@ -50,6 +60,27 @@ inline Cut::Cut (const Cut &c1, const Cut &c2) :
    }
 }
 
+inline Cut::Cut (unsigned n, Event *e) :
+   Cut (n)
+{
+   add (e);
+}
+
+inline Cut::Cut (const Cut &other, Event *e) :
+   Cut (std::max (other.nrp, e->pid() + 1))
+{
+   unsigned i;
+   for (i = 0; i < other.nrp; i++) max[i] = other.max[i];
+   for (; i < nrp; i++) max[i] = 0;
+   add (e);
+}
+
+inline Cut::Cut (const Cut &c1, const Cut &c2, Event *e) :
+   Cut (c1, c2)
+{
+   add (e);
+}
+
 inline Cut::~Cut ()
 {
    // delete the memory in the vector
@@ -59,8 +90,7 @@ inline Cut::~Cut ()
 
 inline void Cut::add (Event *e)
 {
-   DEBUG("Cut.add: this %p e %p e.pid %d", this, e, e->pid());
-   DEBUG("nrp: %d",nrp);
+   DEBUG("Cut.add: this %p nrp %d e %p e.pid %d", this, nrp, e, e->pid());
    ASSERT (e);
    ASSERT (e->pid() < nrp);
 
@@ -69,18 +99,17 @@ inline void Cut::add (Event *e)
    ASSERT (e->pid() < nrp);
 
    // pre-proc must be the event max[e.pid()]
-
    ASSERT (e->pre_proc() == max[e->pid()]);
 
    // similarly, pre_other needs to be a causal predecessor of the max in that
    // process; the following assertion is necessary but not sufficient to
    // guarantee it
-//   if (e->pre_other())
-//   {
-//      ASSERT (max[e->pre_other()->pid()]);
-//      ASSERT (e->pre_other()->vclock[e->pre_other()->pid()] <=
-//            max[e->pre_other()->pid()]->vclock[e->pre_other()->pid()]);
-//   }
+   if (e->pre_other())
+   {
+      ASSERT (max[e->pre_other()->pid()]);
+      ASSERT (e->pre_other()->vclock[e->pre_other()->pid()] <=
+            max[e->pre_other()->pid()]->vclock[e->pre_other()->pid()]);
+   }
 
    max[e->pid()] = e;
 }

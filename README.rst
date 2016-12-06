@@ -28,10 +28,13 @@ Huyen:
 
 x vclocks
 x Unfolding::print_dot
-- BaseConfig
-- BaseConfig -> replay
-- compute_cex (u, c)
-- fix conf2replay, bug when c.max contains null pointers : fixed. 
+x BaseConfig
+x BaseConfig -> replay
+x compute_cex (u, c)
+x fix conf2replay, bug when c.max contains null pointers : fixed. 
+- 
+
+compute_alt (BaseConfig &c, const std::vector<Event*> d, 
 ==========
 Questions:
 - THSTART event must be created immediately after the THCREAT?

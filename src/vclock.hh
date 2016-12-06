@@ -19,6 +19,7 @@ public:
    bool operator< (const Vclock &other) const;
    bool operator> (const Vclock &other) const;
    void operator= (const Vclock &other);
+   Vclock operator+ (const Vclock &other);
    int operator[] (unsigned tid);
 
    void add_clock(unsigned pid, int count);

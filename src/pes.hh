@@ -9,8 +9,7 @@
 #include "verbosity.h"
 #include "vclock.hh"
 #include "misc.hh"
-
-//#include "cfltree.hh"
+#include "cfltree.hh"
 
 namespace dpu
 {
@@ -20,7 +19,6 @@ class EventBox;
 class EventIt;
 class Process;
 class Unfolding;
-class BaseConfig;
 
 typedef uint64_t Addr;
 
@@ -64,18 +62,19 @@ struct Action
    inline bool operator == (const Action &other) const;
 };
 
-class Event // : public MultiNode<Event,2,3> // 2 trees, skip step = 3
+class Event : public MultiNode<Event,3> // 2 trees, skip step = 3
 {
 private:
    Event *_pre_other;
 public:
    int idx;
+   int inside; // a flag to mark that an event is inside some set or not
    /// THSTART(), creat is the corresponding THCREAT (or null for p0)
    inline Event (Event *creat);
    /// THCREAT(tid) or THEXIT(), one predecessor (in the process)
-   inline Event (Action ac);
+   inline Event (Action ac, bool boxfirst);
    /// THJOIN(tid), MTXLOCK(addr), MTXUNLK(addr), two predecessors (process, memory/exit)
-   inline Event (Action ac, Event *m);
+   inline Event (Action ac, Event *m, bool boxfirst);
 
    struct {
       /// True iff this event is the first one in its own EventBox
@@ -106,24 +105,35 @@ public:
    /// predecessor in another thread (if any), or null
    inline Event *pre_other ();
 
-   /// true iff this event is the THSTART event of thread 0
-   inline bool is_bottom ();
-
    /// returns the pid of the process to which this event belongs
    inline unsigned pid () const;
    /// returns the process to which this event belongs
-   inline Process *proc ();
+   inline Process *proc () const;
+
+   inline unsigned depth_proc () const;
 
    /// tests pointer equality of two events
    inline bool operator == (const Event &) const;
    /// returns a human-readable description of the event
    std::string str () const;
+   std::vector<Event *> local_config();
+
+   /// true iff this event is the THSTART event of thread 0
+   inline bool is_bottom ();
+   inline bool is_pred_same_tree_of (const Event *e) const;
+   inline bool is_pred_of (const Event *e) const;
+   inline bool in_cfl_with (const Event *e);
+   inline bool in_icfl_with (const Event *e); // Cesar
 
 private:
    inline void post_add (Event * const succ);
+   inline Event *pre_proc (bool bf);
 
    inline EventBox *box_above () const;
    inline EventBox *box_below () const;
+
+   // FIXME -- this should be a Cut instead of a std::vector, see below
+   std::vector<Event*> maxproc;
 
 #if 0
    //void mk_history (const Config & c);
@@ -191,6 +201,9 @@ public:
    /// THJOIN(tid), MTXLOCK(addr), MTXUNLK(addr), two predecessors (process, memory/exit)
    inline Event *event (Action ac, Event *p, Event *m);
 
+   /// returns a new fresh color
+   inline unsigned get_fresh_color ();
+
    /// maximum number of processes in the unfolding
    static constexpr size_t MAX_PROC = CONFIG_MAX_PROCESSES;
    /// FIXME
@@ -210,6 +223,8 @@ private :
    char *procs;
    /// number of processes created using new_proc (<= MAX_PROC)
    unsigned nrp;
+   /// a fresh color, used for Events or anywhere else
+   unsigned color;
 
    /// creates a new process in the unfolding; creat is the corrsponding THCREAT
    /// event
@@ -219,7 +234,6 @@ private :
    inline Event *find1 (Action *ac, Event *p);
    /// returns the (only) immediate causal successor of {p,m} with action *ac, or NULL
    inline Event *find2 (Action *ac, Event *p, Event *m);
-
 };
 
 class EventBox
@@ -307,16 +321,18 @@ private:
 class Cut
 {
 public:
+   /// FIXME - is this necessary?
+   std::vector<Event *> cex;
    /// creates an empty configuration
    inline Cut (const Unfolding &u);
    /// copy constructor
    inline Cut (const Cut &other);
-   /// creates a local configuration (unimplemented!)
-   inline Cut (const Unfolding &u, Event &e);
+   /// max of two cuts
+   inline Cut (const Cut &c1, const Cut &c2);
    /// destructor
    inline ~Cut ();
    
-   /// add the event to the configuration
+   /// add the event to the cut
    inline void add (Event *e);
 
    /// empties the configuration
@@ -325,10 +341,11 @@ public:
    void dump ();
 
    /// returns the maximal event of process pid in the cut
-   inline Event *operator[] (unsigned pid);
+   inline Event *operator[] (unsigned pid) const;
+   inline Event *&operator[] (unsigned pid);
 
    /// returns the number of processes of the unfolding
-   inline unsigned num_procs ();
+   inline unsigned num_procs () const;
    
 protected:
    /// size of the map below (u.num_procs())
@@ -358,7 +375,9 @@ public:
    /// prints the cut in stdout
    void dump ();
 
+   /// maximal event for the given pid, or nullptr
    inline Event *proc_max (unsigned pid);
+   /// maximal event for the given address (or THCREAT/EXIT if pid is given)
    inline Event *mutex_max (Addr a);
    
 public:

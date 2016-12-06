@@ -14,26 +14,6 @@ inline Cut::Cut (const Unfolding &u) :
       max[i] = nullptr;
 }
 
-/// creates a local configuration
-inline Cut::Cut (const Unfolding &u, Event &e) :
-   nrp (u.num_procs()),
-   max (new Event* [nrp])
-{
-   int i;
-   DEBUG ("Cut.ctor: this %p u.nump %d e %p", this, nrp, &e);
-
-   // initialize the size elements of the vector to null
-   for (i = 0; i < nrp; i++)
-      max[i] = nullptr;
-
-   // add the event e to its own process
-   max[e.pid()] = &e;
-
-   // now we should scan [e] to find the maximal events in each process, but I
-   // don't have time to write this code
-   ASSERT (0);
-}
-
 /// copy constructor
 inline Cut::Cut (const Cut &other) :
    nrp (other.nrp),
@@ -44,9 +24,32 @@ inline Cut::Cut (const Cut &other) :
    memcpy (max, other.max, nrp * sizeof (Event*));
 }
 
+inline Cut::Cut (const Cut &c1, const Cut &c2) :
+   nrp (c1.nrp > c2.nrp ? c1.nrp : c2.nrp),
+   max (new Event* [nrp])
+{
+   unsigned i;
+   DEBUG ("Cut.ctor: this %p c1 %p c2 %p (max)", this, &c1, &c2);
+   for (i = 0; i < nrp; i++)
+   {
+      if (! c1[i])
+      {
+         max[i] = c2[i];
+         continue;
+      }
+      if (! c2[i])
+      {
+         max[i] = c1[i];
+         continue;
+      }
+      max[i] = c1[i]->depth_proc() > c2[i]->depth_proc() ? c1[i] : c2[i];
+   }
+}
+
 inline Cut::~Cut ()
 {
    // delete the memory in the vector
+   DEBUG ("Cut.dtor: this %p", this);
    delete[] max;
 }
 
@@ -80,13 +83,18 @@ inline void Cut::clear ()
    for (i = 0; i < nrp; i++) max[i] = 0;
 }
 
-inline Event *Cut::operator[] (unsigned pid)
+inline Event *Cut::operator[] (unsigned pid) const
+{
+   return pid < nrp ? max[pid] : nullptr;
+}
+
+inline Event *&Cut::operator[] (unsigned pid)
 {
    ASSERT (pid < nrp);
    return max[pid];
 }
 
-inline unsigned Cut::num_procs()
+inline unsigned Cut::num_procs() const
 {
    return nrp;
 }

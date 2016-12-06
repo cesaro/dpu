@@ -1,6 +1,7 @@
 
 inline Unfolding::Unfolding () :
-   nrp (0)
+   nrp (0),
+   color (1)
 {
    static_assert (MAX_PROC >= 2, "At lest 2 processes");
    static_assert (PROC_SIZE >= sizeof (Process), "Proccess size too small");
@@ -58,6 +59,7 @@ inline Event *Unfolding::event (Event *creat)
       ASSERT (creat->post[0]);
       ASSERT (creat->post[0]->action.type == ActionType::THSTART);
       ASSERT (creat->pid() < creat->post[0]->pid());
+
       for (int i = 1; i < creat->post.size(); i++)
          ASSERT (creat->post[i]->action.type != ActionType::THSTART);
       return creat->post[0];
@@ -103,13 +105,12 @@ inline Event *Unfolding::event (Action ac, Event *p, Event *m)
    if (ac.type == ActionType::MTXUNLK)
    {
       ASSERT (ac.addr > nrp);
-      ASSERT (m or m->action.type == ActionType::MTXLOCK);
+      ASSERT (m and m->action.type == ActionType::MTXLOCK);
    }
 
    // if the event already exist, we return it
    e = find2 (&ac, p, m);
    if (e) return e;
-
    // otherwise we create it
    return p->proc()->add_event_2p (ac, p, m);
 }
@@ -159,4 +160,10 @@ inline Event *Unfolding::find2 (Action *ac, Event *p, Event *m)
       }
    }
    return 0;
+}
+
+inline unsigned Unfolding::get_fresh_color ()
+{
+   color++;
+   return color;
 }

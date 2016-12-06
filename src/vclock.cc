@@ -144,7 +144,7 @@ bool Vclock::operator> (const Vclock &other) const
 
    if ((other.mask & (mask ^ other.mask)) == 0) // other is subset of this
    {
-      printf("other is a subset of this");
+      //printf("other is a subset of this");
       for (unsigned int i = 0; i < tab.size(); i++)
       {
          tid   = tab[i].first;
@@ -165,6 +165,48 @@ void Vclock::operator= (const Vclock &other)
    tab   =  other.tab;
 }
 //---------------
+Vclock Vclock::operator+ (const Vclock &other)
+{
+   Vclock sum(*this);
+   unsigned tid, size;
+   if ((mask & other.mask) == 0) // this has no shared component with other
+   {
+      size = tab.size() + other.tab.size();
+      sum.tab.reserve(size);
+      sum.tab.insert(sum.tab.end(), other.tab.begin(), other.tab.end());
+      sum.mask += other.mask;
+   }
+   else
+   {
+      int difbits = sum.mask ^ other.mask; // XOR two masks
+      if (difbits == 0) // all threads are the same in both vectors
+      {
+         for (unsigned int i = 0; i < other.tab.size(); i++)
+         for (unsigned int j = 0; j < sum.tab.size(); j++)
+            if (sum.tab[j].first == other.tab[i].first)
+               sum.tab[j].second = std::max(sum.tab[j].second, other.tab[i].second);
+      }
+      else
+         for (unsigned int i = 0; i < other.tab.size(); i++)
+         {
+            tid = other.tab[i].first;
+            if ((sum.mask & (((uint64_t) 1) << tid)) != 0) // tid is a shared thread
+            {
+               for (unsigned int j = 0; j < sum.tab.size(); j++)
+                  if (sum.tab[j].first == tid)
+                     sum.tab[j].second = std::max(sum.tab[j].second, other.tab[i].second);
+            }
+            else // new thread to add to v
+            {
+               sum.tab.push_back(std::make_pair(tid, other.tab[i].second));
+               sum.mask += (((uint64_t) 1) << tid);
+            }
+         }
+   }
+   return sum;
+
+}
+//-========================
 int Vclock:: operator[] (unsigned pid)
 {
    ASSERT(mask && ((uint64_t)1 << pid));
@@ -183,7 +225,7 @@ void Vclock::add_clock(unsigned pid, int count)
 //-----------------
 void Vclock::inc_clock(unsigned pid)
 {
-   ASSERT(mask && (1 << pid));
+   //ASSERT(mask && ((uint64_t)1 << pid));
    for (unsigned int i = 0; i < tab.size(); i++)
       if (tab[i].first == pid)
          tab[i].second++;

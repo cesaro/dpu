@@ -403,6 +403,8 @@ void test32()
    c.add (es);
    c.dump();
    printf ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n");
+
+   ex1->cut.dump();
 }
 
 //-----------------------

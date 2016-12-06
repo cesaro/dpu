@@ -17,9 +17,6 @@ public:
    inline Node(int idx, T * pr);
    ~Node ();
 
-   //inline void set_up(int idx, Event * pr);
-
-
    template <int idx>
    inline T & find_pred(int d) const;
 

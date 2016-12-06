@@ -156,8 +156,8 @@ template <int idx>
 inline T & Node<T,SS>:: find_pred(int d) const
 {
    T * next = nullptr;
-   ASSERT(this->depth > d);
-   int i, dis = this->depth - d;
+   ASSERT(depth > d);
+   int i, dis = depth - d;
    ASSERT(dis != 0); // at the beginning dis != 0
 
    // initial next for the very first time
@@ -194,13 +194,12 @@ template <class T, int SS >
 //template <int idx>
 inline bool Node<T,SS>::is_pred(Node &n) const
 {
-   if (n.depth < this->depth) return false;
+   if (n.depth < depth) return false;
 
-   ASSERT(n.depth > this->depth);
-   Node ne;
-   ne = n.find_pred(this->depth);
+   ASSERT(n.depth > depth);
+   T * e = n.find_pred(depth);
 
-   if (&ne == this) return true;
+   if (e == this) return true;
 
    return false;
 }

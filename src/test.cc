@@ -220,17 +220,16 @@ void test30()
    // creat
    ec = u.event ({.type = ActionType::THCREAT, .val = 1}, es);
 
+   // start in thread 1
+   es1 = u.event (ec);
+   // H: START must be immediately created after its process creation?
+   // C: Yess!! This is a limitation of my current algorithms
+
    // lock
    el = u.event ({.type = ActionType::MTXLOCK, .addr = 0x100}, ec, nullptr);
 
    //unlock
    eu = u.event ({.type = ActionType::MTXUNLK, .addr = 0x100}, el, el);
-
-   // start in thread 1
-   es1 = u.event (ec);
-   // H: START must be immediately created after its process creation?
-   // C: No, you just need to call Unfolding::event () passing the corresponding
-   // create, at any moment
 
    // lock
    el1 = u.event ({.type = ActionType::MTXLOCK, .addr = 0x100}, es1, eu);
@@ -252,6 +251,8 @@ void test30()
 
    u.dump ();
    printf ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n");
+   es->cut.dump ();
+   return;
 
    Cut c(u);
    c.add (es);
@@ -356,7 +357,7 @@ void test32()
    // creat
    ec = u.event ({.type = ActionType::THCREAT, .val = 1}, es);
 
-   // start in thread 1
+   // start in thread 1 (immediately after the creat ;)
    es1 = u.event (ec);
 
    // exit in thread 1
@@ -425,36 +426,36 @@ void test33()
    es = u.event (nullptr); // bottom
 
    // creat proc 1
-   ec = u.event ({.type = ActionType::THCREAT}, es);
+   ec = u.event ({.type = ActionType::THCREAT, .val = 1}, es);
 
    // start in thread 1
-   es1 = u.event (ec); // START must be immediately created after its process creation.???
+   es1 = u.event (ec);
 
    // lock
-   el = u.event ({.type = ActionType::MTXLOCK}, ec, nullptr);
+   el = u.event ({.type = ActionType::MTXLOCK, .addr = 0x100}, ec, nullptr);
 
    //unlock
-   eu = u.event ({.type = ActionType::MTXUNLK}, el, el);
+   eu = u.event ({.type = ActionType::MTXUNLK, .addr = 0x100}, el, el);
 
    // lock
-   ell = u.event ({.type = ActionType::MTXLOCK}, eu, eu);
+   ell = u.event ({.type = ActionType::MTXLOCK, .addr = 0x100}, eu, eu);
 
    //unlock
-   euu = u.event ({.type = ActionType::MTXUNLK}, ell, ell);
+   euu = u.event ({.type = ActionType::MTXUNLK, .addr = 0x100}, ell, ell);
 
 
    /// Process 1
    // lock
-   el1 = u.event ({.type = ActionType::MTXLOCK}, es1, euu);
+   el1 = u.event ({.type = ActionType::MTXLOCK, .addr = 0x100}, es1, euu);
 
    //unlock
-   eu1 = u.event ({.type = ActionType::MTXUNLK}, el1, el1);
+   eu1 = u.event ({.type = ActionType::MTXUNLK, .addr = 0x100}, el1, el1);
 
    // lock
-   ell1 = u.event ({.type = ActionType::MTXLOCK}, eu1, eu1);
+   ell1 = u.event ({.type = ActionType::MTXLOCK, .addr = 0x100}, eu1, eu1);
 
    //unlock
-   euu1 = u.event ({.type = ActionType::MTXUNLK}, ell1, ell1);
+   euu1 = u.event ({.type = ActionType::MTXUNLK, .addr = 0x100}, ell1, ell1);
 
    //exit in thread 1
    ex1 = u.event ({.type = ActionType::THEXIT}, euu1);
@@ -462,7 +463,7 @@ void test33()
 
    // Process 0
    // join
-   ej = u.event ({.type = ActionType::THJOIN}, euu, ex1);
+   ej = u.event ({.type = ActionType::THJOIN, .val = 1}, euu, ex1);
 
    // exit
    ex = u.event ({.type = ActionType::THEXIT}, ej);
@@ -507,36 +508,36 @@ void test34()
      es = u.event (nullptr); // bottom
 
      // creat proc 1
-     ec = u.event ({.type = ActionType::THCREAT}, es);
+     ec = u.event ({.type = ActionType::THCREAT, .val = 1}, es);
 
-     // start in thread 1
-     es1 = u.event (ec); // START must be immediately created after its process creation.???
-
-     // lock
-     el = u.event ({.type = ActionType::MTXLOCK}, ec, nullptr);
-
-     //unlock
-     eu = u.event ({.type = ActionType::MTXUNLK}, el, el);
+     // start in thread 1 (immediately after the corresponding creat)
+     es1 = u.event (ec);
 
      // lock
-     ell = u.event ({.type = ActionType::MTXLOCK}, eu, eu);
+     el = u.event ({.type = ActionType::MTXLOCK, .addr = 0x100}, ec, nullptr);
 
      //unlock
-     euu = u.event ({.type = ActionType::MTXUNLK}, ell, ell);
+     eu = u.event ({.type = ActionType::MTXUNLK, .addr = 0x100}, el, el);
+
+     // lock
+     ell = u.event ({.type = ActionType::MTXLOCK, .addr = 0x100}, eu, eu);
+
+     //unlock
+     euu = u.event ({.type = ActionType::MTXUNLK, .addr = 0x100}, ell, ell);
 
 
      /// Process 1
      // lock
-     el1 = u.event ({.type = ActionType::MTXLOCK}, es1, euu);
+     el1 = u.event ({.type = ActionType::MTXLOCK, .addr = 0x100}, es1, euu);
 
      //unlock
-     eu1 = u.event ({.type = ActionType::MTXUNLK}, el1, el1);
+     eu1 = u.event ({.type = ActionType::MTXUNLK, .addr = 0x100}, el1, el1);
 
      // lock
-     ell1 = u.event ({.type = ActionType::MTXLOCK}, eu1, eu1);
+     ell1 = u.event ({.type = ActionType::MTXLOCK, .addr = 0x100}, eu1, eu1);
 
      //unlock
-     euu1 = u.event ({.type = ActionType::MTXUNLK}, ell1, ell1);
+     euu1 = u.event ({.type = ActionType::MTXUNLK, .addr = 0x100}, ell1, ell1);
 
      //exit in thread 1
      ex1 = u.event ({.type = ActionType::THEXIT}, euu1);
@@ -544,7 +545,7 @@ void test34()
 
      // Process 0
      // join
-     ej = u.event ({.type = ActionType::THJOIN}, euu, ex1);
+     ej = u.event ({.type = ActionType::THJOIN, .val = 1}, euu, ex1);
 
      // exit
      ex = u.event ({.type = ActionType::THEXIT}, ej);

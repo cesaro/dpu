@@ -253,14 +253,14 @@ void Unfolding::print_dot ()
    DEBUG(" successfully\n");
 }
 
-void Cut::dump ()
+void Cut::dump () const
 {
    DEBUG("== begin cut =="); 
    __dump_cut ();
    DEBUG("== end cut =="); 
 }
 
-void Cut::__dump_cut ()
+void Cut::__dump_cut () const
 {
    Event * e;
    unsigned i;
@@ -280,6 +280,21 @@ void Cut::__dump_cut ()
          e = e->pre_proc();
       }
    }
+}
+
+std::string Cut::str () const
+{
+   std::string s;
+   unsigned i;
+
+   // [0: 0x123123; 1: 0x12321; others: 0]
+   s = "[";
+   for (i = 0; i < nrp; i++)
+   {
+      if (max[i]) s += fmt ("%u: %p; ", i, max[i]);
+   }
+   s += "oth: 0]";
+   return s;
 }
 
 void Config::dump ()

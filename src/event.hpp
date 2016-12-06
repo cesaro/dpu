@@ -8,15 +8,17 @@ inline Event::Event (Event *creat) :
    vclock(0,0),
    color (0),
    post (),
-   cut(pid() + 1)
+   cut (creat ? Cut (creat->cut, this) : Cut (pid() + 1, this))
 {
    ASSERT (action.type == ActionType::THSTART);
    ASSERT (pre_proc() == 0);
    ASSERT (pre_other() == creat);
    ASSERT (!creat or creat->action.type == ActionType::THCREAT);
 
-   DEBUG ("Event.ctor: this %p pid %u action %s pre-proc %p pre-other %p bf 1",
-         this, pid(), action_type_str (action.type), pre_proc(), creat);
+   DEBUG ("Event.ctor: this %p pid %u action %s pre-proc %p pre-other %p "
+         "bf 1 cut %s",
+         this, pid(), action_type_str (action.type), pre_proc(), creat,
+         cut.str().c_str());
 
    if (creat) creat->post_add (this);
 
@@ -27,12 +29,6 @@ inline Event::Event (Event *creat) :
       vclock = creat->vclock;
       vclock.add_clock(pid(),0);
    }
-
-   if (creat)
-      for (int i = 0; i < creat->cut.num_procs(); i++)
-         cut[i] = creat->cut[i];
-
-   cut.add(this);
 }
 
 /// THCREAT(tid) or THEXIT(), one predecessor (in the process)
@@ -45,19 +41,18 @@ inline Event::Event (Action ac, bool bf) :
    vclock(pre_proc()->vclock),
    color (0),
    post (),
-   cut(pre_proc()->cut)
+   cut(pre_proc()->cut, this)
 {
    ASSERT (pre_proc() != 0);
    ASSERT (pre_other() == 0);
 
-   DEBUG ("Event.ctor: this %p pid %u action %s pre-proc %p pre-other %p bf %d",
-         this, pid(), action_type_str (action.type), pre_proc(), pre_other(), bf);
+   DEBUG ("Event.ctor: this %p pid %u action %s pre-proc %p pre-other %p "
+         "bf %d cut %s",
+         this, pid(), action_type_str (action.type), pre_proc(), pre_other(),
+         bf, cut.str().c_str());
    
    pre_proc()->post_add (this);
    vclock.inc_clock(pid()); // wrong because pid() is not the index of proc in the vector
-
-//   cut[pid()] = this;
-   cut.add(this);
 }
 
 /// THJOIN(tid), MTXLOCK(addr), MTXUNLK(addr), two predecessors (process, memory/exit)
@@ -72,15 +67,16 @@ inline Event::Event (Action ac, Event *m, bool bf) :
    vclock (m ? pre_proc()->vclock + m->vclock : pre_proc()->vclock),
    color (0),
    post (),
-   cut(m ? Cut(pre_proc()->cut, m->cut) : pre_proc()->cut)
+   cut(m ? Cut(pre_proc()->cut, m->cut, this) : Cut (pre_proc()->cut, this))
 {
    // m could be null (eg, first lock of an execution)
    ASSERT (pre_proc() != 0);
    ASSERT (pre_other() == m);
 
-//   DEBUG("pre_proc %p", pre_proc());
-   DEBUG ("Event.ctor: this %p pid %u action %s pre-proc %p pre-other %p bf %d",
-         this, pid(), action_type_str (action.type), pre_proc(), pre_other(), bf);
+   DEBUG ("Event.ctor: this %p pid %u action %s pre-proc %p pre-other %p "
+         "bf %d cut %s",
+         this, pid(), action_type_str (action.type), pre_proc(), pre_other(),
+         bf, cut.str().c_str());
 
    // update postsets and clocks
    pre_proc()->post_add (this);
@@ -92,8 +88,6 @@ inline Event::Event (Action ac, Event *m, bool bf) :
       //vclock = vclock + m->vclock;
    }
    vclock.inc_clock (pid());
-
-   cut.add(this);
 }
 
 inline void Event::post_add (Event * succ)

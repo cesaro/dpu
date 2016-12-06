@@ -1,9 +1,13 @@
 
 #include <string.h>
 
-/// creates an empty configuration
 inline Cut::Cut (const Unfolding &u) :
-   nrp (u.num_procs()),
+   Cut (u.num_procs())
+{
+}
+
+inline Cut::Cut (unsigned n) :
+   nrp (n),
    max (new Event* [nrp])
 {
    int i;

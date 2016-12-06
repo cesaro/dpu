@@ -323,8 +323,10 @@ class Cut
 public:
    /// FIXME - is this necessary?
    std::vector<Event *> cex;
-   /// creates an empty configuration
+   /// creates an empty cut for u.num_procs processes
    inline Cut (const Unfolding &u);
+   /// creates an empty cut for n processes
+   inline Cut (unsigned n);
    /// copy constructor
    inline Cut (const Cut &other);
    /// max of two cuts

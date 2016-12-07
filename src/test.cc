@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <sys/stat.h>
 
+#include "c15unfold.hh"
 #include "verbosity.h"
 #include "misc.hh"
 #include "test.hh"
@@ -578,3 +579,31 @@ void test34()
         DEBUG("not in conflict");
 }
 
+void test35 ()
+{
+   try
+   {
+      std::vector<int> replay {-1};
+      C15unfolder unf;
+      unf.load_bytecode ("./input.ll");
+      
+      Config c (unf.add_one_run (replay));
+      c.dump ();
+
+   } catch (const std::exception &e) {
+      DEBUG ("Test threw exception: %s", e.what ());
+      DEBUG ("Aborting!");
+   }
+}
+
+void test36 ()
+{
+}
+
+void test37 ()
+{
+}
+
+void test38 ()
+{
+}

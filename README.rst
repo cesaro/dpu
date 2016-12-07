@@ -24,6 +24,7 @@ x escribir la funcion de busqeuda en los post para los Unfolding::event
 - steroids -> unf
 - design unfolder class
 - in_icfl_with (Event e);
+- C15unfolder::stream_to_events
 
 Huyen:
 

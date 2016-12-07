@@ -1,10 +1,13 @@
 
-/// creates an empty configuration
 inline Config::Config (const Unfolding &u) :
-   Cut (u),
+   Config (u.num_procs())
+{
+}
+
+inline Config::Config (unsigned n) :
+   Cut (n),
    mutexmax ()
 {
-   DEBUG ("Config.ctor: this %p", this);
 }
 
 /// copy constructor

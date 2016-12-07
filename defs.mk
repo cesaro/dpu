@@ -25,7 +25,8 @@ LLVMLIBS=$(shell llvm-config-$(LLVMVERS) --libs all) -lz -lpthread -lffi -lncurs
 # == steroids ==
 STIDCPPFLAGS=-I ../steroid/include/
 STIDLDFLAGS=-L ../steroid/src/
-STIDLDLIBS=-Wl,-Bstatic -lsteroids -Wl,-Bdynamic
+#STIDLDLIBS=-Wl,-Bstatic -lsteroids -Wl,-Bdynamic
+#STIDLDLIBS=-lsteroids
 
 # traditional variables
 DEFS=-D_POSIX_C_SOURCE=200809L -D__STDC_LIMIT_MACROS -D__STDC_FORMAT_MACROS 

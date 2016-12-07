@@ -14,7 +14,6 @@ void cut_to_replay (Unfolding &u, Cut &c, std::vector<int> &replay)
    Event *e, *ee;
    Cut cc (u);
 
-   //DEBUG("==========basic_conf_to_replay====");
    ASSERT (u.num_procs() == c.num_procs());
    nrp = c.num_procs();
 
@@ -42,7 +41,7 @@ void cut_to_replay (Unfolding &u, Cut &c, std::vector<int> &replay)
       for (i = 0; i < nrp; i++)
       {
          e = cc[i];
-         DEBUG ("Context switch to proc %d, event %p", i, e);
+         //DEBUG ("Context switch to proc %d, event %p", i, e);
          count = 0;
          // we replay as many events as possible on process i
          for (e = cc[i]; e; e = e->next)
@@ -554,3 +553,4 @@ void find_an_alternative(Config & C, std::vector<Event *> D, std::vector<Event *
 }
 
 } // end of namespace
+

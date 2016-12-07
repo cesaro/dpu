@@ -62,21 +62,27 @@ public:
    Disset d;
 
    // dynamic executor
+   std::string path;
    llvm::Module *m;
    Executor *exec;
    std::vector<std::string> argv;
 
 
    C15unfolder ();
+   ~C15unfolder ();
 
    /// load the llvm module from the "path" file
-   void load_bytecode (const char *path);
+   void load_bytecode (std::string &&filepath);
+
+   /// runs the system and returns the generated configuration
+   Config add_one_run (std::vector<int> &replay);
+   void run_to_completion (Config &c);
 
    /// the POR algorithm
    void explore ();
 
 private:
-   void stream_to_events (action_streamt &s, Config &c);
+   void stream_to_events (Config &c, action_streamt &s);
    void conf_to_replay (Cut &c, std::vector<int> &replay);
    void compute_cex (Config &c);
 };

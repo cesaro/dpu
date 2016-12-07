@@ -72,9 +72,9 @@ class Cut
 public:
    /// FIXME - is this necessary?
    std::vector<Event *> cex;
-   /// creates an empty cut for u.num_procs processes
+   /// creates an empty cut for as much as u.num_procs processes
    inline Cut (const Unfolding &u);
-   /// creates an empty cut for n processes
+   /// creates an empty cut for as much as n processes
    inline Cut (unsigned n);
    /// copy constructor
    inline Cut (const Cut &other);
@@ -234,6 +234,7 @@ class Unfolding
 public:
    //static unsigned count;
    inline Unfolding ();
+   inline ~Unfolding ();
    Unfolding (const Unfolding &other) = delete; // no copy constructor
    inline Unfolding (const Unfolding &&other);
 
@@ -376,8 +377,10 @@ private:
 class Config : public Cut
 {
 public:
-   /// creates an empty configuration
+   /// creates an empty onfiguration for as much as u.num_procs processes
    inline Config (const Unfolding &u);
+   /// creates an empty configuration for as much as n processes
+   inline Config (unsigned n);
    /// copy constructor
    inline Config (const Config &other);
    

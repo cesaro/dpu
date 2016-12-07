@@ -22,20 +22,21 @@ all : compile run
 
 compile: $(TARGETS)
 
-run: compile
+run: compile input.ll
 	./src/main
-	
-input.ll : benchmarks/basic/hello.ll src/rt/rtv.ll
+
+input.ll : program.ll ../steroid/rt/rt.ll
 	llvm-link-$(LLVMVERS) -S $^ -o $@
 
-src/rt/rtv.ll : src/rt/start.s src/rt/rt.bc
-	./utils/as2c.py < src/rt/start.s > /tmp/start.c
-	make /tmp/start.bc
-	llvm-link-$(LLVMVERS) -S src/rt/rt.bc /tmp/start.bc -o $@
+#program.ll : /tmp/cunf3.ll
+#program.ll : ../steroid/tests/hello.ll
+program.ll : benchmarks/basic/hello.ll
+	opt-3.7 -S -O3 -mem2reg $< > $@
+	#opt-3.7 -S -verify $< > $@
 
 $(TARGETS) : % : %.o $(OBJS)
 	@echo "LD  $@"
-	@$(CXX) $(LDFLAGS) -o $@ $^ $(LDLIBS)
+	@$(CXX) $(LDFLAGS) -o $@ $^ ../steroid/src/libsteroids.a $(LDLIBS)
     
 #$(MINISAT)/build/release/lib/libminisat.a :
 #	cd $(MINISAT); make lr

@@ -33,6 +33,11 @@ inline Unfolding::Unfolding (const Unfolding &&other)
    ASSERT (0);
 }
 
+Unfolding::~Unfolding ()
+{
+   DEBUG ("Unfolding.dtor: this %p", this);
+   free (procs);
+}
 
 inline Process *Unfolding::proc (unsigned p) const
 {

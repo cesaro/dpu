@@ -7,7 +7,7 @@
 
 #include "misc.hh"
 
-std::string fmt (const std::string fmt_str, ...)
+std::string __attribute__((weak)) fmt (const std::string fmt_str, ...)
 {
 	/* reserve 2 times as much as the length of the fmt_str */
 	int n = fmt_str.size() * 2;
@@ -31,7 +31,7 @@ std::string fmt (const std::string fmt_str, ...)
 	return std::string(formatted.get());
 }
 
-std::string operator * (std::string lhs, int i)
+std::string __attribute__((weak)) operator * (std::string lhs, int i)
 {
 	int len;
 	
@@ -41,7 +41,7 @@ std::string operator * (std::string lhs, int i)
 	return lhs;
 }
 
-std::string quoted_str (const char * str)
+std::string __attribute__((weak)) quoted_str (const char * str)
 {
 	std::string s;
 

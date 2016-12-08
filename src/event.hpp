@@ -150,48 +150,98 @@ inline bool Event::operator == (const Event &other) const
 {
    return this == &other;
 }
+/*
+ *
+ */
+template <int i>
+inline bool Event:: is_pred_in_the_same_tree_of (const Event *e) const
+{
+   Event *ee;
+   if (this == e) return true;
+
+   if (node[i].depth > e->node[i].depth)
+      return false;
+
+   if (node[i].depth == e->node[i].depth)
+   {
+//      DEBUG("Two nodes have the same depth");
+      if (this == e)
+         return true;
+      else
+         return false;
+   }
+
+   ASSERT(node[i].depth < e->node[i].depth);
+
+   ee = &e->node[i].find_pred<i>(node[i].depth);
+   if (ee == this)
+      return true;
+
+   return false;
+}
 
 inline bool Event::is_pred_of (const Event *e) const
 {
-#if 0
-   Event *ee;
-   DEBUG("this->pid: %d",pid());
-   DEBUG("e->pid: %d",e->pid());
+//   DEBUG("%p cut.nrp: %d",this, cut.num_procs());
+//   DEBUG("%p cut.nrp: %d",e, e->cut.num_procs());
+//   DEBUG("e->pid: %d",e->pid());
 
+   /// e.cut having fewer elements than this->cut means there's no way for it to be this's successor.
+   if (e->cut.num_procs() < cut.num_procs())
+   {
+//      DEBUG("e < this");
+      return false;
+   }
+
+   ASSERT(cut.num_procs() <= e->cut.num_procs());
 
    if (pid() == e->pid())
    {
-      ee = &e->node[0].find_pred<0>(node[0].depth);
-      if (ee == this)
-         return true;
+//      DEBUG("Two events in the same process");
+      return is_pred_in_the_same_tree_of<0>(e);
    }
 
-//   DEBUG("this->depth: %d",this->node[1].depth);
-//   DEBUG("e->depth: %d",e->node[1].depth);
 
-   DEBUG("this->addr: %p",this->action.addr);
-   DEBUG("e->addr: %p",e->action.addr);
+//   DEBUG("this->addr: %p",action.addr);
+//   DEBUG("e->addr: %p",e->action.addr);
 
-   if (this->action.addr == e->action.addr)
+   if ((action.addr == e->action.addr) and (action.addr))
    {
-      ee = &e->node[1].find_pred<1>(node[1].depth);
-      if (ee == this)
-         return true;
+//      DEBUG("Touch the same addr");
+      return is_pred_in_the_same_tree_of<1>(e);
    }
 
-   if (cut.num_procs() < e->cut.num_procs())
+   /// here, cut.num_procs() <= e->cut.num_procs(). It is enough to loop cut.num_procs() times
+
+   for (int i = 0; i < cut.num_procs(); i++)
    {
-      for (int i = 0; i < cut.num_procs(); i++)
-      {
-         ee = & e->cut[i]->node[0].find_pred<0>(cut[i]->node[0].depth);
-         if (ee != cut[i])
-            return false;
-      }
-      return true;
+      DEBUG("Proc %d:", i);
+      if (!cut[i]->is_pred_in_the_same_tree_of<0>(e->cut[i]))
+         return false;
+      DEBUG("true");
    }
+   return true;
+}
+/*
+ * - two events in the same tree can only be in causality or conflict. So, if they are not in causality, they must be in conflict.
+ * - Just consider the case where two events are in 2 different processes and touch different variable (addr)
+ */
+inline bool Event::in_cfl_with (const Event *e)
+{
+   if (pid() == e->pid())
+      return !is_pred_in_the_same_tree_of<0>(e);
 
-   return false;
-#endif
+   if ((action.addr == e->action.addr) and (action.addr))
+      return !is_pred_in_the_same_tree_of<1>(e);
+
+   int nrp = (cut.num_procs() > e->cut.num_procs()) ? e->cut.num_procs() : cut.num_procs();
+   DEBUG("nrp: %d", nrp);
+
+   for (int i = 0; i < nrp; i++)
+   {
+      if (!cut[i]->is_pred_in_the_same_tree_of<0>(e->cut[i]) and !e->cut[i]->is_pred_in_the_same_tree_of<0>(cut[i]))
+         return true; // there is a pair in conflict => 2 events are in cfl consequently
+   }
    return false;
 }
 

@@ -138,6 +138,10 @@ inline int max_skip(int d, int base)
 {
    int i = 0;
    int pow = 1;
+
+   if (d == 0)
+      return 0;
+
    while (d % pow == 0)
    {
       pow = pow * base;
@@ -152,26 +156,30 @@ inline int max_skip(int d, int base)
  * !make sure that d < this->depth to use this method
  */
 template <class T, int SS >
+
 template <int idx>
 inline T & Node<T,SS>:: find_pred(int d) const
 {
    T * next = nullptr;
-   ASSERT(depth > d);
+   ASSERT(depth >= d);
    int i, dis = depth - d;
-   ASSERT(dis != 0); // at the beginning dis != 0
+
+   ASSERT(dis > 0); // at the beginning dis != 0
 
    // initial next for the very first time
-   //DEBUG("dis = %d", dis);
+//   DEBUG("dis = %d", dis);
    // find maximal number of steps to skip
 
    i = max_skip(dis,SS);
 
+//   DEBUG("max_skip = %d", i);
    if (i == 0)
       next = pre;
    else
       next = skip_preds[i-1];
+
    dis = next->node[idx].depth - d;
-   //DEBUG("Now dis = %d", dis);
+//   DEBUG("Now dis = %d", dis);
 
    // for the second loop and so on
    while (dis != 0)
@@ -190,19 +198,19 @@ inline T & Node<T,SS>:: find_pred(int d) const
 }
 
 //-----------
-template <class T, int SS >
-template <int idx>
-inline bool Node<T,SS>::is_pred(Node &n) const
-{
-   if (n.depth < depth) return false;
-
-   ASSERT(n.depth > depth);
-   T * e = n.find_pred<idx>(depth);
-
-//   if (e.node[idx] == this) return true;
-
-   return false;
-}
+//template <class T, int SS >
+//template <int idx>
+//inline bool Node<T,SS>::is_pred(Node &n) const
+//{
+//   if (n.depth < depth) return false;
+//
+//   ASSERT(n.depth > depth);
+//   T * e = n.find_pred<idx>(depth);
+//
+////   if (e.node[idx] == this) return true;
+//
+//   return false;
+//}
 
 /*
  * Methods for class MultiNode

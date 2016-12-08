@@ -174,8 +174,15 @@ public:
 
    /// true iff this event is the THSTART event of thread 0
    inline bool is_bottom ();
+
+   template <int i>
+   inline bool is_pred_in_the_same_tree_of(const Event *e) const;
    inline bool is_pred_of (const Event *e) const;
+
+//   template <int idx>
+//   inline bool is_cfl_in_the_same_tree_of(const Event *e) const;
    inline bool in_cfl_with (const Event *e);
+
    inline bool in_icfl_with (const Event *e); // Cesar
 
    /// the cut of the local configuration of the event

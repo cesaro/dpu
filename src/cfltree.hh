@@ -20,8 +20,8 @@ public:
    template <int idx>
    inline T & find_pred(int d) const;
 
-   template <int idx>
-   inline bool is_pred(Node &n) const;
+//   template <int idx>
+//   inline bool is_pred(Node &n) const;
 
 private:
 

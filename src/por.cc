@@ -89,7 +89,8 @@ void LOCK_cex (Unfolding &u, Event *e)
   // while ((em != nullptr) and (ep->vclock < em->vclock)) //em is not a predecessor of ep
    while (em)
    {
-      if (em->vclock < ep->vclock)
+//      if (em->vclock < ep->vclock)
+      if (em->is_pred_of(ep)) // excluding em = ep
       {
          DEBUG("em is a predecessor of ep");
          break;
@@ -102,7 +103,8 @@ void LOCK_cex (Unfolding &u, Event *e)
       /// The first LOCK's pre_other is nullptr
       if (pr_mem == nullptr)
       {
-         if (ep->vclock > em->pre_other()->vclock)
+//         if (ep->vclock > em->pre_other()->vclock)
+         if (em->pre_other()->is_pred_of(ep))
          {
             DEBUG("   pr_mem is nil and a predecessor of ep => exit");
             break;
@@ -123,7 +125,8 @@ void LOCK_cex (Unfolding &u, Event *e)
 
       ///Check if pr_mem < ep
 
-      if (ep->vclock > pr_mem->vclock)
+//      if (ep->vclock > pr_mem->vclock)
+      if (em->is_pred_of(ep))
       {
          DEBUG("   pr_mem is predecessor of ep");
          return;

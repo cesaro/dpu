@@ -370,17 +370,17 @@ void test32()
    // exit in thread 1
    ex1 = u.event ({.type = ActionType::THEXIT}, es1);
 
+   // join
+   ej = u.event ({.type = ActionType::THJOIN, .val = 1}, ec, ex1);
+
    // lock
-   el = u.event ({.type = ActionType::MTXLOCK, .addr = 0x100}, ec, nullptr);
+   el = u.event ({.type = ActionType::MTXLOCK, .addr = 0x100}, ej, nullptr);
 
    //unlock
    eu = u.event ({.type = ActionType::MTXUNLK, .addr = 0x100}, el, el);
 
-   // join
-   ej = u.event ({.type = ActionType::THJOIN, .val = 1}, eu, ex1);
-
    // exit
-   ex = u.event ({.type = ActionType::THEXIT}, ej);
+   ex = u.event ({.type = ActionType::THEXIT}, eu);
 
    printf("ex.vclock: ");
    ex->vclock.print();
@@ -395,14 +395,15 @@ void test32()
 
    c.add (es);
    c.add (ec);
-   c.add (el);
-   c.dump ();
-   printf ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n");
-
-   c.add (eu);
    c.add (es1);
    c.add (ex1);
    c.add (ej);
+   c.dump ();
+   printf ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n");
+
+   c.add (el);
+   c.add (eu);
+
    c.add (ex);
    c.dump ();
    printf ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n");
@@ -412,7 +413,22 @@ void test32()
    c.dump();
    printf ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n");
 
+   DEBUG("%p.cut:", ex1);
    ex1->cut.dump();
+   DEBUG("%p.cut:", ex);
+   ex->cut.dump();
+
+   printf ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n");
+   if (ex1->is_pred_of(ex))
+      DEBUG("%p is pred of %p", ex, ex1);
+   else
+      DEBUG("%p is not pred of %p", ex, ex1);
+
+   printf ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n");
+   if (el->in_cfl_with(ex))
+      DEBUG("%p is in cfl with %p", ex, el);
+   else
+      DEBUG("%p is not in cfl with %p", ex, el);
 }
 
 //-----------------------
@@ -493,7 +509,7 @@ void test33()
    c.dump();
 
    u.dump();
-   DEBUG("\nxxxxxxxxxxxxxxxxxxxx");
+   printf("\nxxxxxxxxxxxxxxxxxxxx");
    compute_cex(u,c);
    u.dump();
    u.print_dot();

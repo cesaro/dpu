@@ -513,6 +513,16 @@ void test33()
    compute_cex(u,c);
    u.dump();
    u.print_dot();
+
+   for (auto e : *u.proc(1))
+   {
+      DEBUG("%s", action_type_str(e.action.type));
+      if (e.in_cfl_with(ell))
+         DEBUG("%p is in cfl with %p", ell, &e);
+      else
+         DEBUG("%p is not in cfl with %p", ell, &e); //???something wrong with e'address when printing with %p
+   }
+
 }
 
 void test34()

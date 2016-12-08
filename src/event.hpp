@@ -235,7 +235,7 @@ inline bool Event::in_cfl_with (const Event *e)
       return !is_pred_in_the_same_tree_of<1>(e);
 
    int nrp = (cut.num_procs() > e->cut.num_procs()) ? e->cut.num_procs() : cut.num_procs();
-   DEBUG("nrp: %d", nrp);
+//   DEBUG("nrp: %d", nrp);
 
    for (int i = 0; i < nrp; i++)
    {

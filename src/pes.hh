@@ -3,11 +3,11 @@
 #define __PES_HH_
 
 #include <unordered_map>
+#include <vector>
 #include <functional>
 
 #include "config.h"
 #include "verbosity.h"
-#include "vclock.hh"
 #include "misc.hh"
 #include "cfltree.hh"
 
@@ -145,8 +145,7 @@ public:
    Action action;
    /// a list of red actions that the thread performed between Events pre() and this
    std::vector<Action> redbox;
-   /// the vector clock
-   Vclock vclock;
+
    /// color mark for various algorithms
    unsigned color;
    /// all the causal successors of this event

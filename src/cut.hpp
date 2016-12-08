@@ -107,8 +107,8 @@ inline void Cut::add (Event *e)
    if (e->pre_other())
    {
       ASSERT (max[e->pre_other()->pid()]);
-      ASSERT (e->pre_other()->vclock[e->pre_other()->pid()] <=
-            max[e->pre_other()->pid()]->vclock[e->pre_other()->pid()]);
+//      ASSERT (e->pre_other()->vclock[e->pre_other()->pid()] <=
+//            max[e->pre_other()->pid()]->vclock[e->pre_other()->pid()]);
    }
 
    max[e->pid()] = e;

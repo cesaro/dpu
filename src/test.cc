@@ -247,8 +247,8 @@ void test30()
    // exit
    ex = u.event ({.type = ActionType::THEXIT}, ej);
 
-   printf("ex.vclock: ");
-   ex->vclock.print();
+//   printf("ex.vclock: ");
+//   ex->vclock.print();
 
    u.dump ();
    printf ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n");
@@ -293,59 +293,59 @@ void test30()
 void test31()
 {
 
-   Vclock v1(0,1), v2(1,2), v3(2,4);
-   Vclock v4(v1,v2), v5(v2,v3);
-   Vclock v6(v4,v5);
-
-   printf("v1:\n");
-   v1.print();
-
-   printf("v2:\n");
-   v2.print();
-
-   printf("v3:\n");
-   v3.print();
-
-   printf("v4 = v1 + v2:\n");
-   v4.print();
-
-   printf("v5 = v2 + v3:\n");
-   v5.print();
-
-   printf("v6 = v4 + v5:\n");
-   v6.print();
-
-   // compare
-   if (v5 == v6)
-      printf("v5 = v6 \n");
-   else
-      if (v5 < v6)
-         printf("v5 < v6 \n");
-      else
-         if (v5 > v6)
-            printf("v5 > v6 \n");
-         else
-            printf("We can't compare them \n");
-
-   if (v6 > v5)
-      printf("v6 > v5\n");
-
-   if (v4 == v5)
-         printf("v4 = v5 \n");
-      else
-         if (v4 < v5)
-            printf("v4 < v5 \n");
-         else
-            if (v4 > v5)
-               printf("v4 > v5 \n");
-            else
-               printf("We can't compare them \n");
-
-
-   if (v1 < v4)
-      printf("v1 < v4\n");
-   else
-      printf("can't compare\n");
+//   Vclock v1(0,1), v2(1,2), v3(2,4);
+//   Vclock v4(v1,v2), v5(v2,v3);
+//   Vclock v6(v4,v5);
+//
+//   printf("v1:\n");
+//   v1.print();
+//
+//   printf("v2:\n");
+//   v2.print();
+//
+//   printf("v3:\n");
+//   v3.print();
+//
+//   printf("v4 = v1 + v2:\n");
+//   v4.print();
+//
+//   printf("v5 = v2 + v3:\n");
+//   v5.print();
+//
+//   printf("v6 = v4 + v5:\n");
+//   v6.print();
+//
+//   // compare
+//   if (v5 == v6)
+//      printf("v5 = v6 \n");
+//   else
+//      if (v5 < v6)
+//         printf("v5 < v6 \n");
+//      else
+//         if (v5 > v6)
+//            printf("v5 > v6 \n");
+//         else
+//            printf("We can't compare them \n");
+//
+//   if (v6 > v5)
+//      printf("v6 > v5\n");
+//
+//   if (v4 == v5)
+//         printf("v4 = v5 \n");
+//      else
+//         if (v4 < v5)
+//            printf("v4 < v5 \n");
+//         else
+//            if (v4 > v5)
+//               printf("v4 > v5 \n");
+//            else
+//               printf("We can't compare them \n");
+//
+//
+//   if (v1 < v4)
+//      printf("v1 < v4\n");
+//   else
+//      printf("can't compare\n");
 }
 
 void test32()
@@ -382,8 +382,8 @@ void test32()
    // exit
    ex = u.event ({.type = ActionType::THEXIT}, eu);
 
-   printf("ex.vclock: ");
-   ex->vclock.print();
+//   printf("ex.vclock: ");
+//   ex->vclock.print();
 
    u.dump ();
    u.print_dot();
@@ -599,7 +599,7 @@ void test34()
 //        DEBUG("not in conflict");
 
      /// check conflict in the same tree
-     if (check_cfl(*ell1,*euu1))
+     if (ell1->in_cfl_with(euu1))
         DEBUG("in conflict");
      else
         DEBUG("not in conflict");

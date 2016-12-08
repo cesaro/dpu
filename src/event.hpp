@@ -5,7 +5,7 @@ inline Event::Event (Event *creat) :
    flags ({.boxfirst = 1, .boxlast = 0, .inc = 0}),
    action ({.type = ActionType::THSTART}),
    redbox (),
-   vclock(0,0),
+//   vclock(0,0),
    color (0),
    post (),
    cut (creat ? Cut (creat->cut, this) : Cut (pid() + 1, this))
@@ -22,13 +22,13 @@ inline Event::Event (Event *creat) :
 
    if (creat) creat->post_add (this);
 
-   if (creat == nullptr)
-      vclock.add_clock(0,0);
-   else
-   {
-      vclock = creat->vclock;
-      vclock.add_clock(pid(),0);
-   }
+//   if (creat == nullptr)
+//      vclock.add_clock(0,0);
+//   else
+//   {
+//      vclock = creat->vclock;
+//      vclock.add_clock(pid(),0);
+//   }
 }
 
 /// THCREAT(tid) or THEXIT(), one predecessor (in the process)
@@ -38,7 +38,7 @@ inline Event::Event (Action ac, bool bf) :
    flags ({.boxfirst = bf, .boxlast = 0, .inc = 0}),
    action (ac),
    redbox (),
-   vclock(pre_proc()->vclock),
+//   vclock(pre_proc()->vclock),
    color (0),
    post (),
    cut(pre_proc()->cut, this)
@@ -52,7 +52,7 @@ inline Event::Event (Action ac, bool bf) :
          bf, cut.str().c_str());
    
    pre_proc()->post_add (this);
-   vclock.inc_clock(pid()); // wrong because pid() is not the index of proc in the vector
+//   vclock.inc_clock(pid()); // wrong because pid() is not the index of proc in the vector
 }
 
 /// THJOIN(tid), MTXLOCK(addr), MTXUNLK(addr), two predecessors (process, memory/exit)
@@ -64,7 +64,7 @@ inline Event::Event (Action ac, Event *m, bool bf) :
    redbox (),
    // FIXME -- ???
    // here, pre_proc is different from the one passed to unf.event(ac, p, m)
-   vclock (m ? pre_proc()->vclock + m->vclock : pre_proc()->vclock),
+//   vclock (m ? pre_proc()->vclock + m->vclock : pre_proc()->vclock),
    color (0),
    post (),
    cut(m ? Cut(pre_proc()->cut, m->cut, this) : Cut (pre_proc()->cut, this))
@@ -87,7 +87,7 @@ inline Event::Event (Action ac, Event *m, bool bf) :
       // constructed by now. Cesar
       //vclock = vclock + m->vclock;
    }
-   vclock.inc_clock (pid());
+//   vclock.inc_clock (pid());
 }
 
 inline void Event::post_add (Event * succ)

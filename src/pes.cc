@@ -226,8 +226,8 @@ void Unfolding::print_dot ()
                break;
          }
 
-         fs << e.idx << "[label=\"" << "Proc: "<<p->pid() << " - "<< action_type_str(e.action.type) <<"\n vclock:("
-            << e.vclock.print_dot() <<" )\", color= " << bcolor << "]\n";
+         fs << e.idx << "[label=\"" << "Proc: "<<p->pid() << " - "<< action_type_str(e.action.type);
+//               <<"\n vclock:(" << e.vclock.print_dot() <<" )\", color= " << bcolor << "]\n";
          count++;
       }
    }

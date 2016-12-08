@@ -168,7 +168,7 @@ void compute_cex (Unfolding &u, Config &c)
       }
    }
 }
-
+#if 0
 /// Check conflict between two events in the same tree depending on the idx
 bool check_cfl_same_tree(int idx, const Event & e1, const Event & e2)
 {
@@ -255,13 +255,14 @@ bool check_cfl(Event & e1, Event & e2 )
    DEBUG("Other cases");
   return check_2difs(e1,e2);
 }
+#endif
 
 bool is_conflict_free(std::vector<Event *> combin)
 {
    for (unsigned i = 0; i < combin.size() - 1; i++)
      for (unsigned j = i; j < combin.size(); j++)
       {
-        if (check_cfl(*combin[i],*combin[j]))
+        if (combin[i]->in_cfl_with(combin[j]))
            return false;
       }
    return true;
@@ -504,7 +505,7 @@ void find_an_alternative(Config & C, std::vector<Event *> D, std::vector<Event *
       {
          for (int k = 0; k < C.num_procs(); k++)
          {
-            if (check_cfl(*spikes[i][j],*C[k]))
+            if (spikes[i][j]->in_cfl_with(C[k]))
             {
                   //remove spike[i][j]
                DEBUG_("    %p cfl with %p", spikes[i][j], C[k]);

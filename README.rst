@@ -21,10 +21,10 @@ x write methods to retrieve existing events when replying
 x how to give semantics to failing create/join
 x escribir la funcion de busqeuda en los post para los Unfolding::event
 - how to represent conflict?
-- steroids -> unf
+x steroids -> unf
 - design unfolder class
 - in_icfl_with (Event e);
-- C15unfolder::stream_to_events
+x C15unfolder::stream_to_events
 
 Huyen:
 

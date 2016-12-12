@@ -65,7 +65,6 @@ public:
    std::string path;
    llvm::Module *m;
    Executor *exec;
-   std::vector<std::string> argv;
 
 
    C15unfolder ();
@@ -73,15 +72,22 @@ public:
 
    /// load the llvm module from the "path" file
    void load_bytecode (std::string &&filepath);
+   //void set_env (std::vector<const std::string> env);
+   void set_args (std::vector<const char *> argv);
 
    /// runs the system and returns the generated configuration
    Config add_one_run (std::vector<int> &replay);
+
+   /// replays c and then runs the system in free mode, adding the resulting
+   /// events and updating c, which becomes a maximal configuration
    void run_to_completion (Config &c);
 
    /// the POR algorithm
    void explore ();
 
 private:
+   std::vector<std::string> argv;
+
    void stream_to_events (Config &c, action_streamt &s);
    void conf_to_replay (Cut &c, std::vector<int> &replay);
    void compute_cex (Config &c);

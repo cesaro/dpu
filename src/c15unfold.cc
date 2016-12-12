@@ -426,9 +426,7 @@ void C15unfolder::compute_cex (Unfolding &u, Config &c)
             LOCK_cex(u,e);
          }
       }
-
    }
-
 }
 
 bool C15unfolder::find_alternative (Config &c, std::vector<Event*> d, Config &j)

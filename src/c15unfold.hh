@@ -80,11 +80,13 @@ public:
 
    /// the POR algorithm
    void explore ();
+   void compute_cex (Unfolding &u, Config &c);
+   bool find_alternative (Config &c, std::vector<Event*> d, Config &j);
 
 private:
    void stream_to_events (Config &c, action_streamt &s);
    void conf_to_replay (Cut &c, std::vector<int> &replay);
-   void compute_cex (Config &c);
+//   void compute_cex (Unfolding &u, Config &c);
 };
 
 } //end of namespace

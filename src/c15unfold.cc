@@ -156,6 +156,7 @@ Config C15unfolder::add_one_run (std::vector<int> &replay)
 
 void C15unfolder::run_to_completion (Config &c)
 {
+
 }
 
 void C15unfolder::explore ()
@@ -311,9 +312,133 @@ void C15unfolder::stream_to_events (Config &c, action_streamt &s)
 
 void C15unfolder::conf_to_replay (Cut &c, std::vector<int> &replay)
 {
+
 }
-void C15unfolder::compute_cex (Config &c)
+
+/// Compute conflicting extension for a LOCK
+void LOCK_cex (Unfolding &u, Event *e)
 {
+   DEBUG("\n %p: LOCK_cex", e);
+   Event * ep, * em, *pr_mem, *newevt;
+   ep = e->pre_proc();
+   em = e->pre_other();
+
+   if (em == nullptr)
+   {
+      DEBUG("   No conflicting event");
+      return;
+   }
+
+   ASSERT(em)
+
+  // while ((em != nullptr) and (ep->vclock < em->vclock)) //em is not a predecessor of ep
+   while (em)
+   {
+//      if (em->vclock < ep->vclock)
+      if (em->is_pred_of(ep)) // excluding em = ep
+      {
+         DEBUG("em is a predecessor of ep");
+         break;
+      }
+
+      pr_mem = em->pre_other()->pre_other(); // skip 2
+
+      //DEBUG("pr_mem: %p", pr_mem);
+
+      /// The first LOCK's pre_other is nullptr
+      if (pr_mem == nullptr)
+      {
+//         if (ep->vclock > em->pre_other()->vclock)
+         if (em->pre_other()->is_pred_of(ep))
+         {
+            DEBUG("   pr_mem is nil and a predecessor of ep => exit");
+            break;
+         }
+
+         newevt = u.event(e->action, ep, pr_mem);
+         DEBUG("New event created:");
+         DEBUG ("  e %-16p pid %2d pre-proc %-16p pre-other %-16p fst/lst %d/%d action %s",
+                  newevt, newevt->pid(), newevt->pre_proc(), newevt->pre_other(),
+                  newevt->flags.boxfirst ? 1 : 0,
+                  newevt->flags.boxlast ? 1 : 0,
+                  action_type_str (newevt->action.type));
+
+         // need to add newevt to cex
+
+         break;
+      }
+
+      ///Check if pr_mem < ep
+
+//      if (ep->vclock > pr_mem->vclock)
+      if (em->is_pred_of(ep))
+      {
+         DEBUG("   pr_mem is predecessor of ep");
+         return;
+      }
+
+      Event * newevt = u.event(e->action, ep, pr_mem);
+      /// need to add newevt to cex
+      DEBUG("New event created:");
+      DEBUG ("  e %-16p pid %2d pre-proc %-16p pre-other %-16p fst/lst %d/%d action %s",
+               newevt, newevt->pid(), newevt->pre_proc(), newevt->pre_other(),
+               newevt->flags.boxfirst ? 1 : 0,
+               newevt->flags.boxlast ? 1 : 0,
+               action_type_str (newevt->action.type));
+
+      /// move the pointer to the next
+      em = pr_mem;
+   }
+
+   DEBUG("   Finish LOCK_cex");
+}
+
+void C15unfolder::compute_cex (Unfolding &u, Config &c)
+{
+//   unsigned nrp = c.num_procs();
+   Event *e;
+
+   DEBUG("==========Compute cex====");
+
+   // FIXME -- Cesar: improve this to use only the address trees in c.mutexmax
+//   for (int i = 0; i < nrp; i++)
+//   {
+//      for (e = c[i]; e; e = e->pre_proc())
+//      {
+//         if (e->action.type == ActionType::MTXLOCK)
+//         {
+////            DEBUG("e: %p, type: %s",e, action_type_str(e->action.type));
+//            LOCK_cex(u, e);
+//         }
+//      }
+//   }
+
+   DEBUG("%d", c.mutexmax.size());
+   for (auto const & max : c.mutexmax)
+   {
+      DEBUG("What's the hell");
+      for (e = max.second; e; e = e->pre_other())
+      {
+         DEBUG("max.second %p", max.second);
+         if (e->action.type == ActionType::MTXLOCK)
+         {
+            DEBUG("e: %p, type: %s",e, action_type_str(e->action.type));
+            LOCK_cex(u,e);
+         }
+      }
+
+   }
+
+}
+
+bool C15unfolder::find_alternative (Config &c, std::vector<Event*> d, Config &j)
+{
+      ASSERT (d.size ());
+
+      j.clear();
+
+      // huyen here
+      return false;
 }
 
 } // namespace dpu

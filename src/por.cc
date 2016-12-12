@@ -21,7 +21,8 @@ void cut_to_replay (Unfolding &u, Cut &c, std::vector<int> &replay)
    for (i = 0; i < nrp; i++)
    {
       ee = nullptr;
-      for (e = c[i]; e; ee = e, e = e->pre_proc()) e->next = ee;
+      for (e = c[i]; e; ee = e, e = e->pre_proc())
+         e->next = ee;
    }
 
    // we use a second cut cc to run forward up to completion of cut c
@@ -70,104 +71,104 @@ void cut_to_replay (Unfolding &u, Cut &c, std::vector<int> &replay)
    replay.push_back (-1);
 }
 
-/// Compute conflicting extension for a LOCK
-void LOCK_cex (Unfolding &u, Event *e)
-{
-   DEBUG("\n %p: LOCK_cex", e);
-   Event * ep, * em, *pr_mem, *newevt;
-   ep = e->pre_proc();
-   em = e->pre_other();
-
-   if (em == nullptr)
-   {
-      DEBUG("   No conflicting event");
-      return;
-   }
-
-   ASSERT(em)
-
-  // while ((em != nullptr) and (ep->vclock < em->vclock)) //em is not a predecessor of ep
-   while (em)
-   {
-//      if (em->vclock < ep->vclock)
-      if (em->is_pred_of(ep)) // excluding em = ep
-      {
-         DEBUG("em is a predecessor of ep");
-         break;
-      }
-
-      pr_mem = em->pre_other()->pre_other(); // skip 2
-
-      //DEBUG("pr_mem: %p", pr_mem);
-
-      /// The first LOCK's pre_other is nullptr
-      if (pr_mem == nullptr)
-      {
-//         if (ep->vclock > em->pre_other()->vclock)
-         if (em->pre_other()->is_pred_of(ep))
-         {
-            DEBUG("   pr_mem is nil and a predecessor of ep => exit");
-            break;
-         }
-
-         newevt = u.event(e->action, ep, pr_mem);
-         DEBUG("New event created:");
-         DEBUG ("  e %-16p pid %2d pre-proc %-16p pre-other %-16p fst/lst %d/%d action %s",
-                  newevt, newevt->pid(), newevt->pre_proc(), newevt->pre_other(),
-                  newevt->flags.boxfirst ? 1 : 0,
-                  newevt->flags.boxlast ? 1 : 0,
-                  action_type_str (newevt->action.type));
-
-         // need to add newevt to cex
-
-         break;
-      }
-
-      ///Check if pr_mem < ep
-
-//      if (ep->vclock > pr_mem->vclock)
-      if (em->is_pred_of(ep))
-      {
-         DEBUG("   pr_mem is predecessor of ep");
-         return;
-      }
-
-      Event * newevt = u.event(e->action, ep, pr_mem);
-      /// need to add newevt to cex
-      DEBUG("New event created:");
-      DEBUG ("  e %-16p pid %2d pre-proc %-16p pre-other %-16p fst/lst %d/%d action %s",
-               newevt, newevt->pid(), newevt->pre_proc(), newevt->pre_other(),
-               newevt->flags.boxfirst ? 1 : 0,
-               newevt->flags.boxlast ? 1 : 0,
-               action_type_str (newevt->action.type));
-
-      /// move the pointer to the next
-      em = pr_mem;
-   }
-
-   DEBUG("   Finish LOCK_cex");
-}
-
-void compute_cex (Unfolding &u, Config &c)
-{
-   unsigned i;
-   Event *e;
-
-   DEBUG("==========Compute cex====");
-
-   // FIXME -- Cesar: improve this to use only the address trees in c.mutexmax
-   for (i = 0; i < c.num_procs(); i++)
-   {
-      for (e = c[i]; e; e = e->pre_proc())
-      {
-         if (e->action.type == ActionType::MTXLOCK)
-         {
-//            DEBUG("e: %p, type: %s",e, action_type_str(e->action.type));
-            LOCK_cex(u, e);
-         }
-      }
-   }
-}
+///// Compute conflicting extension for a LOCK
+//void LOCK_cex (Unfolding &u, Event *e)
+//{
+//   DEBUG("\n %p: LOCK_cex", e);
+//   Event * ep, * em, *pr_mem, *newevt;
+//   ep = e->pre_proc();
+//   em = e->pre_other();
+//
+//   if (em == nullptr)
+//   {
+//      DEBUG("   No conflicting event");
+//      return;
+//   }
+//
+//   ASSERT(em)
+//
+//  // while ((em != nullptr) and (ep->vclock < em->vclock)) //em is not a predecessor of ep
+//   while (em)
+//   {
+////      if (em->vclock < ep->vclock)
+//      if (em->is_pred_of(ep)) // excluding em = ep
+//      {
+//         DEBUG("em is a predecessor of ep");
+//         break;
+//      }
+//
+//      pr_mem = em->pre_other()->pre_other(); // skip 2
+//
+//      //DEBUG("pr_mem: %p", pr_mem);
+//
+//      /// The first LOCK's pre_other is nullptr
+//      if (pr_mem == nullptr)
+//      {
+////         if (ep->vclock > em->pre_other()->vclock)
+//         if (em->pre_other()->is_pred_of(ep))
+//         {
+//            DEBUG("   pr_mem is nil and a predecessor of ep => exit");
+//            break;
+//         }
+//
+//         newevt = u.event(e->action, ep, pr_mem);
+//         DEBUG("New event created:");
+//         DEBUG ("  e %-16p pid %2d pre-proc %-16p pre-other %-16p fst/lst %d/%d action %s",
+//                  newevt, newevt->pid(), newevt->pre_proc(), newevt->pre_other(),
+//                  newevt->flags.boxfirst ? 1 : 0,
+//                  newevt->flags.boxlast ? 1 : 0,
+//                  action_type_str (newevt->action.type));
+//
+//         // need to add newevt to cex
+//
+//         break;
+//      }
+//
+//      ///Check if pr_mem < ep
+//
+////      if (ep->vclock > pr_mem->vclock)
+//      if (em->is_pred_of(ep))
+//      {
+//         DEBUG("   pr_mem is predecessor of ep");
+//         return;
+//      }
+//
+//      Event * newevt = u.event(e->action, ep, pr_mem);
+//      /// need to add newevt to cex
+//      DEBUG("New event created:");
+//      DEBUG ("  e %-16p pid %2d pre-proc %-16p pre-other %-16p fst/lst %d/%d action %s",
+//               newevt, newevt->pid(), newevt->pre_proc(), newevt->pre_other(),
+//               newevt->flags.boxfirst ? 1 : 0,
+//               newevt->flags.boxlast ? 1 : 0,
+//               action_type_str (newevt->action.type));
+//
+//      /// move the pointer to the next
+//      em = pr_mem;
+//   }
+//
+//   DEBUG("   Finish LOCK_cex");
+//}
+//
+//void compute_cex (Unfolding &u, Config &c)
+//{
+//   unsigned i;
+//   Event *e;
+//
+//   DEBUG("==========Compute cex====");
+//
+//   // FIXME -- Cesar: improve this to use only the address trees in c.mutexmax
+//   for (i = 0; i < c.num_procs(); i++)
+//   {
+//      for (e = c[i]; e; e = e->pre_proc())
+//      {
+//         if (e->action.type == ActionType::MTXLOCK)
+//         {
+////            DEBUG("e: %p, type: %s",e, action_type_str(e->action.type));
+//            LOCK_cex(u, e);
+//         }
+//      }
+//   }
+//}
 #if 0
 /// Check conflict between two events in the same tree depending on the idx
 bool check_cfl_same_tree(int idx, const Event & e1, const Event & e2)

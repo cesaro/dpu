@@ -510,17 +510,17 @@ void test33()
 
    u.dump();
    printf("\nxxxxxxxxxxxxxxxxxxxx");
-   compute_cex(u,c);
+//   compute_cex(u,c);
    u.dump();
    u.print_dot();
 
-   for (auto e : *u.proc(1))
+   for (auto & e : *u.proc(1))
    {
       DEBUG("%s", action_type_str(e.action.type));
       if (e.in_cfl_with(ell))
          DEBUG("%p is in cfl with %p", ell, &e);
       else
-         DEBUG("%p is not in cfl with %p", ell, &e); //???something wrong with e'address when printing with %p
+         DEBUG("%p is not in cfl with %p", ell, &e);
    }
 
 }
@@ -647,6 +647,21 @@ void test35 ()
 
 void test36 ()
 {
+   try
+      {
+         std::vector<int> replay {-1};
+         C15unfolder unf;
+         unf.load_bytecode ("./input.ll");
+
+         Config c (unf.add_one_run (replay));
+         c.dump ();
+         unf.compute_cex(unf.u, c);
+
+      } catch (const std::exception &e) {
+         DEBUG ("Test threw exception: %s", e.what ());
+         DEBUG ("Aborting!");
+      }
+
 }
 
 void test37 ()

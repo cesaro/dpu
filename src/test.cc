@@ -607,12 +607,13 @@ void test34()
 
 void test35 ()
 {
-   std::vector<const char *> argv;
-   std::vector<int> replay {-1};
    // main3:
-   // 0 5  1 5  2 2  3 2  0 4  -1  -> standard
-   // 0 2  1 3  -1 -> pid1 creates the thread first
-
+   // 0 5  1 5  2 2  3 2  0 4  -1  -> standard (p0 creates p1,p2; p1 creates p3)
+   // 0 2  1 3  -1 -> alternative (p0 creates p1,p3; p1 creates p2)
+   std::vector<const char *> argv {"prog", "main3"};
+   std::vector<int> rep;
+   std::vector<int> replay0 {-1};
+   std::vector<int> replay1 {0, 2,  1, 3,  -1};
 
    try
    {
@@ -620,24 +621,39 @@ void test35 ()
 
       // load code and set argv
       unf.load_bytecode ("./input.ll");
-      argv.push_back ("program-name");
-      argv.push_back ("main3");
       unf.set_args (argv);
       
       // run the system 1 time
-      Config c (unf.add_one_run (replay));
+      Config c (unf.add_one_run (replay0));
       c.dump ();
 
       // compute the replay of that conf
-      replay.clear ();
-      cut_to_replay (unf.u, c, replay);
+      rep.clear ();
+      cut_to_replay (unf.u, c, rep);
       DEBUG_("Replay: ");
-      for (unsigned i = 0; i < replay.size(); i++)
+      for (unsigned i = 0; i < rep.size(); i++)
       {
-         DEBUG_ ("%d ", replay[i]);
+         DEBUG_ ("%d ", rep[i]);
          if (i % 2 == 1) DEBUG_ (" ");
       }
       DEBUG ("");
+      DEBUG ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
+
+      // run the system one more time with a different replay
+      c = unf.add_one_run (replay1);
+      c.dump ();
+
+      // compute the replay of that conf
+      rep.clear ();
+      cut_to_replay (unf.u, c, rep);
+      DEBUG_("Replay: ");
+      for (unsigned i = 0; i < rep.size(); i++)
+      {
+         DEBUG_ ("%d ", rep[i]);
+         if (i % 2 == 1) DEBUG_ (" ");
+      }
+      DEBUG ("");
+
 
    } catch (const std::exception &e) {
       DEBUG ("Test threw exception: %s", e.what ());

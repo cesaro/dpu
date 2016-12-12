@@ -14,8 +14,8 @@ void cut_to_replay (Unfolding &u, Cut &c, std::vector<int> &replay)
    Event *e, *ee;
    Cut cc (u);
 
-   ASSERT (u.num_procs() == c.num_procs());
-   nrp = c.num_procs();
+   ASSERT (u.num_procs() <= c.num_procs());
+   nrp = u.num_procs();
 
    // set up the Event's next pointer
    for (i = 0; i < nrp; i++)

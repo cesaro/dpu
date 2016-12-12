@@ -607,14 +607,37 @@ void test34()
 
 void test35 ()
 {
+   std::vector<const char *> argv;
+   std::vector<int> replay {-1};
+   // main3:
+   // 0 5  1 5  2 2  3 2  0 4  -1  -> standard
+   // 0 2  1 3  -1 -> pid1 creates the thread first
+
+
    try
    {
-      std::vector<int> replay {-1};
       C15unfolder unf;
+
+      // load code and set argv
       unf.load_bytecode ("./input.ll");
+      argv.push_back ("program-name");
+      argv.push_back ("main3");
+      unf.set_args (argv);
       
+      // run the system 1 time
       Config c (unf.add_one_run (replay));
       c.dump ();
+
+      // compute the replay of that conf
+      replay.clear ();
+      cut_to_replay (unf.u, c, replay);
+      DEBUG_("Replay: ");
+      for (unsigned i = 0; i < replay.size(); i++)
+      {
+         DEBUG_ ("%d ", replay[i]);
+         if (i % 2 == 1) DEBUG_ (" ");
+      }
+      DEBUG ("");
 
    } catch (const std::exception &e) {
       DEBUG ("Test threw exception: %s", e.what ());
@@ -648,3 +671,8 @@ void test37 ()
 void test38 ()
 {
 }
+
+void test39 ()
+{
+}
+

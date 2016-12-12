@@ -30,7 +30,8 @@ input.ll : program.ll ../steroid/rt/rt.ll
 
 #program.ll : /tmp/cunf3.ll
 #program.ll : ../steroid/tests/hello.ll
-program.ll : benchmarks/basic/hello.ll
+#program.ll : benchmarks/basic/hello.ll
+program.ll : benchmarks/basic/cjlu.ll
 	opt-3.7 -S -O3 -mem2reg $< > $@
 	#opt-3.7 -S -verify $< > $@
 

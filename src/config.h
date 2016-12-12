@@ -23,7 +23,7 @@
 /* test and debug */
 #define CONFIG_DEBUG
 
-#define CONFIG_MAX_PROCESSES 64
+#define CONFIG_MAX_PROCESSES 32
 #define CONFIG_MAX_EVENTS_PER_PROCCESS 10000
 
 

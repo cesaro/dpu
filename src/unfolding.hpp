@@ -134,12 +134,28 @@ inline Process *Unfolding::new_proc (Event *creat)
 
 inline Event *Unfolding::find1 (Action *ac, Event *p)
 {
-   // p should have 0 or 1 causal successor, and its action should be ac
-   ASSERT (p->post.size() == 0 or p->post.size() == 1);
-   ASSERT (p->post.size() == 0 or p->post[0]->action == *ac);
+   unsigned pid;
 
-   if (p->post.size() == 0) return 0;
-   return p->post[0];
+   // p should have 0 or 1 causal successor in the same process, and its action should be ac
+
+   pid = p->pid();
+#ifdef CONFIG_DEBUG
+   int count = 0;
+   for (auto e : p->post) if (e->pid () == pid) count++;
+   ASSERT (count <= 1);
+#endif
+   for (auto e : p->post)
+   {
+      if (e->pid () == pid)
+      {
+         // the event exists
+         ASSERT (e->action == *ac);
+         return e;
+      }
+   }
+
+   // it does not exist
+   return 0;
 }
 
 inline Event *Unfolding::find2 (Action *ac, Event *p, Event *m)

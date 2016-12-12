@@ -120,19 +120,22 @@ void C15unfolder::load_bytecode (std::string &&filepath)
    }
    DEBUG ("c15u: load-bytecode: executor successfully created!");
 
+   DEBUG ("c15u: load-bytecode: saving instrumented code to /tmp/output.ll");
+   _ir_write_ll (m, "/tmp/output.ll");
+
+   DEBUG ("c15u: load-bytecode: done!");
+}
+
+void C15unfolder::set_args (std::vector<const char *> argv)
+{
+   DEBUG ("c15u: set-args: |argv| %d", argv.size());
+
    // FIXME - this should be moved to a proper API
    exec->envp.push_back ("HOME=/home/cesar/");
    exec->envp.push_back ("PWD=/usr/bin");
    exec->envp.push_back (nullptr);
 
-   exec->argv.push_back ("program-name");
-   exec->argv.push_back ("argv1");
-   exec->argv.push_back ("argv2");
-
-   DEBUG ("c15u: load-bytecode: saving instrumented code to /tmp/output.ll");
-   _ir_write_ll (m, "/tmp/output.ll");
-
-   DEBUG ("c15u: load-bytecode: done!");
+   exec->argv = argv;
 }
 
 Config C15unfolder::add_one_run (std::vector<int> &replay)

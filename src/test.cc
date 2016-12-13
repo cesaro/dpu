@@ -647,11 +647,13 @@ void test35 ()
 
 void test36 ()
 {
+   std::vector<const char *> argv {"program-name"};
    try
       {
          std::vector<int> replay {-1};
          C15unfolder unf;
          unf.load_bytecode ("./input.ll");
+         unf.set_args (argv);
 
          Config c (unf.add_one_run (replay));
          c.dump ();

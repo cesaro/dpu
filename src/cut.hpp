@@ -88,6 +88,24 @@ inline Cut::~Cut ()
    delete[] max;
 }
 
+inline Cut & Cut::operator= (const Cut & other)
+{
+   DEBUG("Cut.op= this %p other %p", this, &other);
+   nrp = other.nrp;
+   max = new Event* [nrp];
+   memcpy (max, other.max, nrp * sizeof (Event*));
+   return *this;
+}
+
+inline Cut & Cut::operator= (Cut && other)
+{
+   DEBUG("Cut.op= this %p other %p (move)", this, &other);
+   nrp = other.nrp;
+   max = other.max;
+   other.max = 0; // only suitable for destruction
+   return *this;
+}
+
 inline void Cut::add (Event *e)
 {
    DEBUG("Cut.add: this %p nrp %d e %p e.pid %d", this, nrp, e, e->pid());

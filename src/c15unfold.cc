@@ -174,7 +174,7 @@ void C15unfolder::stream_to_events (Config &c, action_streamt &s)
    Event *e, *ee;
    action_stream_itt it (s.begin());
    action_stream_itt end (s.end());
-   std::vector<int> pidmap (s.get_rt()->trace.num_ths);
+   std::vector<unsigned> pidmap (s.get_rt()->trace.num_ths);
 
    // we should have at least one action in the stream
    ASSERT (it != end);
@@ -220,7 +220,7 @@ void C15unfolder::stream_to_events (Config &c, action_streamt &s)
          ASSERT (it.id() < pidmap.size()); // pid in bounds
          ASSERT (it.id() >= 1 and pidmap[it.id()] == 0); // map entry undefined
          // creat
-         e = u.event ({.type = ActionType::THCREAT, .addr = it.addr()}, e);
+         e = u.event ({.type = ActionType::THCREAT}, e);
          // start
          ee = u.event (e);
          e->action.val = ee->pid();
@@ -239,7 +239,7 @@ void C15unfolder::stream_to_events (Config &c, action_streamt &s)
          ASSERT (it.id() >= 1 and pidmap[it.id()] != 0); // map is defined
          ee = c.mutex_max (pidmap[it.id()]);
          ASSERT (ee and ee->action.type == ActionType::THEXIT);
-         e = u.event ({.type = ActionType::THJOIN, .val = it.id()}, e, ee);
+         e = u.event ({.type = ActionType::THJOIN, .val = pidmap[it.id()]}, e, ee);
          c.add (e);
          break;
 

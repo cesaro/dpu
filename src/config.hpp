@@ -18,6 +18,24 @@ inline Config::Config (const Config &other) :
    DEBUG ("Config.ctor: this %p other %p (copy)", this, &other);
 }
 
+/// assignment operator
+Config & Config::operator= (const Config & other)
+{
+   DEBUG("Config.op=: this %p other %p", this, &other);
+   Cut::operator= (other);
+   mutexmax = other.mutexmax;
+   return *this;
+}
+
+/// move-assignment operator
+Config & Config::operator= (Config && other)
+{
+   DEBUG("Config.op=: this %p other %p (move)", this, &other);
+   Cut::operator= (std::move (other));
+   mutexmax = std::move (other.mutexmax);
+   return *this;
+}
+
 inline void Config::add (Event *e)
 {
    DEBUG("Config.add: this %p e %p e.pid %d", this, e, e->pid());

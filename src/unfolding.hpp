@@ -136,22 +136,22 @@ inline Event *Unfolding::find1 (Action *ac, Event *p)
 {
    unsigned pid;
 
-   // p should have 0 or 1 causal successor in the same process, and its action should be ac
+   // p should have 0 or 1 "mathematical" causal successor in the same process,
+   // and its action should be ac; but since we store non-immediate causal
+   // succesors in Event::post, we need to filter out using ac->type
 
    pid = p->pid();
 #ifdef CONFIG_DEBUG
    int count = 0;
-   for (auto e : p->post) if (e->pid () == pid) count++;
+   for (auto e : p->post)
+      if (e->pid () == pid and e->action.type == ac->type)
+         count++;
    ASSERT (count <= 1);
 #endif
    for (auto e : p->post)
    {
-      if (e->pid () == pid)
-      {
-         // the event exists
-         ASSERT (e->action == *ac);
+      if (e->pid () == pid and e->action.type == ac->type)
          return e;
-      }
    }
 
    // it does not exist

@@ -83,6 +83,11 @@ public:
    /// destructor
    inline ~Cut ();
 
+   /// assignment operator
+   inline Cut & operator= (const Cut & other);
+   /// move-assignment operator
+   inline Cut & operator= (Cut && other);
+
    /// add the event to the cut
    inline void add (Event *e);
 
@@ -389,6 +394,11 @@ public:
    inline Config (unsigned n);
    /// copy constructor
    inline Config (const Config &other);
+
+   /// assignment operator
+   inline Config & operator= (const Config & other);
+   /// move-assignment operator
+   inline Config & operator= (Config && other);
    
    /// add the event to the configuration
    inline void add (Event *e);

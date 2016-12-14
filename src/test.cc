@@ -663,22 +663,22 @@ void test35 ()
 
 void test36 ()
 {
-   std::vector<const char *> argv {"program-name"};
+   std::vector<const char *> argv {"huyen.c"};
    try
-      {
-         std::vector<int> replay {-1};
-         C15unfolder unf;
-         unf.load_bytecode ("./input.ll");
-         unf.set_args (argv);
+   {
+      std::vector<int> replay {-1};
+      C15unfolder unf;
+      unf.load_bytecode ("./input.ll");
+      unf.set_args (argv);
 
-         Config c (unf.add_one_run (replay));
-         c.dump ();
-         unf.compute_cex(unf.u, c);
+      Config c (unf.add_one_run (replay));
+      c.dump ();
+//      unf.compute_cex(unf.u, c);
 
-      } catch (const std::exception &e) {
-         DEBUG ("Test threw exception: %s", e.what ());
-         DEBUG ("Aborting!");
-      }
+   } catch (const std::exception &e) {
+      DEBUG ("Test threw exception: %s", e.what ());
+      DEBUG ("Aborting!");
+   }
 
 }
 

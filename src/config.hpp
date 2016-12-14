@@ -94,6 +94,8 @@ inline void Config::clear ()
    mutexmax.clear();
 }
 
+
+
 inline Event *Config::proc_max (unsigned pid)
 {
    return (*this)[pid]; // inherited Cut::operator[]

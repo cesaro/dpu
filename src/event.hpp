@@ -185,7 +185,7 @@ inline bool Event::is_pred_of (const Event *e) const
 //   DEBUG("%p cut.nrp: %d",this, cut.num_procs());
 //   DEBUG("%p cut.nrp: %d",e, e->cut.num_procs());
 //   DEBUG("e->pid: %d",e->pid());
-
+   /// e1 is not a pred of e2 if e1 = e2
    /// e.cut having fewer elements than this->cut means there's no way for it to be this's successor.
    if (e->cut.num_procs() < cut.num_procs())
    {
@@ -228,6 +228,8 @@ inline bool Event::is_pred_of (const Event *e) const
  */
 inline bool Event::in_cfl_with (const Event *e)
 {
+   if (this == e) return false;
+
    if (pid() == e->pid())
       return !is_pred_in_the_same_tree_of<0>(e);
 

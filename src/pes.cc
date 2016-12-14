@@ -305,6 +305,15 @@ void Config::dump ()
    DEBUG("== end config =="); 
 }
 
+bool Config::is_empty()
+{
+   for (int i = 0; i < nrp; i++)
+      if (max[i] != nullptr)
+         return false;
+
+   return true;
+}
+
 void Config::__dump_mutexes ()
 {
    for (auto &pair : mutexmax)

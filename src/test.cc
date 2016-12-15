@@ -280,7 +280,7 @@ void test30()
 
    printf ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n");
    std::vector<int> replay;
-   cut_to_replay(u, c, replay);
+   // cut_to_replay(u, c, replay); -> use C15unfolder::cut_to_replay
    DEBUG_("Replay: ");
    for (unsigned i = 0; i < replay.size(); i++)
    {
@@ -510,7 +510,7 @@ void test33()
 
    u.dump();
    printf("\nxxxxxxxxxxxxxxxxxxxx");
-   compute_cex(u,c);
+   //compute_cex(u,c); -> use C15unfolder::compute_cex
    u.dump();
    u.print_dot();
 
@@ -629,7 +629,7 @@ void test35 ()
 
       // compute the replay of that conf
       rep.clear ();
-      cut_to_replay (unf.u, c, rep);
+      unf.cut_to_replay (c, rep);
       DEBUG_("Replay: ");
       for (unsigned i = 0; i < rep.size(); i++)
       {
@@ -645,7 +645,7 @@ void test35 ()
 
       // compute the replay of that conf
       rep.clear ();
-      cut_to_replay (unf.u, c, rep);
+      unf.cut_to_replay (c, rep);
       DEBUG_("Replay: ");
       for (unsigned i = 0; i < rep.size(); i++)
       {
@@ -685,7 +685,8 @@ void test36 ()
 void test37 ()
 {
    DEBUG("Test compute_cex");
-   Unfolding u;
+   C15unfolder unf;
+   Event *e = nullptr;
 
    /*
     * Thread 0: start, creat, join, exit
@@ -696,52 +697,52 @@ void test37 ()
    Event *es1, *ex1, *el1,*eu1, *ell1, *euu1 ; // Process 1
 
    // start
-   es = u.event (nullptr); // bottom
+   es = unf.u.event (nullptr); // bottom
 
    // creat proc 1
-   ec = u.event ({.type = ActionType::THCREAT, .val = 1}, es);
+   ec = unf.u.event ({.type = ActionType::THCREAT, .val = 1}, es);
 
    // start in thread 1
-   es1 = u.event (ec);
+   es1 = unf.u.event (ec);
 
    // lock
-   el = u.event ({.type = ActionType::MTXLOCK, .addr = 0x100}, ec, nullptr);
+   el = unf.u.event ({.type = ActionType::MTXLOCK, .addr = 0x100}, ec, nullptr);
 
    //unlock
-   eu = u.event ({.type = ActionType::MTXUNLK, .addr = 0x100}, el, el);
+   eu = unf.u.event ({.type = ActionType::MTXUNLK, .addr = 0x100}, el, el);
 
    // lock
-   ell = u.event ({.type = ActionType::MTXLOCK, .addr = 0x100}, eu, eu);
+   ell = unf.u.event ({.type = ActionType::MTXLOCK, .addr = 0x100}, eu, eu);
 
    //unlock
-   euu = u.event ({.type = ActionType::MTXUNLK, .addr = 0x100}, ell, ell);
+   euu = unf.u.event ({.type = ActionType::MTXUNLK, .addr = 0x100}, ell, ell);
 
 
    /// Process 1
    // lock
-   el1 = u.event ({.type = ActionType::MTXLOCK, .addr = 0x100}, es1, euu);
+   el1 = unf.u.event ({.type = ActionType::MTXLOCK, .addr = 0x100}, es1, euu);
 
    //unlock
-   eu1 = u.event ({.type = ActionType::MTXUNLK, .addr = 0x100}, el1, el1);
+   eu1 = unf.u.event ({.type = ActionType::MTXUNLK, .addr = 0x100}, el1, el1);
 
    // lock
-   ell1 = u.event ({.type = ActionType::MTXLOCK, .addr = 0x100}, eu1, eu1);
+   ell1 = unf.u.event ({.type = ActionType::MTXLOCK, .addr = 0x100}, eu1, eu1);
 
    //unlock
-   euu1 = u.event ({.type = ActionType::MTXUNLK, .addr = 0x100}, ell1, ell1);
+   euu1 = unf.u.event ({.type = ActionType::MTXUNLK, .addr = 0x100}, ell1, ell1);
 
    //exit in thread 1
-   ex1 = u.event ({.type = ActionType::THEXIT}, euu1);
+   ex1 = unf.u.event ({.type = ActionType::THEXIT}, euu1);
 
 
    // Process 0
    // join
-   ej = u.event ({.type = ActionType::THJOIN, .val = 1}, euu, ex1);
+   ej = unf.u.event ({.type = ActionType::THJOIN, .val = 1}, euu, ex1);
 
    // exit
-   ex = u.event ({.type = ActionType::THEXIT}, ej);
+   ex = unf.u.event ({.type = ActionType::THEXIT}, ej);
 
-   Config c(u);
+   Config c(unf.u);
    c.add (es);
    c.add (ec);
    c.add (el);
@@ -758,14 +759,14 @@ void test37 ()
    c.add (ex);
    c.dump();
 
-   u.dump();
+   unf.u.dump();
    printf("\nxxxxxxxxxxxxxxxxxxxx");
-   compute_cex(u,c);
-   u.dump();
-   u.print_dot();
+   unf.compute_cex (c, &e);
+   unf.u.dump();
+   unf.u.print_dot();
 
    //-----Test find_alternative
-   Config cc(u);
+   Config cc(unf.u);
    cc.add (es);
    cc.add (ec);
    cc.add (el);
@@ -774,7 +775,7 @@ void test37 ()
    cc.dump();
 
    std::vector<Event *> d = {ell};
-   Config j(u);
+   Config j (unf.u);
 
    if (find_alternative(cc,d,j))
    {

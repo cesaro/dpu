@@ -7,8 +7,6 @@
 namespace dpu
 {
 
-void cut_to_replay (Unfolding &u, Cut &c, std::vector<int> &replay);
-void compute_cex (Unfolding &u, Config &c);
 bool is_conflict_free(std::vector<Event *> eset);
 bool find_alternative (Config &c, std::vector<Event*> d, Config &J);
 void enumerate_combination (unsigned i, std::vector<std::vector<Event *>> comb , std::vector<Event*> temp, Config &J);

@@ -335,6 +335,67 @@ void C15unfolder::stream_to_events (Config &c, action_streamt &s)
 
 void C15unfolder::cut_to_replay (Cut &c, std::vector<int> &replay)
 {
+   int nrp, count;
+   unsigned i, green;
+   bool progress;
+   Event *e, *ee;
+   Cut cc (u);
+
+   ASSERT (u.num_procs() <= c.num_procs());
+   nrp = u.num_procs();
+
+   // set up the Event's next pointer
+   for (i = 0; i < nrp; i++)
+   {
+      ee = nullptr;
+      for (e = c[i]; e; ee = e, e = e->pre_proc())
+         e->next = ee;
+   }
+
+   // we use a second cut cc to run forward up to completion of cut c
+   // we start by adding bottom to the cut
+   cc.add (u.proc(0)->first_event());
+   ASSERT (cc[0] and cc[0]->is_bottom ());
+
+   // get a fresh color, we call it green
+   green = u.get_fresh_color ();
+
+   // in a round-robbin fashion, we run each process until we cannot continue in
+   // that process; this continues until we are unable to make progress
+   progress = true;
+   while (progress)
+   {
+      progress = false;
+      for (i = 0; i < nrp; i++)
+      {
+         e = cc[i];
+         //DEBUG ("Context switch to proc %d, event %p", i, e);
+         count = 0;
+         // we replay as many events as possible on process i
+         for (e = cc[i]; e; e = e->next)
+         {
+            // if event has non-visited causal predecessor, abort this process
+            if (e->pre_other() and e->pre_other()->color != green) break;
+            e->color = green;
+            count++;
+            if (e->action.type == ActionType::THCREAT)
+            {
+               // put in the cut the THSTART corresponding to a THCREAT if the
+               // original cut contains at least one event from that process
+               if (c[e->action.val]) cc[e->action.val] = u.event (e);
+            }
+         }
+
+         if (count)
+         {
+            cc[i] = e;
+            replay.push_back (i);
+            replay.push_back (count);
+            progress = true;
+         }
+      }
+   }
+   replay.push_back (-1);
 
 }
 

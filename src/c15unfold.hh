@@ -88,18 +88,26 @@ public:
    /// events and updating c, which becomes a maximal configuration
    void run_to_completion (Config &c);
 
-   /// the POR algorithm
+   /// the CONCUR'15 POR algorithm
    void explore ();
+
+   /// compute the conflicting extensions of c and add them to a singly-linked
+   /// list pointed by head
    void compute_cex (Config &c, Event **head);
+
    bool find_alternative (Config &c, std::vector<Event*> d, Config &j);
 //   void enumerate_combination (unsigned i,std::vector<std::vector<Event *>> comb , std::vector<Event*> temp, Config &j);
 //   bool is_conflict_free(std::vector<Event *> combin);
 
-private:
+public:
    std::vector<std::string> argv;
 
    void stream_to_events (Config &c, action_streamt &s);
+
+   /// computes a replay sequence for the configuration c
    void cut_to_replay (Cut &c, std::vector<int> &replay);
+
+   /// computes conflicting extensions associated to event e
    void compute_cex_lock (Event *e, Event **head);
 };
 

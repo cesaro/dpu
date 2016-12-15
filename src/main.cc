@@ -12,7 +12,7 @@ int main (int, char **)
    if (user and strcmp (user, "cesar") == 0)
    {
       // for Cesar
-      test50 ();
+      test37 ();
    }
    else
    {

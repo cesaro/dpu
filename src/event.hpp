@@ -160,11 +160,14 @@ inline bool Event:: is_pred_in_the_same_tree_of (const Event *e) const
    if (this == e) return true;
 
    if (node[i].depth > e->node[i].depth)
+   {
+//      DEBUG("node[i] cfl or is a successor of e");
       return false;
+   }
 
    if (node[i].depth == e->node[i].depth)
    {
-//      DEBUG("Two nodes have the same depth");
+      DEBUG("Two nodes have the same depth");
       if (this == e)
          return true;
       else
@@ -174,8 +177,14 @@ inline bool Event:: is_pred_in_the_same_tree_of (const Event *e) const
    ASSERT(node[i].depth < e->node[i].depth);
 
    ee = &e->node[i].find_pred<i>(node[i].depth);
+   DEBUG("%d", ee->idx);
+   DEBUG("%d", this->idx);
+
    if (ee == this)
+   {
+      DEBUG("not cfl here");
       return true;
+   }
 
    return false;
 }
@@ -228,17 +237,25 @@ inline bool Event::is_pred_of (const Event *e) const
  */
 inline bool Event::in_cfl_with (const Event *e)
 {
+   if (e == nullptr) return false;
    if (this == e) return false;
 
    if (pid() == e->pid())
-      return !is_pred_in_the_same_tree_of<0>(e);
+   {
+      DEBUG("Same process tree");
+      return (!is_pred_in_the_same_tree_of<0>(e) and !e->is_pred_in_the_same_tree_of<0>(this));
+   }
 
    if ((action.addr == e->action.addr) and (action.addr))
-      return !is_pred_in_the_same_tree_of<1>(e);
+   {
+      DEBUG("Same addr tree");
+      return (!is_pred_in_the_same_tree_of<1>(e) and !e->is_pred_in_the_same_tree_of<1>(this));
+   }
 
    int nrp = (cut.num_procs() > e->cut.num_procs()) ? e->cut.num_procs() : cut.num_procs();
 //   DEBUG("nrp: %d", nrp);
 
+   DEBUG("Different processes");
    for (int i = 0; i < nrp; i++)
    {
       if (!cut[i]->is_pred_in_the_same_tree_of<0>(e->cut[i]) and !e->cut[i]->is_pred_in_the_same_tree_of<0>(cut[i]))

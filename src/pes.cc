@@ -226,10 +226,10 @@ void Unfolding::print_dot ()
                break;
          }
 
-         fs << e.idx << "[label=\"" << "Proc: "<<p->pid() << " - "<< action_type_str(e.action.type);
-//               <<"\n vclock:(" << e.vclock.print_dot() <<" )\", color= " << bcolor << "]\n";
+         fs << e.idx << "[label=\" idx:"<< e.idx << "  Proc: "<<p->pid() << " - "<< action_type_str(e.action.type) << "\""
+               << "color= " << bcolor << "]\n";
          count++;
-      }
+   }
    }
 
    /// print edges
@@ -246,7 +246,18 @@ void Unfolding::print_dot ()
       }
    }
 
-   /// print conflict
+   /* print conflicting edge */
+   for (unsigned i = 0; i < num_procs(); i++)
+   {
+      Process *p = proc (i);
+      for (Event &e : *p)
+      {
+         for (unsigned i = 0; i < e.dicfl.size(); i++)
+            if (e.dicfl[i]->idx > e.idx ) // don't repeat drawing the same conflict
+               fs << e.idx << "->" << e.dicfl[i]->idx << "[dir=none, color=red, style=dashed]\n";
+
+      }
+   }
 
    fs << "}";
    fs.close();

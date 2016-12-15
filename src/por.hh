@@ -9,11 +9,9 @@ namespace dpu
 
 void cut_to_replay (Unfolding &u, Cut &c, std::vector<int> &replay);
 void compute_cex (Unfolding &u, Config &c);
-//bool check_cfl_same_tree(int idx, const Event & e1, const Event & e2);
-//bool check_2difs(Event & e1, Event & e2);
-//bool check_cfl(Event & e1, Event & e2 );
-void find_an_alternative(Config & C, std::vector<Event *> D, std::vector<Event *> & J, std::vector<Event *> & A );
-void compute_alt(unsigned int i, const std::vector<std::vector<Event *>> & s, std::vector<Event *> & J, std::vector<Event *> & A);
+bool is_conflict_free(std::vector<Event *> eset);
+bool find_alternative (Config &c, std::vector<Event*> d, Config &J);
+void enumerate_combination (unsigned i, std::vector<std::vector<Event *>> comb , std::vector<Event*> temp, Config &J);
 
 } //end of namespace
 #endif

@@ -317,7 +317,7 @@ void C15unfolder::conf_to_replay (Cut &c, std::vector<int> &replay)
 {
 
 }
-
+#if 0
 /// Compute conflicting extension for a LOCK
 void LOCK_cex (Unfolding &u, Event *e)
 {
@@ -785,6 +785,6 @@ bool C15unfolder::find_alternative (Config &c, std::vector<Event*> d, Config &J)
 
        return false;
 }
-
+#endif
 
 } // namespace dpu

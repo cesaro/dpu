@@ -70,8 +70,6 @@ struct Action
 class Cut
 {
 public:
-   /// FIXME - is this necessary?
-   std::vector<Event *> cex;
    /// creates an empty cut for as much as u.num_procs processes
    inline Cut (const Unfolding &u);
    /// creates an empty cut for as much as n processes
@@ -126,8 +124,10 @@ class Event : public MultiNode<Event,3> // 2 trees, skip step = 3
 private:
    Event *_pre_other;
 public:
-   int idx;
+   int idx; // for print_dot
    int inside; // a flag to mark that an event is inside some set or not
+   std::vector<Event *> dicfl;
+
    /// THSTART(), creat is the corresponding THCREAT (or null for p0)
    inline Event (Event *creat);
    /// THCREAT(tid) or THEXIT(), one predecessor (in the process)
@@ -388,6 +388,8 @@ private:
 class Config : public Cut
 {
 public:
+   /// FIXME - is this necessary?
+   std::vector<Event *> cex;
    /// creates an empty onfiguration for as much as u.num_procs processes
    inline Config (const Unfolding &u);
    /// creates an empty configuration for as much as n processes
@@ -407,6 +409,7 @@ public:
    inline void clear ();
    /// prints the cut in stdout
    void dump ();
+   bool is_empty();
 
    /// maximal event for the given pid, or nullptr
    inline Event *proc_max (unsigned pid);

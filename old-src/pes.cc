@@ -2475,7 +2475,7 @@ void Unfolding:: find_an_alternative(Config & C, std::vector<Event *> D, std::ve
 
 
       /*
-       *  Remove events that are in conflict with any maxinal event
+       *  Remove events that are in conflict with any maximal event
        *  Let's reconsider set of maximal events
        */
       removed = false;

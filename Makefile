@@ -18,7 +18,11 @@ include defs.mk
 .PHONY: fake all g test clean distclean prof dist compile tags run dot
 	
 
+ifeq ($(shell id -nu),cesar)
 all : compile run
+else
+all : compile
+endif
 
 compile: $(TARGETS)
 
@@ -27,6 +31,13 @@ run: compile input.ll
 
 input.ll : program.ll ../steroid/rt/rt.ll
 	llvm-link-$(LLVMVERS) -S $^ -o $@
+
+
+#program.ll : /tmp/cunf3.ll
+#program.ll : ../steroid/tests/hello.ll
+#program.ll : benchmarks/basic/hello.ll
+#program.ll : benchmarks/basic/cjlu.ll
+#program.ll : benchmarks/basic/huyen.ll
 
 ifeq ($(shell id -nu),cesar)
 program.ll : benchmarks/basic/cjlu.ll

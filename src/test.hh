@@ -55,4 +55,15 @@ void test47 ();
 void test48 ();
 void test49 ();
 
+void test50 ();
+void test51 ();
+void test52 ();
+void test53 ();
+void test54 ();
+void test55 ();
+void test56 ();
+void test57 ();
+void test58 ();
+void test59 ();
+
 #endif

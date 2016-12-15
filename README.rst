@@ -46,11 +46,6 @@ Questions
   corresponding THCREAT; you can do it at any moment, and there should be no bug
   related to that
 
-Bugs
-====
-x Create a conflicting event, pre_proc's address is changed to new one. It is
-  back when printing the event.
-
 
 Improvements
 ============

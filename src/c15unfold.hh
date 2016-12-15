@@ -92,6 +92,8 @@ public:
    void explore ();
    void compute_cex (Config &c, Event **head);
    bool find_alternative (Config &c, std::vector<Event*> d, Config &j);
+//   void enumerate_combination (unsigned i,std::vector<std::vector<Event *>> comb , std::vector<Event*> temp, Config &j);
+//   bool is_conflict_free(std::vector<Event *> combin);
 
 private:
    std::vector<std::string> argv;

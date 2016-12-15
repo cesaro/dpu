@@ -45,6 +45,7 @@ inline void Config::add (Event *e)
    // the unfolding might have changed the number of process after this
    // configuration was constructed; assert it didn't happen
    ASSERT (e->pid() < nrp);
+
    // pre-proc must be the event max[e.pid()]
    ASSERT (e->pre_proc() == max[e->pid()]);
    // the pid() and the address of the event need to be different
@@ -93,6 +94,8 @@ inline void Config::clear ()
    Cut::clear ();
    mutexmax.clear();
 }
+
+
 
 inline Event *Config::proc_max (unsigned pid)
 {

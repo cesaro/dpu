@@ -665,13 +665,14 @@ void test36 ()
 {
    try
       {
+         Event *e = nullptr;
          std::vector<int> replay {-1};
          C15unfolder unf;
          unf.load_bytecode ("./input.ll");
 
          Config c (unf.add_one_run (replay));
          c.dump ();
-         unf.compute_cex(unf.u, c);
+         unf.compute_cex (c, &e);
 
       } catch (const std::exception &e) {
          DEBUG ("Test threw exception: %s", e.what ());
@@ -682,6 +683,27 @@ void test36 ()
 
 void test37 ()
 {
+   // main3:
+   // 0 5  1 5  2 2  3 2  0 4  -1  -> standard (p0 creates p1,p2; p1 creates p3)
+   // 0 2  1 3  -1 -> alternative (p0 creates p1,p3; p1 creates p2)
+   std::vector<const char *> argv {"prog", "main4"};
+   std::vector<int> replay {-1};
+
+   try
+   {
+      C15unfolder unf;
+
+      // load code and set argv
+      unf.load_bytecode ("./input.ll");
+      unf.set_args (argv);
+      
+      // run the system 1 time and compute cex
+      unf.add_multiple_runs (replay);
+
+   } catch (const std::exception &e) {
+      DEBUG ("Test threw exception: %s", e.what ());
+      DEBUG ("Aborting!");
+   }
 }
 
 void test38 ()
@@ -692,3 +714,6 @@ void test39 ()
 {
 }
 
+void test40 ()
+{
+}

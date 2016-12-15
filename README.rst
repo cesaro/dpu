@@ -20,11 +20,13 @@ x check alignment Event / Event box
 x write methods to retrieve existing events when replying
 x how to give semantics to failing create/join
 x escribir la funcion de busqeuda en los post para los Unfolding::event
-- how to represent conflict?
 x steroids -> unf
-- design unfolder class
-- in_icfl_with (Event e);
 x C15unfolder::stream_to_events
+x testing stream_to_events
+- how to represent conflict?
+w design unfolder class
+- in_icfl_with (Event e);
+- add_multiple_runs
 
 Huyen:
 
@@ -69,3 +71,5 @@ Improvements
 - translate e->action.val on thread creation, so that it contains the pid in the
   unfolding, not the one in steroids
 
+- design interface in Config to enumerate the addresses of mutexes involved in
+  the configuration

@@ -75,8 +75,14 @@ public:
    //void set_env (std::vector<const std::string> env);
    void set_args (std::vector<const char *> argv);
 
-   /// runs the system and returns the generated configuration
+   /// runs the system up to completion (termination) using the provided replay
+   /// and returns the corresponding maximal configuration
    Config add_one_run (std::vector<int> &replay);
+
+   /// runs the system up to completion using the replay, computes CEX of the
+   /// resulting configuration, constructs a replay for each one of them and
+   /// applies add_one_run for each one
+   void add_multiple_runs (std::vector<int> &replay);
 
    /// replays c and then runs the system in free mode, adding the resulting
    /// events and updating c, which becomes a maximal configuration
@@ -84,15 +90,15 @@ public:
 
    /// the POR algorithm
    void explore ();
-   void compute_cex (Unfolding &u, Config &c);
+   void compute_cex (Config &c, Event **head);
    bool find_alternative (Config &c, std::vector<Event*> d, Config &j);
 
 private:
    std::vector<std::string> argv;
 
    void stream_to_events (Config &c, action_streamt &s);
-   void conf_to_replay (Cut &c, std::vector<int> &replay);
-//   void compute_cex (Unfolding &u, Config &c);
+   void cut_to_replay (Cut &c, std::vector<int> &replay);
+   void compute_cex_lock (Event *e, Event **head);
 };
 
 } //end of namespace

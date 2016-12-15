@@ -157,6 +157,26 @@ Config C15unfolder::add_one_run (std::vector<int> &replay)
    return c;
 }
 
+void C15unfolder::add_multiple_runs (std::vector<int> &replay)
+{
+   Event *e;
+   std::vector<int> rep;
+   Config c (add_one_run (replay));
+
+   // add_one_run executes the system up to completion, we now compute all cex
+   // of the resulting configuration and iterate through them
+
+   c.dump ();
+
+   e = nullptr;
+   compute_cex (c, &e);
+
+   for (; e; e = e->next)
+   {
+      DEBUG ("e %p", e);
+   }
+}
+
 void C15unfolder::run_to_completion (Config &c)
 {
 
@@ -313,38 +333,39 @@ void C15unfolder::stream_to_events (Config &c, action_streamt &s)
    }
 }
 
-void C15unfolder::conf_to_replay (Cut &c, std::vector<int> &replay)
+void C15unfolder::cut_to_replay (Cut &c, std::vector<int> &replay)
 {
 
 }
 
 /// Compute conflicting extension for a LOCK
-void LOCK_cex (Unfolding &u, Event *e)
+void C15unfolder::compute_cex_lock (Event *e, Event **head)
 {
-   DEBUG("\n %p: LOCK_cex", e);
    Event * ep, * em, *pr_mem, *newevt;
+
+   DEBUG ("c15u: cex-lock: e %p *head %p", e, *head);
+
    ep = e->pre_proc();
    em = e->pre_other();
-
    if (em == nullptr)
    {
-      DEBUG("   No conflicting event");
+      DEBUG ("c15u: cex-lock: pre-other null, returning");
       return;
    }
 
-   ASSERT(em)
-
-  // while ((em != nullptr) and (ep->vclock < em->vclock)) //em is not a predecessor of ep
+   // while ((em != nullptr) and (ep->vclock < em->vclock)) //em is not a predecessor of ep
    while (em)
    {
 //      if (em->vclock < ep->vclock)
       if (em->is_pred_of(ep)) // excluding em = ep
       {
-         DEBUG("em is a predecessor of ep");
-         break;
+         DEBUG("c15u: cex-lock: em < ep, returning");
+         return;
       }
 
-      pr_mem = em->pre_other()->pre_other(); // skip 2
+      // jump 2 predecessors back
+      ASSERT (em->pre_other());
+      pr_mem = em->pre_other()->pre_other();
 
       //DEBUG("pr_mem: %p", pr_mem);
 
@@ -366,12 +387,14 @@ void LOCK_cex (Unfolding &u, Event *e)
                   newevt->flags.boxlast ? 1 : 0,
                   action_type_str (newevt->action.type));
 
-         // need to add newevt to cex
+         // we add newevt to the list
+         newevt->next = *head;
+         *head = newevt;
 
          break;
       }
 
-      ///Check if pr_mem < ep
+      // Check if pr_mem < ep
 
 //      if (ep->vclock > pr_mem->vclock)
       if (em->is_pred_of(ep))
@@ -381,7 +404,7 @@ void LOCK_cex (Unfolding &u, Event *e)
       }
 
       Event * newevt = u.event(e->action, ep, pr_mem);
-      /// need to add newevt to cex
+      // need to add newevt to cex
       DEBUG("New event created:");
       DEBUG ("  e %-16p pid %2d pre-proc %-16p pre-other %-16p fst/lst %d/%d action %s",
                newevt, newevt->pid(), newevt->pre_proc(), newevt->pre_other(),
@@ -389,49 +412,41 @@ void LOCK_cex (Unfolding &u, Event *e)
                newevt->flags.boxlast ? 1 : 0,
                action_type_str (newevt->action.type));
 
-      /// move the pointer to the next
+      // we add newevt to the list
+      newevt->next = *head;
+      *head = newevt;
+
+      // move the pointer to the next
       em = pr_mem;
    }
 
-   DEBUG("   Finish LOCK_cex");
+   DEBUG ("c15u: cex-lock: done!");
 }
 
-void C15unfolder::compute_cex (Unfolding &u, Config &c)
+void C15unfolder::compute_cex (Config &c, Event **head)
 {
 //   unsigned nrp = c.num_procs();
    Event *e;
 
-   DEBUG("==========Compute cex====");
+   DEBUG("c15u: cex: c %p *head %p |mm| %d", &c, *head, c.mutexmax.size());
 
-   // FIXME -- Cesar: improve this to use only the address trees in c.mutexmax
-//   for (int i = 0; i < nrp; i++)
-//   {
-//      for (e = c[i]; e; e = e->pre_proc())
-//      {
-//         if (e->action.type == ActionType::MTXLOCK)
-//         {
-////            DEBUG("e: %p, type: %s",e, action_type_str(e->action.type));
-//            LOCK_cex(u, e);
-//         }
-//      }
-//   }
-
-   DEBUG("%d", c.mutexmax.size());
    for (auto const & max : c.mutexmax)
    {
-      DEBUG("What's the hell");
-      for (e = max.second; e; e = e->pre_other())
+      // skip events that not locks or unlocks
+      e = max.second;
+      if (e->action.type != ActionType::MTXUNLK and
+            e->action.type != ActionType::MTXLOCK) continue;
+
+      // scan the lock chain backwards
+      for (; e; e = e->pre_other())
       {
-         DEBUG("max.second %p", max.second);
          if (e->action.type == ActionType::MTXLOCK)
          {
-            DEBUG("e: %p, type: %s",e, action_type_str(e->action.type));
-            LOCK_cex(u,e);
+            compute_cex_lock (e, head);
          }
       }
-
    }
-
+   DEBUG ("c15u: cex: done!");
 }
 
 bool C15unfolder::find_alternative (Config &c, std::vector<Event*> d, Config &j)

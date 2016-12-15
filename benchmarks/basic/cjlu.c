@@ -122,12 +122,55 @@ int main3 (int argc, char ** argv)
    return 0;
 }
 
+void *main4_thd (void *arg)
+{
+   int ret;
+   (void) arg;
+
+   // enter cs
+   ret = pthread_mutex_lock (&m3);
+   assert (ret == 0);
+
+   printf ("t1 in cs\n");
+
+   // exit cs
+   ret = pthread_mutex_unlock (&m3);
+   assert (ret == 0);
+   return 0;
+}
+
+int main4 (int argc, char ** argv)
+{
+   int ret;
+   pthread_t th;
+
+   (void) argc;
+   (void) argv;
+
+   ret = pthread_create (&th, 0, main4_thd, 0);
+   assert (ret == 0);
+
+   // enter cs
+   ret = pthread_mutex_lock (&m3);
+   assert (ret == 0);
+   printf ("t0 in cs\n");
+   // exit cs
+   ret = pthread_mutex_unlock (&m3);
+   assert (ret == 0);
+
+   // wait for all created threads
+   ret = pthread_join (th, 0);
+   assert (ret == 0);
+   return 0;
+}
+
 int main (int argc, char ** argv)
 {
    assert (argc == 2);
    if (strcmp (argv[1], "main1") == 0) return main1 (argc, argv);
    if (strcmp (argv[1], "main2") == 0) return main2 (argc, argv);
    if (strcmp (argv[1], "main3") == 0) return main3 (argc, argv);
+   if (strcmp (argv[1], "main4") == 0) return main4 (argc, argv);
    assert (0);
    return 0;
 }

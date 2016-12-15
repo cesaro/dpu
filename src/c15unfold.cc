@@ -138,7 +138,7 @@ void C15unfolder::set_args (std::vector<const char *> argv)
    exec->argv = argv;
 }
 
-Config C15unfolder::add_one_run (std::vector<int> &replay)
+Config C15unfolder::add_one_run (const std::vector<int> &replay)
 {
    Config c (Unfolding::MAX_PROC);
 
@@ -157,7 +157,7 @@ Config C15unfolder::add_one_run (std::vector<int> &replay)
    return c;
 }
 
-void C15unfolder::add_multiple_runs (std::vector<int> &replay)
+void C15unfolder::add_multiple_runs (const std::vector<int> &replay)
 {
    Event *e;
    std::vector<int> rep;
@@ -168,12 +168,17 @@ void C15unfolder::add_multiple_runs (std::vector<int> &replay)
 
    c.dump ();
 
+   // compute cex
    e = nullptr;
    compute_cex (c, &e);
 
+   // run the system once more for every conflicting extension
    for (; e; e = e->next)
    {
-      DEBUG ("e %p", e);
+      DEBUG ("xxxxxxxxxxxxxxxxxxxxxxxxx e %p", e);
+      cut_to_replay (e->cut, rep);
+      add_one_run (rep);
+      rep.clear ();
    }
 }
 
@@ -186,7 +191,7 @@ void C15unfolder::explore ()
 {
 }
 
-void C15unfolder::stream_to_events (Config &c, action_streamt &s)
+void C15unfolder::stream_to_events (Config &c, const action_streamt &s)
 {
    // invariant:
    // the stream is a sequence of actions starting from the state given by c
@@ -333,7 +338,7 @@ void C15unfolder::stream_to_events (Config &c, action_streamt &s)
    }
 }
 
-void C15unfolder::cut_to_replay (Cut &c, std::vector<int> &replay)
+void C15unfolder::cut_to_replay (const Cut &c, std::vector<int> &replay)
 {
    int nrp, count;
    unsigned i, green;
@@ -341,10 +346,10 @@ void C15unfolder::cut_to_replay (Cut &c, std::vector<int> &replay)
    Event *e, *ee;
    Cut cc (u);
 
-   ASSERT (u.num_procs() <= c.num_procs());
-   nrp = u.num_procs();
+   DEBUG ("c15u: cut-to-replay: cut %p", &c);
 
    // set up the Event's next pointer
+   nrp = u.num_procs();
    for (i = 0; i < nrp; i++)
    {
       ee = nullptr;
@@ -369,7 +374,7 @@ void C15unfolder::cut_to_replay (Cut &c, std::vector<int> &replay)
       for (i = 0; i < nrp; i++)
       {
          e = cc[i];
-         //DEBUG ("Context switch to proc %d, event %p", i, e);
+         DEBUG ("c15u: cut-to-replay: ctxsw to pid %d, event %p", i, e);
          count = 0;
          // we replay as many events as possible on process i
          for (e = cc[i]; e; e = e->next)
@@ -396,7 +401,6 @@ void C15unfolder::cut_to_replay (Cut &c, std::vector<int> &replay)
       }
    }
    replay.push_back (-1);
-
 }
 
 /// Compute conflicting extension for a LOCK

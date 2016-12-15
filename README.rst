@@ -26,7 +26,7 @@ x testing stream_to_events
 - how to represent conflict?
 w design unfolder class
 - in_icfl_with (Event e);
-w add_multiple_runs
+x add_multiple_runs
 
 Huyen:
 

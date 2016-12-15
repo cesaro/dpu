@@ -166,8 +166,34 @@ void Process::dump ()
 /* Express an event in a string */
 std::string Event::str () const
 {
-   //return fmt ("%p, index: %d,  evtid: %s ", this, idx,  evtid.str().c_str());
-   return "";
+   std::string s;
+
+   s = fmt ("e %-16p pid %2d pre-proc %-16p pre-other %-16p "
+         "fst/lst %d/%d |rb| %lu action %s",
+         this, pid(), pre_proc(), pre_other(),
+         flags.boxfirst ? 1 : 0,
+         flags.boxlast ? 1 : 0,
+         redbox.size (),
+         action_type_str (action.type));
+
+   switch (action.type)
+   {
+   case ActionType::THCREAT :
+      s += fmt (" val %d", action.val);
+      break;
+   case ActionType::THJOIN :
+      s += fmt (" val %d", action.val);
+      break;
+   case ActionType::MTXLOCK :
+      s += fmt (" addr %p", (void*) action.addr);
+      break;
+   case ActionType::MTXUNLK :
+      s += fmt (" addr %p", (void*) action.addr);
+      break;
+   default :
+      break;
+   }
+   return s;
 }
 
 void Unfolding::print_dot ()
@@ -280,15 +306,9 @@ void Cut::__dump_cut () const
    {
       e = max[i] ;
       DEBUG("Proc %d, max %p", i, e);
-      while (e)
+      for (; e; e = e->pre_proc())
       {
-         DEBUG ("  e %-16p pid %2d pre-proc %-16p pre-other %-16p fst/lst %d/%d action %s",
-               e, max[i]->pid(), e->pre_proc(), e->pre_other(),
-               e->flags.boxfirst ? 1 : 0,
-               e->flags.boxlast ? 1 : 0,
-               action_type_str (e->action.type));
-
-         e = e->pre_proc();
+         DEBUG (" %s", e->str().c_str());
       }
    }
 }
@@ -308,7 +328,7 @@ std::string Cut::str () const
    return s;
 }
 
-void Config::dump ()
+void Config::dump () const
 {
    DEBUG("== begin config =="); 
    __dump_cut ();
@@ -316,7 +336,7 @@ void Config::dump ()
    DEBUG("== end config =="); 
 }
 
-bool Config::is_empty()
+bool Config::is_empty() const
 {
    for (int i = 0; i < nrp; i++)
       if (max[i] != nullptr)
@@ -325,7 +345,7 @@ bool Config::is_empty()
    return true;
 }
 
-void Config::__dump_mutexes ()
+void Config::__dump_mutexes () const
 {
    for (auto &pair : mutexmax)
    {

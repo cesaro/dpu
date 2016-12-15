@@ -77,12 +77,12 @@ public:
 
    /// runs the system up to completion (termination) using the provided replay
    /// and returns the corresponding maximal configuration
-   Config add_one_run (std::vector<int> &replay);
+   Config add_one_run (const std::vector<int> &replay);
 
    /// runs the system up to completion using the replay, computes CEX of the
    /// resulting configuration, constructs a replay for each one of them and
    /// applies add_one_run for each one
-   void add_multiple_runs (std::vector<int> &replay);
+   void add_multiple_runs (const std::vector<int> &replay);
 
    /// replays c and then runs the system in free mode, adding the resulting
    /// events and updating c, which becomes a maximal configuration
@@ -102,10 +102,10 @@ public:
 public:
    std::vector<std::string> argv;
 
-   void stream_to_events (Config &c, action_streamt &s);
+   void stream_to_events (Config &c, const action_streamt &s);
 
    /// computes a replay sequence for the configuration c
-   void cut_to_replay (Cut &c, std::vector<int> &replay);
+   void cut_to_replay (const Cut &c, std::vector<int> &replay);
 
    /// computes conflicting extensions associated to event e
    void compute_cex_lock (Event *e, Event **head);

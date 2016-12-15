@@ -827,11 +827,20 @@ void test49 ()
 
 void test50 ()
 {
-   // main3:
-   // 0 5  1 5  2 2  3 2  0 4  -1  -> standard (p0 creates p1,p2; p1 creates p3)
-   // 0 2  1 3  -1 -> alternative (p0 creates p1,p3; p1 creates p2)
+#if 1
+   // p0 creates p1,p2; p1 creates p3
+   // std::vector<int> replay {0, 5, 1, 5, 2, 2, 3, 2, 0, 4, -1};
+   // p0 creates p1,p3; p1 creates p2
+   // std::vector<int> replay {0, 2, 1, 3, -1};
+   std::vector<int> replay {-1}; // free mode
+   std::vector<const char *> argv {"prog", "main3"};
+#endif
+#if 0
+   // std::vector<int> replay {0, 2, 1, 2, -1}; // p1 lock first
+   // std::vector<int> replay {0, 3, -1}; // p0 lock first
+   std::vector<int> replay {-1}; // free mode
    std::vector<const char *> argv {"prog", "main4"};
-   std::vector<int> replay {-1};
+#endif
 
    try
    {
@@ -841,7 +850,7 @@ void test50 ()
       unf.load_bytecode ("./input.ll");
       unf.set_args (argv);
       
-      // run the system 1 time and compute cex
+      // run system, get config, compute cex, and run 1 time per cex
       unf.add_multiple_runs (replay);
 
    } catch (const std::exception &e) {

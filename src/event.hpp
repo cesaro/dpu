@@ -99,13 +99,17 @@ inline unsigned Event::pid () const
 {
    return Unfolding::ptr2pid (this);
 }
-inline Event *Event::pre_proc ()
+inline const Event *Event::pre_proc () const
 {
    ASSERT (action.type != ActionType::THSTART or flags.boxfirst);
    return pre_proc (flags.boxfirst);
 }
+inline Event *Event::pre_proc ()
+{
+   return const_cast<Event*> (static_cast<const Event*>(this)->pre_proc ());
+}
 
-inline Event *Event::pre_proc (bool bf)
+inline const Event *Event::pre_proc (bool bf) const
 {
 
    // if this is the first in the box, then make magic with the addresses ...
@@ -116,13 +120,21 @@ inline Event *Event::pre_proc (bool bf)
    // otherwise it's the precessor in the box
    return this - 1;
 }
+inline Event *Event::pre_proc (bool bf)
+{
+   return const_cast<Event*> (static_cast<const Event*>(this)->pre_proc (bf));
+}
 
-inline Event *Event::pre_other ()
+inline const Event *Event::pre_other () const
 {
    return _pre_other;
 }
+inline Event *Event::pre_other ()
+{
+   return const_cast<Event*> (static_cast<const Event*>(this)->pre_other ());
+}
 
-inline bool Event::is_bottom ()
+inline bool Event::is_bottom () const
 {
    return action.type == ActionType::THSTART and pid () == 0;
 }

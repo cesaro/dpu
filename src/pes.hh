@@ -159,8 +159,10 @@ public:
    Event *next;
 
    /// predecessor in my thread, or null if THSTART
+   inline const Event *pre_proc () const;
    inline Event *pre_proc ();
    /// predecessor in another thread (if any), or null
+   inline const Event *pre_other () const;
    inline Event *pre_other ();
 
    /// returns the pid of the process to which this event belongs
@@ -177,7 +179,7 @@ public:
    std::vector<Event *> local_config();
 
    /// true iff this event is the THSTART event of thread 0
-   inline bool is_bottom ();
+   inline bool is_bottom () const;
 
    template <int i>
    inline bool is_pred_in_the_same_tree_of(const Event *e) const;
@@ -194,6 +196,7 @@ public:
 
 private:
    inline void post_add (Event * const succ);
+   inline const Event *pre_proc (bool bf) const;
    inline Event *pre_proc (bool bf);
 
    inline EventBox *box_above () const;
@@ -408,8 +411,8 @@ public:
    /// empties the configuration
    inline void clear ();
    /// prints the cut in stdout
-   void dump ();
-   bool is_empty();
+   void dump () const;
+   bool is_empty() const;
 
    /// maximal event for the given pid, or nullptr
    inline Event *proc_max (unsigned pid);
@@ -420,7 +423,7 @@ public:
    /// map from lock addresss to events
    std::unordered_map<Addr,Event*> mutexmax;
 
-   void __dump_mutexes ();
+   void __dump_mutexes () const;
 };
 
 // implementation of inline methods

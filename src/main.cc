@@ -17,7 +17,7 @@ int main (int, char **)
    else
    {
       // for the rest
-      test36();
+      test37();
    }
    return 0;
 }

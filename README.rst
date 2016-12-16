@@ -38,6 +38,11 @@ x compute_cex (u, c)
 x fix conf2replay, bug when c.max contains null pointers : fixed. 
 - compute_alt (BaseConfig &c, const std::vector<Event*> d, 
 
+Needs
+============
+- in_dicfl_with() to initialize the comb
+- 
+
 Questions
 =========
 - H: THSTART event must be created immediately after the THCREAT?
@@ -54,14 +59,14 @@ Improvements
   instert new events, based on a radix tree or hash table per event; or at least
   optimize to scan the smallest postset in Unfolding::find2
 
-- Vector clocks. In the current implementation, vclocks store a mapping from
+x Vector clocks. In the current implementation, vclocks store a mapping from
   pids to integers. The integer increments whenever the process advances.
   Instead of storing integers I think we could store a pointer to the last event
   (this), as they are also well ordered in memory. An undersirable outcome of
   this is that sibling nodes of the per-process tree will *not* have equal
   depths, but depths that are now ordered, as well. This seems to have no impact
   if we are going to only use these clocks only for recovering causaly
-  information inside of configurations.
+  information inside of configurations. -> removed from Event thank to Cut existence.
 
 - translate e->action.val on thread creation, so that it contains the pid in the
   unfolding, not the one in steroids

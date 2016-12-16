@@ -57,10 +57,13 @@ void enumerate_combination (unsigned i, std::vector<std::vector<Event *>> comb ,
                for (unsigned i = 0; i < temp.size(); i++)
                {
                   lc = temp[i]->get_local_config();
+
                   for (int j = lc.size()-1; j >= 0; j--)
+                  {
                      J.add(lc[j]); // BUG here, need to add event's local config
+                     J.dump();
+                  }
                }
-               J.dump();
                return; // go back to find_alternative
 
                /*

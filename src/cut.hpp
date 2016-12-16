@@ -116,7 +116,7 @@ inline void Cut::add (Event *e)
    // configuration was constructed; assert it didn't happen
    ASSERT (e->pid() < nrp);
 
-   // pre-proc must be the event max[e.pid()]
+   // pre-proc must be the event max[e.pid()] // Why? Can we add an arbitray event to a Cut
    ASSERT (e->pre_proc() == max[e->pid()]);
 
    // similarly, pre_other needs to be a causal predecessor of the max in that

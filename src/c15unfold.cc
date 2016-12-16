@@ -481,6 +481,7 @@ void C15unfolder::compute_cex_lock (Event *e, Event **head)
       newevt->next = *head;
       *head = newevt;
 
+
       // move the pointer to the next
       em = pr_mem;
    }
@@ -679,7 +680,6 @@ void C15unfolder::enumerate_combination (unsigned i, std::vector<std::vector<Eve
       }
 
       temp.pop_back();
->>>>>>> 04270c1d496e851c86e0c0dbb0b4773d4c803be6
    }
    DEBUG ("c15u: cex: done!");
 }

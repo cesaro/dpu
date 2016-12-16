@@ -162,6 +162,31 @@ inline bool Event::operator == (const Event &other) const
 {
    return this == &other;
 }
+
+inline std::vector<Event *> Event::get_local_config()
+{
+   DEBUG("Event.local_config");
+   Event * next;
+   std::vector<Event *> lc;
+   //DEBUG("Proc_maxevt.size = %d", proc_maxevt.size());
+
+   for (unsigned i = 0; i < cut.num_procs(); i++)
+   {
+      next = cut[i];
+      while (!next->is_bottom())
+      {
+         //DEBUG("push back to LC");
+         lc.push_back(next);
+         next = next->pre_proc();
+      }
+   }
+/*
+   DEBUG("LC inside the function");
+   for (unsigned j = 0; j < lc.size(); j++)
+      DEBUG_("%d ", lc[j]->idx);
+*/
+   return lc;
+}
 /*
  *
  */

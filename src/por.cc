@@ -126,15 +126,16 @@ bool find_alternative (Config &c, std::vector<Event*> d, Cut &J)
        DEBUG_("   After C \n ");
        c.dump();
        /*
-        *  D now contains only events which is in en(C).
-        *  D is a comb whose each spike is a list of conflict events D[i].dicfl
-        *  pour those in dicfl of all events in D into a comb whose each spike is corresponding to an event's dicfl
+        *  D now contains only events from en(C).
+        *  D is a comb where each spike is a list of conflict events D[i].icfls()
+        *  pour those in dicfl of all events in D into a comb whose each spike
+        *  is corresponding to an event's dicfl
         */
 
 
        //DEBUG("D.size: %d", D.size());
        for (unsigned i = 0; i < d.size(); i++)
-          comb.push_back(d[i]->dicfl);
+          comb.push_back (d[i]->icfls());
 
        DEBUG("COMB: %d spikes: ", comb.size());
          for (unsigned i = 0; i < comb.size(); i++)

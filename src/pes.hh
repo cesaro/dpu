@@ -127,7 +127,6 @@ class Event : public MultiNode<Event,2> // 2 trees, skip step = 3
 public:
    int idx; // for print_dot
    int inside; // a flag to mark that an event is inside some set or not
-   std::vector<Event *> dicfl;
 
    /// THSTART(), creat is the corresponding THCREAT (or null for p0)
    inline Event (Event *creat);

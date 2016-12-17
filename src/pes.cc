@@ -269,16 +269,18 @@ void Unfolding::print_dot ()
       }
    }
 
-   /* print conflicting edge */
+   /* print conflict edges */
    for (unsigned i = 0; i < num_procs(); i++)
    {
       Process *p = proc (i);
       for (Event &e : *p)
       {
-         for (unsigned i = 0; i < e.dicfl.size(); i++)
-            if (e.dicfl[i]->idx > e.idx ) // don't repeat drawing the same conflict
-               fs << e.idx << "->" << e.dicfl[i]->idx << "[dir=none, color=red, style=dashed]\n";
-
+         for (Event *ee : e.icfls ())
+         {
+            // avoid redrawing the same conflict
+            if (ee->idx <= e.idx) continue;
+            fs << e.idx << "->" << ee->idx << "[dir=none, color=red, style=dashed]\n";
+         }
       }
    }
 

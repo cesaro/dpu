@@ -457,10 +457,6 @@ void C15unfolder::compute_cex_lock (Event *e, Event **head)
                   newevt->flags.boxlast ? 1 : 0,
                   action_type_str (newevt->action.type));
 
-         /// add to dicfl while in_dicfl is not finished
-         newevt->dicfl.push_back(em->pre_other());
-         em->pre_other()->dicfl.push_back(newevt);
-
          // we add newevt to the list
          newevt->next = *head;
          *head = newevt;
@@ -485,10 +481,6 @@ void C15unfolder::compute_cex_lock (Event *e, Event **head)
                newevt->flags.boxfirst ? 1 : 0,
                newevt->flags.boxlast ? 1 : 0,
                action_type_str (newevt->action.type));
-
-      /// add to dicfl while in_dicfl is not finished
-      newevt->dicfl.push_back(em->pre_other());
-      em->pre_other()->dicfl.push_back(newevt);
 
       // we add newevt to the list
       newevt->next = *head;

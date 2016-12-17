@@ -154,3 +154,10 @@ inline unsigned Cut::num_procs() const
    return nrp;
 }
 
+bool Cut::is_empty() const
+{
+   for (int i = 0; i < nrp; i++)
+      if (max[i] != nullptr)
+         return false;
+   return true;
+}

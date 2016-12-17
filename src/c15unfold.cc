@@ -697,7 +697,7 @@ void C15unfolder::enumerate_combination (unsigned i, std::vector<std::vector<Eve
    DEBUG ("c15u: cex: done!");
 }
 
-bool C15unfolder::find_alternative (Config &c, std::vector<Event*> d, Config &J)
+bool C15unfolder::find_alternative (Config &c, std::vector<Event*> d, Cut &J)
 {
       ASSERT (d.size ());
 

@@ -96,6 +96,9 @@ public:
    /// returns a human-readable description
    std::string str () const;
 
+   /// returns true if the cut (configuration) is empty
+   inline bool is_empty() const;
+
    /// returns the maximal event of process pid in the cut
    inline Event *operator[] (unsigned pid) const;
    inline Event *&operator[] (unsigned pid);
@@ -398,7 +401,6 @@ public:
    inline void clear ();
    /// prints the cut in stdout
    void dump () const;
-   inline bool is_empty() const;
 
    /// maximal event for the given pid, or nullptr
    inline Event *proc_max (unsigned pid);

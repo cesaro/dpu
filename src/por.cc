@@ -22,7 +22,8 @@ bool is_conflict_free(std::vector<Event *> eset)
 
 /// enumerate the comb for spike i. The temporatory combination is stored in temp.
 /// If there exist a config satisfied, it will be assigned to J
-void enumerate_combination (unsigned i, std::vector<std::vector<Event *>> comb , std::vector<Event*> temp, Config &J)
+void enumerate_combination (unsigned i, std::vector<std::vector<Event *>> comb,
+      std::vector<Event*> temp, Cut &J)
 {
    DEBUG("This is enum_combination function");
 
@@ -83,7 +84,7 @@ void enumerate_combination (unsigned i, std::vector<std::vector<Event *>> comb ,
 
 }
 
-bool find_alternative (Config &c, std::vector<Event*> d, Config &J)
+bool find_alternative (Config &c, std::vector<Event*> d, Cut &J)
 {
       ASSERT (d.size ());
 

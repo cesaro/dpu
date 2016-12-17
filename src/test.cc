@@ -775,7 +775,7 @@ void test37 ()
    cc.dump();
 
    std::vector<Event *> d = {ell};
-   Config j (unf.u);
+   Cut j (unf.u);
 
    if (find_alternative(cc,d,j))
    {

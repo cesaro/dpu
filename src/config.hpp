@@ -109,10 +109,3 @@ inline Event *Config::mutex_max (Addr a)
    return it == mutexmax.end() ? 0 : it->second;
 }
 
-bool Config::is_empty() const
-{
-   for (int i = 0; i < nrp; i++)
-      if (max[i] != nullptr)
-         return false;
-   return true;
-}

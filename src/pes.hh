@@ -176,7 +176,7 @@ public:
    /// returns a human-readable description of the event
    std::string str () const;
    /// FIXME why is this necessary here?
-   std::vector<Event *> local_config();
+   inline std::vector<Event *> get_local_config();
 
    /// true iff this event is the THSTART event of thread 0
    inline bool is_bottom () const;
@@ -378,7 +378,7 @@ class Config : public Cut
 {
 public:
    /// FIXME - is this necessary?
-   std::vector<Event *> cex;
+   std::vector<Event *> cex; // don't need
    /// creates an empty onfiguration for as much as u.num_procs processes
    inline Config (const Unfolding &u);
    /// creates an empty configuration for as much as n processes

@@ -47,16 +47,23 @@ void enumerate_combination (unsigned i, std::vector<std::vector<Event *>> comb ,
             /*
              * If temp is conflict-free, then J is assigned to union of every element's local configuration.
              */
+            std::vector<Event *> lc;
             if (is_conflict_free(temp))
             {
                DEBUG(": a conflict-free combination");
 
-               /// just do add each element in temp to J
+               /// compute the local config for each event in temp and then add them to J
 
                for (unsigned i = 0; i < temp.size(); i++)
-                  J.add(temp[i]); // BUG here
+               {
+                  lc = temp[i]->get_local_config();
 
-               J.dump();
+                  for (int j = lc.size()-1; j >= 0; j--)
+                  {
+                     J.add(lc[j]); // BUG here, need to add event's local config
+                     J.dump();
+                  }
+               }
                return; // go back to find_alternative
 
                /*
@@ -195,9 +202,9 @@ bool find_alternative (Config &c, std::vector<Event*> d, Config &J)
 
           while ((comb[i].size() != 0) and (j < comb[i].size()) )
           {
-             for (int i = 0; i < c.num_procs(); i++)  //FIXME HERE SEG FAULT
+             for (int i = 0; i < c.num_procs(); i++)
              {
-                DEBUG("lAN THU %d", i);
+                DEBUG("LAN THU %d", i);
                 max = c.proc_max(i); // get maximal event for proc i
                 DEBUG("%p", max);
 

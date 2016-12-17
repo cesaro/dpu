@@ -154,9 +154,7 @@ public:
 
    /// color mark for various algorithms
    unsigned color;
-   /// all the causal successors of this event
-   std::vector<Event*> post;
-   /// FIXME
+   /// general-purpose pointer for various algorithms
    Event *next;
 
    /// predecessor in my thread, or null if THSTART
@@ -194,11 +192,14 @@ public:
 
    inline bool in_icfl_with (const Event *e);
 
+   /// returns a set of events in conflict which includes at least all immediate
+   /// conflicts of the event
+   inline std::vector<Event*> icfls () const;
+
    /// the cut of the local configuration of the event
    const Cut cut;
 
 private:
-   inline void post_add (Event * const succ);
    inline const Event *pre_proc (bool bf) const;
    inline Event *pre_proc (bool bf);
 

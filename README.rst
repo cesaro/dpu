@@ -26,9 +26,13 @@ x testing stream_to_events
 x design unfolder class
 x add_multiple_runs
 x reimplement Node<T,SS>
+x write in_icfl_with (Event e);
+x how to represent conflict?
+- write icfl
 - fix is_pred_of
-- write in_icfl_with (Event e);
-- how to represent conflict?
+- fix in_cfl_with
+- write trail
+- write the Disset
 
 Huyen:
 
@@ -77,3 +81,4 @@ x translate e->action.val on thread creation, so that it contains the pid in the
   power of SS, as the last pointe is systematically a pretty useless pointer to
   the root of the tree.
 
+- Event::icfls() should return an InputIterator rather than an std::vector

@@ -57,17 +57,14 @@ inline Event *Unfolding::event (Event *creat)
    }
 
    // otherwise we are searching for the root event in a process that we might
-   // or might not have already created; if creat has a causal successor, then our
-   // root event must be in the first position in the post vector
-   if (creat->post.size())
+   // or might not have already created; if creat has a causal successor in the
+   // node[1] tree, then it can be the only one and it must be our event
+   if (creat->node[1].post.size())
    {
-      ASSERT (creat->post[0]);
-      ASSERT (creat->post[0]->action.type == ActionType::THSTART);
-      ASSERT (creat->pid() < creat->post[0]->pid());
-
-      for (int i = 1; i < creat->post.size(); i++)
-         ASSERT (creat->post[i]->action.type != ActionType::THSTART);
-      return creat->post[0];
+      ASSERT (creat->node[1].post.size() == 1);
+      ASSERT (creat->node[1].post[0]->action.type == ActionType::THSTART);
+      ASSERT (creat->pid() < creat->node[1].post[0]->pid());
+      return creat->node[1].post[0];
    }
 
    // otherwise we need to create a new process and return its root
@@ -134,6 +131,15 @@ inline Process *Unfolding::new_proc (Event *creat)
 
 inline Event *Unfolding::find1 (Action *ac, Event *p)
 {
+   ASSERT (p);
+   ASSERT (p->node[0].post.size() <= 1);
+
+   if (p->node[0].post.size() == 0) return nullptr;
+   return p->node[0].post[0];
+
+#if 0
+   // Old implementation (remove):
+
    unsigned pid;
 
    // p should have 0 or 1 "mathematical" causal successor in the same process,
@@ -155,7 +161,8 @@ inline Event *Unfolding::find1 (Action *ac, Event *p)
    }
 
    // it does not exist
-   return 0;
+   return nullptr;
+#endif
 }
 
 inline Event *Unfolding::find2 (Action *ac, Event *p, Event *m)
@@ -163,7 +170,7 @@ inline Event *Unfolding::find2 (Action *ac, Event *p, Event *m)
 #ifdef CONFIG_DEBUG
    // exactly one event with preset {p,m} ...
    int count = 0;
-   for (Event *e : p->post)
+   for (Event *e : p->node[0].post)
    {
       if (e->pre_other() == m) count++;
    }
@@ -171,7 +178,7 @@ inline Event *Unfolding::find2 (Action *ac, Event *p, Event *m)
 #endif
 
    // FIXME - we could choose here p or m depending on the size of the post
-   for (Event *e : p->post)
+   for (Event *e : p->node[0].post)
    {
       if (e->pre_other() == m)
       {
@@ -180,7 +187,7 @@ inline Event *Unfolding::find2 (Action *ac, Event *p, Event *m)
          return e;
       }
    }
-   return 0;
+   return nullptr;
 }
 
 inline unsigned Unfolding::get_fresh_color ()

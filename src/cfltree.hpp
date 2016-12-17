@@ -4,10 +4,11 @@
 
 //-----------------------
 template <class T, int SS >
-inline Node<T,SS>::Node(int idx, T * pr) :
-   depth (pr ? pr->node[idx].depth + 1 : 0),
-   pre (pr),
-   skiptab (skiptab_alloc (idx))
+inline Node<T,SS>::Node(int idx, T *_this, T *_pre) :
+   depth (_pre ? _pre->node[idx].depth + 1 : 0),
+   pre (_pre),
+   skiptab (skiptab_alloc (idx)),
+   post ()
 {
    std::string s = "[";
    for (int i = 0; i < skiptab_size (); i++)
@@ -15,11 +16,15 @@ inline Node<T,SS>::Node(int idx, T * pr) :
    s += "]";
    DEBUG("Node<Ev,%d>.ctor: idx %d depth %d pre %p |tab| %u %s",
          SS, idx, depth, pre, skiptab_size (), s.c_str());
+
+   // add ourselfs to our parent's post
+   if (_pre) _pre->node[idx].post.push_back (_this);
 }
 
 template <class T, int SS >
 inline Node<T,SS>::~Node ()
 {
+   DEBUG("Node<Ev,%d>.dtor", SS);
    delete [] skiptab;
 }
 
@@ -39,10 +44,10 @@ inline T **Node<T,SS>::skiptab_alloc (int idx)
    // 0 <= i < skiptab_size(). So, we initialize skiptab as follows:
    // i     distance    how to
    // ===== =========== ==========================
-   // 0     SS^1        scan the tree manually
-   // 1     SS^2        skiptab[0]->skiptab[0]
-   // 2     SS^3        skiptab[1]->skiptab[1]
-   // 3     SS^4        skiptab[2]->skiptab[2]
+   // 0     SS^1        go back SS times in pre
+   // 1     SS^2        go back SS times using the skiptab[0] pointers
+   // 2     SS^3        go back SS times using the skiptab[1] pointers
+   // 3     SS^4        go back SS times using the skiptab[2] pointers
    // ...
 
    // manual scan for tab[0]
@@ -151,13 +156,13 @@ inline T *Node<T,SS>::find_pred (unsigned d)
  */
 template <class T, int SS> // SS: skip step
 inline MultiNode<T,SS> :: MultiNode(T *p0, T *p1) :
-   node {{0, p0}, {1, p1}}
+   node {{0, (T*) this, p0}, {1, (T*) this, p1}}
 {
 }
 
 template <class T, int SS> // SS: skip step
 inline MultiNode<T,SS> :: MultiNode(T *p0) :
-   node {{0, p0}, {1, nullptr}}
+   node {{0, (T*) this, p0}, {1, (T*) this, nullptr}}
 {
 }
 

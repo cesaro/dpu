@@ -154,11 +154,7 @@ void Process::dump ()
    ASSERT (first_event() and first_event()->action.type == ActionType::THSTART);
    for (Event &e : *this)
    {
-      DEBUG ("  e %-16p pid %2d pre-proc %-16p pre-other %-16p fst/lst %d/%d action %s",
-            &e, e.pid(), e.pre_proc(), e.pre_other(),
-            e.flags.boxfirst ? 1 : 0,
-            e.flags.boxlast ? 1 : 0,
-            action_type_str (e.action.type));
+      DEBUG (" %s", e.str().c_str());
    }
    printf (" == process end ==\n");
 }

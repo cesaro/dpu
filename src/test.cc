@@ -155,8 +155,8 @@ void test28 ()
       ASSERT (ec->pre_other() == 0);
       ASSERT (ec->action.type == ActionType::THCREAT);
       ASSERT (!ec->flags.boxlast and !ec->flags.boxfirst);
-      ASSERT (ec->pre_proc()->post.size() == 1);
-      ASSERT (ec->pre_proc()->post[0] = ec);
+      ASSERT (ec->pre_proc()->node[0].post.size() == 1);
+      ASSERT (ec->pre_proc()->node[0].post[0] = ec);
 
       // start in thread 1
       es1 = u.event (ec);
@@ -178,9 +178,10 @@ void test28 ()
       ASSERT (ej->pre_other() == ex1);
       ASSERT (ej->action.type == ActionType::THJOIN);
       ASSERT (!ej->flags.boxlast and !ej->flags.boxfirst);
-      ASSERT (ej->pre_proc()->post.size() == 2);
-      ASSERT (ej->pre_proc()->post[0] = es1);
-      ASSERT (ej->pre_proc()->post[1] = ej);
+      ASSERT (ej->pre_proc()->node[0].post.size() == 1);
+      ASSERT (ej->pre_proc()->node[1].post.size() == 1);
+      ASSERT (ej->pre_proc()->node[0].post[0] = ej);
+      ASSERT (ej->pre_proc()->node[1].post[0] = es1);
 
       // exit
       ex = u.event ({.type = ActionType::THEXIT}, ej);
@@ -188,8 +189,8 @@ void test28 ()
       ASSERT (ex->action.type == ActionType::THEXIT);
       ASSERT (ex->pre_proc() == ej);
       ASSERT (ex->pre_other() == 0);
-      ASSERT (ex->pre_proc()->post.size() == 1);
-      ASSERT (ex->pre_proc()->post[0] = ex);
+      ASSERT (ex->pre_proc()->node[0].post.size() == 1);
+      ASSERT (ex->pre_proc()->node[0].post[0] = ex);
 
       u.dump ();
    }
@@ -895,6 +896,7 @@ void test52 ()
       Config c (unf.add_one_run (replay));
       c.dump ();
       unf.compute_cex (c, &e);
+      unf.u.dump ();
 
       ASSERT (c[0]->action.type == ActionType::THEXIT);
       SHOW (c[0]->str().c_str(), "s");

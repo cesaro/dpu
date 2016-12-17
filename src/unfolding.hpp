@@ -113,8 +113,31 @@ inline Event *Unfolding::event (Action ac, Event *p, Event *m)
    // if the event already exist, we return it
    e = find2 (&ac, p, m);
    if (e) return e;
+
    // otherwise we create it
-   return p->proc()->add_event_2p (ac, p, m);
+   e = p->proc()->add_event_2p (ac, p, m);
+
+   // hack to be able to list in Event::icfl() the root events of an address
+   // tree
+   if (ac.type == ActionType::MTXLOCK and !m)
+   {
+      ASSERT (! e->node[1].skiptab);
+      ASSERT (! e->node[1].depth)
+      ASSERT (! e->node[1].pre)
+      auto it = lockroots.find (ac.addr);
+      if (it == lockroots.end())
+      {
+         e->node[1].skiptab = (Event **) e; // init the circular list
+         lockroots[ac.addr] = e;
+      }
+      else
+      {
+         e->node[1].skiptab = it->second->node[1].skiptab; // add e to circular list
+         it->second->node[1].skiptab = (Event **) e;
+      }
+   }
+
+   return e;
 }
 
 inline Process *Unfolding::new_proc (Event *creat)

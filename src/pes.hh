@@ -285,6 +285,9 @@ private :
    unsigned nrp;
    /// a fresh color, used for Events or anywhere else
    unsigned color;
+   /// map from lock addresss to events, necessary to insert into a circular
+   /// list the roots of the MTXLOCK events
+   std::unordered_map<Addr,Event*> lockroots;
 
    /// creates a new process in the unfolding; creat is the corrsponding THCREAT
    /// event

@@ -283,11 +283,28 @@ bool Event::in_icfl_with (const Event *e)
 std::vector<Event*> Event::icfls () const
 {
    std::vector<Event*> v;
+   Event *e;
 
+   // only locks have immediate conflicts
    if (action.type != ActionType::MTXLOCK) return v;
 
-   //for (Event e* : node[1].post
-   // continue here ...
+   // if the event has depth 0, we have to use the circular-list hack to get to
+   // the 'other roots' of the forest
+   if (node[1].depth == 0)
+   {
+      for (e = (Event*) node[1].skiptab; e != this;
+            e = (Event*) e->node[1].skiptab)
+      {
+         if (e->proc() != proc()) v.push_back (e);
+      }
+      return v;
+   }
 
+   // for non-root events, the parent's post contains a superset of my immediate
+   // conflicts
+   for (Event *e : node[1].pre->node[1].post)
+   {
+      if (e->proc() != proc()) v.push_back (e);
+   }
    return v;
 }

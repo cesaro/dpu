@@ -901,6 +901,7 @@ void test52 ()
       ASSERT (c[0]->action.type == ActionType::THEXIT);
       SHOW (c[0]->str().c_str(), "s");
 
+      // compute the find_pred<0> (i) for i >= 0 for all events of process 0
       for (e = c[0]; e; e = e->pre_proc ())
       {
          for (unsigned i = 0; i < e->depth_proc(); i++)
@@ -908,6 +909,13 @@ void test52 ()
             ee = e->node[0].find_pred<0>(i);
             ASSERT (ee);
             DEBUG ("d %d %s", i, ee->str().c_str());
+
+            // and printing its immediate conflicts
+            DEBUG (" icfls %d", ee->icfls().size());
+            for (Event *eee : ee->icfls ())
+            {
+               DEBUG (" icfl %s", eee->str().c_str());
+            }
          }
          DEBUG ("xxxxxxxxxxxxxx");
       }

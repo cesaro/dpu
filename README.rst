@@ -23,10 +23,12 @@ x escribir la funcion de busqeuda en los post para los Unfolding::event
 x steroids -> unf
 x C15unfolder::stream_to_events
 x testing stream_to_events
-- how to represent conflict?
-w design unfolder class
-- in_icfl_with (Event e);
+x design unfolder class
 x add_multiple_runs
+- reimplement Node<T,SS>
+- fix is_pred_of
+- write in_icfl_with (Event e);
+- how to represent conflict?
 
 Huyen:
 
@@ -37,15 +39,6 @@ x BaseConfig -> replay
 x compute_cex (u, c)
 x fix conf2replay, bug when c.max contains null pointers : fixed. 
 - compute_alt (BaseConfig &c, const std::vector<Event*> d, 
-
-Questions
-=========
-- H: THSTART event must be created immediately after the THCREAT?
-  If not, there is a bug.
-- C: No, you just need to invoke Unfolding::event(cr), where cr is the
-  corresponding THCREAT; you can do it at any moment, and there should be no bug
-  related to that
-
 
 Improvements
 ============
@@ -63,8 +56,16 @@ Improvements
   if we are going to only use these clocks only for recovering causaly
   information inside of configurations.
 
-- translate e->action.val on thread creation, so that it contains the pid in the
+x translate e->action.val on thread creation, so that it contains the pid in the
   unfolding, not the one in steroids
 
 - design interface in Config to enumerate the addresses of mutexes involved in
   the configuration
+
+- In the Node<> and MultiNode<> templates, we could remove the pointer pre, as
+  our current datastructure for Events do not need to store it. We could just
+  assume that the type T has a function T * T::get_pre() and call it.
+
+- Optimize pointers stored in the Node<T,SS>::skiptab for depths equal to a
+  power of SS, as the last pointe is systematically a pretty useless pointer to
+  the root of the tree.

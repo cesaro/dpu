@@ -882,7 +882,40 @@ void test51 ()
 
 void test52 ()
 {
+   std::vector<const char *> argv {"prog", "main4"};
+   try
+   {
+      Event *e = nullptr, *ee;
+
+      std::vector<int> replay {-1};
+      C15unfolder unf;
+      unf.load_bytecode ("./input.ll");
+      unf.set_args (argv);
+      
+      Config c (unf.add_one_run (replay));
+      c.dump ();
+      unf.compute_cex (c, &e);
+
+      ASSERT (c[0]->action.type == ActionType::THEXIT);
+      SHOW (c[0]->str().c_str(), "s");
+
+      for (e = c[0]; e; e = e->pre_proc ())
+      {
+         for (unsigned i = 0; i < e->depth_proc(); i++)
+         {
+            ee = e->node[0].find_pred<0>(i);
+            ASSERT (ee);
+            DEBUG ("d %d %s", i, ee->str().c_str());
+         }
+         DEBUG ("xxxxxxxxxxxxxx");
+      }
+
+   } catch (const std::exception &e) {
+      DEBUG ("Test threw exception: %s", e.what ());
+      DEBUG ("Aborting!");
+   }
 }
+
 void test53 ()
 {
 }

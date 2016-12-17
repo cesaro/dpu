@@ -2,215 +2,149 @@
  * cfltree.cc
  */
 
-///*
-// * Methods for class Node
-// */
-////-----------------------
-//template <class T, int SS >
-//inline Node<T,SS>::Node()
-//{
-//   depth = 0;
-//   pre   = nullptr;
-//   skip_preds = nullptr;
-//}
-
 //-----------------------
 template <class T, int SS >
 inline Node<T,SS>::Node(int idx, T * pr) :
    depth (pr ? pr->node[idx].depth + 1 : 0),
    pre (pr),
-   skip_preds (__ctor_skip_preds (idx))
+   skiptab (skiptab_alloc (idx))
 {
-   DEBUG("Node<?,%d>.ctor: idx %d depth %d pre %p skip-preds %p",
-         SS, idx, depth, pre, skip_preds);
+   std::string s = "[";
+   for (int i = 0; i < skiptab_size (); i++)
+      s += fmt ("%p(%u) ", skiptab[i], skiptab[i]->node[idx].depth);
+   s += "]";
+   DEBUG("Node<Ev,%d>.ctor: idx %d depth %d pre %p |tab| %u %s",
+         SS, idx, depth, pre, skiptab_size (), s.c_str());
 }
 
 template <class T, int SS >
-Node<T,SS>::~Node ()
+inline Node<T,SS>::~Node ()
 {
-   delete [] skip_preds;
+   delete [] skiptab;
 }
 
-//-----------------------
 template <class T, int SS >
-inline T **Node<T,SS>::__ctor_skip_preds (int idx)
+inline T **Node<T,SS>::skiptab_alloc (int idx)
 {
-//   DEBUG_("     + SET NODE[%d]", idx);
-   // including immediate predecessor
-   int size = __ctor_compute_size_skip_preds();
-   DEBUG(" + Size of skip_preds = %d", size);
+   unsigned size, i, j;
+   T **tab;
+   T *p;
+   
+   // compute the size of the table and allocate memory
+   size = skiptab_size ();
+   if (size == 0) return nullptr;
+   tab = new T* [size];
 
-   // initialize the elements
-   if (size == 0)
+   // tab[i] stores a pointer to the predecessor at distance SS^{i+1} for
+   // 0 <= i < skiptab_size(). So, we initialize skiptab as follows:
+   // i     distance    how to
+   // ===== =========== ==========================
+   // 0     SS^1        scan the tree manually
+   // 1     SS^2        skiptab[0]->skiptab[0]
+   // 2     SS^3        skiptab[1]->skiptab[1]
+   // 3     SS^4        skiptab[2]->skiptab[2]
+   // ...
+
+   // manual scan for tab[0]
+   p = pre;
+   for (i = 1; i < SS; i++) p = p->node[idx].pre;
+   tab[0] = p;
+   ASSERT (p);
+
+   // initialize the remaining entries
+   for (i = 1; i < size; i++)
    {
-      DEBUG("   No skip_pred");
-      return nullptr;
+      p = tab[i-1];
+      for (j = 1; j < SS; j++) p = p->node[idx].skiptab[i-1];
+      tab[i] = p;
+      ASSERT (tab[i]);
    }
 
-   ASSERT(size > 0);
-
-   /* allocate the skip_preds */
-   T ** skip_preds = new T* [size];
-
-   // the first element skip_preds[0]
-   T * p = pre;
-   int k = 1;
-
-   /* go back k times by pre*/
-   while ((k < SS) and (p->node[idx].depth > 0))
-   {
-      p = p->node[idx].pre;
-      k++;
-   }
-
-   skip_preds[0] = p;
-
-   /* initialize the rest */
-   if (size > 1)
-   {
-      for (unsigned i = 1; i < size; i++)
-      {
-         p = skip_preds[i - 1];
-         int k = 1;
-
-         /* go back k times by pre*/
-         while ((k < SS) and (p->node[idx].depth > 0))
-         {
-            p = p->node[idx].skip_preds[i -1];
-            k++;
-         }
-         skip_preds[i] = p;
-      }
-   }
-
-   //print_skip_preds();
-   return skip_preds;
+   return tab;
 }
 
-//---------------------
 template <class T, int SS >
-inline int Node<T,SS>::__ctor_compute_size_skip_preds()
+inline unsigned Node<T,SS>::skiptab_size () const
 {
+   // The size of the skiptab table is the number of trailing zeros in the
+   // SS-ary representation of this->depth
+
    unsigned d = depth;
-   int skip = SS;
-   //DEBUG("cmpsize.depth = %d", d);
-   if ((d == 0) or (d < skip)) return 0;
+   int count = 0;
 
-   while (d % skip != 0)
-      d--;
-
-   int temp = 1;
-   while (d % skip == 0)
+   if (d == 0) return 0;
+   while (d % SS == 0)
    {
-      skip = skip * SS;
-      temp++;
+      d /= SS;
+      count++;
    }
-   return --temp;
+   return count;
 }
 
-////-------------------
-//template <class T, int SS >
-//inline void Node<T,SS>:: print_skip_preds()
-//{
-//   DEBUG_(" + Node: %p", this);
-//   DEBUG_(", depth: %d", this->depth);
-//   DEBUG_(", Pre: %p", this->pre);
-//   int size = compute_size();
-//   if (size == 0)
-//   {
-//      DEBUG_(", No skip predecessor\n");
-//      return;
-//   }
-//   DEBUG_(", Skip_preds: ");
-//   for (unsigned i = 0; i < size; i++)
-//   {
-//      if (i == size-1)
-//         DEBUG_ ("%p", skip_preds[i]);
-//      else
-//         DEBUG_ ("%p, ", skip_preds[i]);
-//   }
-//
-//   DEBUG_("\n");
-//}
-//----------
-
-inline int max_skip(int d, int base)
-{
-   int i = 0;
-   int pow = 1;
-
-   if (d == 0)
-      return 0;
-
-   while (d % pow == 0)
-   {
-      pow = pow * base;
-      i++;
-   }
-   return i-1;
-}
-
-//----------
-/*
- * This is function to find a node at a specific depth.
- * !make sure that d < this->depth to use this method
- */
 template <class T, int SS >
-
-template <int idx>
-inline T & Node<T,SS>:: find_pred(int d) const
+T *Node<T,SS>::best_pred (unsigned target) const
 {
-   T * next = nullptr;
-   ASSERT(depth >= d);
-   int i, dis = depth - d;
+   // Every node has a depth.
+   // The depth determines the number of skip predecessors.
+   // This method returns the closest node to the (only) node at depth "target"
+   // that is immediately accessible through {pre,skiptab}.  Similarly to
+   // skiptab_size(), it computes the available pointers in skiptab and chooses
+   // the best (longest jump) that is still a successor of the target.
 
-   ASSERT(dis > 0); // at the beginning dis != 0
+   unsigned d, i, jmp;
 
-   // initial next for the very first time
-//   DEBUG("dis = %d", dis);
-   // find maximal number of steps to skip
+   ASSERT (target < depth); // so depth >= 1
 
-   i = max_skip(dis,SS);
+   // if we only have pre, use it
+   if (depth % SS != 0) return pre;
+   
+   // otherwise skiptab[0] is defined; if using it would take us too far
+   // (distance SS), we need to use pre as well
+   // (observe that depth - SS could be negative, so we use target + SS)
+   if (depth < target + SS) return pre;
 
-//   DEBUG("max_skip = %d", i);
-   if (i == 0)
-      next = pre;
-   else
-      next = skip_preds[i-1];
-
-   dis = next->node[idx].depth - d;
-//   DEBUG("Now dis = %d", dis);
-
-   // for the second loop and so on
-   while (dis != 0)
+   // we now know that skiptab[0] is a valid jump; increment the jump distance
+   // (and the index i) until skiptab[i+1] jumps too far, thus computing the
+   // longest jump we can do
+   ASSERT (depth >= SS);
+   jmp = SS * SS;
+   d = depth / SS;
+   i = 0;
+   ASSERT (d >= 1);
+   while (1)
    {
-      i = max_skip(dis,SS);
-//      DEBUG("i = %d", i);
-      if (i == 0)
-         next = next->node[idx].pre;
-      else
-         next = next->node[idx].skip_preds[i-1];
-
-      dis = next->node[idx].depth - d;
+      if (d % SS != 0 or depth < target + jmp) return skiptab[i];
+      ASSERT (d >= SS);
+      i++;
+      d /= SS;
+      jmp *= SS;
    }
-   //DEBUG("next = %d", next->idx);
-   return *next;
 }
 
-//-----------
-//template <class T, int SS >
-//template <int idx>
-//inline bool Node<T,SS>::is_pred(Node &n) const
-//{
-//   if (n.depth < depth) return false;
-//
-//   ASSERT(n.depth > depth);
-//   T * e = n.find_pred<idx>(depth);
-//
-////   if (e.node[idx] == this) return true;
-//
-//   return false;
-//}
+template <class T, int SS>
+template <int idx>
+inline const T *Node<T,SS>::find_pred (unsigned d) const
+{
+   const T *p;
+
+   ASSERT (d < depth);
+   DEBUG ("Node<Ev,%d>.find-pred: target %u depth %u", SS, d, depth);
+   for (p = best_pred (d); p->node[idx].depth > d; p = p->node[idx].best_pred (d))
+   {
+      ASSERT (p->node[idx].best_pred(d)->node[idx].depth < p->node[idx].depth);
+      DEBUG ("Node<Ev,%d>.find-pred: at %u", SS, p->node[idx].depth);
+   }
+   DEBUG ("Node<Ev,%d>.find-pred: at %u", SS, p->node[idx].depth);
+   ASSERT (p->node[idx].depth == d);
+   return p;
+}
+
+template <class T, int SS>
+template <int idx>
+inline T *Node<T,SS>::find_pred (unsigned d)
+{
+   return const_cast<T*> (static_cast<const Node<T,SS>*>(this)->find_pred<idx> (d));
+}
 
 /*
  * Methods for class MultiNode
@@ -219,13 +153,11 @@ template <class T, int SS> // SS: skip step
 inline MultiNode<T,SS> :: MultiNode(T *p0, T *p1) :
    node {{0, p0}, {1, p1}}
 {
-   DEBUG("Set up node[0,1]");
 }
 
 template <class T, int SS> // SS: skip step
 inline MultiNode<T,SS> :: MultiNode(T *p0) :
    node {{0, p0}, {1, nullptr}}
 {
-   DEBUG("Set up node[0,1]");
 }
 

@@ -4,32 +4,40 @@
 
 namespace dpu{
 
-//-------template class Node ---------
 template <class T, int SS>
 class Node
 {
 public:
+   /// depth of this node in the tree
    unsigned depth;
-   T * pre; // immediate predecessor
-   T ** skip_preds;
+   /// immediate predecessor
+   T * pre;
+   /// skiptab[i] is the predecessors at distance SS^(i+1), for i < skiptab_size()
+   T ** skiptab;
 
-   //inline Node();
-   inline Node(int idx, T * pr);
-   ~Node ();
+   /// constructor; idx is the position of this node in the MultiNode class; pr
+   /// is the immediate predecessor
+   inline Node (int idx, T *pr);
+   inline ~Node ();
 
    template <int idx>
-   inline T & find_pred(int d) const;
+   inline const T *find_pred (unsigned d) const;
+   template <int idx>
+   inline T *find_pred (unsigned d);
 
-//   template <int idx>
-//   inline bool is_pred(Node &n) const;
+   template <int idx>
+   void dump () const;
 
 private:
+   /// allocates and initializes the skiptab, called from the ctor
+   inline T **skiptab_alloc (int idx);
 
-   inline void set_skip_preds(int idx);
-   inline T **__ctor_skip_preds (int idx);
-   inline int __ctor_compute_size_skip_preds();
-   //inline void print_skip_preds();
+   /// computes the size of the skiptab table
+   inline unsigned skiptab_size () const;
 
+   /// return the best predecessor available from this node that allows to
+   /// reach in the minimum number of steps a node at the given target depth
+   inline T *best_pred (unsigned target) const;
 };
 
 //-------template class MultiNode------

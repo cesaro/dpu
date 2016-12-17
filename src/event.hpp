@@ -1,7 +1,6 @@
 /// THSTART(), creat is the corresponding THCREAT (or null for p0)
 inline Event::Event (Event *creat) :
-   MultiNode(nullptr),
-   _pre_other (creat),
+   MultiNode(nullptr, creat),
    flags ({.boxfirst = 1, .boxlast = 0, .inc = 0}),
    action ({.type = ActionType::THSTART}),
    redbox (),
@@ -33,8 +32,7 @@ inline Event::Event (Event *creat) :
 
 /// THCREAT(tid) or THEXIT(), one predecessor (in the process)
 inline Event::Event (Action ac, bool bf) :
-   MultiNode(pre_proc(bf)),
-   _pre_other (0),
+   MultiNode(pre_proc(bf), nullptr),
    flags ({.boxfirst = bf, .boxlast = 0, .inc = 0}),
    action (ac),
    redbox (),
@@ -58,7 +56,6 @@ inline Event::Event (Action ac, bool bf) :
 /// THJOIN(tid), MTXLOCK(addr), MTXUNLK(addr), two predecessors (process, memory/exit)
 inline Event::Event (Action ac, Event *m, bool bf) :
    MultiNode(pre_proc(bf), m),
-   _pre_other (m),
    flags ({.boxfirst = bf, .boxlast = 0, .inc = 0}),
    action (ac),
    redbox (),
@@ -127,7 +124,7 @@ inline Event *Event::pre_proc (bool bf)
 
 inline const Event *Event::pre_other () const
 {
-   return _pre_other;
+   return node[1].pre;
 }
 inline Event *Event::pre_other ()
 {
@@ -149,6 +146,11 @@ inline unsigned Event::depth_proc () const
    return node[0].depth;
 }
 
+inline unsigned Event::depth_other () const
+{
+   return node[1].depth;
+}
+
 inline EventBox *Event::box_above () const
 {
    return (EventBox *) (this + 1);
@@ -168,7 +170,7 @@ inline bool Event::operator == (const Event &other) const
 template <int i>
 inline bool Event:: is_pred_in_the_same_tree_of (const Event *e) const
 {
-   Event *ee;
+   const Event *ee;
    if (this == e) return true;
 
    if (node[i].depth > e->node[i].depth)
@@ -188,7 +190,7 @@ inline bool Event:: is_pred_in_the_same_tree_of (const Event *e) const
 
    ASSERT(node[i].depth < e->node[i].depth);
 
-   ee = &e->node[i].find_pred<i>(node[i].depth);
+   ee = e->node[i].find_pred<i>(node[i].depth);
    DEBUG("%d", ee->idx);
    DEBUG("%d", this->idx);
 
@@ -276,5 +278,12 @@ inline bool Event::in_cfl_with (const Event *e)
    return false;
 }
 
-
+inline bool Event::in_icfl_with (const Event *e)
+{
+   // two events are in immediate conflict iff both of them are MTXLOCK and
+   // their pre_other pointer is equal
+   return action.type == ActionType::MTXLOCK and
+         e->action.type == ActionType::MTXLOCK and
+         pre_other () == e->pre_other();
+}
 

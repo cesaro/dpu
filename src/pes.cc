@@ -168,9 +168,10 @@ std::string Event::str () const
 {
    std::string s;
 
-   s = fmt ("e %-16p pid %2d pre-proc %-16p pre-other %-16p "
+   s = fmt ("e %-16p pid %2d dpths %02d,%02d pre-proc %-16p pre-other %-16p "
          "fst/lst %d/%d |rb| %lu action %s",
-         this, pid(), pre_proc(), pre_other(),
+         this, pid(), node[0].depth, node[1].depth,
+         pre_proc(), pre_other(),
          flags.boxfirst ? 1 : 0,
          flags.boxlast ? 1 : 0,
          redbox.size (),
@@ -255,7 +256,7 @@ void Unfolding::print_dot ()
          fs << e.idx << "[label=\" idx:"<< e.idx << "  Proc: "<<p->pid() << " - "<< action_type_str(e.action.type) << "\""
                << "color= " << bcolor << "]\n";
          count++;
-   }
+      }
    }
 
    /// print edges
@@ -324,7 +325,7 @@ std::string Cut::str () const
    {
       if (max[i]) s += fmt ("%u: %p; ", i, max[i]);
    }
-   s += "oth: 0]";
+   s += "other: 0]";
    return s;
 }
 
@@ -334,15 +335,6 @@ void Config::dump () const
    __dump_cut ();
    __dump_mutexes ();
    DEBUG("== end config =="); 
-}
-
-bool Config::is_empty() const
-{
-   for (int i = 0; i < nrp; i++)
-      if (max[i] != nullptr)
-         return false;
-
-   return true;
 }
 
 void Config::__dump_mutexes () const

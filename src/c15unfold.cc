@@ -226,12 +226,14 @@ void C15unfolder::stream_to_events (Config &c, const action_streamt &s)
          ee = c.mutex_max (it.addr());
          e = u.event ({.type = ActionType::MTXLOCK, .addr = it.addr()}, e, ee);
          c.add (e);
+         DEBUG ("");
          break;
 
       case RT_MTXUNLK :
          ee = c.mutex_max (it.addr());
          e = u.event ({.type = ActionType::MTXUNLK, .addr = it.addr()}, e, ee);
          c.add (e);
+         DEBUG ("");
          break;
 
       case RT_THCTXSW :
@@ -252,11 +254,13 @@ void C15unfolder::stream_to_events (Config &c, const action_streamt &s)
          pidmap[it.id()] = ee->pid();
          c.add (e);
          c.add (ee);
+         DEBUG ("");
          break;
 
       case RT_THEXIT :
          e = u.event ({.type = ActionType::THEXIT}, e);
          c.add (e);
+         DEBUG ("");
          break;
 
       case RT_THJOIN :
@@ -266,6 +270,7 @@ void C15unfolder::stream_to_events (Config &c, const action_streamt &s)
          ASSERT (ee and ee->action.type == ActionType::THEXIT);
          e = u.event ({.type = ActionType::THJOIN, .val = pidmap[it.id()]}, e, ee);
          c.add (e);
+         DEBUG ("");
          break;
 
       case RT_RD8 :

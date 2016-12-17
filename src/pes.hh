@@ -119,10 +119,8 @@ private :
    friend class Event;
 };
 
-class Event : public MultiNode<Event,3> // 2 trees, skip step = 3
+class Event : public MultiNode<Event,2> // 2 trees, skip step = 3
 {
-private:
-   Event *_pre_other;
 public:
    int idx; // for print_dot
    int inside; // a flag to mark that an event is inside some set or not
@@ -171,11 +169,13 @@ public:
    inline Process *proc () const;
 
    inline unsigned depth_proc () const;
+   inline unsigned depth_other () const;
 
    /// tests pointer equality of two events
    inline bool operator == (const Event &) const;
    /// returns a human-readable description of the event
    std::string str () const;
+   /// FIXME why is this necessary here?
    std::vector<Event *> local_config();
 
    /// true iff this event is the THSTART event of thread 0
@@ -189,7 +189,7 @@ public:
 //   inline bool is_cfl_in_the_same_tree_of(const Event *e) const;
    inline bool in_cfl_with (const Event *e);
 
-   inline bool in_icfl_with (const Event *e); // Cesar
+   inline bool in_icfl_with (const Event *e);
 
    /// the cut of the local configuration of the event
    const Cut cut;
@@ -205,15 +205,6 @@ private:
    // FIXME -- this should be a Cut instead of a std::vector, see below
 
 #if 0
-   //void mk_history (const Config & c);
-   void update_parents();
-   void eprint_debug();
-
-   void set_vclock();
-   void set_var_maxevt();
-   void set_proc_maxevt();
-   void compute_maxvarevt(std::vector<Event *> & maxevt, unsigned var) const;
-
    const Event & find_latest_WR_pred ()const;
    const std::vector<Event *> local_config() const;
    bool check_dicfl (const Event & e); // check direct conflict
@@ -229,14 +220,9 @@ private:
    bool check_cfl_same_tree (const Event & e) const;
    bool found(const Event &e, Event *parent) const;
 
-   //Node<Event,3> &proc () { return node[0]; }
-   //Node<Event,3> &var  () { return node[1]; }
-
    //void set_skip_preds(int idx, int step);
    //void print_proc_skip_preds(){ proc().print_skip_preds();}
    //void print_var_skip_preds() { var().print_skip_preds();}
-
-   //friend class Node<Event,3>;
 #endif
 
    friend class EventIt;
@@ -412,7 +398,7 @@ public:
    inline void clear ();
    /// prints the cut in stdout
    void dump () const;
-   bool is_empty() const;
+   inline bool is_empty() const;
 
    /// maximal event for the given pid, or nullptr
    inline Event *proc_max (unsigned pid);

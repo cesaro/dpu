@@ -75,7 +75,7 @@ inline void Config::add (Event *e)
 
    case ActionType::MTXLOCK   :
    case ActionType::MTXUNLK   :
-      DEBUG("mutex_max: %p, pre_other: %p",mutex_max (e->action.addr), e->pre_other());
+      //DEBUG("mutex_max: %p, pre_other: %p",mutex_max (e->action.addr), e->pre_other());
       ASSERT (mutex_max (e->action.addr) == e->pre_other());
       mutexmax[e->action.addr] = e;
       break;

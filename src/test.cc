@@ -387,7 +387,9 @@ void test32()
 //   ex->vclock.print();
 
    u.dump ();
-   u.print_dot();
+   std::ofstream fs("dot/unf.dot", std::fstream::out);
+   u.print_dot (fs);
+   fs.close();
    printf ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n");
 
    Config c(u);
@@ -513,7 +515,9 @@ void test33()
    printf("\nxxxxxxxxxxxxxxxxxxxx");
    //compute_cex(u,c); -> use C15unfolder::compute_cex
    u.dump();
-   u.print_dot();
+   std::ofstream fs("dot/unf.dot", std::fstream::out);
+   u.print_dot (fs);
+   fs.close();
 
    for (auto & e : *u.proc(1))
    {
@@ -764,7 +768,10 @@ void test37 ()
    printf("\nxxxxxxxxxxxxxxxxxxxx");
    unf.compute_cex (c, &e);
    unf.u.dump();
-   unf.u.print_dot();
+
+   std::ofstream fs("dot/unf.dot", std::fstream::out);
+   unf.u.print_dot (fs);
+   fs.close();
 
    //-----Test find_alternative
    Config cc(unf.u);
@@ -828,7 +835,7 @@ void test49 ()
 
 void test50 ()
 {
-#if 1
+#if 0
    // p0 creates p1,p2; p1 creates p3
    // std::vector<int> replay {0, 5, 1, 5, 2, 2, 3, 2, 0, 4, -1};
    // p0 creates p1,p3; p1 creates p2
@@ -836,7 +843,7 @@ void test50 ()
    std::vector<int> replay {-1}; // free mode
    std::vector<const char *> argv {"prog", "main3"};
 #endif
-#if 0
+#if 1
    // std::vector<int> replay {0, 2, 1, 2, -1}; // p1 lock first
    // std::vector<int> replay {0, 3, -1}; // p0 lock first
    std::vector<int> replay {-1}; // free mode
@@ -853,6 +860,12 @@ void test50 ()
       
       // run system, get config, compute cex, and run 1 time per cex
       unf.add_multiple_runs (replay);
+      //unf.add_one_run (replay);
+
+      // print dot
+      std::ofstream f ("dot/unf.dot");
+      unf.u.print_dot (f);
+      f.close ();
 
    } catch (const std::exception &e) {
       DEBUG ("Test threw exception: %s", e.what ());
@@ -919,6 +932,10 @@ void test52 ()
          }
          DEBUG ("xxxxxxxxxxxxxx");
       }
+
+      std::ofstream f ("dot/unf.dot");
+      unf.u.print_dot (f);
+      f.close ();
 
    } catch (const std::exception &e) {
       DEBUG ("Test threw exception: %s", e.what ());

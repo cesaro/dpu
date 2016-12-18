@@ -71,10 +71,8 @@ LEX:=flex
 YACC:=bison
 
 #dot file input
-ODIR=output
-DOT_FILES=$(wildcard $(ODIR)/*.dot)
-DOTPNG=$(DOT_FILES:.dot=.png)
-#DOTPNG = $(patsubst %.dot,%.png, $(DOT_FILES))
+DOTS=$(wildcard dot/*.dot)
+PDFS=$(DOTS:.dot=.pdf)
 
 %.d : %.c
 	@echo "DEP $<"

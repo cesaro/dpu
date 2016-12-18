@@ -161,6 +161,7 @@ void C15unfolder::add_multiple_runs (const std::vector<int> &replay)
 {
    Event *e;
    std::vector<int> rep;
+   std::vector<Event *>cex;
    Config c (add_one_run (replay));
 
    // add_one_run executes the system up to completion, we now compute all cex
@@ -172,10 +173,12 @@ void C15unfolder::add_multiple_runs (const std::vector<int> &replay)
    e = nullptr;
    compute_cex (c, &e);
 
-   // run the system once more for every conflicting extension
-   for (; e; e = e->next)
+   // copy the cex into a vector
+   for (; e; e = e->next) cex.push_back (e);
+
+   // run the system once more for every cex
+   for (Event *e : cex)
    {
-      DEBUG ("xxxxxxxxxxxxxxxxxxxxxxxxx e %p", e);
       cut_to_replay (e->cut, rep);
       add_one_run (rep);
       rep.clear ();

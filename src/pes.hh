@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <vector>
 #include <functional>
+#include <fstream>
 
 #include "config.h"
 #include "verbosity.h"
@@ -125,7 +126,8 @@ private :
 class Event : public MultiNode<Event,2> // 2 trees, skip step = 3
 {
 public:
-   int idx; // for print_dot
+   // FIXME - this field should be removed
+   int idx;
    int inside; // a flag to mark that an event is inside some set or not
 
    /// THSTART(), creat is the corresponding THCREAT (or null for p0)
@@ -198,6 +200,9 @@ public:
    /// the cut of the local configuration of the event
    const Cut cut;
 
+   /// depth of the event in the unfolding
+   const unsigned depth;
+
 private:
    inline const Event *pre_proc (bool bf) const;
    inline Event *pre_proc (bool bf);
@@ -242,8 +247,7 @@ public:
    inline Unfolding (const Unfolding &&other);
 
    void dump () const;
-   //void print_dot (FILE *f);
-   void print_dot();
+   void print_dot(std::ofstream &fs);
 
    /// returns a pointer to the process number pid
    inline Process *proc (unsigned pid) const;

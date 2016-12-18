@@ -5,7 +5,8 @@ inline Event::Event (Event *creat) :
    action ({.type = ActionType::THSTART}),
    redbox (),
    color (0),
-   cut (creat ? Cut (creat->cut, this) : Cut (pid() + 1, this))
+   cut (creat ? Cut (creat->cut, this) : Cut (pid() + 1, this)),
+   depth (creat ? creat->depth + 1 : 0)
 {
    ASSERT (action.type == ActionType::THSTART);
    ASSERT (pre_proc() == 0);
@@ -25,7 +26,8 @@ inline Event::Event (Action ac, bool bf) :
    action (ac),
    redbox (),
    color (0),
-   cut(pre_proc()->cut, this)
+   cut(pre_proc()->cut, this),
+   depth (pre_proc(bf)->depth + 1)
 {
    ASSERT (pre_proc() != 0);
    ASSERT (pre_other() == 0);
@@ -43,7 +45,8 @@ inline Event::Event (Action ac, Event *m, bool bf) :
    action (ac),
    redbox (),
    color (0),
-   cut(m ? Cut(pre_proc()->cut, m->cut, this) : Cut (pre_proc()->cut, this))
+   cut(m ? Cut(pre_proc()->cut, m->cut, this) : Cut (pre_proc()->cut, this)),
+   depth (1 + std::max (pre_proc(bf)->depth, m ? m->depth : 0))
 {
    // m could be null (eg, first lock of an execution)
    ASSERT (pre_proc() != 0);

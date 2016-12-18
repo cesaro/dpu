@@ -45,23 +45,23 @@ const char *action_type_str (ActionType t)
    switch (t)
    {
    // loads
-   case ActionType::RD8       : return "RD8     ";
-   case ActionType::RD16      : return "RD16    ";
-   case ActionType::RD32      : return "RD32    ";
-   case ActionType::RD64      : return "RD64    ";
+   case ActionType::RD8       : return "RD8";
+   case ActionType::RD16      : return "RD16";
+   case ActionType::RD32      : return "RD32";
+   case ActionType::RD64      : return "RD64";
    // stores
-   case ActionType::WR8       : return "WR8     ";
-   case ActionType::WR16      : return "WR16    ";
-   case ActionType::WR32      : return "WR32    ";
-   case ActionType::WR64      : return "WR64    ";
+   case ActionType::WR8       : return "WR8";
+   case ActionType::WR16      : return "WR16";
+   case ActionType::WR32      : return "WR32";
+   case ActionType::WR64      : return "WR64";
    // memory management
-   case ActionType::MALLOC    : return "MALLOC  ";
-   case ActionType::FREE      : return "FREE    ";
+   case ActionType::MALLOC    : return "MALLOC";
+   case ActionType::FREE      : return "FREE";
    // threads
-   case ActionType::THCREAT   : return "THCREAT ";
-   case ActionType::THSTART   : return "THSTART ";
-   case ActionType::THEXIT    : return "THEXIT  ";
-   case ActionType::THJOIN    : return "THJOIN  ";
+   case ActionType::THCREAT   : return "THCREAT";
+   case ActionType::THSTART   : return "THSTART";
+   case ActionType::THEXIT    : return "THEXIT";
+   case ActionType::THJOIN    : return "THJOIN";
    // locks
    //case ActionType::MTXINIT   : return "MTX-INIT";
    case ActionType::MTXLOCK   : return "MTX-LOCK";
@@ -164,9 +164,9 @@ std::string Event::str () const
 {
    std::string s;
 
-   s = fmt ("e %-16p pid %2d dpths %02d,%02d pre-proc %-16p pre-other %-16p "
+   s = fmt ("e %-16p pid %2d dpths %02u,%02u,%02u pre-proc %-16p pre-other %-16p "
          "fst/lst %d/%d |rb| %lu action %s",
-         this, pid(), node[0].depth, node[1].depth,
+         this, pid(), depth, node[0].depth, node[1].depth,
          pre_proc(), pre_other(),
          flags.boxfirst ? 1 : 0,
          flags.boxlast ? 1 : 0,
@@ -193,100 +193,125 @@ std::string Event::str () const
    return s;
 }
 
-void Unfolding::print_dot ()
+void Unfolding::print_dot (std::ofstream &fs)
 {
-   int count = 0;
-   /* Create a folder namely output in case it hasn't existed. Work only in Linux */
-   DEBUG("\n%p: Unfolding.uprint_dot:", this);
-   const char * mydir = "output";
-   struct stat st;
-   if ((stat(mydir, &st) == 0) && (((st.st_mode) & S_IFMT) == S_IFDIR))
-      DEBUG(" Directory %s already exists", mydir);
-   else
-   {
-      const int dir_err = mkdir("output", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-      if (-1 == dir_err)
-         DEBUG("Directory output has just been created!");
-   }
-
-   std::ofstream fs("output/unf.dot", std::fstream::out);
-   std::string caption = "Concur example";
-   DEBUG_(" Unfolding is exported to dot file: \"output/unf.dot\"");
-
-   fs << "Digraph RGraph \n {\n";
-   fs << "label = \"Unfolding: " << caption <<"\" \n";
-   fs << "node [shape=rectangle, fontsize=10, style=\"filled, solid\", align=right] \n";
-   fs << "edge [style=filled] \n";
-
    std::string bcolor;
-   for (unsigned i = 0; i < num_procs(); i++)
+   //std::unordered_map<Event*,unsigned> id;
+   unsigned i, j, count, m;
+   Process *p;
+   std::string var;
+
+   fs << "digraph {\n";
+   fs << " node [shape=\"rectangle\", fontsize=10, style=\"filled\"];\n";
+
+   // we dump the nodes of every process first
+   count = 0;
+   for (i = 0; i < num_procs(); i++)
    {
-      Process *p = proc (i);
+      p = proc (i);
+      fs << "\n subgraph cluster_p" << p->pid() << " {\n";
+      fs << "  label = \"Thread " << p->pid() << "\";\n";
+      fs << "  color = \"#f0f0f0\";\n";
+      fs << "  fillcolor = \"#f0f0f0\";\n";
+      fs << "  style = filled;\n\n";
+
+      m = 0;
       for (Event &e : *p)
       {
-         e.idx = count;
-         /*
-         if (e.is_bottom())
-            fs << e.idx << "[label=\"" << "BOTTOM \n vclock: "
-               << e.vclock.print_dot() <<" \"]\n";
-         else
-         */
+         // assign an id
+         //id[&e] = count++;
 
+         // get a color
          switch (e.action.type)
          {
             case ActionType::MTXLOCK:
+               bcolor = "salmon";
+               var = fmt ("%p", e.action.addr);
+               break;
             case ActionType::MTXUNLK:
-               bcolor = "red";
+               bcolor = "lightblue";
+               var = fmt ("%p", e.action.addr);
                break;
             case ActionType::THSTART:
-               bcolor = "lightblue";
+               bcolor = "greenyellow";
+               break;
+            case ActionType::THCREAT:
+               bcolor = "yellow2";
+               var = fmt ("%u", e.action.val);
+               break;
+            case ActionType::THJOIN:
+               bcolor = "orchid";
+               var = fmt ("%u", e.action.val);
                break;
             case ActionType::THEXIT:
-               bcolor = "yellow";
-               break;
             default:
+               var = "";
                bcolor = "grey";
                break;
          }
 
-         fs << e.idx << "[label=\" idx:"<< e.idx << "  Proc: "<<p->pid() << " - "<< action_type_str(e.action.type) << "\""
-               << "color= " << bcolor << "]\n";
+         // print the node
+         fs << "  { rank=same;\n    p" << p->pid() << "_d" << e.depth
+            << " [style=\"invis\"];\n";
+         fs << "    _" << &e << " [label=\"";
+         fs << "" << action_type_str(e.action.type) << " " << var;
+         fs << "\\ne" << count;
+         fs << " dp " << e.depth;
+         fs << " rb " << e.redbox.size();
+         fs << "\" fillcolor=" << bcolor << "]; }\n";
+
+         // compute the maximum depth
+         if (m < e.depth) m = e.depth;
          count++;
       }
+
+      // invisible linear graph for the depths
+      fs << "\n  /* invisible linear graph fixing the depths */\n";
+      for (j = 1; j < m; j++)
+      {
+         fs << "  p" << p->pid() << "_d" << j-1 << " [style=\"invis\"];\n";
+         fs << "  p" << p->pid() << "_d" << j-1
+            << " -> p" << p->pid() << "_d" << j << " [style=\"invis\"];\n";
+      }
+
+      fs << " }\n";
    }
 
-   /// print edges
-   for (unsigned i = 0; i < num_procs(); i++)
+   fs << "\n /* causality edges */ \n";
+   for (i = 0; i < num_procs(); i++)
    {
-      Process *p = proc (i);
+      p = proc (i);
       for (Event &e : *p)
       {
-         if (e.pre_other() != nullptr)
-            fs << e.pre_other()->idx << "->" << e.idx << "[color=brown]\n";
-
          if (e.pre_proc() != nullptr)
-            fs << e.pre_proc()->idx << "->" << e.idx << "[color=brown]\n";
+            fs << " _" << e.pre_proc() << " -> _" << &e << " [weight=1000];\n";
+            // [weight=1000] could be useful here
+
+         if (e.pre_other() != nullptr)
+            fs << " _" << e.pre_other() << " -> _" << &e << " [color=blue, constraint=false];\n";
       }
    }
 
-   /* print conflict edges */
-   for (unsigned i = 0; i < num_procs(); i++)
+   fs << "\n /* conflict edges */ \n";
+   for (i = 0; i < num_procs(); i++)
    {
-      Process *p = proc (i);
+      p = proc (i);
       for (Event &e : *p)
       {
          for (Event *ee : e.icfls ())
          {
-            // avoid redrawing the same conflict
-            if (ee->idx <= e.idx) continue;
-            fs << e.idx << "->" << ee->idx << "[dir=none, color=red, style=dashed]\n";
+            // avoid redrawing the same conflict lines
+            if (ee < &e) continue;
+            fs << " _" << &e << " -> _" << ee
+               << " [constraint=false, dir=none, color=red, style=dashed];\n";
          }
       }
    }
 
-   fs << "}";
-   fs.close();
-   DEBUG(" successfully\n");
+   fs << "\n label = \"Unfolding " << this << "\\n";
+   fs << count << " events, " << num_procs() << " threads";
+   fs << "\";\n";
+   fs << "}\n";
 }
 
 void Cut::dump () const

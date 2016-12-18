@@ -28,7 +28,8 @@ x add_multiple_runs
 x reimplement Node<T,SS>
 x write in_icfl_with (Event e);
 x how to represent conflict?
-- write icfl
+x write icfls()
+x improved dot output
 - fix is_pred_of
 - fix in_cfl_with
 - write trail
@@ -82,3 +83,4 @@ x translate e->action.val on thread creation, so that it contains the pid in the
   the root of the tree.
 
 - Event::icfls() should return an InputIterator rather than an std::vector
+

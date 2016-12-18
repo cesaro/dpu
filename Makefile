@@ -28,6 +28,7 @@ compile: $(TARGETS)
 
 run: compile input.ll
 	./src/main
+	make dot
 
 input.ll : program.ll ../steroid/rt/rt.ll
 	llvm-link-$(LLVMVERS) -S $^ -o $@
@@ -82,9 +83,9 @@ vars :
 
 clean :
 	@rm -f $(TARGETS) $(MOBJS) $(OBJS)
-	@rm -f output/*.png
-	@rm -f src/rt/rt.ll
-	@rm -f src/rt/rtv.ll
+	@rm -f dot/*.dot
+	@rm -f dot/*.png
+	@rm -f dot/*.pdf
 	@echo Cleaning done.
 
 distclean : clean
@@ -116,7 +117,10 @@ dist : all
 	for i in 02 04 05 08 10 20 30 40 50; do ./tools/mkdekker.py $$i > dist/examples/dekker/dek$$i.ll_net; done
 	for i in 02 03 04 05 06 07; do ./tools/mkdijkstra.py $$i > dist/examples/dijkstra/dij$$i.ll_net; done
 	
-dot: $(DOTPNG)
+dot: $(PDFS)
+
+o open :
+	evince dot/*.pdf &
  	     
 -include $(DEPS)
 

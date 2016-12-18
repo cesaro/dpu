@@ -203,6 +203,7 @@ void Unfolding::print_dot (std::ofstream &fs)
 
    fs << "digraph {\n";
    fs << " node [shape=\"rectangle\", fontsize=10, style=\"filled\"];\n";
+   fs << " // ranksep=0.9;\n";
 
    // we dump the nodes of every process first
    count = 0;

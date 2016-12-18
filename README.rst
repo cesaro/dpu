@@ -30,7 +30,7 @@ x write in_icfl_with (Event e);
 x how to represent conflict?
 x write icfls()
 x improved dot output
-- fix is_pred_of
+x fix is_pred_of
 - fix in_cfl_with
 - write trail
 - write the Disset

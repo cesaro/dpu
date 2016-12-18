@@ -150,7 +150,7 @@ int main4 (int argc, char ** argv)
    ret = pthread_create (&th, 0, main4_thd, 0);
    assert (ret == 0);
 
-   for (int i = 0; i < 6; i++)
+   for (int i = 0; i < 0; i++)
    {
       // enter cs
       ret = pthread_mutex_lock (&m3);

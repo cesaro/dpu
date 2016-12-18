@@ -199,48 +199,27 @@ inline bool Event:: is_pred_in_the_same_tree_of (const Event *e) const
    return false;
 }
 
-inline bool Event::is_pred_of (const Event *e) const
+bool Event::is_predeq_of (const Event *e) const
 {
-//   DEBUG("%p cut.nrp: %d",this, cut.num_procs());
-//   DEBUG("%p cut.nrp: %d",e, e->cut.num_procs());
-//   DEBUG("e->pid: %d",e->pid());
-   /// e1 is not a pred of e2 if e1 = e2
-   /// e.cut having fewer elements than this->cut means there's no way for it to be this's successor.
-   if (e->cut.num_procs() < cut.num_procs())
-   {
-//      DEBUG("e < this");
-      return false;
-   }
+   Event *ee;
 
-   ASSERT(cut.num_procs() <= e->cut.num_procs());
+   ee = e->cut[pid()];
+   DEBUG ("Event.is_pred_of: this %p pid %u e %p pid %u ee %p",
+         this, pid(), e, e->pid(), ee);
 
-   if (pid() == e->pid())
-   {
-//      DEBUG("Two events in the same process");
-      return is_pred_in_the_same_tree_of<0>(e);
-   }
+   if (! ee) return false;
+   if (ee == this) return true;
+   if (node[0].depth >= ee->node[0].depth) return false;
 
-
-//   DEBUG("this->addr: %p",action.addr);
-//   DEBUG("e->addr: %p",e->action.addr);
-
-   if ((action.addr == e->action.addr) and (action.addr))
-   {
-//      DEBUG("Touch the same addr");
-      return is_pred_in_the_same_tree_of<1>(e);
-   }
-
-   /// here, cut.num_procs() <= e->cut.num_procs(). It is enough to loop cut.num_procs() times
-
-   for (int i = 0; i < cut.num_procs(); i++)
-   {
-      DEBUG("Proc %d:", i);
-      if (!cut[i]->is_pred_in_the_same_tree_of<0>(e->cut[i]))
-         return false;
-      DEBUG("true");
-   }
-   return true;
+   return this == ee->node[0].find_pred<0> (node[0].depth);
 }
+
+bool Event::is_pred_of (const Event *e) const
+{
+   if (e == this) return false;
+   return is_predeq_of (e);
+}
+
 /*
  * - two events in the same tree can only be in causality or conflict. So, if they are not in causality, they must be in conflict.
  * - Just consider the case where two events are in 2 different processes and touch different variable (addr)
@@ -280,7 +259,7 @@ bool Event::in_icfl_with (const Event *e)
    // their pre_other pointer is equal
    return action.type == ActionType::MTXLOCK and
          e->action.type == ActionType::MTXLOCK and
-         pre_other () == e->pre_other();
+         pre_other() == e->pre_other();
 }
 
 std::vector<Event*> Event::icfls () const

@@ -896,7 +896,9 @@ void test51 ()
 
 void test52 ()
 {
+   unsigned i, j;
    std::vector<const char *> argv {"prog", "main4"};
+
    try
    {
       Event *e = nullptr, *ee;
@@ -933,9 +935,28 @@ void test52 ()
          DEBUG ("xxxxxxxxxxxxxx");
       }
 
+      // dump dot for the unfolding
       std::ofstream f ("dot/unf.dot");
       unf.u.print_dot (f);
       f.close ();
+
+      // n^2 causality tests
+      for (i = 0; i < unf.u.num_procs(); i++)
+      {
+         for (Event &e : *unf.u.proc(i))
+         {
+            for (j = 0; j < unf.u.num_procs(); j++)
+            {
+               for (Event &ee : *unf.u.proc(j))
+               {
+                  DEBUG ("==================");
+                  DEBUG (" %s", e.str().c_str());
+                  DEBUG (" %s", ee.str().c_str());
+                  DEBUG (" %d", e.is_pred_of (&ee));
+               }
+            }
+         }
+      }
 
    } catch (const std::exception &e) {
       DEBUG ("Test threw exception: %s", e.what ());

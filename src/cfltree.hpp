@@ -132,14 +132,14 @@ inline const T *Node<T,SS>::find_pred (unsigned d) const
 {
    const T *p;
 
+   DEBUG ("Node<Ev,%d>.find-pred<%d>: target %u depth %u", SS, idx, d, depth);
    ASSERT (d < depth);
-   DEBUG ("Node<Ev,%d>.find-pred: target %u depth %u", SS, d, depth);
    for (p = best_pred (d); p->node[idx].depth > d; p = p->node[idx].best_pred (d))
    {
       ASSERT (p->node[idx].best_pred(d)->node[idx].depth < p->node[idx].depth);
-      DEBUG ("Node<Ev,%d>.find-pred: at %u", SS, p->node[idx].depth);
+      DEBUG ("Node<Ev,%d>.find-pred<%d>: at %u", SS, idx, p->node[idx].depth);
    }
-   DEBUG ("Node<Ev,%d>.find-pred: at %u", SS, p->node[idx].depth);
+   DEBUG ("Node<Ev,%d>.find-pred<%d>: at %u", SS, idx, p->node[idx].depth);
    ASSERT (p->node[idx].depth == d);
    return p;
 }

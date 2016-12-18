@@ -185,12 +185,16 @@ public:
 
    template <int i>
    inline bool is_pred_in_the_same_tree_of(const Event *e) const;
+
+
+   /// returns true iff this <= e
+   inline bool is_predeq_of (const Event *e) const;
+   /// returns true iff this < e
    inline bool is_pred_of (const Event *e) const;
 
-//   template <int idx>
-//   inline bool is_cfl_in_the_same_tree_of(const Event *e) const;
    inline bool in_cfl_with (const Event *e);
 
+   /// returns true iff this and e are LOCK and siblings in the node[1] tree
    inline bool in_icfl_with (const Event *e);
 
    /// returns a set of events in conflict which includes at least all immediate

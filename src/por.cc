@@ -5,7 +5,7 @@
 
 namespace dpu
 {
-
+#if 0
 /*
  * check if all elements in combin are conflict-free in pairs
  */
@@ -25,7 +25,7 @@ bool is_conflict_free(std::vector<Event *> eset)
 void enumerate_combination (unsigned i, std::vector<std::vector<Event *>> comb,
       std::vector<Event*> temp, Cut &J)
 {
-   DEBUG("This is enum_combination function");
+   DEBUG("=======enum_combination function=======");
 
    ASSERT(!comb.empty());
 
@@ -39,11 +39,9 @@ void enumerate_combination (unsigned i, std::vector<std::vector<Event *>> comb,
          {
             DEBUG_("temp = {");
             for (unsigned i = 0; i < temp.size(); i++)
-               DEBUG_("%d, ", temp[i]->idx);
+               DEBUG_("%p, ", temp[i]);
 
             DEBUG("}");
-
-
 
             /*
              * If temp is conflict-free, then J is assigned to union of every element's local configuration.
@@ -53,23 +51,27 @@ void enumerate_combination (unsigned i, std::vector<std::vector<Event *>> comb,
             {
                DEBUG(": a conflict-free combination");
 
-               /// compute the local config for each event in temp and then add them to J
+//               /// compute the local config for each event in temp and then add them to J
+//
+//               for (unsigned i = 0; i < temp.size(); i++)
+//               {
+//                  lc = temp[i]->get_local_config();
+//
+//                  for (int j = lc.size()-1; j >= 0; j--)
+//                  {
+//                     J.add(lc[j]); // BUG here, need to add event's local config
+//                     J.dump();
+//                  }
+//               }
 
-               for (unsigned i = 0; i < temp.size(); i++)
-               {
-                  lc = temp[i]->get_local_config();
+               for (auto e : temp)
+                  J[e->pid()] = e;
 
-                  for (int j = lc.size()-1; j >= 0; j--)
-                  {
-                     J.add(lc[j]); // BUG here, need to add event's local config
-                     J.dump();
-                  }
-               }
                return; // go back to find_alternative
 
                /*
-               * Check if two or more events in J are the same: by updating cut of a config, don't need to check duplica any more
-               */
+                * Check if two or more events in J are the same: by updating cut of a config, don't need to check duplica any more
+                */
 
             }
             else
@@ -93,14 +95,16 @@ bool find_alternative (Config &c, std::vector<Event*> d, Cut &J)
       // huyen here
 
       std::vector<std::vector<Event *>> comb;
+      Event **head;
 
        DEBUG(" Find an alternative J to D after C: ");
        DEBUG_("   Original D = {");
          for (unsigned i = 0; i < d.size(); i++)
-            DEBUG_("%d  ", d[i]->idx);
+            DEBUG_("%p  ", d[i]);
        DEBUG("}");
 
-       for (auto ce : c.cex)
+       compute_cx(c, head);
+       for (auto ce : head)
           ce->inside = 1;
 
        for (unsigned i = 0; i < d.size(); i++)
@@ -277,7 +281,7 @@ bool find_alternative (Config &c, std::vector<Event*> d, Cut &J)
 
        return false;
 }
-
+#endif
 
 } // end of namespace
 

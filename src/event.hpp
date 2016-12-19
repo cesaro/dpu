@@ -225,7 +225,7 @@ bool Event::is_pred_of (const Event *e) const
 
 /*
  * - two events in the same tree can only be in causality or conflict. So, if they are not in causality, they must be in conflict.
- * - Just consider the case where two events are in 2 different processes and touch different variable (addr)
+ * - Just consider the case where two events are in 2 different processes and touch different variables (addr)
  */
 inline bool Event::in_cfl_with (const Event *e)
 {

@@ -95,9 +95,11 @@ public:
    /// list pointed by head
    void compute_cex (Config &c, Event **head);
 
-   bool find_alternative (Config &c, std::vector<Event*> d, Cut &j);
-//   void enumerate_combination (unsigned i,std::vector<std::vector<Event *>> comb , std::vector<Event*> temp, Config &j);
-//   bool is_conflict_free(std::vector<Event *> combin);
+//   bool find_alternative (Config &c, std::vector<Event*> d, Cut &J);
+   bool find_alternative (Config &c, std::vector<Event*> d, Cut &J, Event **head);
+   void enumerate_combination (unsigned i, std::vector<std::vector<Event *>> comb,
+         std::vector<Event*> temp, Cut &J);
+   bool is_conflict_free(std::vector<Event *> eset);
 
 public:
    std::vector<std::string> argv;

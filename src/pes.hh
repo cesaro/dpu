@@ -175,8 +175,8 @@ public:
    inline bool operator == (const Event &) const;
    /// returns a human-readable description of the event
    std::string str () const;
-   /// FIXME why is this necessary here?
-   inline std::vector<Event *> get_local_config();
+//   /// FIXME why is this necessary here? - Removed
+//   inline std::vector<Event *> get_local_config();
 
    /// true iff this event is the THSTART event of thread 0
    inline bool is_bottom () const;

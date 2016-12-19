@@ -481,12 +481,21 @@ bool C15unfolder::find_alternative_only_last (Config &c, std::vector<Event*> d, 
    //   and return it
    // - if you don't find any such e', return false
 
+//   Event * e = d.back();
+//   std::vector<Event *> icfl = e->icfls();
+//   for (auto ei : icfl)
+//   {
+//      if (compatible_with(c,ei) and )
+//   }
    return false;
 }
 
 bool C15unfolder::compatible_with (Config &c, Event &e)
 {
-   return false;
+   for (unsigned i = 0; i < c.num_procs(); i++)
+      if (c[i]->in_cfl_with(&e))
+         return false;
+   return true;
 }
 
 

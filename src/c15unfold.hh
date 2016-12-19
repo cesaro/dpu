@@ -97,7 +97,7 @@ public:
 
 
 //   bool find_alternative (Config &c, std::vector<Event*> d, Cut &J);
-   bool find_alternative (Config &c, std::vector<Event*> d, Cut &J, Event **head);
+
    void enumerate_combination (unsigned i, std::vector<std::vector<Event *>> comb,
          std::vector<Event*> temp, Cut &J);
    bool is_conflict_free(std::vector<Event *> eset);
@@ -106,10 +106,6 @@ public:
 
    /// finds alternatives to D after C; complete but unoptimal
    bool find_alternative_only_last (Config &c, std::vector<Event*> d, Cut &j);
-
-//   void enumerate_combination (unsigned i,std::vector<std::vector<Event *>> comb , std::vector<Event*> temp, Config &j);
-//   bool is_conflict_free(std::vector<Event *> combin);
-
 
 public:
    std::vector<std::string> argv;

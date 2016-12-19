@@ -268,14 +268,23 @@ void Unfolding::print_dot (std::ofstream &fs)
 
       // invisible linear graph for the depths
       fs << "\n  /* invisible linear graph fixing the depths */\n";
-      for (j = 1; j < m; j++)
+      for (j = 0; j < m; j++)
       {
-         fs << "  p" << p->pid() << "_d" << j-1 << " [style=\"invis\"];\n";
-         fs << "  p" << p->pid() << "_d" << j-1
-            << " -> p" << p->pid() << "_d" << j << " [style=\"invis\"];\n";
+         fs << "  p" << p->pid() << "_d" << j << " [style=\"invis\"];\n";
+         fs << "  p" << p->pid() << "_d" << j
+            << " -> p" << p->pid() << "_d" << j+1 << " [style=\"invis\"];\n";
       }
 
       fs << " }\n";
+   }
+
+   // invisible structure on the top of the threads to sync the beginning (depth
+   // 0 in each cluster)
+   fs << "\n /* sync the top rank of each cluster */ \n";
+   fs << " _root [style=\"invis\"];\n";
+   for (i = 0; i < num_procs(); i++)
+   {
+      fs << " _root -> p" << i << "_d0 [style=\"invis\"];\n";
    }
 
    fs << "\n /* causality edges */ \n";
@@ -289,7 +298,7 @@ void Unfolding::print_dot (std::ofstream &fs)
             // [weight=1000] could be useful here
 
          if (e.pre_other() != nullptr)
-            fs << " _" << e.pre_other() << " -> _" << &e << " [color=blue, constraint=false];\n";
+            fs << " _" << e.pre_other() << " -> _" << &e << " [color=blue, constraint=true];\n";
       }
    }
 
@@ -304,7 +313,7 @@ void Unfolding::print_dot (std::ofstream &fs)
             // avoid redrawing the same conflict lines
             if (ee < &e) continue;
             fs << " _" << &e << " -> _" << ee
-               << " [constraint=false, dir=none, color=red, style=dashed];\n";
+               << " [constraint=true, weight=0.1, dir=none, color=red, style=dashed];\n";
          }
       }
    }

@@ -31,6 +31,7 @@ x how to represent conflict?
 x write icfls()
 x improved dot output
 x fix is_pred_of
+- fix bug in compute_cex
 - fix in_cfl_with
 - write trail
 - write the Disset

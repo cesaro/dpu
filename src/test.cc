@@ -897,7 +897,7 @@ void test51 ()
 void test52 ()
 {
    unsigned i, j;
-   std::vector<const char *> argv {"prog", "main4"};
+   std::vector<const char *> argv {"prog", "main3"};
 
    try
    {

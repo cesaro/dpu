@@ -79,13 +79,13 @@ void *main3_thd (void *arg)
    if (! th) return 0;
 
    // enter cs
-   ret = pthread_mutex_lock (&m33);
+   ret = pthread_mutex_lock (&m3);
    assert (ret == 0);
    // create a new thread
    ret = pthread_create (th, 0, main3_thd, 0);
    assert (ret == 0);
    // exit cs
-   ret = pthread_mutex_unlock (&m33);
+   ret = pthread_mutex_unlock (&m3);
    assert (ret == 0);
    return 0;
 }
@@ -150,7 +150,7 @@ int main4 (int argc, char ** argv)
    ret = pthread_create (&th, 0, main4_thd, 0);
    assert (ret == 0);
 
-   for (int i = 0; i < 0; i++)
+   for (int i = 0; i < 3; i++)
    {
       // enter cs
       ret = pthread_mutex_lock (&m3);

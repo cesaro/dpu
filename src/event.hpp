@@ -203,14 +203,17 @@ bool Event::is_predeq_of (const Event *e) const
 {
    Event *ee;
 
+   // find the maximal event in [e] for process pid()
    ee = e->cut[pid()];
    DEBUG ("Event.is_pred_of: this %p pid %u e %p pid %u ee %p",
          this, pid(), e, e->pid(), ee);
 
+   // if there is no event, or it's depth is superior to this.depth, then false
    if (! ee) return false;
    if (ee == this) return true;
    if (node[0].depth >= ee->node[0].depth) return false;
 
+   // otherwise, we need to scan the process tree
    return this == ee->node[0].find_pred<0> (node[0].depth);
 }
 

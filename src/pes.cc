@@ -235,6 +235,7 @@ void Unfolding::print_dot (std::ofstream &fs)
                break;
             case ActionType::THSTART:
                bcolor = "greenyellow";
+               var = "";
                break;
             case ActionType::THCREAT:
                bcolor = "yellow2";

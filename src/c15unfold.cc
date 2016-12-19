@@ -414,87 +414,38 @@ void C15unfolder::cut_to_replay (const Cut &c, std::vector<int> &replay)
 /// Compute conflicting extension for a LOCK
 void C15unfolder::compute_cex_lock (Event *e, Event **head)
 {
-   Event * ep, * em, *pr_mem, *newevt;
+   Event *ep, *em, *ee;
 
    DEBUG ("c15u: cex-lock: e %p *head %p", e, *head);
+   ASSERT (e)
+   ASSERT (e->action.type == ActionType::MTXLOCK);
 
+   // ep/em are the predecessors in process/memory
    ep = e->pre_proc();
    em = e->pre_other();
-   if (em == nullptr)
+
+   while (1)
    {
-      DEBUG ("c15u: cex-lock: pre-other null, returning");
-      return;
+      // jump back 2 predecessors in memory; if we get null or another event in
+      // the same process, then em <= ep
+      if (!em or em->proc() == e->proc()) return;
+      ASSERT (em->action.type == ActionType::MTXUNLK);
+      em = em->pre_other();
+      if (!em) return;
+      ASSERT (em->action.type == ActionType::MTXLOCK);
+      em = em->pre_other();
+
+      // we are done if we got em <= ep
+      if (em and em->is_predeq_of (ep)) return;
+
+      // (action, ep, em) is a new event
+      ee = u.event (e->action, ep, em);
+      DEBUG ("c15u: cex-lock: NEW! %s\n", ee->str().c_str());
+
+      // we add it to the linked-list
+      ee->next = *head;
+      *head = ee;
    }
-
-   // while ((em != nullptr) and (ep->vclock < em->vclock)) //em is not a predecessor of ep
-   while (em)
-   {
-//      if (em->vclock < ep->vclock)
-      if (em->is_pred_of(ep)) // excluding em = ep
-      {
-         DEBUG("c15u: cex-lock: em < ep, returning");
-         return;
-      }
-
-      // jump 2 predecessors back
-      ASSERT (em->pre_other());
-      pr_mem = em->pre_other()->pre_other();
-
-      //DEBUG("pr_mem: %p", pr_mem);
-
-      /// The first LOCK's pre_other is nullptr
-      if (pr_mem == nullptr)
-      {
-//         if (ep->vclock > em->pre_other()->vclock)
-         if (em->pre_other()->is_pred_of(ep))
-         {
-            DEBUG("   pr_mem is nil and a predecessor of ep => exit");
-            break;
-         }
-
-         newevt = u.event(e->action, ep, pr_mem);
-         DEBUG("New event created:");
-         DEBUG ("  e %-16p pid %2d pre-proc %-16p pre-other %-16p fst/lst %d/%d action %s",
-                  newevt, newevt->pid(), newevt->pre_proc(), newevt->pre_other(),
-                  newevt->flags.boxfirst ? 1 : 0,
-                  newevt->flags.boxlast ? 1 : 0,
-                  action_type_str (newevt->action.type));
-
-         // we add newevt to the list
-         newevt->next = *head;
-         *head = newevt;
-
-         break;
-      }
-
-      // Check if pr_mem < ep
-
-//      if (ep->vclock > pr_mem->vclock)
-      if (em->is_pred_of(ep))
-      {
-         DEBUG("   pr_mem is predecessor of ep");
-         return;
-      }
-
-      Event * newevt = u.event(e->action, ep, pr_mem);
-      // need to add newevt to cex
-      DEBUG("New event created:");
-      DEBUG ("  e %-16p pid %2d pre-proc %-16p pre-other %-16p fst/lst %d/%d action %s",
-               newevt, newevt->pid(), newevt->pre_proc(), newevt->pre_other(),
-               newevt->flags.boxfirst ? 1 : 0,
-               newevt->flags.boxlast ? 1 : 0,
-               action_type_str (newevt->action.type));
-
-      // we add newevt to the list
-      newevt->next = *head;
-      *head = newevt;
-
-
-      // move the pointer to the next
-      em = pr_mem;
-   }
-
-   DEBUG ("c15u: cex-lock: done!");
 }
 
 void C15unfolder::compute_cex (Config &c, Event **head)
@@ -505,7 +456,7 @@ void C15unfolder::compute_cex (Config &c, Event **head)
 
    for (auto const & max : c.mutexmax)
    {
-      // skip events that not locks or unlocks
+      // skip events that are not locks or unlocks
       e = max.second;
       if (e->action.type != ActionType::MTXUNLK and
             e->action.type != ActionType::MTXLOCK) continue;

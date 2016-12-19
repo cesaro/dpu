@@ -669,7 +669,7 @@ void test35 ()
 void test36 ()
 {
    DEBUG("test36");
-   std::vector<const char *> argv {"huyen.c"};
+   std::vector<const char *> argv {"hhghgjtuyen.c"};
    try
    {
       std::vector<int> replay {-1};
@@ -680,6 +680,11 @@ void test36 ()
       Config c (unf.add_one_run (replay));
       c.dump ();
 //      unf.compute_cex(unf.u, c);
+
+      // print dot
+      std::ofstream f ("dot/huyen.dot");
+      unf.u.print_dot (f);
+      f.close ();
 
    } catch (const std::exception &e) {
       DEBUG ("Test threw exception: %s", e.what ());
@@ -786,13 +791,13 @@ void test37 ()
 
    Cut j (unf.u);
 
-   if (unf.find_alternative(cc,d,j,&e))
-   {
-      DEBUG("There is alternative J:");
-      j.dump();
-   }
-   else
-      DEBUG("No alternative");
+//   if (unf.find_alternative(cc,d,j,&e))
+//   {
+//      DEBUG("There is alternative J:");
+//      j.dump();
+//   }
+//   else
+//      DEBUG("No alternative");
 }
 
 void test38 ()
@@ -894,13 +899,13 @@ void test38 ()
 
    Cut j (unf.u);
 
-   if (unf.find_alternative(cc,d,j,&e))
-   {
-      DEBUG("There is an alternative J:");
-      j.dump();
-   }
-   else
-      DEBUG("No alternative");
+//   if (unf.find_alternative(cc,d,j,&e))
+//   {
+//      DEBUG("There is an alternative J:");
+//      j.dump();
+//   }
+//   else
+//      DEBUG("No alternative");
 }
 
 void test39 ()

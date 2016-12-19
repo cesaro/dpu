@@ -35,6 +35,11 @@ x fix bug in compute_cex
 - fix in_cfl_with
 - write trail
 - write the Disset
+- write the simplest possibly-incomplete method to compute alternatives
+- write explore and use it
+- test
+- optimize
+- find benchmarks
 
 Huyen:
 
@@ -85,3 +90,40 @@ x translate e->action.val on thread creation, so that it contains the pid in the
 
 - Event::icfls() should return an InputIterator rather than an std::vector
 
+
+Alternatives
+============
+
+Incomplete methods
+------------------
+
+- perform a fast search; if you find one, return it
+- if not, return that there is no alternative
+- this is incomplete, there is nothing else to modify in the algorithm
+
+Complete but unoptimal methods
+------------------------------
+
+- perform a fast search; if you find one, return it
+- if not, but you find an immediate conflict of the last that qualifies (no
+  conflicts with C), return it as an alternative, even if it is not
+- when replaying it you might unavoidably try to add events in D to C (SSB)
+- modify stream_to_events to refuse to do this, this configuration has
+  necessarily already been explored
+- nothing else to modify?
+
+Complete and optimal methods
+----------------------------
+
+- the algorithm we have discussed
+
+
+find_alternative_only_last
+--------------------------
+
+- (complete but unoptimal)
+- consider the last event in D, call it e
+- if you find some immediate conflict e' of e that is compatible with C (that
+  is, e' is not in conflict with any event in proc-max(C)), then set J = [e']
+  and return it
+- if you don't find any such e', return false

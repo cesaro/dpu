@@ -438,15 +438,15 @@ void C15unfolder::compute_cex_lock (Event *e, Event **head)
       // we are done if we got em <= ep
       if (em and em->is_predeq_of (ep)) return;
 
-      // (action, ep, em) is a new event
+      // (action, ep, em) is a (new) event
       ee = u.event (e->action, ep, em);
-      DEBUG ("c15u: cex-lock: NEW! %s\n", ee->str().c_str());
+      DEBUG ("c15u: cex-lock: CEX! %s\n", ee->str().c_str());
 
       // we add it to the linked-list
       ee->next = *head;
       *head = ee;
    }
-}
+} 
 
 void C15unfolder::compute_cex (Config &c, Event **head)
 {
@@ -471,6 +471,25 @@ void C15unfolder::compute_cex (Config &c, Event **head)
       }
    }
 }
+
+bool C15unfolder::find_alternative_only_last (Config &c, std::vector<Event*> d, Cut &j)
+{
+   // - (complete but unoptimal)
+   // - consider the last event in D, call it e
+   // - if you find some immediate conflict e' of e that is compatible with C (that
+   //   is, e' is not in conflict with any event in proc-max(C)), then set J = [e']
+   //   and return it
+   // - if you don't find any such e', return false
+
+   return false;
+}
+
+bool C15unfolder::compatible_with (Config &c, Event &e)
+{
+   return false;
+}
+
+
 
 #if 0
 /*
@@ -827,6 +846,7 @@ bool C15unfolder::find_alternative (Config &c, std::vector<Event*> d, Cut &J)
 
        return false;
 }
+
 #endif
 
 } // namespace dpu

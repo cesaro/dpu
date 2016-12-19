@@ -126,8 +126,6 @@ private :
 class Event : public MultiNode<Event,2> // 2 trees, skip step = 3
 {
 public:
-   // FIXME - this field should be removed
-   int idx;
    int inside; // a flag to mark that an event is inside some set or not
 
    /// THSTART(), creat is the corresponding THCREAT (or null for p0)

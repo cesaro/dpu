@@ -95,11 +95,21 @@ public:
    /// list pointed by head
    void compute_cex (Config &c, Event **head);
 
+
 //   bool find_alternative (Config &c, std::vector<Event*> d, Cut &J);
    bool find_alternative (Config &c, std::vector<Event*> d, Cut &J, Event **head);
    void enumerate_combination (unsigned i, std::vector<std::vector<Event *>> comb,
          std::vector<Event*> temp, Cut &J);
    bool is_conflict_free(std::vector<Event *> eset);
+
+   bool find_alternative (Config &c, std::vector<Event*> d, Cut &j);
+
+   /// finds alternatives to D after C; complete but unoptimal
+   bool find_alternative_only_last (Config &c, std::vector<Event*> d, Cut &j);
+
+//   void enumerate_combination (unsigned i,std::vector<std::vector<Event *>> comb , std::vector<Event*> temp, Config &j);
+//   bool is_conflict_free(std::vector<Event *> combin);
+
 
 public:
    std::vector<std::string> argv;
@@ -111,7 +121,11 @@ public:
 
    /// computes conflicting extensions associated to event e
    void compute_cex_lock (Event *e, Event **head);
+
+   /// returns true iff c \cup [e] is a configuration
+   bool compatible_with (Config &c, Event &e);
 };
 
 } //end of namespace
 #endif
+

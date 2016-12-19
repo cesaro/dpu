@@ -141,14 +141,14 @@ inline std::vector<Event *> Event::get_local_config()
 
    for (unsigned i = 0; i < cut.num_procs(); i++)
    {
-      DEBUG("cut[%d]: %d", i, cut[i]->idx);
+      DEBUG("cut[%d]: %p", i, cut[i]);
       next = cut[i];
 
       while (next->action.type != ActionType::THSTART)
       {
          lc.push_back(next);
          next = next->pre_proc();
-         DEBUG("next->idx: %d", next->idx);
+         DEBUG("next->idx: %p", next);
       }
       // add THSTART event
       lc.push_back(next);
@@ -156,7 +156,7 @@ inline std::vector<Event *> Event::get_local_config()
 
    DEBUG("LC inside the function");
    for (unsigned j = 0; j < lc.size(); j++)
-      DEBUG_("%d ", lc[j]->idx);
+      DEBUG_("%p ", lc[j]);
 
    return lc;
 }
@@ -187,8 +187,8 @@ inline bool Event:: is_pred_in_the_same_tree_of (const Event *e) const
    ASSERT(node[i].depth < e->node[i].depth);
 
    ee = e->node[i].find_pred<i>(node[i].depth);
-   DEBUG("%d", ee->idx);
-   DEBUG("%d", this->idx);
+   DEBUG("%p", ee);
+   DEBUG("%d", this);
 
    if (ee == this)
    {

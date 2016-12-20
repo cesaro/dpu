@@ -229,30 +229,22 @@ bool Event::is_pred_of (const Event *e) const
  */
 inline bool Event::in_cfl_with (const Event *e)
 {
-   if (e == nullptr) return false;
-   if (this == e) return false;
+   if (e == this) return false;
 
-   if (pid() == e->pid())
-   {
-      DEBUG("Same process tree");
-      return (!is_pred_in_the_same_tree_of<0>(e) and !e->is_pred_in_the_same_tree_of<0>(this));
-   }
-
-   if ((action.addr == e->action.addr) and (action.addr))
-   {
-      DEBUG("Same addr tree");
-      return (!is_pred_in_the_same_tree_of<1>(e) and !e->is_pred_in_the_same_tree_of<1>(this));
-   }
+   // if e and this are in the same tree (process or address one), they are either in conflict or causality
+   if ( (e->pid() == pid()) or ((action.addr == e->action.addr) and (action.addr)) )
+      return (!is_pred_of(e) and !e->is_pred_of(this));
 
    int nrp = (cut.num_procs() > e->cut.num_procs()) ? e->cut.num_procs() : cut.num_procs();
-//   DEBUG("nrp: %d", nrp);
+   //   DEBUG("nrp: %d", nrp);
 
-   DEBUG("Different processes");
+   DEBUG("Different processes and address");
    for (int i = 0; i < nrp; i++)
    {
-      if (!cut[i]->is_pred_in_the_same_tree_of<0>(e->cut[i]) and !e->cut[i]->is_pred_in_the_same_tree_of<0>(cut[i]))
-         return true; // there is a pair in conflict => 2 events are in cfl consequently
+      if (cut[i] and e->cut[i] and !cut[i]->is_pred_of(e->cut[i]) and !e->cut[i]->is_pred_of(cut[i]) )
+            return true; // there is a pair in conflict => 2 events are in cfl consequently
    }
+
    return false;
 }
 

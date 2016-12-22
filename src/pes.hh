@@ -181,8 +181,8 @@ public:
    /// true iff this event is the THSTART event of thread 0
    inline bool is_bottom () const;
 
-   template <int i>
-   inline bool is_pred_in_the_same_tree_of(const Event *e) const;
+//   template <int i>
+//   inline bool is_pred_in_the_same_tree_of(const Event *e) const;
 
 
    /// returns true iff this <= e
@@ -389,8 +389,8 @@ private:
 class Config : public Cut
 {
 public:
-   /// FIXME - is this necessary?
-   std::vector<Event *> cex; // don't need
+//   /// FIXME - is this necessary?
+//   std::vector<Event *> cex; // don't need
    /// creates an empty onfiguration for as much as u.num_procs processes
    inline Config (const Unfolding &u);
    /// creates an empty configuration for as much as n processes

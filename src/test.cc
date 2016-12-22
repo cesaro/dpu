@@ -669,6 +669,7 @@ void test35 ()
 void test36 ()
 {
    DEBUG("test36");
+   Event *e = nullptr;
    std::vector<const char *> argv {"hhghgjtuyen.c"};
    try
    {
@@ -679,7 +680,7 @@ void test36 ()
 
       Config c (unf.add_one_run (replay));
       c.dump ();
-//      unf.compute_cex(unf.u, c);
+      unf.compute_cex(c, &e);
 
       // print dot
       std::ofstream f ("dot/huyen.dot");

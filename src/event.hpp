@@ -163,41 +163,41 @@ inline bool Event::operator == (const Event &other) const
 /*
  *
  */
-template <int i>
-inline bool Event:: is_pred_in_the_same_tree_of (const Event *e) const
-{
-   const Event *ee;
-   if (this == e) return true;
-
-   if (node[i].depth > e->node[i].depth)
-   {
-//      DEBUG("node[i] cfl or is a successor of e");
-      return false;
-   }
-
-   if (node[i].depth == e->node[i].depth)
-   {
-      DEBUG("Two nodes have the same depth");
-      if (this == e)
-         return true;
-      else
-         return false;
-   }
-
-   ASSERT(node[i].depth < e->node[i].depth);
-
-   ee = e->node[i].find_pred<i>(node[i].depth);
-   DEBUG("%p", ee);
-   DEBUG("%d", this);
-
-   if (ee == this)
-   {
-      DEBUG("not cfl here");
-      return true;
-   }
-
-   return false;
-}
+//template <int i>
+//inline bool Event:: is_pred_in_the_same_tree_of (const Event *e) const
+//{
+//   const Event *ee;
+//   if (this == e) return true;
+//
+//   if (node[i].depth > e->node[i].depth)
+//   {
+////      DEBUG("node[i] cfl or is a successor of e");
+//      return false;
+//   }
+//
+//   if (node[i].depth == e->node[i].depth)
+//   {
+//      DEBUG("Two nodes have the same depth");
+//      if (this == e)
+//         return true;
+//      else
+//         return false;
+//   }
+//
+//   ASSERT(node[i].depth < e->node[i].depth);
+//
+//   ee = e->node[i].find_pred<i>(node[i].depth);
+//   DEBUG("%p", ee);
+//   DEBUG("%d", this);
+//
+//   if (ee == this)
+//   {
+//      DEBUG("not cfl here");
+//      return true;
+//   }
+//
+//   return false;
+//}
 
 bool Event::is_predeq_of (const Event *e) const
 {

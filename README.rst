@@ -47,14 +47,12 @@ x vclocks
 x Unfolding::print_dot
 x BaseConfig
 x BaseConfig -> replay
-x compute_cex (u, c)
-x fix conf2replay, bug when c.max contains null pointers : fixed. 
-- compute_alt (BaseConfig &c, const std::vector<Event*> d, 
-
-Needs
-=====
-- in_dicfl_with() to initialize the comb
+- In Event, store a Config instead of Cut as an event's local configuration.
+  When deciding the conflict between two arbitrary events e and e', just look at its local
+  configuration's mutexmax. Having e.mutexmax(m) !cfl e'.mutexmax(m) for every mutex variable m
+  means that e !cfl with e'.
 - 
+
 
 Improvements
 ============

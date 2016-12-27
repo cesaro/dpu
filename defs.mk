@@ -77,12 +77,12 @@ PDFS=$(DOTS:.dot=.pdf)
 %.d : %.c
 	@echo "DEP $<"
 	@set -e; $(CC) -MM -MT $*.o $(CFLAGS) $(CPPFLAGS) $< | \
-	sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' > $@;
+	sed 's,\($*\)\.o[ :]*,\1.o \1.i $@ : ,g' > $@;
 
 %.d : %.cc
 	@echo "DEP $<"
 	@set -e; $(CXX) -MM -MT $*.o $(CXXFLAGS) $(CPPFLAGS) $< | \
-	sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' > $@;
+	sed 's,\($*\)\.o[ :]*,\1.o \1.i $@ : ,g' > $@;
 
 %.cc : %.l
 	@echo "LEX $<"
@@ -104,6 +104,14 @@ PDFS=$(DOTS:.dot=.pdf)
 %.o : %.cc
 	@echo "CXX $<"
 	@$(CXX) $(CXXFLAGS) $(CPPFLAGS) -c -o $@ $<
+
+%.i : %.c
+	@echo "CC  $<"
+	@$(CC) $(CFLAGS) $(CPPFLAGS) -E -o $@ $<
+
+%.i : %.cc
+	@echo "CXX $<"
+	@$(CXX) $(CXXFLAGS) $(CPPFLAGS) -E -o $@ $<
 
 %.pdf : %.dot
 	@echo "DOT $<"

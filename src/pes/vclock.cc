@@ -18,8 +18,7 @@
 #include "verbosity.h"
 #include "misc.hh"
 
-namespace dpu{
-
+namespace dpu {
 
 Vclock::Vclock()
 {

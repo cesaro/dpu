@@ -4,7 +4,7 @@
 
 //-----------------------
 template <class T, int SS >
-inline Node<T,SS>::Node(int idx, T *_this, T *_pre) :
+Node<T,SS>::Node(int idx, T *_this, T *_pre) :
    depth (_pre ? _pre->node[idx].depth + 1 : 0),
    pre (_pre),
    skiptab (skiptab_alloc (idx)),
@@ -22,14 +22,14 @@ inline Node<T,SS>::Node(int idx, T *_this, T *_pre) :
 }
 
 template <class T, int SS >
-inline Node<T,SS>::~Node ()
+Node<T,SS>::~Node ()
 {
    DEBUG("Node<Ev,%d>.dtor", SS);
    delete [] skiptab;
 }
 
 template <class T, int SS >
-inline T **Node<T,SS>::skiptab_alloc (int idx)
+T **Node<T,SS>::skiptab_alloc (int idx)
 {
    unsigned size, i, j;
    T **tab;
@@ -69,7 +69,7 @@ inline T **Node<T,SS>::skiptab_alloc (int idx)
 }
 
 template <class T, int SS >
-inline unsigned Node<T,SS>::skiptab_size () const
+unsigned Node<T,SS>::skiptab_size () const
 {
    // The size of the skiptab table is the number of trailing zeros in the
    // SS-ary representation of this->depth
@@ -128,7 +128,7 @@ T *Node<T,SS>::best_pred (unsigned target) const
 
 template <class T, int SS>
 template <int idx>
-inline const T *Node<T,SS>::find_pred (unsigned d) const
+const T *Node<T,SS>::find_pred (unsigned d) const
 {
    const T *p;
 
@@ -146,22 +146,45 @@ inline const T *Node<T,SS>::find_pred (unsigned d) const
 
 template <class T, int SS>
 template <int idx>
-inline T *Node<T,SS>::find_pred (unsigned d)
+T *Node<T,SS>::find_pred (unsigned d)
 {
    return const_cast<T*> (static_cast<const Node<T,SS>*>(this)->find_pred<idx> (d));
 }
+
+template <class T, int SS>
+template <int idx>
+bool Node<T,SS>::in_cfl_with (const T *other) const
+{
+   unsigned d;
+
+   d = other->node[idx].depth;
+   if (depth == d) return this != &other->node[idx];
+   if (depth < d)
+   {
+      const Node<T,SS> &nod = other->node[idx];
+      const T *pred = nod.find_pred<idx> (depth);
+      // for some unknown reason clang does not compile this simpler expression:
+      //pred = (other->node[idx]).find_pred<idx> (depth);
+      return this != &(pred->node[idx]);
+   }
+   else
+   {
+      return other != find_pred<idx>(d);
+   }
+}
+
 
 /*
  * Methods for class MultiNode
  */
 template <class T, int SS> // SS: skip step
-inline MultiNode<T,SS> :: MultiNode(T *p0, T *p1) :
+MultiNode<T,SS> :: MultiNode(T *p0, T *p1) :
    node {{0, (T*) this, p0}, {1, (T*) this, p1}}
 {
 }
 
 template <class T, int SS> // SS: skip step
-inline MultiNode<T,SS> :: MultiNode(T *p0) :
+MultiNode<T,SS> :: MultiNode(T *p0) :
    node {{0, (T*) this, p0}, {1, (T*) this, nullptr}}
 {
 }

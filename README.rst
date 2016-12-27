@@ -32,7 +32,9 @@ x write icfls()
 x improved dot output
 x fix is_pred_of
 x fix bug in compute_cex
-- fix in_cfl_with
+x fix in_cfl_with
+x debug Primeconfig
+x debug in_cfl_with
 - write trail
 - write the Disset
 - write the simplest possibly-incomplete method to compute alternatives
@@ -87,6 +89,10 @@ x translate e->action.val on thread creation, so that it contains the pid in the
   the root of the tree.
 
 - Event::icfls() should return an InputIterator rather than an std::vector
+
+- Primeconfig::lockmax should be a fixed-size vector, rather than std::vector
+
+- Primeconfig::merge3_ways should be a template, to optimize for the 3rd parameter
 
 
 Alternatives

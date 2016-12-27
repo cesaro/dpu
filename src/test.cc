@@ -8,11 +8,16 @@
 #include <algorithm>
 #include <sys/stat.h>
 
-#include "c15unfold.hh"
+#include "c15unfold.hh" // must be before verbosity.h
 #include "verbosity.h"
 #include "misc.hh"
 #include "test.hh"
-#include "pes.hh"
+#include "pes/event.hh"
+#include "pes/unfolding.hh"
+#include "pes/process.hh"
+#include "pes/eventbox.hh"
+#include "pes/config.hh"
+#include "pes/cut.hh"
 #include "por.hh"
 
 
@@ -54,10 +59,10 @@ void test27 ()
    DEBUG ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
    SHOW (CONFIG_MAX_EVENTS_PER_PROCCESS, "zu");
    SHOW (sizeof (Event), "zu");
-   SHOW (sizeof (EventBox), "zu");
+   SHOW (sizeof (Eventbox), "zu");
    SHOW (sizeof (Process), "zu");
    SHOW (alignof (Event), "zu");
-   SHOW (alignof (EventBox), "zu");
+   SHOW (alignof (Eventbox), "zu");
    SHOW (alignof (Process), "zu");
    SHOW (int2msb (Unfolding::PROC_SIZE), "zu");
    SHOW (int2mask (Unfolding::MAX_PROC - 1), "zu");
@@ -198,7 +203,7 @@ void test28 ()
 
 void test30()
 {
-   Event *es, *ec, *el, *eu, *ej, *ex, *es1, *ex1, *el1, *eu1 ;
+   Event *es, *ec, *el, *eu, *ej, *ex, *ell, *es1, *ex1, *el1, *eu1 ;
    Unfolding u;
 
    /*
@@ -209,10 +214,11 @@ void test30()
     * lock 0x100
     * unlock 0x100
     *                start
-    *                lock 0x100
-    *                unlock 0x100
+    *                lock 0x102
+    *                unlock 0x102
     *                exit
     * join
+    * lock 0x102
     * exit
     */
 
@@ -234,10 +240,12 @@ void test30()
    eu = u.event ({.type = ActionType::MTXUNLK, .addr = 0x100}, el, el);
 
    // lock
-   el1 = u.event ({.type = ActionType::MTXLOCK, .addr = 0x100}, es1, eu);
+   //el1 = u.event ({.type = ActionType::MTXLOCK, .addr = 0x100}, es1, eu);
+   el1 = u.event ({.type = ActionType::MTXLOCK, .addr = 0x102}, es1, nullptr);
 
    //unlock
-   eu1 = u.event ({.type = ActionType::MTXUNLK, .addr = 0x100}, el1, el1);
+   //eu1 = u.event ({.type = ActionType::MTXUNLK, .addr = 0x100}, el1, el1);
+   eu1 = u.event ({.type = ActionType::MTXUNLK, .addr = 0x102}, el1, el1);
 
    // exit in thread 1
    ex1 = u.event ({.type = ActionType::THEXIT}, eu1);
@@ -245,8 +253,11 @@ void test30()
    // join
    ej = u.event ({.type = ActionType::THJOIN, .val = 1}, eu, ex1);
 
+   // lock
+   ell = u.event ({.type = ActionType::MTXLOCK, .addr = 0x102}, ej, eu1);
+
    // exit
-   ex = u.event ({.type = ActionType::THEXIT}, ej);
+   ex = u.event ({.type = ActionType::THEXIT}, ell);
 
 //   printf("ex.vclock: ");
 //   ex->vclock.print();
@@ -416,10 +427,10 @@ void test32()
    c.dump();
    printf ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n");
 
-   DEBUG("%p.cut:", ex1);
-   ex1->cut.dump();
-   DEBUG("%p.cut:", ex);
-   ex->cut.dump();
+   DEBUG("%p.cone:", ex1);
+   ex1->cone.dump();
+   DEBUG("%p.cone:", ex);
+   ex->cone.dump();
 
    printf ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n");
    if (ex1->is_pred_of(ex))
@@ -1122,7 +1133,7 @@ void test51 ()
 void test52 ()
 {
    unsigned i, j;
-   std::vector<const char *> argv {"prog", "main3"};
+   std::vector<const char *> argv {"prog", "main4"};
 
    try
    {
@@ -1133,10 +1144,21 @@ void test52 ()
       unf.load_bytecode ("./input.ll");
       unf.set_args (argv);
       
+      // run 1 time, compute cex
       Config c (unf.add_one_run (replay));
       c.dump ();
       unf.compute_cex (c, &e);
+
+      // add one run per cex
+      DEBUG ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
+      unf.add_multiple_runs (replay);
+      DEBUG ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
+
+      // dump to stdout and in dot format
       unf.u.dump ();
+      std::ofstream f ("dot/unf.dot");
+      unf.u.print_dot (f);
+      f.close ();
 
       ASSERT (c[0]->action.type == ActionType::THEXIT);
       SHOW (c[0]->str().c_str(), "s");
@@ -1160,12 +1182,7 @@ void test52 ()
          DEBUG ("xxxxxxxxxxxxxx");
       }
 
-      // dump dot for the unfolding
-      std::ofstream f ("dot/unf.dot");
-      unf.u.print_dot (f);
-      f.close ();
-
-      // n^2 causality tests
+      // n^2 causality / conflict tests
       for (i = 0; i < unf.u.num_procs(); i++)
       {
          for (Event &e : *unf.u.proc(i))
@@ -1177,7 +1194,8 @@ void test52 ()
                   DEBUG ("==================");
                   DEBUG (" %s", e.str().c_str());
                   DEBUG (" %s", ee.str().c_str());
-                  DEBUG (" %d", e.is_pred_of (&ee));
+                  //DEBUG (" %d", e.is_pred_of (&ee));
+                  DEBUG (" %d", e.in_cfl_with (&ee));
                }
             }
          }

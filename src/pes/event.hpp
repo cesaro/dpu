@@ -1,11 +1,13 @@
+
+
 /// THSTART(), creat is the corresponding THCREAT (or null for p0)
-inline Event::Event (Event *creat) :
+Event::Event (Event *creat) :
    MultiNode(nullptr, creat),
    flags ({.boxfirst = 1, .boxlast = 0, .inc = 0}),
    action ({.type = ActionType::THSTART}),
    redbox (),
    color (0),
-   cut (creat ? Cut (creat->cut, this) : Cut (pid() + 1, this)),
+   cone (creat ? Primecon (creat->cone, this) : Primecon (pid() + 1, this)),
    depth (creat ? creat->depth + 1 : 0)
 {
    ASSERT (action.type == ActionType::THSTART);
@@ -13,136 +15,126 @@ inline Event::Event (Event *creat) :
    ASSERT (pre_other() == creat);
    ASSERT (!creat or creat->action.type == ActionType::THCREAT);
 
-   DEBUG ("Event.ctor: this %p pid %u action %s pre-proc %p pre-other %p "
-         "bf 1 cut %s",
+   DEBUG ("Event.ctor: this %p pid %u ac %s pre %p,%p bf 1 con %s",
          this, pid(), action_type_str (action.type), pre_proc(), creat,
-         cut.str().c_str());
+         cone.str().c_str());
 }
 
 /// THCREAT(tid) or THEXIT(), one predecessor (in the process)
-inline Event::Event (Action ac, bool bf) :
+Event::Event (Action ac, bool bf) :
    MultiNode(pre_proc(bf), nullptr),
    flags ({.boxfirst = bf, .boxlast = 0, .inc = 0}),
    action (ac),
    redbox (),
    color (0),
-   cut(pre_proc()->cut, this),
+   cone (pre_proc()->cone, this),
    depth (pre_proc(bf)->depth + 1)
 {
    ASSERT (pre_proc() != 0);
    ASSERT (pre_other() == 0);
 
-   DEBUG ("Event.ctor: this %p pid %u action %s pre-proc %p pre-other %p "
-         "bf %d cut %s",
+   DEBUG ("Event.ctor: this %p pid %u ac %s pre %p,%p bf %d con %s",
          this, pid(), action_type_str (action.type), pre_proc(), pre_other(),
-         bf, cut.str().c_str());
+         bf, cone.str().c_str());
 }
 
 /// THJOIN(tid), MTXLOCK(addr), MTXUNLK(addr), two predecessors (process, memory/exit)
-inline Event::Event (Action ac, Event *m, bool bf) :
+Event::Event (Action ac, Event *m, bool bf) :
    MultiNode(pre_proc(bf), m),
    flags ({.boxfirst = bf, .boxlast = 0, .inc = 0}),
    action (ac),
    redbox (),
    color (0),
-   cut(m ? Cut(pre_proc()->cut, m->cut, this) : Cut (pre_proc()->cut, this)),
+   cone (m ?
+         Primecon (pre_proc()->cone, m->cone, this) :
+         Primecon (pre_proc()->cone, this)),
    depth (1 + std::max (pre_proc(bf)->depth, m ? m->depth : 0))
 {
    // m could be null (eg, first lock of an execution)
    ASSERT (pre_proc() != 0);
    ASSERT (pre_other() == m);
 
-   DEBUG ("Event.ctor: this %p pid %u action %s pre-proc %p pre-other %p "
-         "bf %d cut %s",
+   DEBUG ("Event.ctor: this %p pid %u ac %s pre %p,%p bf %d con %s",
          this, pid(), action_type_str (action.type), pre_proc(), pre_other(),
-         bf, cut.str().c_str());
+         bf, cone.str().c_str());
 }
 
-inline unsigned Event::pid () const
-{
-   return Unfolding::ptr2pid (this);
-}
-inline const Event *Event::pre_proc () const
+const Event *Event::pre_proc () const
 {
    ASSERT (action.type != ActionType::THSTART or flags.boxfirst);
    return pre_proc (flags.boxfirst);
 }
-inline Event *Event::pre_proc ()
+Event *Event::pre_proc ()
 {
    return const_cast<Event*> (static_cast<const Event*>(this)->pre_proc ());
 }
 
-inline const Event *Event::pre_proc (bool bf) const
+const Event *Event::pre_proc (bool bf) const
 {
 
    // if this is the first in the box, then make magic with the addresses ...
-   // if the vent is the THSTART (root of the tree), the EventBox::pre already
+   // if the vent is the THSTART (root of the tree), the Eventbox::pre already
    // stores a null pointer ;)
    if (bf) return box_below()->pre();
    
    // otherwise it's the precessor in the box
    return this - 1;
 }
-inline Event *Event::pre_proc (bool bf)
+Event *Event::pre_proc (bool bf)
 {
    return const_cast<Event*> (static_cast<const Event*>(this)->pre_proc (bf));
 }
 
-inline const Event *Event::pre_other () const
+const Event *Event::pre_other () const
 {
    return node[1].pre;
 }
-inline Event *Event::pre_other ()
+Event *Event::pre_other ()
 {
    return const_cast<Event*> (static_cast<const Event*>(this)->pre_other ());
 }
 
-inline bool Event::is_bottom () const
+bool Event::is_bottom () const
 {
    return action.type == ActionType::THSTART and pid () == 0;
 }
 
-inline Process *Event::proc () const
-{
-   return Unfolding::ptr2proc (this);
-}
+// Process *Event::proc () const in pes/event.cc
 
-inline unsigned Event::depth_proc () const
+unsigned Event::depth_proc () const
 {
    return node[0].depth;
 }
 
-inline unsigned Event::depth_other () const
+unsigned Event::depth_other () const
 {
    return node[1].depth;
 }
 
-inline EventBox *Event::box_above () const
+Eventbox *Event::box_above () const
 {
-   return (EventBox *) (this + 1);
-}
-inline EventBox *Event::box_below () const
-{
-   return ((EventBox *) this) - 1;
+   return (Eventbox *) (this + 1);
 }
 
-inline bool Event::operator == (const Event &other) const
+// Eventbox *Event::box_below () const in pes/event.cc
+
+bool Event::operator == (const Event &other) const
 {
    return this == &other;
 }
 
-//inline std::vector<Event *> Event::get_local_config()
+//std::vector<Event *> Event::get_local_config()
 //{
 //   DEBUG("Event.local_config");
 //   Event * next;
 //   std::vector<Event *> lc;
 //   //DEBUG("Proc_maxevt.size = %d", proc_maxevt.size());
-//   DEBUG("cut.num_proc: %d", cut.num_procs());
+//   DEBUG("cone.num_proc: %d", cone.num_procs());
 //
-//   for (unsigned i = 0; i < cut.num_procs(); i++)
+//   for (unsigned i = 0; i < cone.num_procs(); i++)
 //   {
-//      DEBUG("cut[%d]: %p", i, cut[i]);
-//      next = cut[i];
+//      DEBUG("cone[%d]: %p", i, cone[i]);
+//      next = cone[i];
 //
 //      while (next->action.type != ActionType::THSTART)
 //      {
@@ -164,7 +156,7 @@ inline bool Event::operator == (const Event &other) const
  *
  */
 //template <int i>
-//inline bool Event:: is_pred_in_the_same_tree_of (const Event *e) const
+//bool Event:: is_pred_in_the_same_tree_of (const Event *e) const
 //{
 //   const Event *ee;
 //   if (this == e) return true;
@@ -204,7 +196,7 @@ bool Event::is_predeq_of (const Event *e) const
    Event *ee;
 
    // find the maximal event in [e] for process pid()
-   ee = e->cut[pid()];
+   ee = e->cone[pid()];
    DEBUG ("Event.is_pred_of: this %p pid %u e %p pid %u ee %p",
          this, pid(), e, e->pid(), ee);
 
@@ -227,25 +219,12 @@ bool Event::is_pred_of (const Event *e) const
  * - two events in the same tree can only be in causality or conflict. So, if they are not in causality, they must be in conflict.
  * - Just consider the case where two events are in 2 different processes and touch different variables (addr)
  */
-inline bool Event::in_cfl_with (const Event *e)
+bool Event::in_cfl_with (const Event *e)
 {
-   if (e == this) return false;
-
-   // if e and this are in the same tree (process or address one), they are either in conflict or causality
-   if ( (e->pid() == pid()) or ((action.addr == e->action.addr) and (action.addr)) )
-      return (!is_pred_of(e) and !e->is_pred_of(this));
-
-   int nrp = (cut.num_procs() > e->cut.num_procs()) ? e->cut.num_procs() : cut.num_procs();
-   //   DEBUG("nrp: %d", nrp);
-
-   DEBUG("Different processes and address");
-   for (int i = 0; i < nrp; i++)
-   {
-      if (cut[i] and e->cut[i] and !cut[i]->is_pred_of(e->cut[i]) and !e->cut[i]->is_pred_of(cut[i]) )
-            return true; // there is a pair in conflict => 2 events are in cfl consequently
-   }
-
-   return false;
+   bool b = this == e ? false : cone.in_cfl_with (&e->cone);
+   DEBUG ("Event.in_cfl_with: this %p pid %u e %p pid %u ret %d",
+         this, pid(), e, e->pid(), b);
+   return b;
 }
 
 bool Event::in_icfl_with (const Event *e)

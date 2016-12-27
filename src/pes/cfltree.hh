@@ -4,6 +4,9 @@
 
 #include <vector>
 
+// needed in the .hpp
+#include "misc.hh"
+
 namespace dpu{
 
 template <class T, int SS>
@@ -29,6 +32,9 @@ public:
    inline const T *find_pred (unsigned d) const;
    template <int idx>
    inline T *find_pred (unsigned d);
+
+   template <int idx>
+   inline bool in_cfl_with (const T* other) const;
 
    template <int idx>
    void dump () const;
@@ -57,6 +63,7 @@ public:
    inline MultiNode(T *pred0);
 };
 
+// implemntation of inline methods
 #include "cfltree.hpp"
 
 } // end of namespace

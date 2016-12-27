@@ -1,11 +1,11 @@
 
-inline Process::Process (Event *creat, Unfolding & u)
+Process::Process (Event *creat)
 {
    DEBUG ("Process.ctor: this %p pid %d sizeof %d", this, pid(), sizeof (Process));
 
    // construct the first event box
-   EventBox *b = first_box ();
-   new (b) EventBox (0);
+   Eventbox *b = first_box ();
+   new (b) Eventbox (0);
 
    // construct a THSTART event in the first box
    Event *e = b->event_above ();
@@ -16,36 +16,36 @@ inline Process::Process (Event *creat, Unfolding & u)
    last = b->event_above();
 }
 
-inline EventIt Process::begin ()
+EventIt Process::begin ()
 {
    return EventIt (first_event());
 }
-inline EventIt Process::end ()
+EventIt Process::end ()
 {
    return EventIt (last + 1);
 }
 
-inline unsigned Process::pid () const
+unsigned Process::pid () const
 {
    return Unfolding::ptr2pid (this);
 }
-inline size_t Process::offset (void *ptr) const
+size_t Process::offset (void *ptr) const
 {
    return ((size_t) ptr) - (size_t) this;
 }
 
-inline Event *Process::first_event () const
+Event *Process::first_event () const
 {
    return first_box()->event_above();
 }
 
-inline EventBox *Process::first_box () const
+Eventbox *Process::first_box () const
 {
-   return ((EventBox *) (this + 1));
+   return ((Eventbox *) (this + 1));
 }
 
 /// THCREAT(tid), THEXIT(), one predecessor (in the process)
-inline Event *Process::add_event_1p (Action ac, Event *p)
+Event *Process::add_event_1p (Action ac, Event *p)
 {
    Event *e;
 
@@ -57,7 +57,7 @@ inline Event *Process::add_event_1p (Action ac, Event *p)
    // last points to the last event
    // last+1 is the base address of the new one; last+3 is the upper limit of
    // one event + one box
-   static_assert (sizeof (Event) >= sizeof (EventBox), "Event should be larger than EventBox");
+   static_assert (sizeof (Event) >= sizeof (Eventbox), "Event should be larger than Eventbox");
    if (offset (last + 3) >= Unfolding::PROC_SIZE)
    {
       throw std::range_error (fmt
@@ -74,7 +74,7 @@ inline Event *Process::add_event_1p (Action ac, Event *p)
    {
       // create one box and add the event
       last->flags.boxlast = 1;
-      EventBox *b = new (last + 1) EventBox (p);
+      Eventbox *b = new (last + 1) Eventbox (p);
       e = b->event_above ();
       new (e) Event (ac, true);
       e->flags.boxfirst = 1;
@@ -85,7 +85,7 @@ inline Event *Process::add_event_1p (Action ac, Event *p)
 }
 
 /// THJOIN(tid), MTXLOCK(addr), MTXUNLK(addr), two predecessors (process, memory/exit)
-inline Event * Process::add_event_2p (Action ac, Event *p, Event *m)
+Event * Process::add_event_2p (Action ac, Event *p, Event *m)
 {
    Event *e;
 
@@ -97,7 +97,7 @@ inline Event * Process::add_event_2p (Action ac, Event *p, Event *m)
    // last points to the last event
    // last+1 is the base address of the new one; last+3 is the upper limit of
    // one event + one box
-   static_assert (sizeof (Event) >= sizeof (EventBox), "Event should be larger than EventBox");
+   static_assert (sizeof (Event) >= sizeof (Eventbox), "Event should be larger than Eventbox");
    if (offset (last + 3) >= Unfolding::PROC_SIZE)
    {
       throw std::range_error (fmt
@@ -110,13 +110,12 @@ inline Event * Process::add_event_2p (Action ac, Event *p, Event *m)
       // add one event at the end of the pool
       e = last + 1;
       new (e) Event (ac, m, false);
-
    }
    else
    {
       // create one box and add the event
       last->flags.boxlast = 1;
-      EventBox *b = new (last + 1) EventBox (p);
+      Eventbox *b = new (last + 1) Eventbox (p);
       e = b->event_above ();
       new (e) Event (ac, m, true);
       e->flags.boxfirst = 1;

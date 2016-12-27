@@ -1,17 +1,17 @@
 
-inline Config::Config (const Unfolding &u) :
+Config::Config (const Unfolding &u) :
    Config (u.num_procs())
 {
 }
 
-inline Config::Config (unsigned n) :
+Config::Config (unsigned n) :
    Cut (n),
    mutexmax ()
 {
 }
 
 /// copy constructor
-inline Config::Config (const Config &other) :
+Config::Config (const Config &other) :
    Cut (other),
    mutexmax (other.mutexmax)
 {
@@ -36,7 +36,7 @@ Config & Config::operator= (Config && other)
    return *this;
 }
 
-inline void Config::add (Event *e)
+void Config::add (Event *e)
 {
    DEBUG("Config.add: this %p e %p e.pid %d", this, e, e->pid());
    ASSERT (e);
@@ -90,7 +90,7 @@ inline void Config::add (Event *e)
    }
 }
 
-inline void Config::clear ()
+void Config::clear ()
 {
    Cut::clear ();
    mutexmax.clear();
@@ -98,12 +98,12 @@ inline void Config::clear ()
 
 
 
-inline Event *Config::proc_max (unsigned pid)
+Event *Config::proc_max (unsigned pid)
 {
    return (*this)[pid]; // inherited Cut::operator[]
 }
 
-inline Event *Config::mutex_max (Addr a)
+Event *Config::mutex_max (Addr a)
 {
    auto it = mutexmax.find (a);
    return it == mutexmax.end() ? 0 : it->second;

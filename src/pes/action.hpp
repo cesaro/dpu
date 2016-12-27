@@ -1,5 +1,5 @@
 
-inline bool Action::operator== (const Action &other) const
+bool Action::operator== (const Action &other) const
 {
    switch (type)
    {

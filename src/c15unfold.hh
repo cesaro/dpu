@@ -7,7 +7,10 @@
 
 #undef DEBUG // exported by <llvm/ExecutionEngine/ExecutionEngine.h>
 
-#include "pes.hh"
+#include "pes/cut.hh"
+#include "pes/event.hh"
+#include "pes/config.hh"
+#include "pes/unfolding.hh"
 
 namespace dpu
 {

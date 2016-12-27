@@ -2,7 +2,11 @@
 
 #ifndef __POR_HH_
 #define __POR_HH_
-#include "pes.hh"
+
+#include <vector>
+
+#include "pes/event.hh"
+#include "pes/config.hh"
 
 namespace dpu
 {

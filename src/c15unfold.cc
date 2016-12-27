@@ -13,26 +13,26 @@
 //#include "llvm/Pass.h"
 //#include "llvm/PassSupport.h"
 #include "llvm/IR/Module.h"
-//#include "llvm/IR/Function.h"
 #include "llvm/IR/Verifier.h"
-//#include "llvm/IR/IRBuilder.h"
-//#include "llvm/IR/InstVisitor.h"
 #include "llvm/IR/LLVMContext.h"
-//#include "llvm/IR/InstIterator.h"
-//#include "llvm/IR/LegacyPassManager.h"
 #include "llvm/IRReader/IRReader.h"
 #include "llvm/Bitcode/ReaderWriter.h"
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Support/TargetSelect.h"
+//#include "llvm/IR/Function.h"
+//#include "llvm/IR/IRBuilder.h"
+//#include "llvm/IR/InstVisitor.h"
+//#include "llvm/IR/InstIterator.h"
+//#include "llvm/IR/LegacyPassManager.h"
 //#include "llvm/ExecutionEngine/ExecutionEngine.h"
 //#include "llvm/ExecutionEngine/SectionMemoryManager.h"
 //#include "llvm/ExecutionEngine/MCJIT.h"
 
-#include "c15unfold.hh"
-#include "pes.hh"
+#include "c15unfold.hh" // must be before verbosity.h
 #include "misc.hh"
 #include "verbosity.h"
+#include "pes/process.hh"
 
 namespace dpu
 {
@@ -179,7 +179,7 @@ void C15unfolder::add_multiple_runs (const std::vector<int> &replay)
    // run the system once more for every cex
    for (Event *e : cex)
    {
-      cut_to_replay (e->cut, rep);
+      cut_to_replay (e->cone, rep);
       add_one_run (rep);
       rep.clear ();
    }
@@ -352,7 +352,7 @@ void C15unfolder::cut_to_replay (const Cut &c, std::vector<int> &replay)
    unsigned i, green;
    bool progress;
    Event *e, *ee;
-   Cut cc (u);
+   Cut cc (u.num_procs());
 
    DEBUG ("c15u: cut-to-replay: cut %p", &c);
 
@@ -486,7 +486,7 @@ bool C15unfolder::find_alternative_only_last (Config &c, std::vector<Event*> d, 
    {
       if (compatible_with(c,*ei))
       {
-         for (unsigned i = 0; i < e->cut.num_procs(); i++)
+         for (unsigned i = 0; i < e->cone.num_procs(); i++)
             j[ei->pid()] = ei;
          return true;
       }

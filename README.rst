@@ -35,13 +35,16 @@ x fix bug in compute_cex
 x fix in_cfl_with
 x debug Primeconfig
 x debug in_cfl_with
-- write trail
-- write the Disset
-- write the simplest possibly-incomplete method to compute alternatives
-- write explore and use it
+x write trail
+x write the Disset
+- Cut::unadd (e)
+- Config::unadd (e)
+- modify stream_to_events to update the trail
+- write explore
 - test
 - optimize
 - find benchmarks
+
 
 Huyen:
 
@@ -49,7 +52,8 @@ x vclocks
 x Unfolding::print_dot
 x BaseConfig
 x BaseConfig -> replay
-- In Event, store a Config instead of Cut as an event's local configuration.
+x write the simplest possibly-incomplete method to compute alternatives
+x In Event, store a Config instead of Cut as an event's local configuration.
   When deciding the conflict between two arbitrary events e and e', just look at its local
   configuration's mutexmax. Having e.mutexmax(m) !cfl e'.mutexmax(m) for every mutex variable m
   means that e !cfl with e'.
@@ -93,6 +97,8 @@ x translate e->action.val on thread creation, so that it contains the pid in the
 - Primeconfig::lockmax should be a fixed-size vector, rather than std::vector
 
 - Primeconfig::merge3_ways should be a template, to optimize for the 3rd parameter
+
+- The underlying storage space for the Trail should only grow
 
 
 Alternatives

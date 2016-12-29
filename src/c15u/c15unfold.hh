@@ -12,40 +12,10 @@
 #include "pes/config.hh"
 #include "pes/unfolding.hh"
 
+#include "c15u/disset.hh"
+
 namespace dpu
 {
-
-class Disset
-{
-public:
-   Disset ();
-   typedef struct __elem {
-      Event *e;
-      unsigned idx;
-      unsigned disabler;
-      /// next element in the list of justified or unjustified events
-      __elem *next;
-   } Elem;
-
-   /// the set D in the C'15 algorithm
-   std::vector<Elem> stack;
-   /// head of the singly-linked list of justified events in D
-   Elem *just;
-   /// head of the singly-linked list of unjustified events in D
-   Elem *unjust;
-
-   // TODO list events: in D, justified, unjustified
-
-   /// add an event, given event and index it occupies the trail
-   void add (Event *e, unsigned idx);
-
-   /// check if an event pushed to the trail justifies one in the disset
-   void trail_push (unsigned idx);
-
-   /// check if an event poped from the trail un-justifies or removes one in the
-   /// disset
-   void trail_pop (unsigned idx);
-};
 
 class Trail : public std::vector<Event*>
 {
@@ -127,4 +97,7 @@ public:
 
 } //end of namespace
 #endif
+
+
+
 

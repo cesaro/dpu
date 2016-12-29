@@ -46,10 +46,6 @@ static void _ir_write_ll (const llvm::Module *m, const char *filename)
 }
 
 
-Disset::Disset ()
-{
-}
-
 C15unfolder::C15unfolder () :
    m (nullptr),
    exec (nullptr)

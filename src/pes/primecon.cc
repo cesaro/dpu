@@ -24,7 +24,6 @@ void merge_2ways (std::vector<const Event*> &dst,
    ASSERT (e);
    ASSERT (e->action.type == ActionType::MTXLOCK or
          e->action.type == ActionType::MTXUNLK);
-   SHOW (src.size() + 1, "lu");
 
    dst.resize (src.size() + 1);
 
@@ -48,7 +47,6 @@ void merge_2ways (std::vector<const Event*> &dst,
    // insert the remaining pointers from src
    for (; i < src.size(); i++, j++) dst[j] = src[i];
    dst.resize (j);
-   SHOW (j, "u");
 }
 
 void merge_3ways (std::vector<const Event*> &dst,

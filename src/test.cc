@@ -8,7 +8,7 @@
 #include <algorithm>
 #include <sys/stat.h>
 
-#include "c15unfold.hh" // must be before verbosity.h
+#include "c15u/c15unfold.hh" // must be before verbosity.h
 #include "verbosity.h"
 #include "misc.hh"
 #include "test.hh"
@@ -366,8 +366,16 @@ void test32()
    Unfolding u;
 
    /*
-    * Thread 0: start, creat, join, exit
-    * Thread 1: start, exit
+    * Th 0           Th 1
+    * -------------- ---------------
+    * start    
+    * creat
+    *                start
+    *                exit
+    * join
+    * lock 0x100
+    * unlock 0x100
+    * exit
     */
 
    // start
@@ -388,7 +396,7 @@ void test32()
    // lock
    el = u.event ({.type = ActionType::MTXLOCK, .addr = 0x100}, ej, nullptr);
 
-   //unlock
+   // unlock
    eu = u.event ({.type = ActionType::MTXUNLK, .addr = 0x100}, el, el);
 
    // exit
@@ -1209,7 +1217,63 @@ void test52 ()
 
 void test53 ()
 {
+   Event *es, *ec, *el, *eu, *ej, *ex, *es1, *ex1, *el1, *eu1 ;
+   C15unfolder unf;
+
+   /*
+    * Th 0           Th 1
+    * -------------- ---------------
+    * start    
+    * creat
+    *                start
+    * lock 0x100
+    * unlock 0x100
+    *                lock 0x100
+    *                unlock 0x100
+    *                exit
+    * join
+    * exit
+    */
+
+   // start
+   es = unf.u.event (nullptr); // bottom
+
+   // creat
+   ec = unf.u.event ({.type = ActionType::THCREAT, .val = 1}, es);
+
+   // start in thread 1
+   es1 = unf.u.event (ec);
+
+   // lock
+   el = unf.u.event ({.type = ActionType::MTXLOCK, .addr = 0x100}, ec, nullptr);
+
+   // unlock
+   eu = unf.u.event ({.type = ActionType::MTXUNLK, .addr = 0x100}, el, el);
+
+   // lock
+   el1 = unf.u.event ({.type = ActionType::MTXLOCK, .addr = 0x100}, es1, eu);
+
+   //unlock
+   eu1 = unf.u.event ({.type = ActionType::MTXUNLK, .addr = 0x100}, el1, el1);
+
+   // exit in thread 1
+   ex1 = unf.u.event ({.type = ActionType::THEXIT}, eu1);
+
+   // join
+   ej = unf.u.event ({.type = ActionType::THJOIN, .val = 1}, eu, ex1);
+
+   // exit
+   ex = unf.u.event ({.type = ActionType::THEXIT}, ej);
+
+   unf.u.dump ();
+   std::ofstream fs("dot/unf.dot", std::fstream::out);
+   unf.u.print_dot (fs);
+   fs.close();
+   printf ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n");
+
+   // FIXME test here the trail + cex + disset
 }
+
 void test54 ()
 {
 }

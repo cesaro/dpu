@@ -84,9 +84,9 @@ public:
    /// returns true iff this < e
    inline bool is_pred_of (const Event *e) const;
    /// returns true iff this # e
-   inline bool in_cfl_with (const Event *e);
+   inline bool in_cfl_with (const Event *e) const;
    /// returns true iff this and e are LOCK and siblings in the node[1] tree
-   inline bool in_icfl_with (const Event *e);
+   inline bool in_icfl_with (const Event *e) const;
 
    /// returns some set of events in conflict which includes at least all
    /// immediate conflicts of "this"

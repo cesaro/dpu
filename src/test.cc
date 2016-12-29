@@ -267,26 +267,26 @@ void test30()
 
    Cut c(u);
 #if 0
-   c.add (es);
-   c.add (ec);
-   c.add (el);
-   c.add (eu);
-   c.add (es1);
-   c.add (el1);
-   c.add (eu1);
-   c.add (ex1);
-   c.add (ej);
-   c.add (ex);
+   c.fire (es);
+   c.fire (ec);
+   c.fire (el);
+   c.fire (eu);
+   c.fire (es1);
+   c.fire (el1);
+   c.fire (eu1);
+   c.fire (ex1);
+   c.fire (ej);
+   c.fire (ex);
    c.dump ();
 #endif
 
 #if 1
    printf ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n");
    c.clear ();
-   c.add (es);
-   c.add (ec);
-   c.add (el);
-   c.add (eu);
+   c.fire (es);
+   c.fire (ec);
+   c.fire (el);
+   c.fire (eu);
    c.dump();
 #endif
 
@@ -415,23 +415,23 @@ void test32()
    c.dump ();
    printf ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n");
 
-   c.add (es);
-   c.add (ec);
-   c.add (es1);
-   c.add (ex1);
-   c.add (ej);
+   c.fire (es);
+   c.fire (ec);
+   c.fire (es1);
+   c.fire (ex1);
+   c.fire (ej);
    c.dump ();
    printf ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n");
 
-   c.add (el);
-   c.add (eu);
+   c.fire (el);
+   c.fire (eu);
 
-   c.add (ex);
+   c.fire (ex);
    c.dump ();
    printf ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n");
 
    c.clear ();
-   c.add (es);
+   c.fire (es);
    c.dump();
    printf ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n");
 
@@ -514,20 +514,20 @@ void test33()
    ex = u.event ({.type = ActionType::THEXIT}, ej);
 
    Config c(u);
-   c.add (es);
-   c.add (ec);
-   c.add (el);
-   c.add (eu);
-   c.add (ell);
-   c.add (euu);
-   c.add (es1);
-   c.add (el1);
-   c.add (eu1);
-   c.add (ell1);
-   c.add (euu1);
-   c.add (ex1);
-   c.add (ej);
-   c.add (ex);
+   c.fire (es);
+   c.fire (ec);
+   c.fire (el);
+   c.fire (eu);
+   c.fire (ell);
+   c.fire (euu);
+   c.fire (es1);
+   c.fire (el1);
+   c.fire (eu1);
+   c.fire (ell1);
+   c.fire (euu1);
+   c.fire (ex1);
+   c.fire (ej);
+   c.fire (ex);
    c.dump();
 
    u.dump();
@@ -773,20 +773,20 @@ void test37 ()
    ex = unf.u.event ({.type = ActionType::THEXIT}, ej);
 
    Config c(unf.u);
-   c.add (es);
-   c.add (ec);
-   c.add (el);
-   c.add (eu);
-   c.add (ell);
-   c.add (euu);
-   c.add (es1);
-   c.add (el1);
-   c.add (eu1);
-   c.add (ell1);
-   c.add (euu1);
-   c.add (ex1);
-   c.add (ej);
-   c.add (ex);
+   c.fire (es);
+   c.fire (ec);
+   c.fire (el);
+   c.fire (eu);
+   c.fire (ell);
+   c.fire (euu);
+   c.fire (es1);
+   c.fire (el1);
+   c.fire (eu1);
+   c.fire (ell1);
+   c.fire (euu1);
+   c.fire (ex1);
+   c.fire (ej);
+   c.fire (ex);
    c.dump();
 
    unf.u.dump();
@@ -800,10 +800,10 @@ void test37 ()
 
    //-----Test find_alternative
    Config cc(unf.u);
-   cc.add (es);
-   cc.add (ec);
-   cc.add (el);
-   cc.add (eu);
+   cc.fire (es);
+   cc.fire (ec);
+   cc.fire (el);
+   cc.fire (eu);
 
    cc.dump();
 
@@ -881,20 +881,20 @@ void test38 ()
    ex = unf.u.event ({.type = ActionType::THEXIT}, ej);
 
    Config c(unf.u);
-   c.add (es);
-   c.add (ec);
-   c.add (el);
-   c.add (eu);
-   c.add (ell);
-   c.add (euu);
-   c.add (es1);
-   c.add (el1);
-   c.add (eu1);
-   c.add (ell1);
-   c.add (euu1);
-   c.add (ex1);
-   c.add (ej);
-   c.add (ex);
+   c.fire (es);
+   c.fire (ec);
+   c.fire (el);
+   c.fire (eu);
+   c.fire (ell);
+   c.fire (euu);
+   c.fire (es1);
+   c.fire (el1);
+   c.fire (eu1);
+   c.fire (ell1);
+   c.fire (euu1);
+   c.fire (ex1);
+   c.fire (ej);
+   c.fire (ex);
    c.dump();
 
    unf.u.dump();
@@ -908,10 +908,10 @@ void test38 ()
 
    //-----Test find_alternative
    Config cc(unf.u);
-   cc.add (es);
-   cc.add (ec);
-//   cc.add (el);
-//   cc.add (eu);
+   cc.fire (es);
+   cc.fire (ec);
+//   cc.fire (el);
+//   cc.fire (eu);
 
    cc.dump();
 
@@ -990,20 +990,20 @@ void test39 ()
       ex = unf.u.event ({.type = ActionType::THEXIT}, ej);
 
       Config c(unf.u);
-      c.add (es);
-      c.add (ec);
-      c.add (el);
-      c.add (eu);
-      c.add (ell);
-      c.add (euu);
-      c.add (es1);
-      c.add (el1);
-      c.add (eu1);
-      c.add (ell1);
-      c.add (euu1);
-      c.add (ex1);
-      c.add (ej);
-      c.add (ex);
+      c.fire (es);
+      c.fire (ec);
+      c.fire (el);
+      c.fire (eu);
+      c.fire (ell);
+      c.fire (euu);
+      c.fire (es1);
+      c.fire (el1);
+      c.fire (eu1);
+      c.fire (ell1);
+      c.fire (euu1);
+      c.fire (ex1);
+      c.fire (ej);
+      c.fire (ex);
       c.dump();
 
       unf.u.dump();
@@ -1017,10 +1017,10 @@ void test39 ()
 
       //-----Test find_alternative
       Config cc(unf.u);
-      cc.add (es);
-      cc.add (ec);
-      cc.add (el);
-      cc.add (eu);
+      cc.fire (es);
+      cc.fire (ec);
+      cc.fire (el);
+      cc.fire (eu);
 
       cc.dump();
 

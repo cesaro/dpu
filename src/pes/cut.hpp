@@ -28,7 +28,7 @@ Cut::Cut (const Cut &other) :
 Cut::Cut (unsigned n, Event *e) :
    Cut (n)
 {
-   add (e);
+   fire (e);
 }
 
 // Cut::Cut (const Cut &other, Event *e) in pes/cut.cc
@@ -36,7 +36,7 @@ Cut::Cut (unsigned n, Event *e) :
 Cut::Cut (const Cut &c1, const Cut &c2, Event *e) :
    Cut (c1, c2)
 {
-   add (e);
+   fire (e);
 }
 
 Cut::~Cut ()
@@ -64,7 +64,8 @@ Cut & Cut::operator= (Cut && other)
    return *this;
 }
 
-// void Cut::add (Event *e) in pes/cut.cc
+// void Cut::fire (Event *e) in pes/cut.cc
+// void Cut::unfire (Event *e) in pes/cut.cc
 
 void Cut::clear ()
 {

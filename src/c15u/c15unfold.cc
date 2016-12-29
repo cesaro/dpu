@@ -214,7 +214,7 @@ void C15unfolder::stream_to_events (Config &c, const action_streamt &s)
    // for the time being, we assume that the configuration is totally pristine
    ASSERT (c[0] == 0);
    e = u.event (nullptr); // bottom
-   c.add (e);
+   c.fire (e);
    pidmap[0] = 0;
 
    while (it != end)
@@ -224,14 +224,14 @@ void C15unfolder::stream_to_events (Config &c, const action_streamt &s)
       case RT_MTXLOCK :
          ee = c.mutex_max (it.addr());
          e = u.event ({.type = ActionType::MTXLOCK, .addr = it.addr()}, e, ee);
-         c.add (e);
+         c.fire (e);
          DEBUG ("");
          break;
 
       case RT_MTXUNLK :
          ee = c.mutex_max (it.addr());
          e = u.event ({.type = ActionType::MTXUNLK, .addr = it.addr()}, e, ee);
-         c.add (e);
+         c.fire (e);
          DEBUG ("");
          break;
 
@@ -251,14 +251,14 @@ void C15unfolder::stream_to_events (Config &c, const action_streamt &s)
          ee = u.event (e);
          e->action.val = ee->pid();
          pidmap[it.id()] = ee->pid();
-         c.add (e);
-         c.add (ee);
+         c.fire (e);
+         c.fire (ee);
          DEBUG ("");
          break;
 
       case RT_THEXIT :
          e = u.event ({.type = ActionType::THEXIT}, e);
-         c.add (e);
+         c.fire (e);
          DEBUG ("");
          break;
 
@@ -268,7 +268,7 @@ void C15unfolder::stream_to_events (Config &c, const action_streamt &s)
          ee = c.mutex_max (pidmap[it.id()]);
          ASSERT (ee and ee->action.type == ActionType::THEXIT);
          e = u.event ({.type = ActionType::THJOIN, .val = pidmap[it.id()]}, e, ee);
-         c.add (e);
+         c.fire (e);
          DEBUG ("");
          break;
 
@@ -363,7 +363,7 @@ void C15unfolder::cut_to_replay (const Cut &c, std::vector<int> &replay)
 
    // we use a second cut cc to run forward up to completion of cut c
    // we start by adding bottom to the cut
-   cc.add (u.proc(0)->first_event());
+   cc.fire (u.proc(0)->first_event());
    ASSERT (cc[0] and cc[0]->is_bottom ());
 
    // get a fresh color, we call it green
@@ -590,7 +590,7 @@ void C15unfolder::enumerate_combination (unsigned i, std::vector<std::vector<Eve
 //
 //                  for (int j = lc.size()-1; j >= 0; j--)
 //                  {
-//                     J.add(lc[j]); // BUG here, need to add event's local config
+//                     J.fire(lc[j]); // BUG here, need to add event's local config
 //                     J.dump();
 //                  }
 //               }

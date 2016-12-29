@@ -20,7 +20,7 @@ Cut::Cut (const Cut &other, Event *e) :
    unsigned i;
    for (i = 0; i < other.nrp; i++) max[i] = other.max[i];
    for (; i < nrp; i++) max[i] = 0;
-   add (e);
+   fire (e);
 }
 
 
@@ -55,9 +55,13 @@ Cut::Cut (const Cut &c1, const Cut &c2) :
    }
 }
 
-void Cut::add (Event *e)
+void Cut::fire (Event *e)
 {
-   DEBUG("Cut.add: this %p nrp %d e %p e.pid %d", this, nrp, e, e->pid());
+   // a cut is the set of maximal events of some unique configuration; this
+   // method adds to that configuration one of its enabled events, and updates
+   // the cut so that it is the cut of the new resulting configuration
+
+   DEBUG("Cut.fire: this %p nrp %d e %p e.pid %d", this, nrp, e, e->pid());
    ASSERT (e);
    ASSERT (e->pid() < nrp);
 
@@ -65,20 +69,39 @@ void Cut::add (Event *e)
    // configuration was constructed; assert it didn't happen
    ASSERT (e->pid() < nrp);
 
-   // pre-proc must be the event max[e.pid()] // Why? Can we add an arbitray event to a Cut
+   // pre-proc must be the event max[e.pid()]
    ASSERT (e->pre_proc() == max[e->pid()]);
 
-   // similarly, pre_other needs to be a causal predecessor of the max in that
-   // process; the following assertion is necessary but not sufficient to
-   // guarantee it
-   if (e->pre_other())
-   {
-      ASSERT (max[e->pre_other()->pid()]);
-//      ASSERT (e->pre_other()->vclock[e->pre_other()->pid()] <=
-//            max[e->pre_other()->pid()]->vclock[e->pre_other()->pid()]);
-   }
+   // the new event cannot be in conflict with any other event in the cut
+#ifdef CONFIG_DEBUG
+   for (unsigned i = 0; i < nrp; i++)
+      if (max[i])
+         ASSERT (! e->in_cfl_with (max[i]));
+#endif
 
+   // this is all we have to do
    max[e->pid()] = e;
+}
+
+void Cut::unfire (Event *e)
+{
+   // a cut is the set of maximal events of some unique configuration; this
+   // method removes from that configuration a maximal event and sets the cut to
+   // be the cut of the resulting configuration; NOTE that the vector max[] may
+   // contain events that are not maximal in the configuration (even if they are
+   // the maximal event of some process), and as a result the test
+   // max[e->pid()] == e is only a necessary, and not sufficient, condition to
+   // remove e from the cut without breaking it
+
+   // assertions
+   ASSERT (e);
+   ASSERT (max[e->pid()] == e);
+   for (unsigned i = 0; i < nrp; i++)
+      if (max[i])
+         ASSERT (! e->is_pred_of (max[i]));
+
+   // this is all we have to do
+   max[e->pid()] = e->pre_proc();
 }
 
 void Cut::dump () const

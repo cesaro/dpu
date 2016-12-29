@@ -36,28 +36,23 @@ Config & Config::operator= (Config && other)
    return *this;
 }
 
-void Config::add (Event *e)
+void Config::fire (Event *e)
 {
-   DEBUG("Config.add: this %p e %p e.pid %d", this, e, e->pid());
-   ASSERT (e);
-   ASSERT (e->pid() < nrp);
+   DEBUG("Config.fire: this %p e %p e.pid %d", this, e, e->pid());
 
-   // the unfolding might have changed the number of process after this
-   // configuration was constructed; assert it didn't happen
-   ASSERT (e->pid() < nrp);
-
-   // pre-proc must be the event max[e.pid()]
-   ASSERT (e->pre_proc() == max[e->pid()]);
    // the pid() and the address of the event need to be different
+   ASSERT (e);
    if (e->action.type == ActionType::MTXLOCK or e->action.type == ActionType::MTXUNLK)
       ASSERT (e->pid() < e->action.addr);
 
-   // update tables
-   max[e->pid()] = e;
+   // update the Cut's fields
+   Cut::fire (e);
+
+   // update our fields
    switch (e->action.type)
    {
    case ActionType::THCREAT   :
-      ASSERT (mutex_max (e->action.val) == 0);
+      ASSERT (mutex_max (e->action.val) == nullptr);
       mutexmax[e->action.val] = e;
       break;
 
@@ -90,13 +85,29 @@ void Config::add (Event *e)
    }
 }
 
+void Config::unfire (Event *e)
+{
+   Cut::unfire (e);
+   switch (e->action.type)
+   {
+   case ActionType::MTXLOCK :
+   case ActionType::MTXUNLK :
+      ASSERT (mutex_max (e->action.addr) == e);
+      mutexmax[e->action.addr] = e->pre_other(); // even if it is null
+      break;
+
+   default :
+      // locks/unlocks should be the only ones that create immediate conflicts
+      ASSERT (e->icfls().size() == 0);
+      break;
+   }
+}
+
 void Config::clear ()
 {
    Cut::clear ();
-   mutexmax.clear();
+   mutexmax.clear ();
 }
-
-
 
 Event *Config::proc_max (unsigned pid)
 {
@@ -106,6 +117,6 @@ Event *Config::proc_max (unsigned pid)
 Event *Config::mutex_max (Addr a)
 {
    auto it = mutexmax.find (a);
-   return it == mutexmax.end() ? 0 : it->second;
+   return it == mutexmax.end() ? nullptr : it->second;
 }
 

@@ -31,8 +31,10 @@ public:
    /// move-assignment operator
    inline Cut & operator= (Cut && other);
 
-   /// add the event to the cut
-   void add (Event *e);
+   /// fires an event enabled at the cut and adds it to the cut
+   void fire (Event *e);
+   /// removes an event of the cut and updates the cut with its predecessors
+   void unfire (Event *e);
 
    /// empties the configuration
    inline void clear ();

@@ -28,8 +28,10 @@ public:
    /// move-assignment operator
    inline Config & operator= (Config && other);
    
-   /// add the event to the configuration
-   inline void add (Event *e);
+   /// fires an enabled event
+   inline void fire (Event *e);
+   /// removes one of the maximal events of the configuration
+   inline void unfire (Event *e);
 
    /// empties the configuration
    inline void clear ();

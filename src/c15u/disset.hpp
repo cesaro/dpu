@@ -63,6 +63,14 @@ void Disset::unjust_remove (Elem *e)
    if (e->next) e->next->prev = e->prev;
 }
 
+void Disset::unjust_remove_head ()
+{
+   ASSERT (unjust);
+   ASSERT (unjust->prev == nullptr);
+   unjust = unjust->next;
+   if (unjust) unjust->prev = nullptr;
+}
+
 bool Disset::unjust_isempty ()
 {
    return unjust == nullptr;
@@ -80,6 +88,18 @@ void Disset::add (Event *e, int idx)
    stack.push_back ({.e = e, .idx = idx, .disabler = 0});
    unjust_add (&stack.back());
    top_idx = idx;
+}
+
+void Disset::unadd ()
+{
+   // removes from D the last event inserted; it must be in the unjust list
+
+   ASSERT (stack.size ());
+   ASSERT (unjust == &stack.back());
+
+   unjust_remove_head ();
+   stack.pop_back ();
+   top_idx = stack.size() ? stack.back().idx : -1;
 }
 
 void Disset::trail_push (Event *e, int idx)

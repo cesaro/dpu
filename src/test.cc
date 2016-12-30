@@ -1217,7 +1217,7 @@ void test52 ()
 
 void test53 ()
 {
-   Event *es, *ec, *el, *eu, *ej, *ex, *es1, *ex1, *el1, *eu1 ;
+   Event *es, *ec, *el, *eu, *xx, *ej, *ex, *es1, *ex1, *el1, *eu1 ;
    C15unfolder unf;
 
    /*
@@ -1228,6 +1228,7 @@ void test53 ()
     *                start
     * lock 0x100
     * unlock 0x100
+    * lock 0x102
     *                lock 0x100
     *                unlock 0x100
     *                exit
@@ -1251,16 +1252,19 @@ void test53 ()
    eu = unf.u.event ({.type = ActionType::MTXUNLK, .addr = 0x100}, el, el);
 
    // lock
+   xx = unf.u.event ({.type = ActionType::MTXLOCK, .addr = 0x102}, eu, nullptr);
+
+   // lock
    el1 = unf.u.event ({.type = ActionType::MTXLOCK, .addr = 0x100}, es1, eu);
 
-   //unlock
+   // unlock
    eu1 = unf.u.event ({.type = ActionType::MTXUNLK, .addr = 0x100}, el1, el1);
 
    // exit in thread 1
    ex1 = unf.u.event ({.type = ActionType::THEXIT}, eu1);
 
    // join
-   ej = unf.u.event ({.type = ActionType::THJOIN, .val = 1}, eu, ex1);
+   ej = unf.u.event ({.type = ActionType::THJOIN, .val = 1}, xx, ex1);
 
    // exit
    ex = unf.u.event ({.type = ActionType::THEXIT}, ej);
@@ -1271,7 +1275,35 @@ void test53 ()
    fs.close();
    printf ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n");
 
-   // FIXME test here the trail + cex + disset
+   Cut c (5);
+   Cut j (5);
+
+   c.fire (es);
+   c.fire (ec);
+   c.fire (el);
+   c.fire (eu);
+   c.fire (xx);
+
+   j.fire (es);
+   j.fire (ec);
+   j.fire (el);
+   j.fire (eu);
+   j.fire (es1);
+   j.fire (el1);
+   j.fire (eu1);
+
+   c.dump ();
+   j.dump ();
+
+   std::vector<int> replay;
+   unf.alt_to_replay (c, j, replay);
+   DEBUG_("Replay: ");
+   for (unsigned i = 0; i < replay.size(); i++)
+   {
+      DEBUG_ ("%d ", replay[i]);
+      if (i % 2 == 1) DEBUG_ (" ");
+   }
+   DEBUG ("");
 }
 
 void test54 ()

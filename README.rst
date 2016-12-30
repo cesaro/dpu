@@ -37,8 +37,9 @@ x debug Primeconfig
 x debug in_cfl_with
 x write trail
 x write the Disset
-- Cut::unadd (e)
-- Config::unadd (e)
+x Cut::unadd (e)
+x Config::unadd (e)
+x alt_to_replay
 - modify stream_to_events to update the trail
 - write explore
 - test
@@ -99,6 +100,15 @@ x translate e->action.val on thread creation, so that it contains the pid in the
 - Primeconfig::merge3_ways should be a template, to optimize for the 3rd parameter
 
 - The underlying storage space for the Trail should only grow
+
+- in alt_to_replay(), the computation of a replay sequence for C can be done
+  with a linear scan of the trail, instead of C, and will be faster.
+
+- in cut_to_replay(c1,c2,rep) we have a complex test to check when the 
+  pre_other() of one event has already been visited; we could reuse the old idea
+  of marking events with a color, but that would require having c1 already
+  marked; we could do this if we add a new integer argument to the method and
+  assume that c1 is marked with that color
 
 
 Alternatives

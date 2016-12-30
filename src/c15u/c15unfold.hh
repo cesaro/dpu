@@ -85,8 +85,15 @@ public:
 
    void stream_to_events (Config &c, const action_streamt &s);
 
-   /// computes a replay sequence for the configuration c
+   /// extends the replay vector with a replay sequence for the configuration c
    void cut_to_replay (const Cut &c, std::vector<int> &replay);
+
+   /// extends the replay vector with a replay sequence for the events in
+   /// c1 \setminus c2; it assumes that c1 \cup c2 is a configuration
+   void cut_to_replay (const Cut &c1, const Cut &c2, std::vector<int> &replay);
+
+   /// stores in the replay vector a suitable replay sequence for C \cup J
+   void alt_to_replay (const Cut &c, const Cut &j, std::vector<int> &replay);
 
    /// computes conflicting extensions associated to event e
    void compute_cex_lock (Event *e, Event **head);

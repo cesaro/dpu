@@ -44,7 +44,7 @@ Unfolding::Unfolding () :
 Event *Unfolding::event (Event *creat)
 {
    // if creat is null, we return bottom, already present in the unfolding
-   if (creat == 0)
+   if (creat == nullptr)
    {
       ASSERT (proc(0)->first_event());
       ASSERT (proc(0)->first_event()->action.type == ActionType::THSTART);

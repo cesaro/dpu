@@ -344,30 +344,48 @@ void C15unfolder::stream_to_events (Config &c, const action_streamt &s)
 
 void C15unfolder::cut_to_replay (const Cut &c, std::vector<int> &replay)
 {
-   int nrp, count;
-   unsigned i, green;
+   static const Cut empty (Unfolding::MAX_PROC);
+
+   cut_to_replay (c, empty, replay);
+}
+
+void C15unfolder::cut_to_replay (const Cut &c1, const Cut &c2, std::vector<int> &replay)
+{
+   int count, len, j;
+   unsigned i, nrp;
    bool progress;
    Event *e, *ee;
-   Cut cc (u.num_procs());
+   Cut cc (std::min (c1.num_procs(), u.num_procs()));
 
-   DEBUG ("c15u: cut-to-replay: cut %p", &c);
+   DEBUG ("c15u: cut-to-replay: cut1 %p cut2 %p", &c1, &c2);
 
-   // set up the Event's next pointer
-   nrp = u.num_procs();
+   // we use an auxiliary cut cc to run forward the events in c1 \setminus c2,
+   // to do so, we set up and use the Event's next pointer
+   nrp = cc.num_procs();
+   //SHOW (nrp, "u");
    for (i = 0; i < nrp; i++)
    {
+      // compute len, the number of events that we will run in process i
+      e = c1[i];
+      if (! e) continue;
+      len = e->depth_proc();
+      if (c2[i]) len -= (int) c2[i]->depth_proc(); else len++;
+      if (len <= 0) continue;
+      SHOW (len, "d");
+
+      // set up the Event's next pointer in order to run forward
       ee = nullptr;
-      for (e = c[i]; e; ee = e, e = e->pre_proc())
+      for (j = 0; j < len; j++)
+      {
          e->next = ee;
+         ee = e;
+         e = e->pre_proc();
+      }
+
+      // we set cc to be a suitable starting state for (c1 \setminus c2), which
+      // is "the next layer of events above" the cut of (c1 \cap c2)
+      cc[i] = ee;
    }
-
-   // we use a second cut cc to run forward up to completion of cut c
-   // we start by adding bottom to the cut
-   cc.fire (u.proc(0)->first_event());
-   ASSERT (cc[0] and cc[0]->is_bottom ());
-
-   // get a fresh color, we call it green
-   green = u.get_fresh_color ();
 
    // in a round-robbin fashion, we run each process until we cannot continue in
    // that process; this continues until we are unable to make progress
@@ -381,18 +399,16 @@ void C15unfolder::cut_to_replay (const Cut &c, std::vector<int> &replay)
          DEBUG ("c15u: cut-to-replay: ctxsw to pid %d, event %p", i, e);
          count = 0;
          // we replay as many events as possible on process i
-         for (e = cc[i]; e; e = e->next)
+         for (; e; e = e->next)
          {
             // if event has non-visited causal predecessor, abort this process
-            if (e->pre_other() and e->pre_other()->color != green) break;
-            e->color = green;
+            //SHOW (e->str().c_str(), "s");
+            if (e->pre_other()
+                  and i != e->pre_other()->pid()
+                  and cc[e->pre_other()->pid()]
+                  and e->pre_other()->depth_proc() > cc[e->pre_other()->pid()]->depth_proc())
+                     break;
             count++;
-            if (e->action.type == ActionType::THCREAT)
-            {
-               // put in the cut the THSTART corresponding to a THCREAT if the
-               // original cut contains at least one event from that process
-               if (c[e->action.val]) cc[e->action.val] = u.event (e);
-            }
          }
 
          if (count)
@@ -400,14 +416,25 @@ void C15unfolder::cut_to_replay (const Cut &c, std::vector<int> &replay)
             cc[i] = e;
             replay.push_back (i);
             replay.push_back (count);
+            DEBUG ("c15u: cut-to-replay: %u %d", i, count);
             progress = true;
          }
       }
    }
+}
+
+void C15unfolder::alt_to_replay (const Cut &c, const Cut &j, std::vector<int> &replay)
+{
+   // the replay that we need to compute here for C \cup J is the replay of C
+   // followed by the replay of J \setminus C
+
+   ASSERT (replay.size() == 0);
+
+   cut_to_replay (c, replay);
+   cut_to_replay (j, c, replay);
    replay.push_back (-1);
 }
 
-/// Compute conflicting extension for a LOCK
 void C15unfolder::compute_cex_lock (Event *e, Event **head)
 {
    Event *ep, *em, *ee;

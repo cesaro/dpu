@@ -82,6 +82,7 @@ protected:
    // operations to manage the doubly-linked list of unjustified events
    inline void unjust_add (Elem *e);
    inline void unjust_remove (Elem *e);
+   inline void unjust_remove_head ();
    inline bool unjust_isempty ();
 
 public:
@@ -89,9 +90,13 @@ public:
    inline Disset ();
 
    /// add an event to D, given the event and the index it occupied the trail;
-   /// the event will be removed from D whenever we pop out of the trail the
-   /// event at depth idx (this will happen in trail_pop)
+   /// the event will be removed from D whenever either we pop out of the trail
+   /// the event at depth idx (this will happen in trail_pop) or when we call
+   /// unadd, to revert the last addition to D
    inline void add (Event *e, int idx);
+
+   /// undoes the last addition to D via add(e,idx)
+   inline void unadd ();
 
    /// check if an event pushed to the trail justifies one in the disset
    inline void trail_push (Event *e, int idx);

@@ -69,8 +69,10 @@ void Cut::fire (Event *e)
    // configuration was constructed; assert it didn't happen
    ASSERT (e->pid() < nrp);
 
-   // pre-proc must be the event max[e.pid()]
+   // adding e to the cut must not break causal-closendness
    ASSERT (e->pre_proc() == max[e->pid()]);
+   ASSERT (!e->pre_other() or max[e->pre_other()->pid()]);
+   ASSERT (!e->pre_other() or e->pre_other()->is_predeq_of (max[e->pre_other()->pid()]));
 
    // the new event cannot be in conflict with any other event in the cut
 #ifdef CONFIG_DEBUG

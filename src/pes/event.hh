@@ -34,10 +34,8 @@ public:
       int boxfirst : 1;
       /// True iff this event is the last one in its own Eventbox
       int boxlast : 1;
-      /// FIXME - True iff this event has no causal successors in the unfolding
-      //int ismax : 1;
-      /// True iff this event is in some configuration
-      int inc : 1;
+      /// True iff the redbox is completely filled
+      int crb : 1;
    } flags;
 
    /// the blue action performed by this event

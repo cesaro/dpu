@@ -3,7 +3,7 @@
 /// THSTART(), creat is the corresponding THCREAT (or null for p0)
 Event::Event (Event *creat) :
    MultiNode(nullptr, creat),
-   flags ({.boxfirst = 1, .boxlast = 0, .inc = 0}),
+   flags ({.boxfirst = 1, .boxlast = 0, .crb = 0}),
    action ({.type = ActionType::THSTART}),
    redbox (),
    color (0),
@@ -23,7 +23,7 @@ Event::Event (Event *creat) :
 /// THCREAT(tid) or THEXIT(), one predecessor (in the process)
 Event::Event (Action ac, bool bf) :
    MultiNode(pre_proc(bf), nullptr),
-   flags ({.boxfirst = bf, .boxlast = 0, .inc = 0}),
+   flags ({.boxfirst = bf, .boxlast = 0, .crb = 0}),
    action (ac),
    redbox (),
    color (0),
@@ -41,7 +41,7 @@ Event::Event (Action ac, bool bf) :
 /// THJOIN(tid), MTXLOCK(addr), MTXUNLK(addr), two predecessors (process, memory/exit)
 Event::Event (Action ac, Event *m, bool bf) :
    MultiNode(pre_proc(bf), m),
-   flags ({.boxfirst = bf, .boxlast = 0, .inc = 0}),
+   flags ({.boxfirst = bf, .boxlast = 0, .crb = 0}),
    action (ac),
    redbox (),
    color (0),

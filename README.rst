@@ -37,8 +37,9 @@ x debug Primeconfig
 x debug in_cfl_with
 x write trail
 x write the Disset
-x Cut::unadd (e)
-x Config::unadd (e)
+x Cut::unfire (e)
+x Config::unfire (e)
+x Disset::unadd()
 x alt_to_replay
 - modify stream_to_events to update the trail
 - write explore

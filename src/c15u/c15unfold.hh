@@ -19,6 +19,7 @@ namespace dpu
 
 class Trail : public std::vector<Event*>
 {
+public:
    void push (Event *e)
       { std::vector<Event*>::push_back (e); }
    void pop ()
@@ -83,7 +84,23 @@ public:
 public:
    std::vector<std::string> argv;
 
-   void stream_to_events (Config &c, const action_streamt &s);
+   inline void stream_to_events
+         (Config &c,
+         const action_streamt &s,
+         Trail *t = nullptr,
+         Disset *d = nullptr);
+
+   /// receives a stream, an iterator to that stream, a vector mapping stream
+   /// pids to our pids, and a trail; this method advances the iterator of the
+   /// stream asserting that the actions found match those of
+   /// the trail; the iterator is left pointing at one plus the (blue) action
+   /// matched with the last event in the trail; it also updates the pidmap at
+   /// thread-creation events
+   inline void __stream_match_trail
+         (const action_streamt &s,
+         action_stream_itt &it,
+         std::vector<unsigned> &pidmap,
+         Trail &t);
 
    /// extends the replay vector with a replay sequence for the configuration c
    void cut_to_replay (const Cut &c, std::vector<int> &replay);
@@ -101,6 +118,9 @@ public:
    /// returns true iff c \cup [e] is a configuration
    bool compatible_with (Config &c, Event &e);
 };
+
+// implementation of inline methods
+#include "c15u/c15unfold.hpp"
 
 } //end of namespace
 #endif

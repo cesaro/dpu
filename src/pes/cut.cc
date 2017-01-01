@@ -121,7 +121,7 @@ void Cut::__dump_cut () const
    for (i = 0; i < nrp; i++)
    {
       e = max[i] ;
-      DEBUG("Proc %d, max %p", i, e);
+      if (e) DEBUG("Proc %d", i);
       for (; e; e = e->pre_proc())
       {
          DEBUG (" %s", e->str().c_str());

@@ -1099,6 +1099,7 @@ void test50 ()
       //unf.add_one_run (replay);
 
       // print dot
+      unf.u.dump ();
       std::ofstream f ("dot/unf.dot");
       unf.u.print_dot (f);
       f.close ();
@@ -1111,7 +1112,7 @@ void test50 ()
 
 void test51 ()
 {
-   std::vector<const char *> argv {"prog", "main2"};
+   std::vector<const char *> argv {"prog", "main3"};
    try
    {
       Event *e = nullptr;
@@ -1121,6 +1122,7 @@ void test51 ()
       unf.set_args (argv);
 
       Config c (unf.add_one_run (replay));
+      //Config cc (unf.add_one_run (replay));
       c.dump ();
       unf.compute_cex (c, &e);
 
@@ -1309,6 +1311,7 @@ void test53 ()
 void test54 ()
 {
 }
+
 void test55 ()
 {
 }

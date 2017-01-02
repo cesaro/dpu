@@ -60,6 +60,10 @@ public:
    unsigned pid () const;
    /// returns the process to which this event belongs
    Process *proc () const;
+   /// returns a unique numeric id
+   unsigned uid () const;
+   /// returns a numeric id that is unique among events of the same process
+   unsigned puid () const;
 
    inline unsigned depth_proc () const;
    inline unsigned depth_other () const;

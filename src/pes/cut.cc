@@ -138,7 +138,7 @@ std::string Cut::str () const
    s = "[";
    for (i = 0; i < nrp; i++)
    {
-      if (max[i]) s += fmt ("%u: %p; ", i, max[i]);
+      if (max[i]) s += fmt ("%u: %08x; ", i, max[i]->uid());
    }
    if (s.size() >= 2)
    {

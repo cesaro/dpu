@@ -15,7 +15,7 @@ void Config::__dump_mutexes () const
 {
    for (auto &pair : mutexmax)
    {
-      DEBUG ("Addr %-#16lx e %p", pair.first, pair.second);
+      DEBUG ("Addr %-#16lx e %08x", pair.first, pair.second->uid());
    }
 }
 

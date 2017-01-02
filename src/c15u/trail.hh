@@ -23,6 +23,8 @@ public:
 
    Event *peek ()
       { return back (); }
+
+   void dump () const;
 };
 
 } // namespace

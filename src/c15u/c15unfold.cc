@@ -106,7 +106,7 @@ void C15unfolder::load_bytecode (std::string &&filepath)
    }
    DEBUG ("c15u: load-bytecode: executor successfully created!");
 
-   DEBUG ("c15u: load-bytecode: saving instrumented code to /tmp/output.ll");
+   DEBUG ("c15u: load-bytecode: saving instrumented bytecode to /tmp/output.ll");
    _ir_write_ll (m, "/tmp/output.ll");
 
    DEBUG ("c15u: load-bytecode: done!");
@@ -184,23 +184,23 @@ void C15unfolder::explore ()
    while (1)
    {
       // explore the leftmost branch starting from our current node
-      DEBUG ("c15u: explore: running system...");
+      DEBUG ("c15u: explore: running the system...");
       exec->set_replay (replay.data(), replay.size());
       exec->run ();
       action_streamt s (exec->get_trace ());
       DEBUG ("c15u: explore: the stream:");
       s.print ();
-      DEBUG ("c15u: explore: stream to events...");
       stream_to_events (c, s, &t, &d);
-      DEBUG ("c15u: explore: the config:");
-      c.dump ();
-      DEBUG ("c15u: explore: the disset:");
+      DEBUG ("c15u: explore: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
+      t.dump ();
+      //c.dump ();
       d.dump ();
 
       // add conflicting extensions
       compute_cex (c, &e);
 
       // backtrack until we find some right subtree to explore
+      DEBUG ("");
       while (t.size())
       {
          // pop last event out of the trail/config; indicate so to the disset
@@ -321,7 +321,7 @@ void C15unfolder::compute_cex_lock (Event *e, Event **head)
 {
    Event *ep, *em, *ee;
 
-   DEBUG ("c15u: cex-lock: e %p *head %p", e, *head);
+   //DEBUG ("c15u: cex-lock: e %p *head %p", e, *head);
    ASSERT (e)
    ASSERT (e->action.type == ActionType::MTXLOCK);
 
@@ -345,7 +345,7 @@ void C15unfolder::compute_cex_lock (Event *e, Event **head)
 
       // (action, ep, em) is a (new) event
       ee = u.event (e->action, ep, em);
-      DEBUG ("c15u: cex-lock: CEX! %s\n", ee->str().c_str());
+      DEBUG ("c15u: cex-lock: new cex: %s", ee->str().c_str());
 
       // we add it to the linked-list
       ee->next = *head; // next is also used in cut_to_replay
@@ -357,7 +357,7 @@ void C15unfolder::compute_cex (Config &c, Event **head)
 {
    Event *e;
 
-   DEBUG("c15u: cex: c %p *head %p |mm| %d", &c, *head, c.mutexmax.size());
+   //DEBUG("c15u: cex: c %p *head %p |mm| %d", &c, *head, c.mutexmax.size());
 
    for (auto const & max : c.mutexmax)
    {

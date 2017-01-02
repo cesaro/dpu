@@ -5,8 +5,8 @@ namespace dpu {
 void Process::dump ()
 {
    printf (" == process begin ==\n");
-   printf (" this %p pid %u first-event %p last-event %p\n",
-         this, pid(), first_event(), last);
+   printf (" this %p pid %u first-event %08x last-event %08x\n",
+         this, pid(), first_event()->uid(), last->uid());
 
    ASSERT (first_event() and first_event()->action.type == ActionType::THSTART);
    for (Event &e : *this)

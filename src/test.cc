@@ -79,13 +79,23 @@ void test27 ()
 
    DEBUG ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
    SHOW (int2mask (Unfolding::PROC_SIZE - 1), "zx");
-   SHOW (Unfolding::ptr2pindex (u.proc(0) + 0), "u");
-   SHOW (Unfolding::ptr2pindex (u.proc(1) + 0), "u");
-   SHOW (Unfolding::ptr2pindex (u.proc(2) + 0), "u");
-   SHOW (Unfolding::ptr2pindex (u.proc(3) + 0), "u");
-   SHOW (Unfolding::ptr2pindex (u.proc(3) + 1), "u");
-   SHOW (Unfolding::ptr2pindex (u.proc(3) + 2), "u");
-   SHOW (Unfolding::ptr2pindex (u.proc(3) + 3), "u");
+   SHOW (Unfolding::ptr2puid (u.proc(0) + 0), "u");
+   SHOW (Unfolding::ptr2puid (u.proc(1) + 0), "u");
+   SHOW (Unfolding::ptr2puid (u.proc(2) + 0), "u");
+   SHOW (Unfolding::ptr2puid (u.proc(3) + 0), "u");
+   SHOW (Unfolding::ptr2puid (u.proc(3) + 1), "u");
+   SHOW (Unfolding::ptr2puid (u.proc(3) + 2), "u");
+   SHOW (Unfolding::ptr2puid (u.proc(3) + 3), "u");
+
+   DEBUG ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
+   SHOW (int2mask (Unfolding::ALIGN - 1), "zx");
+   SHOW (Unfolding::ptr2uid (u.proc(0) + 0), "x");
+   SHOW (Unfolding::ptr2uid (u.proc(1) + 0), "x");
+   SHOW (Unfolding::ptr2uid (u.proc(2) + 0), "x");
+   SHOW (Unfolding::ptr2uid (u.proc(3) + 0), "x");
+   SHOW (Unfolding::ptr2uid (u.proc(3) + 1), "x");
+   SHOW (Unfolding::ptr2uid (u.proc(3) + 2), "x");
+   SHOW (Unfolding::ptr2uid (u.proc(3) + 3), "x");
 
    DEBUG ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
    SHOW (u.proc(0)->offset (u.proc(0)), "zu");

@@ -236,9 +236,9 @@ void Unfolding::print_dot (std::ofstream &fs)
             << " [style=\"invis\"];\n";
          fs << "    _" << &e << " [label=\"";
          fs << "" << action_type_str(e.action.type) << " " << var;
-         fs << "\\ne" << count;
-         fs << " dp " << e.depth;
-         fs << " rb " << e.redbox.size();
+         fs << "\\ne " << fmt ("%08x", e.uid());
+         fs << " d " << e.depth << "," << e.depth_proc() << "," << e.depth_other();
+         //fs << " rb " << e.redbox.size();
          fs << "\" fillcolor=" << bcolor << "]; }\n";
 
          // compute the maximum depth

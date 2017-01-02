@@ -141,7 +141,7 @@ bool Disset::trail_push (Event *e, int idx)
    if (e->flags.ind)
    {
       ssb_count++;
-      DEBUG ("c15u: disset: found SSB, ssb-count %u", ssb_count);
+      DEBUG ("c15u: disset: found SSB, count %u", ssb_count);
       return false;
    }
 
@@ -152,6 +152,8 @@ bool Disset::trail_push (Event *e, int idx)
       nxt = el->next;
       if (e->in_icfl_with (el->e))
       {
+         DEBUG ("c15u: disset: justifying %08x (disabler %08x, idx %d)",
+               el->e->uid(), e->uid(), idx);
          unjust_remove (el);
          just_push (el);
          el->disabler = idx;
@@ -174,6 +176,7 @@ void Disset::trail_pop (int idx)
       ASSERT (stack.back().e->flags.ind);
       unjust_remove (&stack.back());
       stack.back().e->flags.ind = 0;
+      DEBUG ("c15u: disset: removing %08x", stack.back().e->uid());
       stack.pop_back ();
       top_idx = stack.size() ? stack.back().idx : -1;
    }
@@ -188,6 +191,7 @@ void Disset::trail_pop (int idx)
       ASSERT (idx == top_disabler);
       ASSERT (! just_isempty ());
       ASSERT (idx == just_peek()->disabler);
+      DEBUG ("c15u: disset: un-justifying %08x", just_peek()->e->uid());
       unjust_add (just_pop ());
       top_disabler = just_isempty () ? -1 : just_peek()->disabler;
    }

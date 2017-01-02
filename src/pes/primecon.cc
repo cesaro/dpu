@@ -1,6 +1,7 @@
 
 #include "pes/primecon.hh"
 #include "pes/event.hh"
+#include "pes/config.hh"
 
 namespace dpu
 {
@@ -191,6 +192,27 @@ bool Primecon::in_cfl_with (const Primecon *other) const
    }
 }
 
+bool Primecon::in_cfl_with (const Config &c) const
+{
+   // We need to return true iff this configuration union c is conflict-free.
+   // The union is conflict-free iff for every "sequential tree" of the
+   // unfolding (one per process, one per lock) the union contains only a
+   // sequence and no two forking branches. Processes never branch on their own,
+   // so we only need to check for forks (conflicts) in the lock trees.
+   // So for each lock in this.lockmax we find the corresponding event in
+   // c.mutexmax and test for conflicts in their lock-tree.
+   
+   const Event *ee;
+
+   for (const Event *e: lockmax)
+   {
+      ee = c.mutex_max (e->action.addr);
+      if (! ee) continue;
+      if (e->node[1].in_cfl_with<1> (ee)) return true;
+   }
+   return false;
+}
+
 void Primecon::dump () const
 {
    DEBUG("== begin cone =="); 
@@ -219,13 +241,21 @@ std::string Primecon::str () const
    {
       if (max[i]) s += fmt ("%u: %p; ", i, max[i]);
    }
-   s += "other: 0 || ";
+   if (s.size() >= 2)
+   {
+      s.pop_back();
+      s.pop_back();
+   }
+   s += " || ";
 
    for (const Event *e : lockmax)
    {
       s += fmt ("%p: %p; ", e->action.addr, e);
    }
+   s.pop_back();
+   s.pop_back();
    return s + "]";
 }
 
 } // namespace dpu
+

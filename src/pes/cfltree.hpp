@@ -10,12 +10,12 @@ Node<T,SS>::Node(int idx, T *_this, T *_pre) :
    skiptab (skiptab_alloc (idx)),
    post ()
 {
-   std::string s = "[";
-   for (int i = 0; i < skiptab_size (); i++)
-      s += fmt ("%p(%u) ", skiptab[i], skiptab[i]->node[idx].depth);
-   s += "]";
-   DEBUG("Node<Ev,%d>.ctor: idx %d depth %d pre %p |tab| %u %s",
-         SS, idx, depth, pre, skiptab_size (), s.c_str());
+   //std::string s = "[";
+   //for (int i = 0; i < skiptab_size (); i++)
+   //   s += fmt ("%p(%u) ", skiptab[i], skiptab[i]->node[idx].depth);
+   //s += "]";
+   //DEBUG("Node<Ev,%d>.ctor: idx %d depth %d pre %p |tab| %u %s",
+   //      SS, idx, depth, pre, skiptab_size (), s.c_str());
 
    // add ourselfs to our parent's post
    if (_pre) _pre->node[idx].post.push_back (_this);
@@ -24,7 +24,7 @@ Node<T,SS>::Node(int idx, T *_this, T *_pre) :
 template <class T, int SS >
 Node<T,SS>::~Node ()
 {
-   DEBUG("Node<Ev,%d>.dtor", SS);
+   //DEBUG("Node<Ev,%d>.dtor", SS);
    delete [] skiptab;
 }
 
@@ -132,14 +132,14 @@ const T *Node<T,SS>::find_pred (unsigned d) const
 {
    const T *p;
 
-   DEBUG ("Node<Ev,%d>.find-pred<%d>: target %u depth %u", SS, idx, d, depth);
+   //DEBUG ("Node<Ev,%d>.find-pred<%d>: target %u depth %u", SS, idx, d, depth);
    ASSERT (d < depth);
    for (p = best_pred (d); p->node[idx].depth > d; p = p->node[idx].best_pred (d))
    {
       ASSERT (p->node[idx].best_pred(d)->node[idx].depth < p->node[idx].depth);
-      DEBUG ("Node<Ev,%d>.find-pred<%d>: at %u", SS, idx, p->node[idx].depth);
+      //DEBUG ("Node<Ev,%d>.find-pred<%d>: at %u", SS, idx, p->node[idx].depth);
    }
-   DEBUG ("Node<Ev,%d>.find-pred<%d>: at %u", SS, idx, p->node[idx].depth);
+   //DEBUG ("Node<Ev,%d>.find-pred<%d>: at %u", SS, idx, p->node[idx].depth);
    ASSERT (p->node[idx].depth == d);
    return p;
 }

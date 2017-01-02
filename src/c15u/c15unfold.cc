@@ -10,8 +10,6 @@
 #include <string>
 #include <algorithm>
 
-//#include "llvm/Pass.h"
-//#include "llvm/PassSupport.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Verifier.h"
 #include "llvm/IR/LLVMContext.h"
@@ -20,14 +18,6 @@
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Support/TargetSelect.h"
-//#include "llvm/IR/Function.h"
-//#include "llvm/IR/IRBuilder.h"
-//#include "llvm/IR/InstVisitor.h"
-//#include "llvm/IR/InstIterator.h"
-//#include "llvm/IR/LegacyPassManager.h"
-//#include "llvm/ExecutionEngine/ExecutionEngine.h"
-//#include "llvm/ExecutionEngine/SectionMemoryManager.h"
-//#include "llvm/ExecutionEngine/MCJIT.h"
 
 #include "c15unfold.hh" // must be before verbosity.h
 #include "misc.hh"
@@ -182,13 +172,57 @@ void C15unfolder::add_multiple_runs (const std::vector<int> &replay)
    }
 }
 
-void C15unfolder::run_to_completion (Config &c)
-{
-
-}
-
 void C15unfolder::explore ()
 {
+   Trail t;
+   Disset d;
+   Config c (Unfolding::MAX_PROC);
+   Cut j (Unfolding::MAX_PROC);
+   std::vector<int> replay {-1};
+   Event *e;
+
+   while (1)
+   {
+      // explore the leftmost branch starting from our current node
+      DEBUG ("c15u: explore: running system...");
+      exec->set_replay (replay.data(), replay.size());
+      exec->run ();
+      action_streamt s (exec->get_trace ());
+      DEBUG ("c15u: explore: the stream:");
+      s.print ();
+      DEBUG ("c15u: explore: stream to events...");
+      stream_to_events (c, s, &t, &d);
+      DEBUG ("c15u: explore: the config:");
+      c.dump ();
+      DEBUG ("c15u: explore: the disset:");
+      d.dump ();
+
+      // add conflicting extensions
+      compute_cex (c, &e);
+
+      // backtrack until we find some right subtree to explore
+      while (t.size())
+      {
+         // pop last event out of the trail/config; indicate so to the disset
+         e = t.pop ();
+         DEBUG ("c15u: explore: popping: i %2u %s", t.size(), e->str().c_str());
+         c.unfire (e);
+         d.trail_pop (t.size ());
+
+         // check for alternatives
+         if (! might_find_alternative (c, d, e)) continue;
+         d.add (e, t.size());
+         if (find_alternative_only_last (c, d, j)) break;
+         d.unadd ();
+      }
+
+      // if the trail is now empty, we finished; otherwise we compute a replay
+      // and restart
+      if (! t.size ()) break;
+      DEBUG ("c15u: explore: alternative found: %s", j.str().c_str());
+      alt_to_replay (c, j, replay);
+   }
+   DEBUG ("c15u: explore: done!");
 }
 
 void C15unfolder::cut_to_replay (const Cut &c, std::vector<int> &replay)
@@ -206,7 +240,8 @@ void C15unfolder::cut_to_replay (const Cut &c1, const Cut &c2, std::vector<int> 
    Event *e, *ee;
    Cut cc (std::min (c1.num_procs(), u.num_procs()));
 
-   DEBUG ("c15u: cut-to-replay: cut1 %p cut2 %p", &c1, &c2);
+   DEBUG ("c15u: cut-to-replay: cut1 %s cut2 %s",
+         c1.str().c_str(), c2.str().c_str());
 
    // we use an auxiliary cut cc to run forward the events in c1 \setminus c2,
    // to do so, we set up and use the Event's next pointer
@@ -220,7 +255,6 @@ void C15unfolder::cut_to_replay (const Cut &c1, const Cut &c2, std::vector<int> 
       len = e->depth_proc();
       if (c2[i]) len -= (int) c2[i]->depth_proc(); else len++;
       if (len <= 0) continue;
-      SHOW (len, "d");
 
       // set up the Event's next pointer in order to run forward
       ee = nullptr;
@@ -245,7 +279,7 @@ void C15unfolder::cut_to_replay (const Cut &c1, const Cut &c2, std::vector<int> 
       for (i = 0; i < nrp; i++)
       {
          e = cc[i];
-         DEBUG ("c15u: cut-to-replay: ctxsw to pid %d, event %p", i, e);
+         //DEBUG ("c15u: cut-to-replay: ctxsw to pid %d, event %p", i, e);
          count = 0;
          // we replay as many events as possible on process i
          for (; e; e = e->next)
@@ -277,8 +311,7 @@ void C15unfolder::alt_to_replay (const Cut &c, const Cut &j, std::vector<int> &r
    // the replay that we need to compute here for C \cup J is the replay of C
    // followed by the replay of J \setminus C
 
-   ASSERT (replay.size() == 0);
-
+   replay.clear();
    cut_to_replay (c, replay);
    cut_to_replay (j, c, replay);
    replay.push_back (-1);
@@ -330,6 +363,7 @@ void C15unfolder::compute_cex (Config &c, Event **head)
    {
       // skip events that are not locks or unlocks
       e = max.second;
+      ASSERT (e);
       if (e->action.type != ActionType::MTXUNLK and
             e->action.type != ActionType::MTXLOCK) continue;
 
@@ -344,44 +378,48 @@ void C15unfolder::compute_cex (Config &c, Event **head)
    }
 }
 
-bool C15unfolder::find_alternative_only_last (Config &c, std::vector<Event*> d, Cut &j)
+bool C15unfolder::might_find_alternative (Config &c, Disset &d, Event *e)
+{
+   // this method can return return false only if we are totally sure that no
+   // alternative to D \cup e exists after C; this method should run fast, it
+   // will be called after popping every single event event from the trail; our
+   // implementation is very fast: we return false if the event type is != lock
+
+   // e->icfls() is nonempty => e is a lock
+   ASSERT (! e->icfls().size() or e->action.type == ActionType::MTXLOCK);
+
+   return e->action.type == ActionType::MTXLOCK;
+}
+
+bool C15unfolder::find_alternative_only_last (const Config &c, Disset &d, Cut &j)
 {
    // - (complete but unoptimal)
-   // - consider the last event in D, call it e
+   // - consider the last (unjustified) event added to D, call it e
    // - if you find some immediate conflict e' of e that is compatible with C (that
    //   is, e' is not in conflict with any event in proc-max(C)), then set J = [e']
    //   and return it
+   // - as an optimization to avoid some SSB executions, you could skip from the
+   //   previous iteration those e' in D, as those will necessarily be blocked
    // - if you don't find any such e', return false
 
-   Event * e = d.back();
-   for (auto ei : e->icfls())
+   Event * e;
+
+   // D is not empty
+   ASSERT (d.unjustified.begin() != d.unjustified.end());
+
+   e = *d.unjustified.begin();
+   DEBUG ("c15u: alt: only-last: c %s e %p", c.str().c_str(), e);
+
+   for (Event *ee : e->icfls())
    {
-      if (compatible_with(c,*ei))
+      if (!ee->flags.ind and !ee->in_cfl_with (c))
       {
-         for (unsigned i = 0; i < e->cone.num_procs(); i++)
-            j[ei->pid()] = ei;
+         j = ee->cone;
          return true;
       }
    }
    return false;
 }
-
-bool C15unfolder::compatible_with (Config &c, Event &e)
-{
-   DEBUG("Check compatibility between Config %p and Event %p", &c, &e);
-   for (unsigned i = 0; i < c.num_procs(); i++)
-   {
-      if ((c[i]) and c[i]->in_cfl_with(&e)) // c[i] not null and in_cfl_with e
-      {
-         DEBUG("Not compatible");
-         return false;
-      }
-   }
-
-   DEBUG("compatible");
-   return true;
-}
-
 
 
 #if 0

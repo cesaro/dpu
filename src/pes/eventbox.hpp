@@ -2,8 +2,8 @@
 Eventbox::Eventbox (Event *pre) :
    _pre (pre)
 {
-   DEBUG ("Eventbox.ctor: this %p pid %u pre %p sizeof %zu",
-         this, pid(), _pre, sizeof (Eventbox));
+   //DEBUG ("Eventbox.ctor: this %p pid %u pre %p sizeof %zu",
+   //      this, pid(), _pre, sizeof (Eventbox));
 }
 
 Event *Eventbox::event_above () const

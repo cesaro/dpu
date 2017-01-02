@@ -111,6 +111,9 @@ x translate e->action.val on thread creation, so that it contains the pid in the
   marked; we could do this if we add a new integer argument to the method and
   assume that c1 is marked with that color
 
+- We reserve a fixed capacity for the vector Disset::stack to avoid rellocations
+  that break pointers in the linked lists. This could be done more nicely done.
+
 
 Alternatives
 ============

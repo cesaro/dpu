@@ -2,7 +2,9 @@
 #define _C15U_DISSET_HH_
 
 #include <vector>
+#include <stdexcept>
 #include "pes/event.hh"
+#include "verbosity.h"
 
 namespace dpu
 {
@@ -27,6 +29,8 @@ protected:
       Elem *prev;
    };
 
+   class Ls;
+
    /// an iterator for the list of justified and unjustified events in D
    class It
    {
@@ -36,9 +40,10 @@ protected:
       It &operator++ () { ptr = ptr->next; return *this; }
       It operator++ (int) { It r (*this); ptr = ptr->next; return r; }
       Event *operator* () { return ptr->e; }
-      It (Elem *ptr_) : ptr (ptr_) {};
    private:
+      It (Elem *ptr_) : ptr (ptr_) {};
       Elem *ptr;
+      friend class Ls;
    };
 
    /// a class that virtually represents a list of justified/unjustified events
@@ -47,13 +52,14 @@ protected:
    public:
       It begin () const { return It (head); }
       It end () const { return It (nullptr); }
-      Ls (Elem *&head_) : head (head_) {}
    private:
+      Ls (Elem *&head_) : head (head_) {}
       Elem *&head;
+      friend class Disset;
    };
 
 
-   /// the set D in the C'15 algorithm, the set behaves like a stack
+   /// the set D in the C'15 algorithm, it behaves like a stack
    std::vector<Elem> stack;
 
    /// head of the singly-linked list of justified events in D; this list
@@ -75,11 +81,13 @@ protected:
 
    // operations to manage the stack of justified events
    inline bool just_isempty ();
+   inline bool just_contains (Event *e) const;
    inline void just_push (Elem *e);
    inline Elem *just_pop ();
    inline Elem *just_peek ();
 
    // operations to manage the doubly-linked list of unjustified events
+   inline bool unjust_contains (Event *e) const;
    inline void unjust_add (Elem *e);
    inline void unjust_remove (Elem *e);
    inline void unjust_remove_head ();
@@ -99,17 +107,26 @@ public:
    inline void unadd ();
 
    /// check if an event pushed to the trail justifies one in the disset
-   inline void trail_push (Event *e, int idx);
+   inline bool trail_push (Event *e, int idx);
 
    /// check if an event poped from the trail un-justifies one or more events
    /// that were, so far, justified, or removes one event from D
    inline void trail_pop (int idx);
+
+   /// dumps debug information to stdout
+   void dump () const;
 
    /// allows to get an InputIterator through the list of justified events in D
    const Ls justified = Ls (just);
 
    /// allows to get an InputIterator through the list of unjustified events in D
    const Ls unjustified = Ls (unjust);
+
+   /// maximum number of events that a Disset can hold
+   static const unsigned CAPACITY = 1024;
+
+   /// number of sleep-set blocked executions encoutered so far
+   unsigned ssb_count;
 };
 
 // implementation of inline methods

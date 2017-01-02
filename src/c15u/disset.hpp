@@ -4,13 +4,16 @@ Disset::Disset () :
    just (nullptr),
    unjust (nullptr),
    top_disabler (-1),
-   top_idx (-1)
+   top_idx (-1),
+   ssb_count (0)
 {
+   stack.reserve (CAPACITY);
 }
 
 void Disset::just_push (Elem *e)
 {
    ASSERT (e);
+   ASSERT (! just_contains (e->e));
    e->next = just;
    just = e;
 }
@@ -30,10 +33,26 @@ bool Disset::just_isempty ()
    return just == nullptr;
 }
 
+inline bool Disset::just_contains (Event *e) const
+{
+   const Elem *el;
+   for (el = just; el; el = el->next)
+      if (el->e == e) return true;
+   return false;
+}
+
 Disset::Elem *Disset::just_peek ()
 {
    ASSERT (just);
    return just;
+}
+
+inline bool Disset::unjust_contains (Event *e) const
+{
+   const Elem *el;
+   for (el = unjust; el; el = el->next)
+      if (el->e == e) return true;
+   return false;
 }
 
 void Disset::unjust_add (Elem *e)
@@ -41,6 +60,7 @@ void Disset::unjust_add (Elem *e)
    // we add e to the head of the list
 
    ASSERT (e);
+   ASSERT (! unjust_contains (e->e));
    e->next = unjust;
    e->prev = nullptr;
    if (unjust) unjust->prev = e;
@@ -52,7 +72,7 @@ void Disset::unjust_remove (Elem *e)
    // we extract e from the list of unjustified events
 
    ASSERT (e);
-   ASSERT (unjust);
+   ASSERT (unjust_contains (e->e));
    if (e->prev)
       e->prev->next = e->next;
    else
@@ -82,10 +102,15 @@ void Disset::add (Event *e, int idx)
    // the top_idx variable
 
    ASSERT (e);
+   ASSERT (!e->flags.ind);
    ASSERT (idx >= 0);
    ASSERT (idx >= top_idx);
 
-   stack.push_back ({.e = e, .idx = idx, .disabler = 0});
+   if (stack.size() >= stack.capacity())
+      throw std::out_of_range ("Disset: capacity exceeded");
+
+   e->flags.ind = 1;
+   stack.push_back ({.e = e, .idx = idx, .disabler = -1});
    unjust_add (&stack.back());
    top_idx = idx;
 }
@@ -96,21 +121,32 @@ void Disset::unadd ()
 
    ASSERT (stack.size ());
    ASSERT (unjust == &stack.back());
+   ASSERT (stack.back().e->flags.ind);
 
+   stack.back().e->flags.ind = 0;
    unjust_remove_head ();
    stack.pop_back ();
    top_idx = stack.size() ? stack.back().idx : -1;
 }
 
-void Disset::trail_push (Event *e, int idx)
+bool Disset::trail_push (Event *e, int idx)
 {
-   // iterate through the list of unjustified events and move to the list of
-   // justified events those that get justified by event e
+   Elem *el, *nxt;
 
    ASSERT (e);
    ASSERT (idx >= 0);
 
-   Elem *el, *nxt;
+   // if we are pushing to the trail an event that is already in D, we got a
+   // sleep-set block execution, and we should stop it
+   if (e->flags.ind)
+   {
+      ssb_count++;
+      DEBUG ("c15u: disset: found SSB, ssb-count %u", ssb_count);
+      return false;
+   }
+
+   // iterate through the list of unjustified events and move to the list of
+   // justified events those that get justified by event e
    for (el = unjust; el; el = nxt)
    {
       nxt = el->next;
@@ -122,21 +158,24 @@ void Disset::trail_push (Event *e, int idx)
          top_disabler = idx;
       }
    }
+   return true;
 }
 
 void Disset::trail_pop (int idx)
 {
-   // if the last event popped out of C (at depth idx) is less or equal to the
-   // last event inserted in D (at depth top_idx), then we are backtracking and
-   // we need to remove one event from D
-   ASSERT (idx >= 0);
-   if (idx <= top_idx)
+   // if the last event popped out of the trail, at depth idx, was strictly
+   // deeper than top_idx (the top element in the stack D), then we need to
+   // remove at least the top, and potentially other elements of D, as multiple
+   // events in D can have been stored at the same depth top_idx;
+   ASSERT (idx >= -1);
+   while (idx < top_idx)
    {
-      ASSERT (idx == top_idx);
+      ASSERT (idx == top_idx - 1);
+      ASSERT (stack.back().e->flags.ind);
       unjust_remove (&stack.back());
+      stack.back().e->flags.ind = 0;
       stack.pop_back ();
       top_idx = stack.size() ? stack.back().idx : -1;
-      ASSERT (idx > top_idx);
    }
 
    // removing one event from the trail means that some events that were so far
@@ -153,4 +192,3 @@ void Disset::trail_pop (int idx)
       top_disabler = just_isempty () ? -1 : just_peek()->disabler;
    }
 }
-

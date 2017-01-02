@@ -29,7 +29,7 @@ Cut::Cut (const Cut &c1, const Cut &c2) :
    max (new Event* [nrp])
 {
    unsigned i;
-   DEBUG ("Cut.ctor: this %p c1 %p c2 %p nrp %d (max)", this, &c1, &c2, nrp);
+   //DEBUG ("Cut.ctor: this %p c1 %p c2 %p nrp %d (max)", this, &c1, &c2, nrp);
 
    // optimization for the case when both cuts are the same (very often)
    if (&c1 == &c2)
@@ -61,7 +61,7 @@ void Cut::fire (Event *e)
    // method adds to that configuration one of its enabled events, and updates
    // the cut so that it is the cut of the new resulting configuration
 
-   DEBUG("Cut.fire: this %p nrp %d e %p e.pid %d", this, nrp, e, e->pid());
+   //DEBUG("Cut.fire: this %p nrp %d e %p e.pid %d", this, nrp, e, e->pid());
    ASSERT (e);
    ASSERT (e->pid() < nrp);
 
@@ -140,7 +140,12 @@ std::string Cut::str () const
    {
       if (max[i]) s += fmt ("%u: %p; ", i, max[i]);
    }
-   s += "other: 0]";
+   if (s.size() >= 2)
+   {
+      s.pop_back();
+      s.pop_back();
+   }
+   s += "]";
    return s;
 }
 

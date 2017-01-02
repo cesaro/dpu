@@ -15,13 +15,13 @@ Config::Config (const Config &other) :
    Cut (other),
    mutexmax (other.mutexmax)
 {
-   DEBUG ("Config.ctor: this %p other %p (copy)", this, &other);
+   //DEBUG ("Config.ctor: this %p other %p (copy)", this, &other);
 }
 
 /// assignment operator
 Config & Config::operator= (const Config & other)
 {
-   DEBUG("Config.op=: this %p other %p", this, &other);
+   //DEBUG("Config.op=: this %p other %p", this, &other);
    Cut::operator= (other);
    mutexmax = other.mutexmax;
    return *this;
@@ -30,7 +30,7 @@ Config & Config::operator= (const Config & other)
 /// move-assignment operator
 Config & Config::operator= (Config && other)
 {
-   DEBUG("Config.op=: this %p other %p (move)", this, &other);
+   //DEBUG("Config.op=: this %p other %p (move)", this, &other);
    Cut::operator= (std::move (other));
    mutexmax = std::move (other.mutexmax);
    return *this;
@@ -38,48 +38,17 @@ Config & Config::operator= (Config && other)
 
 void Config::fire (Event *e)
 {
-   DEBUG("Config.fire: this %p e %p e.pid %d", this, e, e->pid());
+   //DEBUG("Config.fire: this %p e %p e.pid %d", this, e, e->pid());
 
-   // the pid() and the address of the event need to be different
-   ASSERT (e);
-   if (e->action.type == ActionType::MTXLOCK or e->action.type == ActionType::MTXUNLK)
-      ASSERT (e->pid() < e->action.addr);
-
-   // update the Cut's fields
    Cut::fire (e);
-
-   // update our fields
    switch (e->action.type)
    {
-   case ActionType::THCREAT   :
-      ASSERT (mutex_max (e->action.val) == nullptr);
-      mutexmax[e->action.val] = e;
-      break;
-
-   case ActionType::THEXIT    :
-      ASSERT (! e->pre_other());
-      if (e->pid() != 0)
-      {
-         // for all but the first thread, we keep track of the creat/exit
-         // actions in the mutexmax table using the pid as an address
-         ASSERT (mutex_max (e->pid()));
-         ASSERT (mutex_max (e->pid())->action.type == ActionType::THCREAT);
-         mutexmax[e->pid()] = e;
-      }
-      break;
-
    case ActionType::MTXLOCK   :
    case ActionType::MTXUNLK   :
-      //DEBUG("mutex_max: %p, pre_other: %p",mutex_max (e->action.addr), e->pre_other());
       ASSERT (mutex_max (e->action.addr) == e->pre_other());
       mutexmax[e->action.addr] = e;
       break;
 
-   case ActionType::THJOIN   :
-      ASSERT (e->pre_other());
-      ASSERT (e->pre_other()->action.type == ActionType::THEXIT);
-      ASSERT (e->pre_other()->pid() == e->action.val);
-   
    default :
       break;
    }
@@ -93,7 +62,10 @@ void Config::unfire (Event *e)
    case ActionType::MTXLOCK :
    case ActionType::MTXUNLK :
       ASSERT (mutex_max (e->action.addr) == e);
-      mutexmax[e->action.addr] = e->pre_other(); // even if it is null
+      if (! e->pre_other())
+         mutexmax.erase  (e->action.addr);
+      else
+         mutexmax[e->action.addr] = e->pre_other();
       break;
 
    default :
@@ -114,9 +86,13 @@ Event *Config::proc_max (unsigned pid)
    return (*this)[pid]; // inherited Cut::operator[]
 }
 
-Event *Config::mutex_max (Addr a)
+const Event *Config::mutex_max (Addr a) const
 {
    auto it = mutexmax.find (a);
    return it == mutexmax.end() ? nullptr : it->second;
 }
 
+Event *Config::mutex_max (Addr a)
+{
+   return const_cast<Event*> (const_cast<const Config*>(this)->mutex_max (a));
+}

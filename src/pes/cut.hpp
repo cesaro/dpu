@@ -5,7 +5,7 @@ Cut::Cut (unsigned n) :
    max (new Event* [nrp])
 {
    int i;
-   DEBUG ("Cut.ctor: this %p nrp %d", this, nrp);
+   //DEBUG ("Cut.ctor: this %p nrp %d", this, nrp);
    ASSERT (nrp >= 1);
 
    // initialize the size elements of the vector to null
@@ -18,7 +18,7 @@ Cut::Cut (const Cut &other) :
    nrp (other.nrp),
    max (new Event* [nrp])
 {
-   DEBUG ("Cut.ctor: this %p other %p nrp %d (copy)", this, &other, nrp);
+   //DEBUG ("Cut.ctor: this %p other %p nrp %d (copy)", this, &other, nrp);
    // copy the pointers
    memcpy (max, other.max, nrp * sizeof (Event*));
 }
@@ -42,13 +42,13 @@ Cut::Cut (const Cut &c1, const Cut &c2, Event *e) :
 Cut::~Cut ()
 {
    // delete the memory in the vector
-   DEBUG ("Cut.dtor: this %p nrp %d", this, nrp);
+   //DEBUG ("Cut.dtor: this %p nrp %d", this, nrp);
    delete[] max;
 }
 
 Cut & Cut::operator= (const Cut & other)
 {
-   DEBUG("Cut.op= this %p other %p", this, &other);
+   //DEBUG("Cut.op= this %p other %p", this, &other);
    nrp = other.nrp;
    max = new Event* [nrp];
    memcpy (max, other.max, nrp * sizeof (Event*));
@@ -57,7 +57,7 @@ Cut & Cut::operator= (const Cut & other)
 
 Cut & Cut::operator= (Cut && other)
 {
-   DEBUG("Cut.op= this %p other %p (move)", this, &other);
+   //DEBUG("Cut.op= this %p other %p (move)", this, &other);
    nrp = other.nrp;
    max = other.max;
    other.max = 0; // only suitable for destruction

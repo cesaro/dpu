@@ -15,7 +15,6 @@ namespace dpu
 {
 
 class Process;
-//class Eventbox;
 
 class Event : public MultiNode<Event,2> // 2 trees, skip step = 3
 {
@@ -36,6 +35,8 @@ public:
       int boxlast : 1;
       /// True iff the redbox is completely filled
       int crb : 1;
+      /// True iff this event is in the set D of the C'15 algorithm
+      int ind : 1;
    } flags;
 
    /// the blue action performed by this event
@@ -77,13 +78,15 @@ public:
 //   inline bool is_pred_in_the_same_tree_of(const Event *e) const;
 
 
-   /// returns true iff this <= e
+   /// returns true iff (this <= e)
    inline bool is_predeq_of (const Event *e) const;
-   /// returns true iff this < e
+   /// returns true iff (this < e)
    inline bool is_pred_of (const Event *e) const;
-   /// returns true iff this # e
+   /// returns true iff (this # e)
    inline bool in_cfl_with (const Event *e) const;
-   /// returns true iff this and e are LOCK and siblings in the node[1] tree
+   /// returns true iff (this \cup c is conflict-free)
+   inline bool in_cfl_with (const Config &c) const;
+   /// returns true iff (this and e are LOCK and siblings in the node[1] tree)
    inline bool in_icfl_with (const Event *e) const;
 
    /// returns some set of events in conflict which includes at least all

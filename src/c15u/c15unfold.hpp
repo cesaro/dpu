@@ -5,13 +5,34 @@ void C15unfolder::__stream_match_trail
          std::vector<unsigned> &pidmap,
          Trail &t)
 {
+   // We can see the stream as a sequence of subsequences, starting either by a
+   // blue action or an "invisible" THSTART action, and followed by red actions.
+   // When we read a blue action, we determine that the previous subsequence is
+   // over. When we read a context switch the previous sequence is also over,
+   // and two things might happen: we context-switch to a thread for the first
+   // time, or not. In the former case we will "see" an invisible THSTART action;
+   // in the latter case we will see a regular (visible) blue action.
+   //
+   // The loop below uses variable i to point to the blue event in the trail
+   // that marks the beginning of the subsequence. Initially it points to
+   // bottom.  We increment a counter per red action read. When we finish a
+   // subsequence (new blue action or context switch), we assert that we got the
+   // good number of red events. If we saw a blue action, we match it. If we saw
+   // context switch, and it is the first one, i correctly points now to the
+   // corresponding blue THSTART and there is nothing to do. If it is not, i
+   // incorrectly points to the next blue event in the trail BEFORE we have read
+   // it from the stream, so we need to decrement i by one, so that the arrival
+   // of the next blue action in the stream will correctly increment i.
+
    unsigned i, count, pid;
    const action_stream_itt end (s.end());
 
    // match trail events as long as the trail AND the stream contain events
+   ASSERT (t.size());
+   ASSERT (t[0]->is_bottom());
    count = 0;
    pid = 0;
-   for (i = 0; i < t.size() and it != end; ++it)
+   for (i = 0; i < t.size() - 1 and it != end; ++it)
    {
       switch (it.type())
       {
@@ -64,9 +85,14 @@ void C15unfolder::__stream_match_trail
          break;
 
       case RT_THCTXSW :
-         ASSERT (it.id() < pidmap.size()); // pid in bounds
-         ASSERT (it.id() == 0 or pidmap[it.id()] != 0); // map is defined
+         ASSERT (t[i]->redbox.size() == count);
+         // pid in bounds
+         ASSERT (it.id() < pidmap.size());
+         // map is defined
+         ASSERT (it.id() == 0 or pidmap[it.id()] != 0);
          pid = pidmap[it.id()];
+         // we increment i only on the first context switch to this pid
+         if (t[i + 1]->action.type == ActionType::THSTART) i++;
          break;
 
       case RT_ALLOCA :
@@ -78,8 +104,8 @@ void C15unfolder::__stream_match_trail
          break;
 
       default :
-         // this is supposed to be only RD/WR actions, will produce an assertion
-         // violation somewhere if it's not
+         // this is supposed to match only RD/WR actions, will produce an
+         // assertion violation somewhere if it doesn't
          count++;
          break;
       }
@@ -102,7 +128,7 @@ void C15unfolder::stream_to_events
    // the trail, until the trail (or the stream) ends. After that it will rely
    // on the fact that the state of the Config equals the state reached so far
    // in the stream, and will continue inserting new events and extending the
-   // Config and the Trail as new actions are read from the stream. If a Disset
+   // Config and the Trail as new actions are read from the stream.  If a Disset
    // is provided, it will be updated (with trail_push) only for the new events
    // added to the trail.
 
@@ -122,6 +148,8 @@ void C15unfolder::stream_to_events
    ASSERT (!t or !t->size() or (*t)[0]->is_bottom ());
    // non-empty stream
    ASSERT (it != end);
+
+   DEBUG ("c15u: s2e: c %s t %d", c.str().c_str(), t ? t->size() : -1);
 
    // skip the first context switch to pid 0, if present
    if (it.type () == RT_THCTXSW)
@@ -147,6 +175,9 @@ void C15unfolder::stream_to_events
       ASSERT (c.is_empty());
       e = u.event (nullptr); // bottom
       c.fire (e);
+      ASSERT (!e->flags.ind);
+      if (d) d->trail_push (e, t->size());
+      if (t) t->push(e);
    }
 
    // we create (or retrieve) an event for every action remaining in the stream
@@ -158,20 +189,18 @@ void C15unfolder::stream_to_events
          e->flags.crb = 1;
          ee = c.mutex_max (it.addr());
          e = u.event ({.type = ActionType::MTXLOCK, .addr = it.addr()}, e, ee);
+         if (d and ! d->trail_push (e, t->size())) return;
+         if (t) t->push(e);
          c.fire (e);
-         if (d) d->trail_push (e, t->size());
-         if (t) t->push (e);
-         DEBUG ("");
          break;
 
       case RT_MTXUNLK :
          e->flags.crb = 1;
          ee = c.mutex_max (it.addr());
          e = u.event ({.type = ActionType::MTXUNLK, .addr = it.addr()}, e, ee);
-         c.fire (e);
-         if (d) d->trail_push (e, t->size());
+         if (d and ! d->trail_push (e, t->size())) return;
          if (t) t->push (e);
-         DEBUG ("");
+         c.fire (e);
          break;
 
       case RT_THCTXSW :
@@ -179,13 +208,13 @@ void C15unfolder::stream_to_events
          ASSERT (it.id() < pidmap.size()); // pid in bounds
          ASSERT (it.id() == 0 or pidmap[it.id()] != 0); // map is defined
          e = c[pidmap[it.id()]];
-         ASSERT (e); // we have at least one event there
-         // on the the first context switch to a thread, we put the start in the
-         // trail and disset
-         if (e->action.type == ActionType::THSTART)
+         // on first context switch to a thread we push the THSTART event
+         if (!e)
          {
-            if (d) d->trail_push (e, t->size());
+            e = u.proc(pidmap[it.id()])->first_event();
+            if (d and ! d->trail_push (e, t->size())) return;
             if (t) t->push (e);
+            c.fire (e);
          }
          break;
 
@@ -195,37 +224,33 @@ void C15unfolder::stream_to_events
          ASSERT (it.id() >= 1 and pidmap[it.id()] == 0); // map entry undefined
          // creat
          e = u.event ({.type = ActionType::THCREAT}, e);
-         // start
+         // we create now the new process but delay inserting the THSTART event
+         // into the config and the trail until the first context switch
          ee = u.event (e);
          e->action.val = ee->pid();
          pidmap[it.id()] = ee->pid();
-         c.fire (e);
-         c.fire (ee);
-         if (d) d->trail_push (e, t->size());
+         if (d and ! d->trail_push (e, t->size())) return;
          if (t) t->push (e);
-         DEBUG ("");
+         c.fire (e);
          break;
 
       case RT_THEXIT :
          e->flags.crb = 1;
          e = u.event ({.type = ActionType::THEXIT}, e);
          c.fire (e);
-         if (d) d->trail_push (e, t->size());
+         if (d and ! d->trail_push (e, t->size())) return;
          if (t) t->push (e);
-         DEBUG ("");
          break;
 
       case RT_THJOIN :
          e->flags.crb = 1;
          ASSERT (it.id() < pidmap.size()); // pid in bounds
          ASSERT (it.id() >= 1 and pidmap[it.id()] != 0); // map is defined
-         ee = c.mutex_max (pidmap[it.id()]);
-         ASSERT (ee and ee->action.type == ActionType::THEXIT);
+         ee = c[pidmap[it.id()]];
          e = u.event ({.type = ActionType::THJOIN, .val = pidmap[it.id()]}, e, ee);
-         c.fire (e);
-         if (d) d->trail_push (e, t->size());
+         if (d and ! d->trail_push (e, t->size())) return;
          if (t) t->push (e);
-         DEBUG ("");
+         c.fire (e);
          break;
 
       case RT_RD8 :

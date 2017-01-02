@@ -1,9 +1,8 @@
 
-
 /// THSTART(), creat is the corresponding THCREAT (or null for p0)
 Event::Event (Event *creat) :
    MultiNode(nullptr, creat),
-   flags ({.boxfirst = 1, .boxlast = 0, .crb = 0}),
+   flags ({.boxfirst = 1, .boxlast = 0, .crb = 0, .ind = 0}),
    action ({.type = ActionType::THSTART}),
    redbox (),
    color (0),
@@ -15,15 +14,14 @@ Event::Event (Event *creat) :
    ASSERT (pre_other() == creat);
    ASSERT (!creat or creat->action.type == ActionType::THCREAT);
 
-   DEBUG ("Event.ctor: this %p pid %u ac %s pre %p,%p bf 1 con %s",
-         this, pid(), action_type_str (action.type), pre_proc(), creat,
-         cone.str().c_str());
+   DEBUG ("Event.ctor: %s", str().c_str());
+   //DEBUG ("Event.ctor: e %-16p %s", this, cone.str().c_str());
 }
 
 /// THCREAT(tid) or THEXIT(), one predecessor (in the process)
 Event::Event (Action ac, bool bf) :
    MultiNode(pre_proc(bf), nullptr),
-   flags ({.boxfirst = bf, .boxlast = 0, .crb = 0}),
+   flags ({.boxfirst = bf, .boxlast = 0, .crb = 0, .ind = 0}),
    action (ac),
    redbox (),
    color (0),
@@ -33,15 +31,14 @@ Event::Event (Action ac, bool bf) :
    ASSERT (pre_proc() != 0);
    ASSERT (pre_other() == 0);
 
-   DEBUG ("Event.ctor: this %p pid %u ac %s pre %p,%p bf %d con %s",
-         this, pid(), action_type_str (action.type), pre_proc(), pre_other(),
-         bf, cone.str().c_str());
+   DEBUG ("Event.ctor: %s", str().c_str());
+   //DEBUG ("Event.ctor: e %-16p %s", this, cone.str().c_str());
 }
 
 /// THJOIN(tid), MTXLOCK(addr), MTXUNLK(addr), two predecessors (process, memory/exit)
 Event::Event (Action ac, Event *m, bool bf) :
    MultiNode(pre_proc(bf), m),
-   flags ({.boxfirst = bf, .boxlast = 0, .crb = 0}),
+   flags ({.boxfirst = bf, .boxlast = 0, .crb = 0, .ind = 0}),
    action (ac),
    redbox (),
    color (0),
@@ -54,9 +51,8 @@ Event::Event (Action ac, Event *m, bool bf) :
    ASSERT (pre_proc() != 0);
    ASSERT (pre_other() == m);
 
-   DEBUG ("Event.ctor: this %p pid %u ac %s pre %p,%p bf %d con %s",
-         this, pid(), action_type_str (action.type), pre_proc(), pre_other(),
-         bf, cone.str().c_str());
+   DEBUG ("Event.ctor: %s", str().c_str());
+   //DEBUG ("Event.ctor: e %-16p %s", this, cone.str().c_str());
 }
 
 const Event *Event::pre_proc () const
@@ -197,8 +193,8 @@ bool Event::is_predeq_of (const Event *e) const
 
    // find the maximal event in [e] for process pid()
    ee = e->cone[pid()];
-   DEBUG ("Event.is_pred_of: this %p pid %u e %p pid %u ee %p",
-         this, pid(), e, e->pid(), ee);
+   //DEBUG ("Event.is_pred_of: this %p pid %u e %p pid %u ee %p",
+   //      this, pid(), e, e->pid(), ee);
 
    // if there is no event, or it's depth is superior to this.depth, then false
    if (! ee) return false;
@@ -215,15 +211,17 @@ bool Event::is_pred_of (const Event *e) const
    return is_predeq_of (e);
 }
 
-/*
- * - two events in the same tree can only be in causality or conflict. So, if they are not in causality, they must be in conflict.
- * - Just consider the case where two events are in 2 different processes and touch different variables (addr)
- */
 bool Event::in_cfl_with (const Event *e) const
 {
    bool b = this == e ? false : cone.in_cfl_with (&e->cone);
-   DEBUG ("Event.in_cfl_with: this %p pid %u e %p pid %u ret %d",
-         this, pid(), e, e->pid(), b);
+   //DEBUG ("Event.in_cfl_with: this %p pid %u e %p pid %u ret %d", this, pid(), e, e->pid(), b);
+   return b;
+}
+
+bool Event::in_cfl_with (const Config &c) const
+{
+   bool b = cone.in_cfl_with (c);
+   //DEBUG ("Event.in_cfl_with: this %p pid %u c %p ret %d", this, pid(), &c, b);
    return b;
 }
 

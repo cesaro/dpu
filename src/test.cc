@@ -932,110 +932,110 @@ void test39 ()
 {
    //test for find_alternative_only last
    DEBUG("Test find_alternative");
-      C15unfolder unf;
-      Event *e = nullptr;
+   C15unfolder unf;
+   Event *e = nullptr;
 
-      /*
-       * Thread 0: start, creat, join, exit
-       * Thread 1: start, exit
-       */
+   /*
+    * Thread 0: start, creat, join, exit
+    * Thread 1: start, exit
+    */
 
-      Event *es, *ec, *el, *eu, *ell, *euu, *ej, *ex; // Process 0
-      Event *es1, *ex1, *el1,*eu1, *ell1, *euu1 ; // Process 1
+   Event *es, *ec, *el, *eu, *ell, *euu, *ej, *ex; // Process 0
+   Event *es1, *ex1, *el1,*eu1, *ell1, *euu1 ; // Process 1
 
-      // start
-      es = unf.u.event (nullptr); // bottom
+   // start
+   es = unf.u.event (nullptr); // bottom
 
-      // creat proc 1
-      ec = unf.u.event ({.type = ActionType::THCREAT, .val = 1}, es);
+   // creat proc 1
+   ec = unf.u.event ({.type = ActionType::THCREAT, .val = 1}, es);
 
-      // start in thread 1
-      es1 = unf.u.event (ec);
+   // start in thread 1
+   es1 = unf.u.event (ec);
 
-      // lock
-      el = unf.u.event ({.type = ActionType::MTXLOCK, .addr = 0x100}, ec, nullptr);
+   // lock
+   el = unf.u.event ({.type = ActionType::MTXLOCK, .addr = 0x100}, ec, nullptr);
 
-      //unlock
-      eu = unf.u.event ({.type = ActionType::MTXUNLK, .addr = 0x100}, el, el);
+   //unlock
+   eu = unf.u.event ({.type = ActionType::MTXUNLK, .addr = 0x100}, el, el);
 
-      // lock
-      ell = unf.u.event ({.type = ActionType::MTXLOCK, .addr = 0x100}, eu, eu);
+   // lock
+   ell = unf.u.event ({.type = ActionType::MTXLOCK, .addr = 0x100}, eu, eu);
 
-      //unlock
-      euu = unf.u.event ({.type = ActionType::MTXUNLK, .addr = 0x100}, ell, ell);
-
-
-      /// Process 1
-      // lock
-      el1 = unf.u.event ({.type = ActionType::MTXLOCK, .addr = 0x100}, es1, euu);
-
-      //unlock
-      eu1 = unf.u.event ({.type = ActionType::MTXUNLK, .addr = 0x100}, el1, el1);
-
-      // lock
-      ell1 = unf.u.event ({.type = ActionType::MTXLOCK, .addr = 0x100}, eu1, eu1);
-
-      //unlock
-      euu1 = unf.u.event ({.type = ActionType::MTXUNLK, .addr = 0x100}, ell1, ell1);
-
-      //exit in thread 1
-      ex1 = unf.u.event ({.type = ActionType::THEXIT}, euu1);
+   //unlock
+   euu = unf.u.event ({.type = ActionType::MTXUNLK, .addr = 0x100}, ell, ell);
 
 
-      // Process 0
-      // join
-      ej = unf.u.event ({.type = ActionType::THJOIN, .val = 1}, euu, ex1);
+   /// Process 1
+   // lock
+   el1 = unf.u.event ({.type = ActionType::MTXLOCK, .addr = 0x100}, es1, euu);
 
-      // exit
-      ex = unf.u.event ({.type = ActionType::THEXIT}, ej);
+   //unlock
+   eu1 = unf.u.event ({.type = ActionType::MTXUNLK, .addr = 0x100}, el1, el1);
 
-      Config c(unf.u);
-      c.fire (es);
-      c.fire (ec);
-      c.fire (el);
-      c.fire (eu);
-      c.fire (ell);
-      c.fire (euu);
-      c.fire (es1);
-      c.fire (el1);
-      c.fire (eu1);
-      c.fire (ell1);
-      c.fire (euu1);
-      c.fire (ex1);
-      c.fire (ej);
-      c.fire (ex);
-      c.dump();
+   // lock
+   ell1 = unf.u.event ({.type = ActionType::MTXLOCK, .addr = 0x100}, eu1, eu1);
 
-      unf.u.dump();
-      printf("\nxxxxxxxxxxxxxxxxxxxx");
-      unf.compute_cex (c, &e);
-      unf.u.dump();
+   //unlock
+   euu1 = unf.u.event ({.type = ActionType::MTXUNLK, .addr = 0x100}, ell1, ell1);
 
-      std::ofstream fs("dot/huyen.dot", std::fstream::out);
-      unf.u.print_dot (fs);
-      fs.close();
+   //exit in thread 1
+   ex1 = unf.u.event ({.type = ActionType::THEXIT}, euu1);
 
-      //-----Test find_alternative
-      Config cc(unf.u);
-      cc.fire (es);
-      cc.fire (ec);
-      cc.fire (el);
-      cc.fire (eu);
 
-      cc.dump();
+   // Process 0
+   // join
+   ej = unf.u.event ({.type = ActionType::THJOIN, .val = 1}, euu, ex1);
 
-      std::vector<Event *> d = {ell};
+   // exit
+   ex = unf.u.event ({.type = ActionType::THEXIT}, ej);
 
-      Cut j (unf.u);
+   Config c(unf.u);
+   c.fire (es);
+   c.fire (ec);
+   c.fire (el);
+   c.fire (eu);
+   c.fire (ell);
+   c.fire (euu);
+   c.fire (es1);
+   c.fire (el1);
+   c.fire (eu1);
+   c.fire (ell1);
+   c.fire (euu1);
+   c.fire (ex1);
+   c.fire (ej);
+   c.fire (ex);
+   c.dump();
 
-      if (unf.find_alternative_only_last(cc,d,j))
-      {
-         DEBUG("There is an alternative J:");
-         j.dump();
-      }
-      else
-         DEBUG("No alternative");
+   unf.u.dump();
+   printf("\nxxxxxxxxxxxxxxxxxxxx");
+   unf.compute_cex (c, &e);
+   unf.u.dump();
 
+   std::ofstream fs("dot/huyen.dot", std::fstream::out);
+   unf.u.print_dot (fs);
+   fs.close();
+
+   //-----Test find_alternative
+   Config cc(unf.u);
+   cc.fire (es);
+   cc.fire (ec);
+   cc.fire (el);
+   cc.fire (eu);
+
+   cc.dump();
+
+   Disset d;
+   d.add (ell, 0);
+
+   Cut j (unf.u);
+
+   if (unf.find_alternative_only_last(cc,d,j))
+   {
+      DEBUG("There is an alternative J:");
+      j.dump();
+   }
+   else
+      DEBUG("No alternative");
 }
 
 void test40 ()
@@ -1310,6 +1310,27 @@ void test53 ()
 
 void test54 ()
 {
+   try
+   {
+      C15unfolder unf;
+
+      // load code and set argv
+      unf.load_bytecode ("./input.ll");
+      unf.set_args ({"prog", "main4"});
+      
+      // build entire unfolding
+      unf.explore ();
+
+      // print dot
+      unf.u.dump ();
+      std::ofstream f ("dot/unf.dot");
+      unf.u.print_dot (f);
+      f.close ();
+
+   } catch (const std::exception &e) {
+      DEBUG ("Test threw exception: %s", e.what ());
+      DEBUG ("Aborting!");
+   }
 }
 
 void test55 ()

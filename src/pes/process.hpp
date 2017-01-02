@@ -1,7 +1,7 @@
 
 Process::Process (Event *creat)
 {
-   DEBUG ("Process.ctor: this %p pid %d sizeof %d", this, pid(), sizeof (Process));
+   //DEBUG ("Process.ctor: this %p pid %d sizeof %d", this, pid(), sizeof (Process));
 
    // construct the first event box
    Eventbox *b = first_box ();

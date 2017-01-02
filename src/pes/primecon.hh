@@ -8,6 +8,8 @@
 namespace dpu
 {
 
+class Config;
+
 class Primecon : public Cut
 {
 public:
@@ -23,8 +25,11 @@ public:
    /// returns a human-readable description
    std::string str () const;
 
-   /// returns true iff this # other
+   /// returns true iff (this # other)
    bool in_cfl_with (const Primecon *other) const;
+
+   /// returns true iff (this \cup c is conflict-free)
+   bool in_cfl_with (const Config &c) const;
 
 protected :
    /// the list of maximal lock/unlock events sorted by the increasing value of

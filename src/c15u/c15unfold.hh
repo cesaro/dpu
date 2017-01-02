@@ -1,6 +1,6 @@
 
-#ifndef _C15UNFOLD_HH_
-#define _C15UNFOLD_HH_
+#ifndef _C15U_C15UNFOLDER_HH_
+#define _C15U_C15UNFOLDER_HH_
 
 #include "stid/executor.hh"
 #include "stid/action_stream.hh"
@@ -10,42 +10,32 @@
 #include "pes/cut.hh"
 #include "pes/event.hh"
 #include "pes/config.hh"
+#include "pes/process.hh"
 #include "pes/unfolding.hh"
 
 #include "c15u/disset.hh"
+#include "c15u/trail.hh"
 
 namespace dpu
 {
-
-class Trail : public std::vector<Event*>
-{
-public:
-   void push (Event *e)
-      { std::vector<Event*>::push_back (e); }
-   void pop ()
-      { std::vector<Event*>::pop_back(); }
-   Event * peek ()
-      { return back (); }
-};
 
 class C15unfolder
 {
 public:
    Unfolding u;
-   Trail trail;
-   Disset d;
 
    // dynamic executor
    std::string path;
    llvm::Module *m;
    Executor *exec;
 
-
+   // ctor and dtor
    C15unfolder ();
    ~C15unfolder ();
 
    /// load the llvm module from the "path" file
    void load_bytecode (std::string &&filepath);
+
    //void set_env (std::vector<const std::string> env);
    void set_args (std::vector<const char *> argv);
 
@@ -58,16 +48,15 @@ public:
    /// applies add_one_run for each one
    void add_multiple_runs (const std::vector<int> &replay);
 
-   /// replays c and then runs the system in free mode, adding the resulting
-   /// events and updating c, which becomes a maximal configuration
-   void run_to_completion (Config &c);
-
    /// the CONCUR'15 POR algorithm
    void explore ();
 
    /// compute the conflicting extensions of c and add them to a singly-linked
    /// list pointed by head
    void compute_cex (Config &c, Event **head);
+
+   /// returns false only if no alternative to D \cup {e} after C exists
+   bool might_find_alternative (Config &c, Disset &d, Event *e);
 
 
 //   bool find_alternative (Config &c, std::vector<Event*> d, Cut &J);
@@ -79,11 +68,12 @@ public:
    bool find_alternative (Config &c, std::vector<Event*> d, Cut &j);
 
    /// finds alternatives to D after C; complete but unoptimal
-   bool find_alternative_only_last (Config &c, std::vector<Event*> d, Cut &j);
+   bool find_alternative_only_last (const Config &c, Disset &d, Cut &j);
 
 public:
    std::vector<std::string> argv;
 
+   /// translates the stream of actions into events, updating c, t, and d
    inline void stream_to_events
          (Config &c,
          const action_streamt &s,
@@ -114,9 +104,6 @@ public:
 
    /// computes conflicting extensions associated to event e
    void compute_cex_lock (Event *e, Event **head);
-
-   /// returns true iff c \cup [e] is a configuration
-   bool compatible_with (Config &c, Event &e);
 };
 
 // implementation of inline methods
@@ -124,7 +111,4 @@ public:
 
 } //end of namespace
 #endif
-
-
-
 

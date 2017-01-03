@@ -117,10 +117,10 @@ dist : all
 	for i in 02 04 05 08 10 20 30 40 50; do ./tools/mkdekker.py $$i > dist/examples/dekker/dek$$i.ll_net; done
 	for i in 02 03 04 05 06 07; do ./tools/mkdijkstra.py $$i > dist/examples/dijkstra/dij$$i.ll_net; done
 	
-dot: $(PDFS)
+dot: $(SVGS)
 
 o open :
-	evince dot/*.pdf &
+	(ls dot/*.svg | head -n1 | xargs eog) &
  	     
 -include $(DEPS)
 

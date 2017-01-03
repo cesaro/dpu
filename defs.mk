@@ -73,6 +73,7 @@ YACC:=bison
 #dot file input
 DOTS=$(wildcard dot/*.dot)
 PDFS=$(DOTS:.dot=.pdf)
+SVGS=$(DOTS:.dot=.svg)
 
 %.d : %.c
 	@echo "DEP $<"
@@ -120,7 +121,10 @@ PDFS=$(DOTS:.dot=.pdf)
 %.png : %.dot
 	@echo "DOT $<"
 	@dot -Tpng < $< > $@
-	
+
+%.svg : %.dot
+	@echo "DOT $<"
+	@dot -Tsvg < $< > $@
 
 CFLAGS_:=-Wall -Wextra -std=c11
 CXXFLAGS_:=-Wall -Wextra -std=c++11 -O3

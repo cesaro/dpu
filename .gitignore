@@ -1,6 +1,8 @@
 *.mci
 *.pdf
 *.dot
+dot/*.svg
+dot/*.png
 *.cuf
 *.mp
 *.cnf
@@ -9,6 +11,7 @@
 *.r
 *.d
 *.o
+*.log
 *.pyc
 *.pdftex
 *.pdftex_t

@@ -149,4 +149,14 @@ std::string Cut::str () const
    return s;
 }
 
+void Cut::colorize (unsigned color)
+{
+   unsigned i;
+   Event *e;
+
+   for (i = 0; i < nrp; i++)
+      for (e = max[i]; e; e = e->pre_proc())
+         e->color = color;
+}
+
 } // namespace

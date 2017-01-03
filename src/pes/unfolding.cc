@@ -172,7 +172,7 @@ void Unfolding::dump () const
    printf ("== unfolding end ==\n");
 }
 
-void Unfolding::print_dot (std::ofstream &fs)
+void Unfolding::print_dot (std::ofstream &fs, unsigned col, std::string &&msg)
 {
    std::string bcolor;
    //std::unordered_map<Event*,unsigned> id;
@@ -198,9 +198,6 @@ void Unfolding::print_dot (std::ofstream &fs)
       m = 0;
       for (Event &e : *p)
       {
-         // assign an id
-         //id[&e] = count++;
-
          // get a color
          switch (e.action.type)
          {
@@ -230,6 +227,9 @@ void Unfolding::print_dot (std::ofstream &fs)
                bcolor = "grey";
                break;
          }
+
+         // skip event if we were given a mark and it is not marked
+         if (col and e.color != col) bcolor = "white";
 
          // print the node
          fs << "  { rank=same;\n    p" << p->pid() << "_d" << e.depth
@@ -298,10 +298,20 @@ void Unfolding::print_dot (std::ofstream &fs)
       }
    }
 
-   fs << "\n label = \"Unfolding " << this << "\\n";
+   fs << "\n label = \"" << msg;
+   fs << "\\n\\nUnfolding " << this << "\\n";
    fs << count << " events, " << num_procs() << " threads";
    fs << "\";\n";
    fs << "}\n";
+}
+
+void Unfolding::print_dot (Cut &c, std::ofstream &fs, std::string &&msg)
+{
+   unsigned col;
+
+   col = get_fresh_color();
+   c.colorize (col);
+   print_dot (fs, col, std::move(msg));
 }
 
 } // namespace dpu

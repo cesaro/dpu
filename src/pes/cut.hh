@@ -53,6 +53,8 @@ public:
    /// returns the number of processes of the unfolding
    inline unsigned num_procs () const;
 
+   /// sets the Event::color field for all events in the Cut
+   void colorize (unsigned color);
 
 protected:
    /// size of the map below (u.num_procs())

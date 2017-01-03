@@ -179,7 +179,9 @@ void C15unfolder::explore ()
    Config c (Unfolding::MAX_PROC);
    Cut j (Unfolding::MAX_PROC);
    std::vector<int> replay {-1};
-   Event *e;
+   Event *e = nullptr;
+
+   int i = 0;
 
    while (1)
    {
@@ -195,6 +197,11 @@ void C15unfolder::explore ()
       t.dump ();
       //c.dump ();
       d.dump ();
+
+      std::ofstream f (fmt ("dot/c%02d.dot", i));
+      u.print_dot (c, f, fmt ("Config %d", i));
+      f.close ();
+      i++;
 
       // add conflicting extensions
       compute_cex (c, &e);

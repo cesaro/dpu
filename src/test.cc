@@ -1050,6 +1050,42 @@ void test39 ()
 
 void test40 ()
 {
+   std::vector<int> v = {1,2,3,4,5,6,7,8,9};
+   // Dung auto
+   for (auto &i : v)
+   {
+      if (i== 5)
+      {
+         i = v.back();
+         v.pop_back();
+         i = i * 10;
+      }
+      else
+         i = i * 10;
+   }
+
+   for (auto & i : v)
+      DEBUG("%d ", i);
+   // Dung while
+//   int i = 0;
+//   while (i < v.size())
+//   {
+//      if (v[i] == 5)
+//      {
+//         v[i] = v.back();
+//         v.pop_back();
+//         v[i] *= 10;
+//      }
+//      else
+//      {
+//         v[i] *= 10;
+//         i++;
+//      }
+//   }
+//
+//   for (auto & i : v)
+//      DEBUG("%d ", i);
+
 }
 void test41 ()
 {

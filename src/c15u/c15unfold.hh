@@ -64,8 +64,9 @@ public:
    void enumerate_combination (unsigned i, std::vector<std::vector<Event *>> comb,
          std::vector<Event*> temp, Cut &J);
    bool is_conflict_free(std::vector<Event *> eset);
-
+   bool compatible_with (Config &c, Event &e);
    bool find_alternative (Config &c, std::vector<Event*> d, Cut &j);
+
 
    /// finds alternatives to D after C; complete but unoptimal
    bool find_alternative_only_last (const Config &c, Disset &d, Cut &j);

@@ -90,6 +90,8 @@ public:
    inline bool in_cfl_with (const Event *e) const;
    /// returns true iff (this \cup c is conflict-free)
    inline bool in_cfl_with (const Config &c) const;
+   /// return true iff there is an event in cfl with this
+   inline bool in_cfl_with (std::vector<Event *> s);
    /// returns true iff (this and e are LOCK and siblings in the node[1] tree)
    inline bool in_icfl_with (const Event *e) const;
 

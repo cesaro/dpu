@@ -224,6 +224,14 @@ bool Event::in_cfl_with (const Config &c) const
    //DEBUG ("Event.in_cfl_with: this %p pid %u c %p ret %d", this, pid(), &c, b);
    return b;
 }
+/// return true iff e is in conflict with one event in s, s is not empty
+bool Event:: in_cfl_with (std::vector<Event *> s)
+{
+   for (auto e: s)
+      if (in_cfl_with (e))
+         return true;
+   return false;
+}
 
 bool Event::in_icfl_with (const Event *e) const
 {

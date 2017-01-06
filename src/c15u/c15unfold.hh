@@ -59,11 +59,11 @@ public:
    bool might_find_alternative (Config &c, Disset &d, Event *e);
 
 
-//   bool find_alternative (Config &c, std::vector<Event*> d, Cut &J);
+   bool is_conflict_free(std::vector<Event *> eset);
 
+//   bool find_alternative (Config &c, std::vector<Event*> d, Cut &J);
    void enumerate_combination (unsigned i, std::vector<std::vector<Event *>> comb,
          std::vector<Event*> temp, Cut &J);
-
    bool find_alternative (Config &c, std::vector<Event*> d, Cut &j);
 
 

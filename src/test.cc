@@ -1180,6 +1180,8 @@ void test41 ()
       cc.fire (ec);
       cc.fire (el);
       cc.fire (eu);
+      cc.fire (ell);
+      cc.fire (euu);
 
       cc.dump();
 

@@ -428,6 +428,16 @@ bool C15unfolder::find_alternative_only_last (const Config &c, Disset &d, Cut &j
    return false;
 }
 
+bool C15unfolder::is_conflict_free(std::vector<Event *> eset)
+{
+   int i,j;
+   for (i = 0; i < eset.size() -1; i++)
+      for (j = i+1; j < eset.size(); j++)
+         if (eset[i]->in_cfl_with(eset[j]))
+            return false;
+   return true;
+}
+
 
 /* enumerate combinations whose each element is in a spike of the comb.
  * - the temporary combination is stored in temp.
@@ -482,18 +492,37 @@ void C15unfolder::enumerate_combination (unsigned i, std::vector<std::vector<Eve
 //      temp.pop_back();
 //   }
 
-   if (i == comb.size())
-      return;
+//   if (i == comb.size())
+//      return;
+//
+//   for (auto e: comb[i])
+//   {
+//      if (!temp.empty() and (e->in_cfl_with(temp))) continue;
+//
+//      temp.push_back(e);
+//      enumerate_combination(i+1, comb, temp, J);
+//   }
 
    for (auto e: comb[i])
    {
-      if (!temp.empty() and (e->in_cfl_with(temp))) continue;
-
       temp.push_back(e);
-      break;
-   }
+      if (temp.size() == comb.size()) // not at the last spike
+      {
+         if (is_conflict_free(temp))
+         {
+            DEBUG(": a conflict-free combination");
 
-   enumerate_combination(i+1, comb, temp, J);
+            for (auto e : temp)
+               J[e->pid()] = e;
+            return; // go back to find_alternative
+         }
+         else
+            temp.pop_back();
+      }
+      else
+         enumerate_combination(i+1, comb, temp, J);
+   }
+   return;
 }
 
 bool C15unfolder::find_alternative (Config &c, std::vector<Event*> d, Cut &J)
@@ -537,8 +566,9 @@ bool C15unfolder::find_alternative (Config &c, std::vector<Event*> d, Cut &J)
       }
    DEBUG("END COMB");
 
-  // set the flag inside of all events in D
-   for (auto e : d) e->inside = 1;
+//  // set the flag inside of all events in D
+//   for (auto e : d) e->inside = 1; // use flags.ind instead of inside
+
 
    /// remove from spk those whose flag inside is set
    unsigned j = 0;
@@ -548,7 +578,7 @@ bool C15unfolder::find_alternative (Config &c, std::vector<Event*> d, Cut &J)
       if (spk.empty()) return false;
       while (j < spk.size())
       {
-         if ( (spk[j]->inside == 1) or (spk[j]->in_cfl_with(c)) ) //spk[j] is in D or in conflict with c
+         if ( (spk[j]->flags.ind) or (spk[j]->in_cfl_with(c)) ) //spk[j] is in D or in conflict with c
          {
             spk[j] = spk.back();
             spk.pop_back();
@@ -577,313 +607,5 @@ bool C15unfolder::find_alternative (Config &c, std::vector<Event*> d, Cut &J)
 
    return true;
 }
-
-#if 0
-
-
-///*
-// * Retrieve all events in local configuration of an event
-// */
-//const std::vector<Event *> Event::local_config() const
-//{
-//   DEBUG("Event.local_config");
-//   Event * next;
-//   std::vector<Event *> lc;
-//   //DEBUG("Proc_maxevt.size = %d", proc_maxevt.size());
-//
-//   for (unsigned i = 0; i < proc_maxevt.size(); i++)
-//   {
-//      next = proc_maxevt[i];
-//      while (!next->is_bottom())
-//      {
-//         //DEBUG("push back to LC");
-//         lc.push_back(next);
-//         next = next->evtid.pre_proc;
-//      }
-//   }
-///*
-//   DEBUG("LC inside the function");
-//   for (unsigned j = 0; j < lc.size(); j++)
-//      DEBUG_("%d ", lc[j]->idx);
-//*/
-//   return lc;
-//}
-
-/// enumerate the comb for spike i. The temporatory combination is stored in temp.
-/// If there exist a config satisfied, it will be assigned to J
-void C15unfolder::enumerate_combination (unsigned i, std::vector<std::vector<Event *>> comb,
-      std::vector<Event*> temp, Cut &J)
-{
-   DEBUG("=======enum_combination function=======");
-
-   ASSERT(!comb.empty());
-
-   for (unsigned j = 0; j < comb[i].size(); j++ )
-   {
-      if (j < comb[i].size())
-      {
-         temp.push_back(comb[i][j]);
-
-         if (i == comb.size() - 1) // get a full combination
-         {
-            DEBUG_("temp = {");
-            for (unsigned i = 0; i < temp.size(); i++)
-               DEBUG_("%p, ", temp[i]);
-
-            DEBUG("}");
-
-            /*
-             * If temp is conflict-free, then J is assigned to union of every element's local configuration.
-             */
-            std::vector<Event *> lc;
-            if (is_conflict_free(temp))
-            {
-               DEBUG(": a conflict-free combination");
-
-//               /// compute the local config for each event in temp and then add them to J
-//
-//               for (unsigned i = 0; i < temp.size(); i++)
-//               {
-//                  lc = temp[i]->get_local_config();
-//
-//                  for (int j = lc.size()-1; j >= 0; j--)
-//                  {
-//                     J.fire(lc[j]); // BUG here, need to add event's local config
-//                     J.dump();
-//                  }
-//               }
-
-               for (auto e : temp)
-                  J[e->pid()] = e;
-
-               return; // go back to find_alternative
-
-               /*
-                * Check if two or more events in J are the same: by updating cut of a config, don't need to check duplica any more
-                */
-
-            }
-            else
-               DEBUG(": not conflict-free");
-         }
-         else
-            enumerate_combination(i+1, comb, temp, J);
-      }
-
-      temp.pop_back();
-   }
-
-}
-
-bool C15unfolder::find_alternative (Config &c, std::vector<Event*> d, Cut &J, Event **head)
-{
-   Event *pe;
-//   Event *head = nullptr;
-   ASSERT (d.size ());
-
-   J.clear();
-
-   // huyen here
-
-   std::vector<std::vector<Event *>> comb;
-//   Event **head = nullptr;
-
-    DEBUG(" Find an alternative J to D after C: ");
-    DEBUG_("   Original D = {");
-      for (unsigned i = 0; i < d.size(); i++)
-         DEBUG_("%p  ", d[i]);
-    DEBUG("}");
-
-    compute_cex(c, head);
-    pe = *head;
-    while (pe)
-    {
-       pe->inside = 1;
-//       DEBUG("%p ", pe);
-       pe = pe->next;
-    }
-
-    for (unsigned i = 0; i < d.size(); i++)
-    {
-       if (d[i]->inside == 1)
-       {
-          DEBUG("D[%] is in cex-> Remove", i);
-          //remove D[i]
-          d[i] = d.back();
-          d.pop_back();
-          i--;
-       }
-    }
-
-    // set all inside back to 0
-    pe = *head;
-    while (pe)
-    {
-       pe->inside = 0;
-       DEBUG("%p ", pe);
-       pe = pe->next;
-    }
-
-
-    DEBUG_("   Prunned  D = {");
-    for (unsigned i = 0; i < d.size(); i++) DEBUG_("%p  ", d[i]);
-    DEBUG("}");
-
-    DEBUG_("   After C \n ");
-    c.dump();
-    /*
-     *  D now contains only events from en(C).
-     *  D is a comb where each spike is a list of conflict events D[i].icfls()
-     *  pour those in dicfl of all events in D into a comb whose each spike
-     *  is corresponding to an event's dicfl
-     */
-
-
-    //DEBUG("D.size: %d", D.size());
-    for (unsigned i = 0; i < d.size(); i++)
-       comb.push_back (d[i]->icfls());
-
-    DEBUG("COMB: %d spikes: ", comb.size());
-      for (unsigned i = 0; i < comb.size(); i++)
-      {
-         DEBUG_ ("  spike %d: (#%p (len %d): ", i, d[i], comb[i].size());
-         for (unsigned j = 0; j < comb[i].size(); j++)
-            DEBUG_(" %p", comb[i][j]);
-         DEBUG("");
-      }
-    DEBUG("END COMB");
-
-
-    /// remove from the comb those are also in D
-    for (unsigned i = 0; i < comb.size(); i++)
-    {
-       DEBUG("   For comb[%d]:", i);
-
-       unsigned j = 0;
-       bool removed = false;
-
-       DEBUG_("    Remove from comb[%d] those which are already in D: ", i);
-
-       while ((comb[i].size() != 0) and (j < comb[i].size()) )
-       {
-          // check if there is any event in any spike already in D. If yes, remove it from spikes
-          for (unsigned k = 0; k < d.size(); k++)
-          {
-             if (comb[i][j] == d[k])
-             {
-                DEBUG(" %p ", comb[i][j]);
-                //remove spike[i][j]
-                comb[i][j] = comb[i].back();
-                comb[i].pop_back();
-                removed = true;
-                DEBUG("Remove done");
-                break;
-             }
-          }
-
-          // if we removed some event in spikes[i] by swapping it with the last one, then repeat the task with new spike[i][j]
-          if (!removed)
-             j++;
-          else
-             removed = false;
-
-       }
-
-       DEBUG("Done.");
-
-       if (comb[i].size() == 0)
-       {
-          DEBUG("\n    comb %p (e%d) is empty: no alternative; returning.", i, d[i]);
-          return false;
-       }
-
-
-       /*
-        *  Remove from spikes those are in conflict with any maxinal event
-        *  Let's reconsider set of maximal events
-        */
-       removed = false;
-       j = 0;
-       Event * max;
-
-       DEBUG("\n    Remove from comb[%d] events cfl with maximal events in C", i);
-
-       while ((comb[i].size() != 0) and (j < comb[i].size()) )
-       {
-          for (int i = 0; i < c.num_procs(); i++)
-          {
-             DEBUG("LAN THU %d", i);
-             max = c.proc_max(i); // get maximal event for proc i
-             DEBUG("%p", max);
-
-             if (max == nullptr) continue;
-
-             if (comb[i][j]->in_cfl_with(max))
-             {
-                //remove spike[i][j]
-                DEBUG_("    %p cfl with %p", comb[i][j], max);
-                DEBUG("->Remove %d", comb[i][j]);
-                comb[i][j] = comb[i].back();
-                comb[i].pop_back();
-                removed = true;
-                break;
-             }
-             else
-                DEBUG("Nothing");
-          }
-
-          DEBUG("Done.");
-          // if we removed some event in spikes[i] by swapping it with the last one,
-          // then repeat the task with new spike[i][j] which means "do not increase j"
-          if (!removed)
-             j++;
-          else
-             removed = false;
-       }
-
-
-       DEBUG("Done.");
-       if (comb[i].size() == 0)
-       {
-          DEBUG("    Comb %d (%p) is empty: no alternative; returning.", i, d[i]);
-          return false;
-       }
-
-    } // end for
-
-
-    /// show the comb
-    ASSERT (comb.size() == d.size ());
-    DEBUG("COMB: %d spikes: ", comb.size());
-    for (unsigned i = 0; i < comb.size(); i++)
-    {
-       DEBUG_ ("  spike %d: (%p (len %d): ", i, d[i], comb[i].size());
-       for (unsigned j = 0; j < comb[i].size(); j++)
-          DEBUG_(" %p", comb[i][j]);
-       DEBUG("");
-    }
-    DEBUG("END COMB");
-
-
-    if (comb.size() == 0)
-    {
-       DEBUG("Empty comb");
-       return false;
-    }
-
-    else
-    {
-       std::vector<Event *> temp;
-       enumerate_combination(0, comb, temp, J);
-       if (J.is_empty())
-          return false;
-       else
-          return true;
-    }
-
-    return false;
-}
-
-#endif
 
 } // namespace dpu

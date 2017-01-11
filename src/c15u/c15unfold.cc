@@ -62,7 +62,7 @@ void C15unfolder::load_bytecode (std::string &&filepath)
    ASSERT (argv.size() == 0);
    path = std::move (filepath);
 
-   // related to the JIT engine
+   // necessary for the JIT engine; we should move this elsewhere
    static bool init = false;
    if (not init)
    {

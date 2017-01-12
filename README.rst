@@ -5,8 +5,8 @@ DPU: Distributed Program Unfolding
 
 Under development.
 
-TODO notes
-==========
+Tasks
+=====
 
 Cesar:
 x escribir el ultimo Unfolding::event
@@ -41,15 +41,14 @@ x Cut::unfire (e)
 x Config::unfire (e)
 x Disset::unadd()
 x alt_to_replay
-- modify stream_to_events to update the trail
-- write explore
+x modify stream_to_events to update the trail
+x write explore
 - test
+- debug printing to understand when the alt() NP-hard explosion happens
 - optimize
-- find benchmarks
 
 
 Huyen:
-
 x vclocks
 x Unfolding::print_dot
 x BaseConfig
@@ -59,11 +58,18 @@ x In Event, store a Config instead of Cut as an event's local configuration.
   When deciding the conflict between two arbitrary events e and e', just look at its local
   configuration's mutexmax. Having e.mutexmax(m) !cfl e'.mutexmax(m) for every mutex variable m
   means that e !cfl with e'.
-- 
+x write find_alternative
+- adapt find_alternative to use the Disset instead of a std::vector
+
+- write the driver script: c -> ll -> add runtime -> optimize -> verify
+- steroids: send back ERROR actions; capture calls to abort(3), __assert_fail,
+  and friends
+- print counterexample run (Config)
+- find benchmarks
 
 
-Improvements
-============
+Future improvements
+===================
 
 - Better algorithm for finding pre-existing events in the unfolding when we
   instert new events, based on a radix tree or hash table per event; or at least

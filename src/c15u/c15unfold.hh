@@ -64,7 +64,7 @@ public:
 //   bool find_alternative (Config &c, std::vector<Event*> d, Cut &J);
    void enumerate_combination (unsigned i, std::vector<std::vector<Event *>> comb,
          std::vector<Event*> temp, Cut &J);
-   bool find_alternative (Config &c, std::vector<Event*> d, Cut &j);
+   bool find_alternative (Config &c, Disset &d, Cut &j);
 
 
    /// finds alternatives to D after C; complete but unoptimal

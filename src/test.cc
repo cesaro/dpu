@@ -1192,13 +1192,13 @@ void test41 ()
       d.push_back(ell);
       Cut j (unf.u);
 
-      if (unf.find_alternative(cc,d,j))
-      {
-         DEBUG("There is an alternative J:");
-         j.dump();
-      }
-      else
-         DEBUG("No alternative");
+//      if (unf.find_alternative(cc,d,j)) // d is changed to Disset instead of std::vector
+//      {
+//         DEBUG("There is an alternative J:");
+//         j.dump();
+//      }
+//      else
+//         DEBUG("No alternative");
 }
 void test42 ()
 {

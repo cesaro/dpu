@@ -476,7 +476,6 @@ void C15unfolder::enumerate_combination (unsigned i, std::vector<std::vector<Eve
 bool C15unfolder::find_alternative (Config &c, Disset &d, Cut &J)
 {
 //   Event *pe;
-   ASSERT (d.size ());
 
    J.clear();
 
@@ -502,12 +501,14 @@ bool C15unfolder::find_alternative (Config &c, Disset &d, Cut &J)
 
    if (comb.empty()) return false;
 
+   //int idx = 0;
+//   Iterator it = d.unjustified.begin();
    ///show the comb
-   ASSERT (comb.size() == d.size ());
+//   ASSERT (comb.size() == d.size ());
    DEBUG("COMB: %d spikes: ", comb.size());
       for (unsigned i = 0; i < comb.size(); i++)
       {
-         DEBUG_ ("  spike %d: (#%p (len %d): ", i, d[i], comb[i].size());
+//         DEBUG_ ("  spike %d: (#%p (len %d): ", i, it++, comb[i].size());
          for (unsigned j = 0; j < comb[i].size(); j++)
             DEBUG_(" %p", comb[i][j]);
          DEBUG("");
@@ -536,17 +537,18 @@ bool C15unfolder::find_alternative (Config &c, Disset &d, Cut &J)
       }
    }
 
-   ///show the comb
-   ASSERT (comb.size() == d.size ());
-   DEBUG("COMB: %d spikes: ", comb.size());
-      for (unsigned i = 0; i < comb.size(); i++)
-      {
-         DEBUG_ ("  spike %d: (#%p (len %d): ", i, d[i], comb[i].size());
-         for (unsigned j = 0; j < comb[i].size(); j++)
-            DEBUG_(" %p", comb[i][j]);
-         DEBUG("");
-      }
-   DEBUG("END COMB");
+//   ///show the comb
+//   ASSERT (d);
+
+//   DEBUG("COMB: %d spikes: ", comb.size());
+//      for (unsigned i = 0; i < comb.size(); i++)
+//      {
+//         DEBUG_ ("  spike %d: (#%p (len %d): ", i, d[i], comb[i].size());
+//         for (unsigned j = 0; j < comb[i].size(); j++)
+//            DEBUG_(" %p", comb[i][j]);
+//         DEBUG("");
+//      }
+//   DEBUG("END COMB");
 
    std::vector<Event *> temp;
    enumerate_combination(0, comb, temp, J);

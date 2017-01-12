@@ -1202,6 +1202,27 @@ void test41 ()
 }
 void test42 ()
 {
+   try
+      {
+         C15unfolder unf;
+
+         // load code and set argv
+         unf.load_bytecode ("./input.ll");
+         unf.set_args ({"prog", "main4"});
+
+         // build entire unfolding
+         unf.explore ();
+
+         // print dot
+         unf.u.dump ();
+         std::ofstream f ("dot/unf.dot");
+         unf.u.print_dot (f);
+         f.close ();
+
+      } catch (const std::exception &e) {
+         DEBUG ("Test threw exception: %s", e.what ());
+         DEBUG ("Aborting!");
+      }
 }
 void test43 ()
 {

@@ -72,14 +72,9 @@ public:
    inline bool operator == (const Event &) const;
    /// returns a human-readable description of the event
    std::string str () const;
-//   /// FIXME why is this necessary here? - Removed
-//   inline std::vector<Event *> get_local_config();
 
    /// true iff this event is the THSTART event of thread 0
    inline bool is_bottom () const;
-
-//   template <int i>
-//   inline bool is_pred_in_the_same_tree_of(const Event *e) const;
 
 
    /// returns true iff (this <= e)
@@ -111,29 +106,6 @@ private:
 
    inline Eventbox *box_above () const;
    Eventbox *box_below () const;
-
-   // FIXME -- this should be a Cut instead of a std::vector, see below
-
-#if 0
-   const Event & find_latest_WR_pred ()const;
-   const std::vector<Event *> local_config() const;
-   bool check_dicfl (const Event & e); // check direct conflict
-   bool check_cfl (const Event & e); // check conflict
-   bool check_cfl_WRD(const Event & e) const; // this is a WR and e is a RD
-   bool check_cfl_2RD(const Event & e) const;
-   bool check_2LOCs (const Event & e);
-   bool is_bottom () const;
-   bool is_same (const Event &) const;
-   bool succeed (const Event & e) const;
-   bool is_in_mutex() const;
-   template <int idx>
-   bool check_cfl_same_tree (const Event & e) const;
-   bool found(const Event &e, Event *parent) const;
-
-   //void set_skip_preds(int idx, int step);
-   //void print_proc_skip_preds(){ proc().print_skip_preds();}
-   //void print_var_skip_preds() { var().print_skip_preds();}
-#endif
 
    friend class EventIt;
 };

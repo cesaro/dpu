@@ -451,58 +451,6 @@ void C15unfolder::enumerate_combination (unsigned i, std::vector<std::vector<Eve
    DEBUG("=======enumerate combination=======");
 
    ASSERT(!comb.empty());
-
-//   for (unsigned j = 0; j < comb[i].size(); j++ )
-//   {
-//      if (j < comb[i].size())
-//      {
-//         temp.push_back(comb[i][j]);
-//
-//         if (i == comb.size() - 1) // get a full combination
-//         {
-//            // dump the temporary combination
-//            DEBUG_("temp = {");
-//            for (unsigned i = 0; i < temp.size(); i++)
-//               DEBUG_("%p, ", temp[i]);
-//
-//            DEBUG("}");
-//
-//            /*
-//             * If temp is conflict-free, then J is assigned to union of every element's local configuration.
-//             * J is cut, so it is enough to just update max of cut
-//             */
-//
-//            if (is_conflict_free(temp))
-//            {
-//               DEBUG(": a conflict-free combination");
-//
-//               for (auto e : temp)
-//                  J[e->pid()] = e;
-//
-//               return; // go back to find_alternative
-//            }
-//            else
-//               DEBUG(": not conflict-free");
-//         }
-//         else
-//            // continue for the next spike
-//            enumerate_combination(i+1, comb, temp, J);
-//      }
-//      /// pop to come back to choose another event in previous spike
-//      temp.pop_back();
-//   }
-
-//   if (i == comb.size())
-//      return;
-//
-//   for (auto e: comb[i])
-//   {
-//      if (!temp.empty() and (e->in_cfl_with(temp))) continue;
-//
-//      temp.push_back(e);
-//      enumerate_combination(i+1, comb, temp, J);
-//   }
-
    for (auto e: comb[i])
    {
       temp.push_back(e);
@@ -525,7 +473,7 @@ void C15unfolder::enumerate_combination (unsigned i, std::vector<std::vector<Eve
    return;
 }
 
-bool C15unfolder::find_alternative (Config &c, std::vector<Event*> d, Cut &J)
+bool C15unfolder::find_alternative (Config &c, Disset &d, Cut &J)
 {
 //   Event *pe;
    ASSERT (d.size ());
@@ -538,7 +486,7 @@ bool C15unfolder::find_alternative (Config &c, std::vector<Event*> d, Cut &J)
 
    // dump D
       DEBUG_("   D = {");
-         for (auto e : d)  DEBUG_("%p  ", e);
+         for (auto e : d.unjustified)  DEBUG_("%p  ", e);
       DEBUG("}");
 
    // dump c
@@ -550,7 +498,7 @@ bool C15unfolder::find_alternative (Config &c, std::vector<Event*> d, Cut &J)
     */
 
    ///  comb is constructed by pouring all conflicting events with each event in D (computed by icfls()) into a spike
-      for (auto e : d)  comb.push_back (e->icfls());
+      for (auto e : d.unjustified)  comb.push_back (e->icfls());
 
    if (comb.empty()) return false;
 

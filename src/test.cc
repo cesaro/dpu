@@ -19,9 +19,11 @@
 #include "pes/config.hh"
 #include "pes/cut.hh"
 #include "por.hh"
+#include "opts.hh"
 
 
-using namespace dpu;
+namespace dpu
+{
 
 void test27 ()
 {
@@ -1320,8 +1322,6 @@ void test51 ()
 void test52 ()
 {
    unsigned i, j;
-   std::vector<const char *> argv {"prog", "main4"};
-
    try
    {
       Event *e = nullptr, *ee;
@@ -1329,7 +1329,7 @@ void test52 ()
       std::vector<int> replay {-1};
       C15unfolder unf;
       unf.load_bytecode ("./input.ll");
-      unf.set_args (argv);
+      unf.set_args ({"prog", "main4"});
       
       // run 1 time, compute cex
       Config c (unf.add_one_run (replay));
@@ -1492,6 +1492,8 @@ void test54 ()
       C15unfolder unf;
 
       // load code and set argv
+      //unf.load_bytecode (std::string (opts::inpath));
+      //unf.set_args (opts::argv);
       unf.load_bytecode ("./input.ll");
       unf.set_args ({"prog", "main4"});
       
@@ -1525,3 +1527,5 @@ void test58 ()
 void test59 ()
 {
 }
+
+} // namespace

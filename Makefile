@@ -27,21 +27,21 @@ endif
 compile: $(TARGETS)
 
 run: compile input.ll
-	./src/main
+	./src/main --devel --verb=3 --arg0=prog input.ll -- main4
 	make dot
 
-input.ll : program.ll ../steroid/rt/rt.ll
+input.ll : program.ll ../steroid/rt/rt.bc
 	llvm-link-$(LLVMVERS) -S $^ -o $@
 
 
+
+ifeq ($(shell id -nu),cesar)
+program.ll : benchmarks/basic/cjlu.ll
 #program.ll : /tmp/cunf3.ll
 #program.ll : ../steroid/tests/hello.ll
 #program.ll : benchmarks/basic/hello.ll
 #program.ll : benchmarks/basic/cjlu.ll
 #program.ll : benchmarks/basic/huyen.ll
-
-ifeq ($(shell id -nu),cesar)
-program.ll : benchmarks/basic/cjlu.ll
 else
 program.ll : benchmarks/basic/cjlu.ll
 endif
@@ -93,30 +93,17 @@ distclean : clean
 	@rm -Rf dist/
 	@echo Mr. Proper done.
 
-dist : all
+dist : compile ../steroid/rt/rt.bc
 	rm -Rf dist/
 	mkdir dist/
 	mkdir dist/bin
 	mkdir dist/lib
-	mkdir dist/examples
-	mkdir dist/examples/corbett
-	mkdir dist/examples/dekker
-	mkdir dist/examples/dijkstra
-	cp src/cunf/cunf dist/bin/cunf
-	cp src/pep2dot dist/bin
-	cp src/pep2pt dist/bin
-	cp tools/cna dist/bin
-	cp tools/grml2pep.py dist/bin
-	cp tools/cuf2pep.py dist/bin
-	#cp minisat/core/minisat dist/bin
-	cp -R tools/ptnet dist/lib
-	cp -R examples/cont dist/examples/corbett/
-	cp -R examples/other dist/examples/corbett/
-	cp -R examples/plain dist/examples/corbett/
-	cp -R examples/pr dist/examples/corbett/
-	for i in 02 04 05 08 10 20 30 40 50; do ./tools/mkdekker.py $$i > dist/examples/dekker/dek$$i.ll_net; done
-	for i in 02 03 04 05 06 07; do ./tools/mkdijkstra.py $$i > dist/examples/dijkstra/dij$$i.ll_net; done
+	mkdir dist/lib/dpu
 	
+	cp src/driver.sh dist/bin/dpu
+	cp src/main dist/lib/dpu/dpu-backend
+	cp ../steroid/rt/rt.bc dist/lib/dpu/
+
 dot: $(SVGS)
 
 o open :

@@ -1,6 +1,9 @@
 #ifndef __TEST_HH_
 #define __TEST_HH_
 
+namespace dpu
+{
+
 void test1 ();
 void test2 ();
 void test3 ();
@@ -65,5 +68,7 @@ void test56 ();
 void test57 ();
 void test58 ();
 void test59 ();
+
+} // namespace
 
 #endif

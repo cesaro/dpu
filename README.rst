@@ -46,6 +46,7 @@ x write explore
 - test
 - debug printing to understand when the alt() NP-hard explosion happens
 - optimize
+- write the driver script: c -> ll -> add runtime -> optimize -> verify
 
 
 Huyen:
@@ -61,7 +62,6 @@ x In Event, store a Config instead of Cut as an event's local configuration.
 x write find_alternative
 - adapt find_alternative to use the Disset instead of a std::vector
 
-- write the driver script: c -> ll -> add runtime -> optimize -> verify
 - steroids: send back ERROR actions; capture calls to abort(3), __assert_fail,
   and friends
 - print counterexample run (Config)
@@ -157,3 +157,10 @@ find_alternative_only_last
   is, e' is not in conflict with any event in proc-max(C)), then set J = [e']
   and return it
 - if you don't find any such e', return false
+
+Dependencies
+============
+
+- coreutils
+- llvm-3.7
+- steroids

@@ -104,6 +104,12 @@ dist : compile ../steroid/rt/rt.bc
 	cp src/main dist/lib/dpu/dpu-backend
 	cp ../steroid/rt/rt.bc dist/lib/dpu/
 
+
+PREFIX = ~/x/local
+
+install : dist
+	cd dist; cp -Rv * $(PREFIX)
+
 dot: $(SVGS)
 
 o open :

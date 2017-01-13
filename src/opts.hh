@@ -7,6 +7,7 @@
 namespace dpu {
 namespace opts {
 
+extern const char *progname;
 extern bool development;
 extern int verbosity;
 extern std::string inpath;

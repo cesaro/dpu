@@ -11,6 +11,7 @@ namespace opts {
 
 // global variables storing the corresponding commandline options
 
+const char *progname;
 bool development;
 int verbosity;
 std::string inpath;
@@ -30,6 +31,7 @@ void parse (int argc, char **argv_)
 			{0, 0, 0, 0}};
 
    // default options
+   progname = "dpu";
    development = false;
 	verbosity = VERB_PRINT;
    inpath = "";
@@ -77,7 +79,7 @@ void parse (int argc, char **argv_)
 
 void usage ()
 {
-   fprintf (stderr, "Usage: dpu-backend ANALYZEROPTS file.{bc,ll} -- PROGRAMOPTS\n");
+   fprintf (stderr, "Usage: %s file.{bc,ll} ANALYZEROPTS -- PROGRAMOPTS\n", progname);
    fprintf (stderr, "Where ANALYZEROPTS can be:\n");
    fprintf (stderr, " -h, --help    Shows this message\n");
    fprintf (stderr, " -V, --version Displays version information\n");

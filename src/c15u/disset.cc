@@ -9,23 +9,23 @@ void Disset::dump () const
 {
    const Elem *e;
 
-   DEBUG("== begin disset =="); 
+   PRINT ("== begin disset =="); 
 
-   DEBUG ("%u events, top-idx %d, top-disabler %d, ssb-count %u",
+   PRINT ("%u events, top-idx %d, top-disabler %d, ssb-count %u",
          stack.size(), top_idx, top_disabler, ssb_count);
-   DEBUG ("Unjustified:");
+   PRINT ("Unjustified:");
    for (e = unjust; e; e = e->next)
    {
-      DEBUG (" idx %d %s", e->idx, e->e->str().c_str());
+      PRINT  (" idx %d %s", e->idx, e->e->str().c_str());
    }
 
-   DEBUG ("Justified (top-down):");
+   PRINT ("Justified (top-down):");
    for (e = just; e; e = e->next)
    {
-      DEBUG (" idx %d dis %d %s", e->idx, e->disabler, e->e->str().c_str());
+      PRINT (" idx %d dis %d %s", e->idx, e->disabler, e->e->str().c_str());
    }
 
-   DEBUG("== end disset =="); 
+   PRINT ("== end disset =="); 
 }
 
 } // namespace

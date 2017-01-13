@@ -108,9 +108,9 @@ void Cut::unfire (Event *e)
 
 void Cut::dump () const
 {
-   DEBUG("== begin cut =="); 
+   PRINT ("== begin cut =="); 
    __dump_cut ();
-   DEBUG("== end cut =="); 
+   PRINT ("== end cut =="); 
 }
 
 void Cut::__dump_cut () const
@@ -121,10 +121,10 @@ void Cut::__dump_cut () const
    for (i = 0; i < nrp; i++)
    {
       e = max[i] ;
-      if (e) DEBUG("Proc %d", i);
+      if (e) PRINT ("Proc %d", i);
       for (; e; e = e->pre_proc())
       {
-         DEBUG (" %s", e->str().c_str());
+         PRINT (" %s", e->str().c_str());
       }
    }
 }

@@ -1,19 +1,20 @@
 
 #include "pes/process.hh"
+#include "verbosity.h"
 
 namespace dpu {
 void Process::dump ()
 {
-   printf (" == process begin ==\n");
-   printf (" this %p pid %u first-event %08x last-event %08x\n",
+   PRINT (" == process begin ==");
+   PRINT (" this %p pid %u first-event %08x last-event %08x",
          this, pid(), first_event()->uid(), last->uid());
 
    ASSERT (first_event() and first_event()->action.type == ActionType::THSTART);
    for (Event &e : *this)
    {
-      DEBUG (" %s", e.str().c_str());
+      PRINT (" %s", e.str().c_str());
    }
-   printf (" == process end ==\n");
+   PRINT (" == process end ==");
 }
 
 } // namespace

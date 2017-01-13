@@ -215,17 +215,17 @@ bool Primecon::in_cfl_with (const Config &c) const
 
 void Primecon::dump () const
 {
-   DEBUG("== begin cone =="); 
+   PRINT ("== begin cone =="); 
    __dump_cut ();
    __dump_lockmax ();
-   DEBUG("== end cone =="); 
+   PRINT ("== end cone =="); 
 }
 
 void Primecon::__dump_lockmax () const
 {
    for (const Event *e : lockmax)
    {
-      DEBUG ("Addr %16p max %s",
+      PRINT ("Addr %16p max %s",
             e->action.addr, e->str().c_str());
    }
 }

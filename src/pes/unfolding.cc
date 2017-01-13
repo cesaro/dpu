@@ -152,14 +152,14 @@ Process *Unfolding::new_proc (Event *creat)
 
 void Unfolding::dump () const
 {
-   printf ("== unfolding begin ==\n");
-   printf (" this %p nrp %u\n", this, nrp);
-   printf (" memory %p size %zu%s max-procs %zu\n",
+   PRINT ("== unfolding begin ==");
+   PRINT (" this %p nrp %u", this, nrp);
+   PRINT (" memory %p size %zu%s max-procs %zu",
          procs,
          UNITS_SIZE (MAX_PROC * PROC_SIZE),
          UNITS_UNIT (MAX_PROC * PROC_SIZE),
          MAX_PROC);
-   printf (" proc-size %zu proc-align %zu%s\n",
+   PRINT (" proc-size %zu proc-align %zu%s",
          PROC_SIZE,
          UNITS_SIZE (ALIGN),
          UNITS_UNIT (ALIGN));
@@ -169,7 +169,7 @@ void Unfolding::dump () const
       Process *p = proc (i);
       p->dump ();
    }
-   printf ("== unfolding end ==\n");
+   PRINT ("== unfolding end ==");
 }
 
 void Unfolding::print_dot (std::ofstream &fs, unsigned col, std::string &&msg)

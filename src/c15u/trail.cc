@@ -8,12 +8,12 @@ void Trail::dump () const
 {
    unsigned i;
 
-   DEBUG("== begin trail =="); 
+   PRINT ("== begin trail =="); 
    for (i = 0; i < size(); i++)
    {
-      DEBUG ("i %2u %s", i, data()[i]->str().c_str());
+      PRINT ("i %2u %s", i, data()[i]->str().c_str());
    }
-   DEBUG("== end trail =="); 
+   PRINT ("== end trail =="); 
 }
 
 } // namespace

@@ -180,7 +180,6 @@ void C15unfolder::explore ()
    Cut j (Unfolding::MAX_PROC);
    std::vector<int> replay {-1};
    Event *e = nullptr;
-
    int i = 0;
 
    while (1)
@@ -219,7 +218,7 @@ void C15unfolder::explore ()
          // check for alternatives
          if (! might_find_alternative (c, d, e)) continue;
          d.add (e, t.size());
-         if (find_alternative_only_last (c, d, j)) break;
+         if (find_alternative (c, d, j)) break;
          d.unadd ();
       }
 
@@ -385,6 +384,48 @@ void C15unfolder::compute_cex (Config &c, Event **head)
    }
 }
 
+bool C15unfolder::is_conflict_free(std::vector<Event *> eset)
+{
+   int i,j;
+   for (i = 0; i < eset.size() -1; i++)
+      for (j = i+1; j < eset.size(); j++)
+         if (eset[i]->in_cfl_with(eset[j]))
+            return false;
+   return true;
+}
+
+void C15unfolder::enumerate_combination (unsigned i, std::vector<std::vector<Event *>> comb,
+      std::vector<Event*> temp, Cut &J)
+{
+   // We enumerate combinations using one event from each spike
+   // - the temporary combination is stored in temp
+   // - if temp is conflict-free, assign it to J
+
+   DEBUG("=======enumerate combination=======");
+
+   ASSERT(!comb.empty());
+   for (auto e: comb[i])
+   {
+      temp.push_back(e);
+      if (temp.size() == comb.size()) // not at the last spike
+      {
+         if (is_conflict_free(temp))
+         {
+            DEBUG(": a conflict-free combination");
+
+            for (auto e : temp)
+               J[e->pid()] = e;
+            return; // go back to find_alternative_optim_comb
+         }
+         else
+            temp.pop_back();
+      }
+      else
+         enumerate_combination(i+1, comb, temp, J);
+   }
+   return;
+}
+
 bool C15unfolder::might_find_alternative (Config &c, Disset &d, Event *e)
 {
    // this method can return return false only if we are totally sure that no
@@ -398,7 +439,13 @@ bool C15unfolder::might_find_alternative (Config &c, Disset &d, Event *e)
    return e->action.type == ActionType::MTXLOCK;
 }
 
-bool C15unfolder::find_alternative_only_last (const Config &c, Disset &d, Cut &j)
+inline bool C15unfolder::find_alternative (const Config &c, const Disset &d, Cut &j)
+{
+   return find_alternative_only_last (c, d, j);
+   //return find_alternative_optim_comb ();
+}
+
+bool C15unfolder::find_alternative_only_last (const Config &c, const Disset &d, Cut &j)
 {
    // - (complete but unoptimal)
    // - consider the last (unjustified) event added to D, call it e
@@ -428,118 +475,55 @@ bool C15unfolder::find_alternative_only_last (const Config &c, Disset &d, Cut &j
    return false;
 }
 
-bool C15unfolder::is_conflict_free(std::vector<Event *> eset)
+bool C15unfolder::find_alternative_optim_comb (const Config &c, const Disset &d, Cut &j)
 {
-   int i,j;
-   for (i = 0; i < eset.size() -1; i++)
-      for (j = i+1; j < eset.size(); j++)
-         if (eset[i]->in_cfl_with(eset[j]))
-            return false;
-   return true;
-}
+   // We do an exahustive search for alternatives to D after C, we will find one
+   // iff one exists. We use a comb that has one spike per unjustified event D.
+   // Each spike is made out of the immediate conflicts of that event in D. The
+   // unjustified events in D are all enabled in C, none of them is in cex(C).
 
-
-/* enumerate combinations whose each element is in a spike of the comb.
- * - the temporary combination is stored in temp.
- * - If temp is conflict-free, assign it to J
- */
-
-/// If there exist a config satisfied, it will be assigned to J
-void C15unfolder::enumerate_combination (unsigned i, std::vector<std::vector<Event *>> comb,
-      std::vector<Event*> temp, Cut &J)
-{
-   DEBUG("=======enumerate combination=======");
-
-   ASSERT(!comb.empty());
-   for (auto e: comb[i])
-   {
-      temp.push_back(e);
-      if (temp.size() == comb.size()) // not at the last spike
-      {
-         if (is_conflict_free(temp))
-         {
-            DEBUG(": a conflict-free combination");
-
-            for (auto e : temp)
-               J[e->pid()] = e;
-            return; // go back to find_alternative
-         }
-         else
-            temp.pop_back();
-      }
-      else
-         enumerate_combination(i+1, comb, temp, J);
-   }
-   return;
-}
-
-bool C15unfolder::find_alternative (Config &c, Disset &d, Cut &J)
-{
-//   Event *pe;
-
-   J.clear();
-
+   unsigned i, k;
    std::vector<std::vector<Event *>> comb;
 
    DEBUG(" Find an alternative J to D after C: ");
+   DEBUG_("   D = {");
+   for (auto e : d.unjustified)  DEBUG_("%p  ", e);
+   DEBUG("}");
+   DEBUG_("   After C \n ");
+   c.dump();
 
-   // dump D
-      DEBUG_("   D = {");
-         for (auto e : d.unjustified)  DEBUG_("%p  ", e);
-      DEBUG("}");
-
-   // dump c
-      DEBUG_("   After C \n "); c.dump();
-
-   /*
-    *  D now contains only events from en(C) -> so, don't need to check if some events in D are in C.cex.
-    *  Other functions makes sure that nothing in D is in c.cex
-    */
-
-   ///  comb is constructed by pouring all conflicting events with each event in D (computed by icfls()) into a spike
-      for (auto e : d.unjustified)  comb.push_back (e->icfls());
-
+   // build the spikes of the comb
+   for (auto e : d.unjustified) comb.push_back (e->icfls());
    if (comb.empty()) return false;
 
-   //int idx = 0;
-//   Iterator it = d.unjustified.begin();
-   ///show the comb
-//   ASSERT (comb.size() == d.size ());
+   // Iterator it = d.unjustified.begin();
    DEBUG("COMB: %d spikes: ", comb.size());
-      for (unsigned i = 0; i < comb.size(); i++)
-      {
-//         DEBUG_ ("  spike %d: (#%p (len %d): ", i, it++, comb[i].size());
-         for (unsigned j = 0; j < comb[i].size(); j++)
-            DEBUG_(" %p", comb[i][j]);
-         DEBUG("");
-      }
+   for (i = 0; i < comb.size(); i++)
+   {
+      // DEBUG_ ("  spike %d: (#%p (len %d): ", i, it++, comb[i].size());
+      for (k = 0; k < comb[i].size(); k++) DEBUG_(" %p", comb[i][k]);
+      DEBUG("");
+   }
    DEBUG("END COMB");
 
-//  // set the flag inside of all events in D
-//   for (auto e : d) e->inside = 1; // use flags.ind instead of inside
-
-
-   /// remove from spk those whose flag inside is set
-   unsigned j = 0;
-
-   for (auto spk : comb)
+   // remove from each spike those events in D or in conflict with someone in C
+   for (auto spike : comb)
    {
-      if (spk.empty()) return false;
-      while (j < spk.size())
+      if (spike.empty()) return false;
+      i = 0;
+      while (i < spike.size())
       {
-         if ( (spk[j]->flags.ind) or (spk[j]->in_cfl_with(c)) ) //spk[j] is in D or in conflict with c
+         if (spike[i]->flags.ind or spike[i]->in_cfl_with(c))
          {
-            spk[j] = spk.back();
-            spk.pop_back();
+            spike[i] = spike.back();
+            spike.pop_back();
          }
          else
-            j++;
+            i++;
       }
    }
 
-//   ///show the comb
-//   ASSERT (d);
-
+//   // show the comb
 //   DEBUG("COMB: %d spikes: ", comb.size());
 //      for (unsigned i = 0; i < comb.size(); i++)
 //      {
@@ -551,9 +535,9 @@ bool C15unfolder::find_alternative (Config &c, Disset &d, Cut &J)
 //   DEBUG("END COMB");
 
    std::vector<Event *> temp;
-   enumerate_combination(0, comb, temp, J);
-   if (J.is_empty())
-      return false;
+   j.clear();
+   enumerate_combination(0, comb, temp, j);
+   if (j.is_empty()) return false;
 
    return true;
 }

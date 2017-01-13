@@ -55,20 +55,26 @@ public:
    /// list pointed by head
    void compute_cex (Config &c, Event **head);
 
+   /// determines if the causal closure of all events in eset is a configuration
+   bool is_conflict_free(std::vector<Event *> eset);
+
+   /// recursive function to explore all combinations in the comb of
+   /// alternatives
+   void enumerate_combination (unsigned i, std::vector<std::vector<Event *>> comb,
+         std::vector<Event*> temp, Cut &J);
+
    /// returns false only if no alternative to D \cup {e} after C exists
    bool might_find_alternative (Config &c, Disset &d, Event *e);
 
+   /// finds one alternative for C after D, and stores it in J; we select from
+   /// here the specific algorithm that we cal
+   bool find_alternative (const Config &c, const Disset &d, Cut &j);
 
-   bool is_conflict_free(std::vector<Event *> eset);
+   /// implementation 1: complete, optimal, based on the comb
+   bool find_alternative_optim_comb (const Config &c, const Disset &d, Cut &j);
 
-//   bool find_alternative (Config &c, std::vector<Event*> d, Cut &J);
-   void enumerate_combination (unsigned i, std::vector<std::vector<Event *>> comb,
-         std::vector<Event*> temp, Cut &J);
-   bool find_alternative (Config &c, Disset &d, Cut &j);
-
-
-   /// finds alternatives to D after C; complete but unoptimal
-   bool find_alternative_only_last (const Config &c, Disset &d, Cut &j);
+   /// implementation 2: complete, unoptimal, searches conflict to only last event
+   bool find_alternative_only_last (const Config &c, const Disset &d, Cut &j);
 
 public:
    std::vector<std::string> argv;

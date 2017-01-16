@@ -65,12 +65,13 @@ void parse (int argc, char **argv_)
    // look for file.bc
 	if (optind == argc) usage ();
    inpath = argv_[optind];
+   optind++;
 
    // set the argv of the analyzed program
    for (; optind < argc; optind++) argv.push_back (argv_[optind]);
 
    // define an argv[0] if no program argument was given
-   if (argv.empty()) argv.push_back (inpath.c_str());
+   if (argv.size() == 0) argv.push_back (inpath.c_str());
 
    // set up the verbosity level
 	if (verbosity < VERB_PRINT || verbosity > VERB_DEBUG) usage ();

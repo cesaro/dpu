@@ -1,3 +1,3 @@
 break breakme
 break main
-run
+run ./input.ll -vvv --arg0 prog

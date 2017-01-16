@@ -15,11 +15,11 @@
 
 include defs.mk
 
-.PHONY: fake all g test clean distclean prof dist compile tags run dot
+.PHONY: fake all g test clean distclean prof dist compile tags run run2 dot
 	
 
 ifeq ($(shell id -nu),cesar)
-all : compile run
+all : compile run2
 else
 all : compile
 endif
@@ -27,21 +27,24 @@ endif
 compile: $(TARGETS)
 
 run: compile input.ll
+	rm -f dot/*.dot dot/*.svg
 	./src/main --devel --verb=3 --arg0=prog input.ll -- main4
+	make dot
+
+run2: dist
+	rm -f dot/*.dot dot/*.svg
+	./dist/bin/dpu benchmarks/svcomp16/twostage_3_false-unreach-call.c -vvv --arg0=prog
 	make dot
 
 input.ll : program.ll ../steroid/rt/rt.bc
 	llvm-link-$(LLVMVERS) -S $^ -o $@
 
 
-
 ifeq ($(shell id -nu),cesar)
-program.ll : benchmarks/basic/cjlu.ll
-#program.ll : /tmp/cunf3.ll
-#program.ll : ../steroid/tests/hello.ll
-#program.ll : benchmarks/basic/hello.ll
 #program.ll : benchmarks/basic/cjlu.ll
-#program.ll : benchmarks/basic/huyen.ll
+program.ll : benchmarks/svcomp16/twostage_3_false-unreach-call.ll
+#program.ll : /tmp/cunf3.ll
+#program.ll : benchmarks/basic/hello.ll
 else
 program.ll : benchmarks/basic/cjlu.ll
 endif
@@ -62,7 +65,7 @@ prof : $(TARGETS)
 tags : $(SRCS)
 	ctags -R --c++-kinds=+p --fields=+K --extra=+q src/ $(shell llvm-config-$(LLVMVERS) --includedir)
 
-g gdb : $(TARGETS)
+g gdb : compile input.ll
 	gdb ./src/main
 		
 vars :

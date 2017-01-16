@@ -106,7 +106,7 @@ void C15unfolder::load_bytecode (std::string &&filepath)
    }
    DEBUG ("c15u: load-bytecode: executor successfully created!");
 
-   DEBUG ("c15u: load-bytecode: saving instrumented bytecode to /tmp/output.ll");
+   TRACE ("c15u: load-bytecode: saving instrumented bytecode to /tmp/output.ll");
    _ir_write_ll (m, "/tmp/output.ll");
 
    DEBUG ("c15u: load-bytecode: done!");
@@ -172,32 +172,52 @@ void C15unfolder::add_multiple_runs (const std::vector<int> &replay)
    }
 }
 
+std::string C15unfolder::explore_stat (const Trail &t, const Disset &d) const
+{
+   unsigned u, j;
+
+   u = j = 0;
+   for (auto it = d.justified.begin(), end = d.justified.end();
+         it != end; ++it) j++;
+   for (auto it = d.unjustified.begin(), end = d.unjustified.end();
+         it != end; ++it) u++;
+
+   // 37e  9j  8u
+   return fmt ("%2ue %2uj %2uu", t.size(), j, u);
+}
+
 void C15unfolder::explore ()
 {
    Trail t;
    Disset d;
    Config c (Unfolding::MAX_PROC);
    Cut j (Unfolding::MAX_PROC);
-   std::vector<int> replay {-1};
+   std::vector<int> replay {0, 4, 3, 3, 1, 4, -1};
    Event *e = nullptr;
    int i = 0;
 
    while (1)
    {
       // explore the leftmost branch starting from our current node
-      DEBUG ("c15u: explore: running the system...");
+      DEBUG ("c15u: explore: %s: running the system...",
+            explore_stat (t, d).c_str());
       exec->set_replay (replay.data(), replay.size());
       exec->run ();
       action_streamt s (exec->get_trace ());
-      DEBUG ("c15u: explore: the stream:");
-      s.print ();
+      DEBUG ("c15u: explore: the stream: %s:", explore_stat (t,d).c_str());
+      if (verb_debug) s.print ();
       stream_to_events (c, s, &t, &d);
       DEBUG ("c15u: explore: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
-      t.dump ();
-      c.dump ();
-      d.dump ();
+      if (verb_trace)
+         t.dump2 (fmt ("c15u: explore: %s: ", explore_stat(t,d).c_str()).c_str());
+      if (verb_debug) c.dump ();
+      if (verb_debug) d.dump ();
 
+      // FIXME turn this into a commandline option
       std::ofstream f (fmt ("dot/c%02d.dot", i));
+      u.print_dot (c, f, fmt ("Config %d", i));
+      f.close ();
+      f.open (fmt ("/tmp/dot/c%02d.dot", i));
       u.print_dot (c, f, fmt ("Config %d", i));
       f.close ();
       i++;
@@ -211,14 +231,15 @@ void C15unfolder::explore ()
       {
          // pop last event out of the trail/config; indicate so to the disset
          e = t.pop ();
-         DEBUG ("c15u: explore: popping: i %2u %s", t.size(), e->str().c_str());
+         DEBUG ("c15u: explore: %s: popping: i %2u %s",
+               explore_stat(t,d).c_str(), t.size(), e->str().c_str());
          c.unfire (e);
          d.trail_pop (t.size ());
 
          // check for alternatives
          if (! might_find_alternative (c, d, e)) continue;
          d.add (e, t.size());
-         if (find_alternative (c, d, j)) break;
+         if (find_alternative (t, c, d, j)) break;
          d.unadd ();
       }
 
@@ -226,7 +247,7 @@ void C15unfolder::explore ()
       // and restart
       if (! t.size ()) break;
       DEBUG ("c15u: explore: alternative found: %s", j.str().c_str());
-      alt_to_replay (c, j, replay);
+      alt_to_replay (t, c, j, replay);
    }
    DEBUG ("c15u: explore: done!");
 }
@@ -312,13 +333,44 @@ void C15unfolder::cut_to_replay (const Cut &c1, const Cut &c2, std::vector<int> 
    }
 }
 
-void C15unfolder::alt_to_replay (const Cut &c, const Cut &j, std::vector<int> &replay)
+void C15unfolder::trail_to_replay (const Trail &t, std::vector<int> &replay) const
 {
-   // the replay that we need to compute here for C \cup J is the replay of C
-   // followed by the replay of J \setminus C
+   unsigned pid;
+   unsigned count;
+
+   // if there is at least one event, then the first is for pid 0
+   count = pid = 0;
+   ASSERT (t.size() == 0 or t[0]->pid() == pid);
+
+   for (Event *e : t)
+   {
+      if (e->pid() != pid)
+      {
+         DEBUG ("c15u: trail-to-replay: %u %d", pid, count);
+         replay.push_back (pid);
+         replay.push_back (count);
+         pid = e->pid ();
+         count = 0;
+      }
+      count++;
+   }
+   if (count)
+   {
+      DEBUG ("c15u: trail-to-replay: %u %d", pid, count);
+      replay.push_back (pid);
+      replay.push_back (count);
+   }
+}
+
+void C15unfolder::alt_to_replay (const Trail &t, const Cut &c, const Cut &j,
+      std::vector<int> &replay)
+{
+   // the sequence of number that we need to compute here allows steroids to
+   // replay the trail (exacty in that order) followed by the replay of
+   // J \setminus C (in any order).
 
    replay.clear();
-   cut_to_replay (c, replay);
+   trail_to_replay (t, replay);
    cut_to_replay (j, c, replay);
    replay.push_back (-1);
 }
@@ -439,10 +491,16 @@ bool C15unfolder::might_find_alternative (Config &c, Disset &d, Event *e)
    return e->action.type == ActionType::MTXLOCK;
 }
 
-inline bool C15unfolder::find_alternative (const Config &c, const Disset &d, Cut &j)
+inline bool C15unfolder::find_alternative (const Trail &t, const Config &c, const Disset &d, Cut &j)
 {
-   return find_alternative_only_last (c, d, j);
-   //return find_alternative_optim_comb ();
+   bool b;
+   b = find_alternative_only_last (c, d, j);
+   // b = return find_alternative_optim_comb ();
+
+   TRACE_ ("c15u: explore: %s: alt: [", explore_stat (t, d).c_str());
+   for (auto e : d.unjustified)  TRACE_("%u ", e->icfls().size());
+   TRACE ("\b] %s", b ? "found" : "no");
+   return b;
 }
 
 bool C15unfolder::find_alternative_only_last (const Config &c, const Disset &d, Cut &j)

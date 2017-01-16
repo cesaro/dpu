@@ -8,7 +8,7 @@ void C15unfolder::__stream_match_trail
    // We can see the stream as a sequence of subsequences, starting either by a
    // blue action or an "invisible" THSTART action, and followed by red actions.
    // When we read a blue action, we determine that the previous subsequence is
-   // over. When we read a context switch the previous sequence is also over,
+   // over. When we read a context switch, the previous sequence is also over,
    // and two things might happen: we context-switch to a thread for the first
    // time, or not. In the former case we will "see" an invisible THSTART action;
    // in the latter case we will see a regular (visible) blue action.
@@ -17,7 +17,8 @@ void C15unfolder::__stream_match_trail
    // that marks the beginning of the subsequence. Initially it points to
    // bottom.  We increment a counter per red action read. When we finish a
    // subsequence (new blue action or context switch), we assert that we got the
-   // good number of red events. If we saw a blue action, we match it. If we saw
+   // good number of red events at trail[i] and increment i. If we saw a blue
+   // action, we match it with trail[i] now. If we saw
    // context switch, and it is the first one, i correctly points now to the
    // corresponding blue THSTART and there is nothing to do. If it is not, i
    // incorrectly points to the next blue event in the trail BEFORE we have read
@@ -38,6 +39,11 @@ void C15unfolder::__stream_match_trail
       {
       // blue events make the trail advance
       case RT_MTXLOCK :
+         SHOW (i, "d");
+         SHOW (t[i]->redbox.size(), "u");
+         SHOW (t[i]->pid(), "u");
+         SHOW (pid, "u");
+         SHOW (count, "u");
          ASSERT (t[i]->redbox.size() == count);
          i++;
          ASSERT (t[i]->action.type == ActionType::MTXLOCK);
@@ -91,8 +97,24 @@ void C15unfolder::__stream_match_trail
          // map is defined
          ASSERT (it.id() == 0 or pidmap[it.id()] != 0);
          pid = pidmap[it.id()];
-         // we increment i only on the first context switch to this pid
-         if (t[i + 1]->action.type == ActionType::THSTART) i++;
+         // if this is the first context switch (whcih we detect by looking into
+         // the trail), we match a THSTART action with the trail and reset the
+         // counter and 
+         if (t[i + 1]->action.type == ActionType::THSTART)
+         {
+            count = 0;
+            i++;
+         }
+         else
+         {
+            // otherwise this is not the first context switch and the stream
+            // *must* contain a blue action immediately after this RT_THCTXSW
+            // action; when that action arrives we will check again that the
+            // redbox.size() == count for the last event in the previous process
+            // (if red events happen between this context switch and that blue
+            // event, we will get an assertion violation); there is NOTHING to
+            // do in this "else"
+         }
          break;
 
       case RT_ALLOCA :

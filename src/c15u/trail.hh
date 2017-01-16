@@ -25,6 +25,7 @@ public:
       { return back (); }
 
    void dump () const;
+   void dump2 (const char *prefix) const;
 };
 
 } // namespace

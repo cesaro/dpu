@@ -43,10 +43,12 @@ x Disset::unadd()
 x alt_to_replay
 x modify stream_to_events to update the trail
 x write explore
-- test
-- debug printing to understand when the alt() NP-hard explosion happens
+x write the driver script: c -> ll -> add runtime -> optimize -> verify
+x Trail::dump(prefix) with only replay info
+x find_alternative_optim_comb comb [1 7 30 4] prun 27 cq 130 no|found
+- test on svcomp
 - optimize
-- write the driver script: c -> ll -> add runtime -> optimize -> verify
+- debug printing to understand when the alt() NP-hard explosion happens
 
 
 Huyen:

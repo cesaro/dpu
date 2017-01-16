@@ -1475,7 +1475,7 @@ void test53 ()
    j.dump ();
 
    std::vector<int> replay;
-   unf.alt_to_replay (c, j, replay);
+   unf.cut_to_replay (c, j, replay);
    DEBUG_("Replay: ");
    for (unsigned i = 0; i < replay.size(); i++)
    {
@@ -1492,8 +1492,6 @@ void test54 ()
       C15unfolder unf;
 
       // load code and set argv
-      //unf.load_bytecode (std::string (opts::inpath));
-      //unf.set_args (opts::argv);
       unf.load_bytecode ("./input.ll");
       unf.set_args ({"prog", "main4"});
       

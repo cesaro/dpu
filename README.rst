@@ -46,13 +46,11 @@ x write explore
 x write the driver script: c -> ll -> add runtime -> optimize -> verify
 x Trail::dump(prefix) with only replay info
 x find_alternative_optim_comb comb [1 7 30 4] prun 27 cq 130 no|found
-- test on svcomp
+x test on 10 svcomp bench
+- test alt-optim()
+- make visible the SSB counter
 - optimize
 - debug printing to understand when the alt() NP-hard explosion happens
-- warn about dataraces
-- steroids: send back ERROR actions; capture calls to abort(3), __assert_fail,
-  and friends
-- make visible the SSB counter
 
 
 Huyen:
@@ -66,10 +64,16 @@ x In Event, store a Config instead of Cut as an event's local configuration.
   configuration's mutexmax. Having e.mutexmax(m) !cfl e'.mutexmax(m) for every mutex variable m
   means that e !cfl with e'.
 x write find_alternative
-- adapt find_alternative to use the Disset instead of a std::vector
+x adapt find_alternative to use the Disset instead of a std::vector
+
+
+For a near future:
 
 - print counterexample run (Config)
 - find benchmarks
+- warn about dataraces
+- steroids: send back ERROR actions; capture calls to abort(3), __assert_fail,
+  and friends
 
 
 Future improvements

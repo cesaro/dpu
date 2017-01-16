@@ -192,7 +192,7 @@ void C15unfolder::explore ()
    Disset d;
    Config c (Unfolding::MAX_PROC);
    Cut j (Unfolding::MAX_PROC);
-   std::vector<int> replay {0, 4, 3, 3, 1, 4, -1};
+   std::vector<int> replay {-1};
    Event *e = nullptr;
    int i = 0;
 

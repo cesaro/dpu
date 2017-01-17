@@ -56,12 +56,12 @@ public:
    void compute_cex (Config &c, Event **head);
 
    /// determines if the causal closure of all events in eset is a configuration
-   bool is_conflict_free(std::vector<Event *> eset);
+   bool is_conflict_free(const std::vector<Event *> &sol, const Event *e) const;
 
    /// recursive function to explore all combinations in the comb of
    /// alternatives
-   void enumerate_combination (unsigned i, std::vector<std::vector<Event *>> comb,
-         std::vector<Event*> temp, Cut &J);
+   bool enumerate_combination (unsigned i, std::vector<std::vector<Event *>> &comb,
+         std::vector<Event*> &sol);
 
    /// returns false only if no alternative to D \cup {e} after C exists
    bool might_find_alternative (Config &c, Disset &d, Event *e);

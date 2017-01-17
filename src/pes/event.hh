@@ -62,6 +62,7 @@ public:
    Process *proc () const;
    /// returns a unique numeric id
    unsigned uid () const;
+   std::string suid () const;
    /// returns a numeric id that is unique among events of the same process
    unsigned puid () const;
 

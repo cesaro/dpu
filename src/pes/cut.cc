@@ -106,6 +106,22 @@ void Cut::unfire (Event *e)
    max[e->pid()] = e->pre_proc();
 }
 
+void Cut::maxhull (Event *e)
+{
+   unsigned pid;
+
+   ASSERT (e);
+   ASSERT (e->pid() < nrp);
+   ASSERT (!max[e->pid()] or max[e->pid()]->pid() == e->pid());
+
+   pid = e->pid();
+   if (! max[pid])
+      max[pid] = e;
+   else
+      if (max[pid]->depth_proc() < e->depth_proc())
+         max[pid] = e;
+}
+
 void Cut::dump () const
 {
    PRINT ("== begin cut =="); 

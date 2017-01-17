@@ -141,7 +141,7 @@ bool Disset::trail_push (Event *e, int idx)
    if (e->flags.ind)
    {
       ssb_count++;
-      DEBUG ("c15u: disset: found SSB, count %u", ssb_count);
+      INFO ("c15u: disset: found SSB, count %u", ssb_count);
       return false;
    }
 

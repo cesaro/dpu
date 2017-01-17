@@ -246,7 +246,6 @@ void C15unfolder::explore ()
       // if the trail is now empty, we finished; otherwise we compute a replay
       // and restart
       if (! t.size ()) break;
-      DEBUG ("c15u: explore: alternative found: %s", j.str().c_str());
       alt_to_replay (t, c, j, replay);
    }
    DEBUG ("c15u: explore: done!");
@@ -436,46 +435,32 @@ void C15unfolder::compute_cex (Config &c, Event **head)
    }
 }
 
-bool C15unfolder::is_conflict_free(std::vector<Event *> eset)
+bool C15unfolder::is_conflict_free (const std::vector<Event *> &sol, const Event *e) const
 {
-   int i,j;
-   for (i = 0; i < eset.size() -1; i++)
-      for (j = i+1; j < eset.size(); j++)
-         if (eset[i]->in_cfl_with(eset[j]))
-            return false;
+   // we return false iff e is in conflict with some event of the partial solution "sol"
+   int i;
+   for (i = 0; i < sol.size(); i++)
+      if (e->in_cfl_with (sol[i])) return false;
    return true;
 }
 
-void C15unfolder::enumerate_combination (unsigned i, std::vector<std::vector<Event *>> comb,
-      std::vector<Event*> temp, Cut &J)
+bool C15unfolder::enumerate_combination (unsigned i,
+      std::vector<std::vector<Event *>> &comb,
+      std::vector<Event*> &sol)
 {
    // We enumerate combinations using one event from each spike
-   // - the temporary combination is stored in temp
-   // - if temp is conflict-free, assign it to J
+   // - the partial solution is stored in sol
+   // - if sol is conflict-free, we return true
 
-   DEBUG("=======enumerate combination=======");
-
-   ASSERT(!comb.empty());
-   for (auto e: comb[i])
+   for (auto e : comb[i])
    {
-      temp.push_back(e);
-      if (temp.size() == comb.size()) // not at the last spike
-      {
-         if (is_conflict_free(temp))
-         {
-            DEBUG(": a conflict-free combination");
-
-            for (auto e : temp)
-               J[e->pid()] = e;
-            return; // go back to find_alternative_optim_comb
-         }
-         else
-            temp.pop_back();
-      }
-      else
-         enumerate_combination(i+1, comb, temp, J);
+      if (! is_conflict_free (sol, e)) continue;
+      sol.push_back (e);
+      if (sol.size() == comb.size()) return true;
+      if (enumerate_combination (i+1, comb, sol)) return true;
+      sol.pop_back ();
    }
-   return;
+   return false;
 }
 
 bool C15unfolder::might_find_alternative (Config &c, Disset &d, Event *e)
@@ -495,11 +480,12 @@ inline bool C15unfolder::find_alternative (const Trail &t, const Config &c, cons
 {
    bool b;
    b = find_alternative_only_last (c, d, j);
-   // b = return find_alternative_optim_comb ();
+   //b = find_alternative_optim_comb (c, d, j);
 
    TRACE_ ("c15u: explore: %s: alt: [", explore_stat (t, d).c_str());
    for (auto e : d.unjustified)  TRACE_("%u ", e->icfls().size());
    TRACE ("\b] %s", b ? "found" : "no");
+   if (b) DEBUG ("c15u: explore: %s: j: %s", explore_stat (t, d).c_str(), j.str().c_str());
    return b;
 }
 
@@ -519,6 +505,7 @@ bool C15unfolder::find_alternative_only_last (const Config &c, const Disset &d, 
    // D is not empty
    ASSERT (d.unjustified.begin() != d.unjustified.end());
 
+   // last event added to D
    e = *d.unjustified.begin();
    DEBUG ("c15u: alt: only-last: c %s e %p", c.str().c_str(), e);
 
@@ -533,6 +520,25 @@ bool C15unfolder::find_alternative_only_last (const Config &c, const Disset &d, 
    return false;
 }
 
+std::string comb2str (std::vector<std::vector<Event *>> &comb)
+{
+   std::string s;
+   unsigned i, j;
+
+   for (i = 0; i < comb.size(); i++)
+   {
+      s += fmt ("i %u len %u [", i, comb[i].size());
+      for (j = 0; j < comb[i].size(); j++)
+      {
+         s += fmt ("%s ", comb[i][j]->suid().c_str());
+      }
+      if (j) s.pop_back();
+      s += fmt ("]\n");
+   }
+
+   return s;
+}
+
 bool C15unfolder::find_alternative_optim_comb (const Config &c, const Disset &d, Cut &j)
 {
    // We do an exahustive search for alternatives to D after C, we will find one
@@ -540,29 +546,19 @@ bool C15unfolder::find_alternative_optim_comb (const Config &c, const Disset &d,
    // Each spike is made out of the immediate conflicts of that event in D. The
    // unjustified events in D are all enabled in C, none of them is in cex(C).
 
-   unsigned i, k;
+   unsigned i;
    std::vector<std::vector<Event *>> comb;
+   std::vector<Event*> solution;
 
-   DEBUG(" Find an alternative J to D after C: ");
-   DEBUG_("   D = {");
-   for (auto e : d.unjustified)  DEBUG_("%p  ", e);
-   DEBUG("}");
-   DEBUG_("   After C \n ");
-   c.dump();
+   DEBUG_ ("c15u: alt: optim: c %s d.unjust [", c.str().c_str());
+   for (auto e : d.unjustified)  DEBUG_("%p ", e);
+   DEBUG ("\b]");
 
    // build the spikes of the comb
    for (auto e : d.unjustified) comb.push_back (e->icfls());
    if (comb.empty()) return false;
 
-   // Iterator it = d.unjustified.begin();
-   DEBUG("COMB: %d spikes: ", comb.size());
-   for (i = 0; i < comb.size(); i++)
-   {
-      // DEBUG_ ("  spike %d: (#%p (len %d): ", i, it++, comb[i].size());
-      for (k = 0; k < comb[i].size(); k++) DEBUG_(" %p", comb[i][k]);
-      DEBUG("");
-   }
-   DEBUG("END COMB");
+   DEBUG ("c15u: alt: optim: comb: initially:\n%s", comb2str(comb).c_str());
 
    // remove from each spike those events in D or in conflict with someone in C
    for (auto spike : comb)
@@ -580,6 +576,7 @@ bool C15unfolder::find_alternative_optim_comb (const Config &c, const Disset &d,
             i++;
       }
    }
+   DEBUG ("c15u: alt: optim: comb: after removing D and #(C):\n%s", comb2str(comb).c_str());
 
 //   // show the comb
 //   DEBUG("COMB: %d spikes: ", comb.size());
@@ -592,12 +589,13 @@ bool C15unfolder::find_alternative_optim_comb (const Config &c, const Disset &d,
 //      }
 //   DEBUG("END COMB");
 
-   std::vector<Event *> temp;
-   j.clear();
-   enumerate_combination(0, comb, temp, j);
-   if (j.is_empty()) return false;
-
-   return true;
+   if (enumerate_combination (0, comb, solution))
+   {
+      j.clear();
+      for (auto e : solution) j.maxhull (e);
+      return true;
+   }
+   return false;
 }
 
 } // namespace dpu

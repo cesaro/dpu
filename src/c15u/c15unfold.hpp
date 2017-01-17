@@ -39,11 +39,6 @@ void C15unfolder::__stream_match_trail
       {
       // blue events make the trail advance
       case RT_MTXLOCK :
-         SHOW (i, "d");
-         SHOW (t[i]->redbox.size(), "u");
-         SHOW (t[i]->pid(), "u");
-         SHOW (pid, "u");
-         SHOW (count, "u");
          ASSERT (t[i]->redbox.size() == count);
          i++;
          ASSERT (t[i]->action.type == ActionType::MTXLOCK);

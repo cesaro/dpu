@@ -20,6 +20,11 @@ unsigned Event::uid () const
    return Unfolding::ptr2uid (this);
 }
 
+std::string Event::suid () const
+{
+   return fmt ("%0*x", 1 + int2msb (Unfolding::ALIGN) / 4, uid());
+}
+
 unsigned Event::puid () const
 {
    return Unfolding::ptr2puid (this);

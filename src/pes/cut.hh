@@ -36,6 +36,10 @@ public:
    /// removes an event of the cut and updates the cut with its predecessors
    void unfire (Event *e);
 
+   /// it sets max[e->pid()] to e iff e is a causal successor of the current
+   /// value of max[e->pid()]
+   void maxhull (Event *e);
+
    /// empties the configuration
    inline void clear ();
    /// prints the cut in stdout

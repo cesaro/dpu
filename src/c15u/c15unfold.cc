@@ -37,6 +37,7 @@ static void _ir_write_ll (const llvm::Module *m, const char *filename)
 
 
 C15unfolder::C15unfolder () :
+   counters {0, 0, 0, 0},
    m (nullptr),
    exec (nullptr)
 {
@@ -188,13 +189,14 @@ std::string C15unfolder::explore_stat (const Trail &t, const Disset &d) const
 
 void C15unfolder::explore ()
 {
+   bool b;
    Trail t;
    Disset d;
    Config c (Unfolding::MAX_PROC);
    Cut j (Unfolding::MAX_PROC);
    std::vector<int> replay {-1};
    Event *e = nullptr;
-   int i = 0;
+   //int i = 0;
 
    while (1)
    {
@@ -203,16 +205,19 @@ void C15unfolder::explore ()
             explore_stat (t, d).c_str());
       exec->set_replay (replay.data(), replay.size());
       exec->run ();
+      counters.runs++;
       action_streamt s (exec->get_trace ());
       DEBUG ("c15u: explore: the stream: %s:", explore_stat (t,d).c_str());
       if (verb_debug) s.print ();
-      stream_to_events (c, s, &t, &d);
+      b = stream_to_events (c, s, &t, &d);
+      if (!b) counters.ssbs++;
       DEBUG ("c15u: explore: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
       if (verb_trace)
          t.dump2 (fmt ("c15u: explore: %s: ", explore_stat(t,d).c_str()).c_str());
       if (verb_debug) c.dump ();
       if (verb_debug) d.dump ();
 
+#if 0
       // FIXME turn this into a commandline option
       std::ofstream f (fmt ("dot/c%02d.dot", i));
       u.print_dot (c, f, fmt ("Config %d", i));
@@ -221,8 +226,10 @@ void C15unfolder::explore ()
       u.print_dot (c, f, fmt ("Config %d", i));
       f.close ();
       i++;
+#endif
 
       // add conflicting extensions
+      counters.avg_max_trail_size += t.size();
       compute_cex (c, &e);
 
       // backtrack until we find some right subtree to explore
@@ -248,6 +255,11 @@ void C15unfolder::explore ()
       if (! t.size ()) break;
       alt_to_replay (t, c, j, replay);
    }
+
+   // statistics
+   ASSERT (counters.ssbs == d.ssb_count);
+   counters.maxconfs = counters.runs - counters.ssbs;
+   counters.avg_max_trail_size /= counters.runs;
    DEBUG ("c15u: explore: done!");
 }
 

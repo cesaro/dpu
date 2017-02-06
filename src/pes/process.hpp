@@ -1,5 +1,6 @@
 
-Process::Process (Event *creat)
+Process::Process (Event *creat) :
+   counters {1}
 {
    //DEBUG ("Process.ctor: this %p pid %d sizeof %d", this, pid(), sizeof (Process));
 
@@ -80,6 +81,7 @@ Event *Process::add_event_1p (Action ac, Event *p)
       e->flags.boxfirst = 1;
    }
 
+   counters.events++;
    last = e;
    return e;
 }
@@ -121,6 +123,7 @@ Event * Process::add_event_2p (Action ac, Event *p, Event *m)
       e->flags.boxfirst = 1;
    }
 
+   counters.events++;
    last = e;
    return e;
 }

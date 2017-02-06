@@ -106,7 +106,8 @@ public:
    /// undoes the last addition to D via add(e,idx)
    inline void unadd ();
 
-   /// check if an event pushed to the trail justifies one in the disset
+   /// check if an event pushed to the trail justifies one in the disset,
+   /// returns false iff e is in D (and so we are hitting a SSB)
    inline bool trail_push (Event *e, int idx);
 
    /// check if an event poped from the trail un-justifies one or more events

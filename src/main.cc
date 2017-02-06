@@ -28,6 +28,34 @@ void devel_hook ()
    exit (0);
 }
 
+void print_statistics (C15unfolder &unf)
+{
+   unsigned long events;
+   unsigned i;
+
+   events = 0;
+   for (i = 0; i < unf.u.num_procs(); i++)
+      events += unf.u.proc(i)->counters.events;
+
+   //PRINT ("\ndpu: unfolding statistics:");
+   PRINT ("dpu: stats: unfolding: %lu max-configs", unf.counters.maxconfs);
+   PRINT ("dpu: stats: unfolding: %lu threads created", unf.u.num_procs());
+   PRINT ("dpu: stats: unfolding: %lu events", events);
+   for (i = 0; i < unf.u.num_procs(); i++)
+   {
+      PRINT ("dpu: stats: unfolding: thread%u: %lu events",
+            i, unf.u.proc(i)->counters.events);
+   }
+
+   //PRINT ("\ndpu: POR statistics:");
+   PRINT ("dpu: stats: por: %lu executions", unf.counters.runs);
+   PRINT ("dpu: stats: por: %lu SSBs", unf.counters.ssbs);
+   PRINT ("dpu: stats: por: %.2f average max trail size", unf.counters.avg_max_trail_size);
+
+   PRINT ("\ndpu: summary: %lu max-configs, %lu SSBs, %lu events",
+      unf.counters.maxconfs, unf.counters.ssbs, events);
+}
+
 int main (int argc, char **argv)
 {
    // parse commandline options
@@ -64,7 +92,9 @@ int main (int argc, char **argv)
 
       // dump unfolding to stdout
       if (verb_debug) unf.u.dump ();
-      PRINT ("dpu: done, bye!");
+
+      // report statistics
+      print_statistics (unf);
       fflush (stdout);
       fflush (stderr);
 

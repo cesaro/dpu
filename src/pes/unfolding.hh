@@ -18,7 +18,6 @@ class Process;
 class Unfolding
 {
 public:
-   //static unsigned count;
    Unfolding ();
    inline ~Unfolding ();
    Unfolding (const Unfolding &other) = delete; // no copy constructor

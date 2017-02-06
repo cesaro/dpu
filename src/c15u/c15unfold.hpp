@@ -129,7 +129,7 @@ void C15unfolder::__stream_match_trail
    }
 }
 
-void C15unfolder::stream_to_events
+bool C15unfolder::stream_to_events
       (Config &c, const action_streamt &s, Trail *t, Disset *d)
 {
    // - If we get a Disset, then we also need to get a trail.
@@ -147,7 +147,9 @@ void C15unfolder::stream_to_events
    // in the stream, and will continue inserting new events and extending the
    // Config and the Trail as new actions are read from the stream.  If a Disset
    // is provided, it will be updated (with trail_push) only for the new events
-   // added to the trail.
+   // added to the trail. If, when inserting elements into the Trail, the
+   // Disset reports that this is an SSB, we stop and return false. If we never
+   // encounter a SSB, we return true.
 
    // variables
    Event *e, *ee;
@@ -206,7 +208,7 @@ void C15unfolder::stream_to_events
          e->flags.crb = 1;
          ee = c.mutex_max (it.addr());
          e = u.event ({.type = ActionType::MTXLOCK, .addr = it.addr()}, e, ee);
-         if (d and ! d->trail_push (e, t->size())) return;
+         if (d and ! d->trail_push (e, t->size())) return false;
          if (t) t->push(e);
          c.fire (e);
          break;
@@ -215,7 +217,7 @@ void C15unfolder::stream_to_events
          e->flags.crb = 1;
          ee = c.mutex_max (it.addr());
          e = u.event ({.type = ActionType::MTXUNLK, .addr = it.addr()}, e, ee);
-         if (d and ! d->trail_push (e, t->size())) return;
+         if (d and ! d->trail_push (e, t->size())) return false;
          if (t) t->push (e);
          c.fire (e);
          break;
@@ -229,7 +231,7 @@ void C15unfolder::stream_to_events
          if (!e)
          {
             e = u.proc(pidmap[it.id()])->first_event();
-            if (d and ! d->trail_push (e, t->size())) return;
+            if (d and ! d->trail_push (e, t->size())) return false;
             if (t) t->push (e);
             c.fire (e);
          }
@@ -246,7 +248,7 @@ void C15unfolder::stream_to_events
          ee = u.event (e);
          e->action.val = ee->pid();
          pidmap[it.id()] = ee->pid();
-         if (d and ! d->trail_push (e, t->size())) return;
+         if (d and ! d->trail_push (e, t->size())) return false;
          if (t) t->push (e);
          c.fire (e);
          break;
@@ -255,7 +257,7 @@ void C15unfolder::stream_to_events
          e->flags.crb = 1;
          e = u.event ({.type = ActionType::THEXIT}, e);
          c.fire (e);
-         if (d and ! d->trail_push (e, t->size())) return;
+         if (d and ! d->trail_push (e, t->size())) return false;
          if (t) t->push (e);
          break;
 
@@ -265,7 +267,7 @@ void C15unfolder::stream_to_events
          ASSERT (it.id() >= 1 and pidmap[it.id()] != 0); // map is defined
          ee = c[pidmap[it.id()]];
          e = u.event ({.type = ActionType::THJOIN, .val = pidmap[it.id()]}, e, ee);
-         if (d and ! d->trail_push (e, t->size())) return;
+         if (d and ! d->trail_push (e, t->size())) return false;
          if (t) t->push (e);
          c.fire (e);
          break;
@@ -349,5 +351,6 @@ void C15unfolder::stream_to_events
          ASSERT (0);
       }
    }
+   return true;
 }
 

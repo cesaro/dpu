@@ -23,6 +23,12 @@ class C15unfolder
 {
 public:
    Unfolding u;
+   struct {
+      long unsigned runs;
+      long unsigned ssbs;
+      long unsigned maxconfs;
+      float avg_max_trail_size;
+   } counters;
 
    // dynamic executor
    std::string path;
@@ -80,7 +86,7 @@ public:
    std::vector<std::string> argv;
 
    /// translates the stream of actions into events, updating c, t, and d
-   inline void stream_to_events
+   inline bool stream_to_events
          (Config &c,
          const action_streamt &s,
          Trail *t = nullptr,

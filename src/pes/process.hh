@@ -39,8 +39,11 @@ private:
 class Process
 {
 public :
+   /// ctor, creat is null for the first process or the THCREAT event that
+   /// created this process
    inline Process (Event *creat);
 
+   /// pretty print of the process' events
    void dump ();
 
    /// iterator over the events in this process
@@ -59,6 +62,10 @@ public :
    inline Event *add_event_1p (Action ac, Event *p);
    /// THJOIN(tid), MTXLOCK(addr), MTXUNLK(addr), two predecessors (process, memory/exit)
    inline Event *add_event_2p (Action ac, Event *p, Event *m);
+
+   struct {
+      long unsigned events;
+   } counters;
 
 private :
    /// last event inserted in the memory pool of this process

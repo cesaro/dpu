@@ -1,0 +1,30 @@
+CC = wllvm
+EXTRACT = $(HOME)/steroid/utils/find-and-extract-bcs
+
+OBJECTS = dgemm_driver.o driver/others/memory.o ./interface/dgemm.o driver/others/openblas_get_parallel.o driver/others/openblas_set_num_threads.o driver/level3/dgemm_thread_nn.o driver/level3/dgemm_thread_nt.o driver/level3/dgemm_thread_tn.o driver/level3/dgemm_thread_tt.o driver/others/blas_server.o driver/others/openblas_env.o driver/others/parameter.o driver/others/openblas_error_handle.o ./lapack-netlib/SRC/dlarnv.o ./lapack-netlib/SRC/dlaruv.o ./kernel/dgemm_itcopy.o ./kernel/dgemm_beta.o ./kernel/dgemm_kernel.o ./kernel/dgemm_incopy.o ./kernel/dgemm_oncopy.o ./kernel/dgemm_otcopy.o driver/others/divtable.o driver/level3/dgemm_nn.o driver/level3/dgemm_tt.o driver/level3/dgemm_tn.o driver/level3/dgemm_nt.o ./driver/others/xerbla.o
+
+LIBBLAS = libopenblas_haswellp-r0.2.20.dev.a
+
+LIBS = -lm -lpthread
+EXEC = dgemm_driver
+
+all: ll
+ll: $(EXEC).full.ll
+
+$(EXEC).full.ll:$(EXEC).full.bc
+	llvm-dis $<
+
+$(EXEC).full.bc: $(EXEC).bc
+	$(EXTRACT)
+
+$(EXEC).bc: $(EXEC)
+	extract-bc $(EXEC)
+
+$(EXEC): $(OBJECTS)
+	@$(CC) -o $(EXEC) $(OBJECTS) $(LIBS)
+	@echo "Linking complete!"
+
+$(OBJECTS): dgemm_driver.c
+	export LLVM_COMPILER=clang ; make CC=wllvm
+	wllvm -c dgemm_driver.c
+

@@ -1,0 +1,48 @@
+NNNN 61    x11-apps                       103401  5796 74320 23199    86 (Debian X Strike Force)
+NNNN 290   iceweasel                      98798 53909 26262 18563    64 (Maintainers Of Mozilla-related Packages)
+487   fuse                           111716 54540 41532 15601    43 (Laszlo Boszormenyi)            18198
+555   lksctp-tools                   57896  2733 40203 14931    29 (Michael Biebl)                  18793
+627   usbmuxd                        101948 30545 56832 14489    82 (Gtkpod Maintainers)            4420
+888   p11-kit                        72972 46110 14537 12295    30 (Debian Gnutls Maintainers)      59259
+948   hplip                          75742 27411 36614 11673    44 (Debian Printing Team)           58864
+989   alsa-utils                     103217 73055 18871 11213    78 (Debian Alsa Maintainers)       24063
+996   rtkit                          92124 64907 16040 11124    53 (Debian Multimedia Maintainers)  3443
+2246  clamav                         14188  3454  8896  1826    12 (Clamav Team)                    161507
+2322  rtmpdump                       10537  1192  7672  1668     5 (Debian Multimedia Maintainers)  5022
+2590  vorbis-tools                   19944 10182  8547  1209     6 (Debian Xiph.org Maintainers)    36991
+2974  iftop                          20714  1932 17949   811    22 (Markus Koschany)                6205
+3014  rrdtool                        14884  8896  5196   785     7 (Debian Rrdtool Team)            30781
+3379  libdc1394-22                   106054  1428  6893   561 97172 (Guus Sliepen)                  19365
+3488  valgrind                       11550  1592  9443   511     4 (Alessandro Ghedini)
+3982  recordmydesktop                 6910   667  5843   393     7 (José L. Redrejo Rodríguez)      7695
+4010  jackd2                          5091   981  3721   387     2 (Debian Multimedia Maintainers)  30415
+4088  btrfs-tools                     7848  2718  2853   370  1907 (Dimitri John Ledkov)            54513
+4688  daemon                         13193  8548  4374   259    12 (Marc Haber)                     5341
+6255  libmemcached11                  8277  1696   811   124  5646 (Michael Fladischer)             19861
+6256  libmemcachedutil2               6706  1726   932   124  3924 (Michael Fladischer)
+93373 libmemcached10                  5387     3     2     0  5382 (Not in sid)
+5649  memcached                       5903  2725  3015   160     3 (David Martínez Moreno)          11198
+5836  tor                             6220  4895  1175   146     4 (Peter Palfrader)                151402
+5964  lirc                            6464  2934  3387   139     4 (Lirc Maintainer Team)           47819
+6673  autofs                          5234  2898  2232   102     2 (Michael Tokarev)                31764
+TOP   coreutils/sort                                                                                4709
+
+Easy to feed test data:
+- coreutils (sort)
+- unrar-nonfree
+- vorbis-tools (ogg123)
+- astrometry.net
+- rrdtool: looks quite self-contained
+- btrfs-tools: self-contained
+- iftop: has conditional variables, but let's try
+- rtkit (rtkit-daemon, infinite execution)
+
+Requires more analysis:
+- android-tools (tool adb has threads): uses usb, forks new processes, not clear...
+- hplip : support for printing on HP printers
+- alsa-utils?
+
+Difficult to feed test data:
+- usbmuxd: uses UNIX sockets
+- rtmpdump: network client
+- jackd2: network

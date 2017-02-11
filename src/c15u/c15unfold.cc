@@ -196,7 +196,7 @@ void C15unfolder::explore ()
    Cut j (Unfolding::MAX_PROC);
    std::vector<int> replay {-1};
    Event *e = nullptr;
-   //int i = 0;
+   int i = 0;
 
    while (1)
    {
@@ -217,20 +217,18 @@ void C15unfolder::explore ()
       if (verb_debug) c.dump ();
       if (verb_debug) d.dump ();
 
-#if 0
+      // add conflicting extensions
+      counters.avg_max_trail_size += t.size();
+      compute_cex (c, &e);
+
       // FIXME turn this into a commandline option
       std::ofstream f (fmt ("dot/c%02d.dot", i));
-      u.print_dot (c, f, fmt ("Config %d", i));
+      //u.print_dot (c, f, fmt ("Config %d", i));
       f.close ();
       f.open (fmt ("/tmp/dot/c%02d.dot", i));
       u.print_dot (c, f, fmt ("Config %d", i));
       f.close ();
       i++;
-#endif
-
-      // add conflicting extensions
-      counters.avg_max_trail_size += t.size();
-      compute_cex (c, &e);
 
       // backtrack until we find some right subtree to explore
       DEBUG ("");
@@ -519,7 +517,7 @@ bool C15unfolder::find_alternative_only_last (const Config &c, const Disset &d, 
 
    // last event added to D
    e = *d.unjustified.begin();
-   DEBUG ("c15u: alt: only-last: c %s e %p", c.str().c_str(), e);
+   DEBUG ("c15u: alt: only-last: c %s e %s", c.str().c_str(), e->suid().c_str());
 
    for (Event *ee : e->icfls())
    {

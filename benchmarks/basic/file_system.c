@@ -4,7 +4,7 @@
 
 #define NUMBLOCK 26
 #define NUMINODE 32
-#define NUM_THREADS 4
+#define NUM_THREADS 6
 
 pthread_mutex_t locki[NUMINODE];
 int inode[NUMINODE];
@@ -52,16 +52,15 @@ int main ()
     pthread_mutex_init(&lockb[i], 0);
   }
   
-  assert (NUM_THREADS == 4);
-  pthread_create(&tids[0], 0, thread_routine, 0);
-  pthread_create(&tids[1], 0, thread_routine, 0);
-  pthread_create(&tids[2], 0, thread_routine, 0);
-  pthread_create(&tids[3], 0, thread_routine, 0);
+  for (i = 0; i < NUM_THREADS; ++i)
+  {
+    pthread_create(&tids[i], 0, thread_routine, 0);
+  }
 
-  pthread_join(tids[0], 0);
-  pthread_join(tids[1], 0);
-  pthread_join(tids[2], 0);
-  pthread_join(tids[3], 0);
-  
+  for (i = 0; i < NUM_THREADS; ++i)
+  {
+    pthread_join (tids[i], 0);
+  }
+
   return 0;
 }

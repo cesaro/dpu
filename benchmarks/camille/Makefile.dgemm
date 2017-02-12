@@ -21,7 +21,8 @@ $(EXEC).bc: $(EXEC)
 	extract-bc $(EXEC)
 
 $(EXEC): $(OBJECTS)
-	@$(CC) -o $(EXEC) $(OBJECTS) $(LIBS)
+	#@$(CC) -o $(EXEC) $(OBJECTS) $(LIBS)
+	@$(CC) -o $(EXEC) dgemm_driver.o $(LIBBLAS) $(LIBS)
 	@echo "Linking complete!"
 
 $(OBJECTS): dgemm_driver.c

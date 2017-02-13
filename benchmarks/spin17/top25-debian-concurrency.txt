@@ -28,8 +28,8 @@ NNNN 290   iceweasel                      98798 53909 26262 18563    64 (Maintai
 TOP   coreutils/sort                                                                                4709
 
 Easy to feed test data:
-- coreutils (sort)
-- unrar-nonfree
+- coreutils (sort) -> it has conditional variables !!! :(
+- unrar-nonfree -> C++, does not link properly :(
 - vorbis-tools (ogg123)
 - astrometry.net
 - rrdtool: looks quite self-contained

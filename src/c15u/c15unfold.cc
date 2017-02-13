@@ -93,9 +93,9 @@ void C15unfolder::load_bytecode (std::string &&filepath)
    // memory
    // FIXME - make this configurable via methods of the C15unfolder
    ExecutorConfig conf;
-   conf.memsize = 128 << 20;
-   conf.stacksize = 16 << 20;
-   conf.tracesize = 16 << 20;
+   conf.memsize = CONFIG_GUEST_MEMORY_SIZE;
+   conf.stacksize = CONFIG_GUEST_THREAD_STACK_SIZE;
+   conf.tracesize = CONFIG_GUEST_TRACE_BUFFER_SIZE;
 
    DEBUG ("c15u: load-bytecode: creating a bytecode executor...");
    try {
@@ -218,8 +218,8 @@ void C15unfolder::explore ()
       if (verb_debug) d.dump ();
 
       // add conflicting extensions
-      counters.avg_max_trail_size += t.size();
       compute_cex (c, &e);
+      counters.avg_max_trail_size += t.size();
 
       // FIXME turn this into a commandline option
       std::ofstream f (fmt ("dot/c%02d.dot", i));
@@ -386,9 +386,16 @@ void C15unfolder::alt_to_replay (const Trail &t, const Cut &c, const Cut &j,
 
 void C15unfolder::compute_cex_lock (Event *e, Event **head)
 {
+   // 1. let ep be the pre-proc of e
+   // 2. let em be the pre-mem of e
+   // 3. if em <= ep, then return (there is no cex)
+   // 4. em = em.pre-mem.pre-mem (checking for null)
+   // 5. insert event (e.action, ep, em)
+   // 6. goto 3
+
    Event *ep, *em, *ee;
 
-   //DEBUG ("c15u: cex-lock: e %p *head %p", e, *head);
+   PRINT ("c15u: cex-lock: starting from %s", e->str().c_str());
    ASSERT (e)
    ASSERT (e->action.type == ActionType::MTXLOCK);
 
@@ -398,33 +405,34 @@ void C15unfolder::compute_cex_lock (Event *e, Event **head)
 
    while (1)
    {
+      // we are done if we got em <= ep (em == null means em = bottom!)
+      if (!em or em->is_predeq_of (ep)) return;
+
       // jump back 2 predecessors in memory; if we get null or another event in
       // the same process, then em <= ep
-      if (!em or em->proc() == e->proc()) return;
       ASSERT (em->action.type == ActionType::MTXUNLK);
       em = em->pre_other();
-      if (!em) return;
+      ASSERT (em);
       ASSERT (em->action.type == ActionType::MTXLOCK);
-      em = em->pre_other();
+      // em should be a lock, but just in case ...
+      if (em) em = em->pre_other();
+      ASSERT (!em or em->action.type == ActionType::MTXUNLK);
 
-      // we are done if we got em <= ep
-      if (em and em->is_predeq_of (ep)) return;
-
-      // (action, ep, em) is a (new) event
+      // (action, ep, em) is a possibly new event
       ee = u.event (e->action, ep, em);
-      DEBUG ("c15u: cex-lock: new cex: %s", ee->str().c_str());
+      PRINT ("c15u: cex-lock:  new cex: %s", ee->str().c_str());
 
       // we add it to the linked-list
       ee->next = *head; // next is also used in cut_to_replay
       *head = ee;
    }
-} 
+}
 
 void C15unfolder::compute_cex (Config &c, Event **head)
 {
    Event *e;
 
-   //DEBUG("c15u: cex: c %p *head %p |mm| %d", &c, *head, c.mutexmax.size());
+   //DEBUG ("c15u: cex: c %p *head %p |mm| %d", &c, *head, c.mutexmax.size());
 
    for (auto const & max : c.mutexmax)
    {

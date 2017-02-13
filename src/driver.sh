@@ -60,7 +60,7 @@ main_ ()
    #exit $?
 
    # FIXME - remote this from ehre, build svgs if we detect dot files in tmp
-   for f in /tmp/dot/*.dot; do dot -Tsvg -O $f; done
+   #for f in /tmp/dot/*.dot; do dot -Tsvg -O $f; done
 }
 
 # parse arguments and call main_

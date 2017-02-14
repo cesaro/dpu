@@ -28,8 +28,11 @@
 #define hungry		1
 #define eating		2
 
-sem_t ph[PH_NUM];
-sem_t lock;
+//sem_t ph[PH_NUM];
+//sem_t lock;
+static pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t ph[PH_NUM];
+
 
 int state[PH_NUM]; 
 	
@@ -58,7 +61,8 @@ int test(int ID)
 		
 	if ((state[ID] == hungry)&&(state[preID]!= eating)&&(state[postID] != eating)) {
 		state[ID] = eating;
-		sem_post(&ph[ID]);
+        //	sem_post(&ph[ID]);
+		pthread_mutex_unlock( &ph[ID] );
 	}
 	return 0;
 		
@@ -72,23 +76,27 @@ int philosopher(void *ID)
 	for (i = 0; i < LOOP_NUM; i++) {
 		think(PhID);
 		//sleep(1);
-		if ( -1 == sem_wait(&lock)) {
+        //	if ( -1 == sem_wait(&lock)) {
+        if ( -1 == pthread_mutex_lock( &lock ) ) {
 			perror("sem_wait didn't return success \n");
 			pthread_exit((void *)1);
 		}
 		state[PhID] = hungry;
 		test(PhID);
-		if ( -1 == sem_post(&lock)) {
+        //		if ( -1 == sem_post(&lock)) {
+		if ( -1 == pthread_mutex_unlock( &lock ) ) {
 			perror("sem_post didn't return success \n");
 			pthread_exit((void *)1);
 		}
-		if ( -1 == sem_wait(&ph[PhID])) {
+        //		if ( -1 == sem_wait(&ph[PhID])) {
+        if ( -1 == pthread_mutex_lock( &ph[PhID]) ) {
 			perror("sem_wait didn't return success \n");
 			pthread_exit((void *)1);
 		}
 		eat(PhID);
-		//sleep(1);
-		if ( -1 == sem_wait(&lock)) {
+		// sleep(1);
+        //		if ( -1 == sem_wait(&lock)) {
+        if ( -1 == pthread_mutex_lock( &lock ) ) {
 			perror("sem_wait didn't return success \n");
 			pthread_exit((void *)1);
 		}
@@ -103,7 +111,8 @@ int philosopher(void *ID)
 			postPH = (PhID + 1)%PH_NUM;
 		test(prePH);
 		test(postPH);
-		if ( -1 == sem_post(&lock)) {
+        //		if ( -1 == sem_post(&lock)) {
+        if ( -1 == pthread_mutex_unlock( &lock ) ) {
 			perror("sem_post didn't return success \n");
 			pthread_exit((void *)1);
 		}
@@ -125,16 +134,17 @@ int main(int argc, char *argv[])
 	return PTS_UNRESOLVED;
 #endif 
 	for (i = 0; i < PH_NUM; i++) {
-		if (-1 == sem_init(&ph[i], shared, ph_value)) {
+        /*		if (-1 == sem_init(&ph[i], shared, ph_value)) {
 			perror("sem_init didn't return success \n"); 
 			return PTS_UNRESOLVED;
-		}
+            }*/
+         pthread_mutex_init( &ph[i], NULL ); 
 		state[i] = 0;
 	}
-	if (-1 == sem_init(&lock, shared, lock_value)) {
+    /*	if (-1 == sem_init(&lock, shared, lock_value)) {
 		perror("sem_init didn't return success \n"); 
 		return PTS_UNRESOLVED;
-	}
+        }*/
 
 	for (i = 0; i< PH_NUM; i++) {
 		PhID[i] = i; 
@@ -145,15 +155,16 @@ int main(int argc, char *argv[])
 		pthread_join(phi[i], NULL);
 	}
 
-	for (i = 0; i< PH_NUM; i++) {
-		if (-1 == sem_destroy(&ph[i])) {
+    for (i = 0; i< PH_NUM; i++) {
+        pthread_mutex_destroy( &ph[i] );
+        /*	if (-1 == sem_destroy(&ph[i])) {
 			perror("sem_destroy didn't return success \n");
 			return PTS_UNRESOLVED;
-		}
+            }*/
 	}
-	if (-1 == sem_destroy(&lock)) {
+    /*	if (-1 == sem_destroy(&lock)) {
 		perror("sem_destroy didn't return success \n");
 		return PTS_UNRESOLVED;
-	}
+        }*/
 	return PTS_PASS;
 }

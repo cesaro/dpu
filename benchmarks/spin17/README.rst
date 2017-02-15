@@ -10,7 +10,7 @@ Status
 - astrometry.net
 - ogg123
 
-- ssbexp, ssb3 -> Marcelo
+- ssbexp, ssb3 -> turn into realistic programs, Marcelo
 
 Not used:
 

@@ -132,6 +132,7 @@ void Disset::unadd ()
 bool Disset::trail_push (Event *e, int idx)
 {
    Elem *el, *nxt;
+   unsigned u, j;
 
    ASSERT (e);
    ASSERT (idx >= 0);
@@ -141,7 +142,16 @@ bool Disset::trail_push (Event *e, int idx)
    if (e->flags.ind)
    {
       ssb_count++;
-      INFO ("c15u: disset: SSB, count %u, trail size %u", ssb_count, idx);
+
+      u = j = 0;
+      for (auto it = justified.begin(), end = justified.end();
+            it != end; ++it) j++;
+      for (auto it = unjustified.begin(), end = unjustified.end();
+            it != end; ++it) u++;
+
+      INFO ("c15u: disset: SSB, count %u, |trail| %u, "
+            "|D| %u (%u just, %u unjust)",
+            ssb_count, idx, u + j, j, u);
       return false;
    }
 

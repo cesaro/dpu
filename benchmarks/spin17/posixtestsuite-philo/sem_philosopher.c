@@ -22,8 +22,8 @@
 
 #include "posixtest.h"
 
-#define	PH_NUM		5						
-#define LOOP_NUM	20
+#define	PH_NUM		2						
+#define LOOP_NUM	5
 #define thinking	0
 #define hungry		1
 #define eating		2
@@ -77,26 +77,27 @@ int philosopher(void *ID)
 		think(PhID);
 		//sleep(1);
         //	if ( -1 == sem_wait(&lock)) {
-        if ( -1 == pthread_mutex_lock( &lock ) ) {
+        if ( pthread_mutex_lock( &lock ) != 0 ) {
 			perror("sem_wait didn't return success \n");
 			pthread_exit((void *)1);
 		}
 		state[PhID] = hungry;
 		test(PhID);
         //		if ( -1 == sem_post(&lock)) {
-		if ( -1 == pthread_mutex_unlock( &lock ) ) {
+		if ( pthread_mutex_unlock( &lock ) != 0 ) {
 			perror("sem_post didn't return success \n");
 			pthread_exit((void *)1);
 		}
+
         //		if ( -1 == sem_wait(&ph[PhID])) {
-        if ( -1 == pthread_mutex_lock( &ph[PhID]) ) {
+        if ( pthread_mutex_lock( &ph[PhID]) != 0 ) {
 			perror("sem_wait didn't return success \n");
 			pthread_exit((void *)1);
 		}
 		eat(PhID);
 		// sleep(1);
         //		if ( -1 == sem_wait(&lock)) {
-        if ( -1 == pthread_mutex_lock( &lock ) ) {
+        if ( pthread_mutex_lock( &lock ) != 0) {
 			perror("sem_wait didn't return success \n");
 			pthread_exit((void *)1);
 		}
@@ -112,7 +113,7 @@ int philosopher(void *ID)
 		test(prePH);
 		test(postPH);
         //		if ( -1 == sem_post(&lock)) {
-        if ( -1 == pthread_mutex_unlock( &lock ) ) {
+        if ( pthread_mutex_unlock( &lock ) != 0 ) {
 			perror("sem_post didn't return success \n");
 			pthread_exit((void *)1);
 		}

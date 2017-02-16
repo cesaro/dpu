@@ -4,7 +4,7 @@
 #include <unistd.h>
 
 #define LEN 5
-#define NUM 6
+#define NUM 8
 
 int x = 0;
 int y = 0;
@@ -27,7 +27,7 @@ void *thread1 (void *arg)
    unsigned id = (unsigned long) arg;
 
    pthread_mutex_lock (mut + id);
-   //printf ("a%d: lock\n", id);
+   printf ("a%d: lock\n", id);
    tab[id] = 123;
    pthread_mutex_unlock (mut + id);
 
@@ -40,7 +40,7 @@ void *thread_rz (void *arg)
 
    pthread_mutex_lock (&mz);
    l = z;
-   //printf ("rz: read z %d\n", l);
+   printf ("rz: read z %d\n", l);
    pthread_mutex_unlock (&mz);
    if (l)
    {
@@ -53,18 +53,18 @@ void *thread_rz (void *arg)
 #else
       pthread_mutex_lock (&mc);
       i = c;
-      //printf ("rz: read c %d\n", i);
+      printf ("rz: read c %d\n", i);
       pthread_mutex_unlock (&mc);
 
       pthread_mutex_lock (mut + i);
       tab[i] = 8899;
-      //printf ("rz: lock %d\n", i);
+      printf ("rz: lock %d\n", i);
       pthread_mutex_unlock (mut + i);
 #endif
    }
    else
    {
-      //printf ("rz: main2\n");
+      printf ("rz: main2\n");
       main2 ();
    }
 
@@ -78,7 +78,7 @@ void *thread_wc (void *arg)
    // race on z
    pthread_mutex_lock (&mz);
    z = 1;
-   //printf ("wc: z = 1\n");
+   printf ("wc: z = 1\n");
    pthread_mutex_unlock (&mz);
 
    // NUM races on c
@@ -86,7 +86,7 @@ void *thread_wc (void *arg)
    {
       pthread_mutex_lock (&mc);
       c = i;
-      //printf ("wc: write c %d\n", c);
+      printf ("wc: write c %d\n", c);
       pthread_mutex_unlock (&mc);
    }
    return 0;
@@ -99,7 +99,7 @@ int main1 ()
    pthread_t t3;
    int i;
 
-   //printf ("== start ==\n");
+   printf ("== start ==\n");
 
    pthread_mutex_init (&mx, 0);
    pthread_mutex_init (&mz, 0);
@@ -119,7 +119,7 @@ int main1 ()
    }
    pthread_join (t2, 0);
    pthread_join (t3, 0);
-   //printf ("== end ==\n\n");
+   printf ("== end ==\n\n");
    return 0;
 }
 

@@ -22,6 +22,8 @@ namespace dpu
 class C15unfolder
 {
 public:
+   typedef enum { ONLYLAST, KPARTIAL, OPTIMAL } Alt_algorithm;
+
    Unfolding u;
    struct {
       long unsigned runs;
@@ -36,7 +38,7 @@ public:
    Executor *exec;
 
    // ctor and dtor
-   C15unfolder ();
+   C15unfolder (Alt_algorithm a, unsigned kbound);
    ~C15unfolder ();
 
    /// load the llvm module from the "path" file
@@ -82,8 +84,13 @@ public:
    /// implementation 2: complete, unoptimal, searches conflict to only last event
    bool find_alternative_only_last (const Config &c, const Disset &d, Cut &j);
 
+   /// implementation 3: complete, unoptimal, based on the comb
+   bool find_alternative_kpartial (const Config &c, const Disset &d, Cut &j);
+
 public:
    std::vector<std::string> argv;
+   Alt_algorithm alt_algorithm;
+   unsigned kpartial_bound;
 
    /// translates the stream of actions into events, updating c, t, and d
    inline bool stream_to_events
@@ -111,9 +118,13 @@ public:
    /// c1 \setminus c2; it assumes that c1 \cup c2 is a configuration
    void cut_to_replay (const Cut &c1, const Cut &c2, std::vector<int> &replay);
 
-   /// stores in the replay vector a suitable replay the trail followed by
-   /// C \setminus J
+   /// stores in the replay vector a suitable replay for the trail followed by
+   /// J \setminus C
    void alt_to_replay (const Trail &t, const Cut &c, const Cut &j, std::vector<int> &replay);
+
+   /// prints the replay into one string, marking the beginning of the replay of
+   /// the alternative, after the replay for the trail finishes
+   std::string replay2str (std::vector<int> &replay, unsigned altidx);
 
    /// extends the replay vector with a sequence suitable to replay the trail
    void trail_to_replay (const Trail &t, std::vector<int> &replay) const;

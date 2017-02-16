@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <assert.h>
 
-#define K 5
+#define K 10
 
 pthread_mutex_t ma[K];
 pthread_mutex_t mi;

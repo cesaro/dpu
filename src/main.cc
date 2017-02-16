@@ -71,13 +71,25 @@ int main (int argc, char **argv)
    // analysis
    try
    {
-      C15unfolder unf;
+      C15unfolder unf (opts::alt_algo, opts::kbound);
 
       // load code and set argv
       PRINT ("dpu: loading bytecode");
       unf.load_bytecode (std::string (opts::inpath));
       PRINT ("dpu: setting argv");
       unf.set_args (opts::argv);
+
+      switch (opts::alt_algo) {
+      case C15unfolder::Alt_algorithm::KPARTIAL :
+         PRINT ("dpu: using '%u-partial' alternatives", opts::kbound);
+         break;
+      case C15unfolder::Alt_algorithm::OPTIMAL :
+         PRINT ("dpu: using 'optimal' alternatives");
+         break;
+      case C15unfolder::Alt_algorithm::ONLYLAST :
+         PRINT ("dpu: using 'only-last' (1-partial) alternatives");
+         break;
+      }
 
       // build entire unfolding
       PRINT ("dpu: starting unfolding construction");
@@ -101,6 +113,8 @@ int main (int argc, char **argv)
    } catch (const std::exception &e) {
       PRINT ("%s: error: unhandled exception: %s", opts::progname, e.what ());
       PRINT ("%s: aborting!", opts::progname);
+      fflush (stdout);
+      fflush (stderr);
       return 1;
    }
 

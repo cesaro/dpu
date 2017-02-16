@@ -141,7 +141,7 @@ bool Disset::trail_push (Event *e, int idx)
    if (e->flags.ind)
    {
       ssb_count++;
-      INFO ("c15u: disset: found SSB, count %u", ssb_count);
+      INFO ("c15u: disset: SSB, count %u, trail size %u", ssb_count, idx);
       return false;
    }
 
@@ -183,7 +183,7 @@ void Disset::trail_pop (int idx)
 
    // removing one event from the trail means that some events that were so far
    // justified could now become unjustified; those events will be in the list
-   // of unjustified events and will be such that their "disabler" field will be
+   // of justified events and will be such that their "disabler" field will be
    // equal to idx; we iterate through them and transfer them from one list to
    // the other
    while (idx <= top_disabler)

@@ -37,8 +37,7 @@ static void* thread(void *num)
     if (token) {
       data[r] = token - 1;
       pthread_mutex_unlock(mutex + r);
-    }
-    else {
+    } else {
       printf("%i\n", l+1);
       exit(0);
     }

@@ -38,6 +38,7 @@ void Trail::dump2 (const char *prefix) const
          pid = e->pid();
          PRINT_ (";  #%u", pid);
       }
+      if (i % 5 == 0) PRINT_ (" @%u", i);
       switch (e->action.type)
       {
       case ActionType::THCREAT :
@@ -65,6 +66,7 @@ void Trail::dump2 (const char *prefix) const
          {
             i++;
             PRINT_ (" X%02u", j);
+            if (i % 5 == 0) PRINT_ (" @%u", i + 1);
          }
          else
             PRINT_ (" L%02u", j);

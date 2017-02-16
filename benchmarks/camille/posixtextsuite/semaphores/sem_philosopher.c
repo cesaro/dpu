@@ -71,7 +71,7 @@ int philosopher(void *ID)
 	
 	for (i = 0; i < LOOP_NUM; i++) {
 		think(PhID);
-		sleep(1);
+		//sleep(1);
 		if ( -1 == sem_wait(&lock)) {
 			perror("sem_wait didn't return success \n");
 			pthread_exit((void *)1);
@@ -87,7 +87,7 @@ int philosopher(void *ID)
 			pthread_exit((void *)1);
 		}
 		eat(PhID);
-		sleep(1);
+		//sleep(1);
 		if ( -1 == sem_wait(&lock)) {
 			perror("sem_wait didn't return success \n");
 			pthread_exit((void *)1);

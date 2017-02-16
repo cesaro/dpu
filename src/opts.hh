@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 
+#include "c15u/c15unfold.hh"
+
 namespace dpu {
 namespace opts {
 
@@ -12,6 +14,10 @@ extern bool development;
 extern int verbosity;
 extern std::string inpath;
 extern std::vector<const char *> argv;
+
+extern unsigned kbound;
+extern C15unfolder::Alt_algorithm alt_algo;
+
 
 void parse (int argc, char **argv_);
 void dump ();

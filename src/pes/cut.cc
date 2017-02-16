@@ -108,18 +108,30 @@ void Cut::unfire (Event *e)
 
 void Cut::maxhull (Event *e)
 {
-   unsigned pid;
+   unsigned pid, min;
+   Event *ee;
 
    ASSERT (e);
    ASSERT (e->pid() < nrp);
    ASSERT (!max[e->pid()] or max[e->pid()]->pid() == e->pid());
 
    pid = e->pid();
-   if (! max[pid])
+   // if max[pid] was not set or it was a causal predecessor of e, we set e
+   if (!max[pid] or max[pid]->depth_proc() < e->depth_proc())
+   {
       max[pid] = e;
-   else
-      if (max[pid]->depth_proc() < e->depth_proc())
-         max[pid] = e;
+      // and we update the same way on the remaining processes using e's cone
+      min = std::min (e->cone.num_procs(), nrp);
+      for (pid = 0; pid < min; pid++)
+      {
+         ee = e->cone[pid];
+         if (! ee) continue;
+         ASSERT (ee->pid() == pid);
+         ASSERT (!max[pid] or max[pid]->pid() == pid);
+         if (!max[pid] or max[pid]->depth_proc() < ee->depth_proc())
+            max[pid] = ee;
+      }
+   }
 }
 
 void Cut::dump () const

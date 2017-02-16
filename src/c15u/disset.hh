@@ -124,7 +124,7 @@ public:
    const Ls unjustified = Ls (unjust);
 
    /// maximum number of events that a Disset can hold
-   static const unsigned CAPACITY = 1024;
+   static const unsigned CAPACITY = 2048;
 
    /// number of sleep-set blocked executions encoutered so far
    unsigned ssb_count;

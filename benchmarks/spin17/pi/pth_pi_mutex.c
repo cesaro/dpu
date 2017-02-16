@@ -135,11 +135,19 @@ double Serial_pi(long long n) {
  * Globals out: thread_count, n
  */
 void Get_args(int argc, char* argv[]) {
+
+   thread_count = 5;
+   n = 100 * 1000;
+   printf ("WARNING: fixing thread_count %ld and n %lld\n", thread_count, n);
+   // this is because nidhugg does not support commandline arguments
+
+#if 0
    if (argc != 3) Usage(argv[0]);
    thread_count = strtol(argv[1], NULL, 10);  
    if (thread_count <= 0) Usage(argv[0]);
    n = strtoll(argv[2], NULL, 10);
    if (n <= 0) Usage(argv[0]);
+#endif
 }  /* Get_args */
 
 /*------------------------------------------------------------------

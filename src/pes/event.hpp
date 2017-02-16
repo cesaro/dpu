@@ -169,10 +169,14 @@ bool Event:: in_cfl_with (std::vector<Event *> s)
 bool Event::in_icfl_with (const Event *e) const
 {
    // two events are in immediate conflict iff both of them are MTXLOCK and
-   // their pre_other pointer is equal
+   // their pre_other pointer is equal and their addresses are equal (the reason
+   // why we need to check also the addresses is that the pre_other() could be
+   // null, and in that case checking the address is necessary, if the
+   // pre_other() is not null, then the addresses will be equal)
    return action.type == ActionType::MTXLOCK and
          e->action.type == ActionType::MTXLOCK and
-         pre_other() == e->pre_other();
+         pre_other() == e->pre_other() and
+         action.addr == e->action.addr;
 }
 
 std::vector<Event*> Event::icfls () const

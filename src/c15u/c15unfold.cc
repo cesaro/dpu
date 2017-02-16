@@ -36,10 +36,12 @@ static void _ir_write_ll (const llvm::Module *m, const char *filename)
 }
 
 
-C15unfolder::C15unfolder () :
+C15unfolder::C15unfolder (Alt_algorithm a, unsigned kbound) :
    counters {0, 0, 0, 0},
    m (nullptr),
-   exec (nullptr)
+   exec (nullptr),
+   alt_algorithm (a),
+   kpartial_bound (kbound)
 {
 }
 
@@ -259,6 +261,8 @@ void C15unfolder::explore ()
    counters.maxconfs = counters.runs - counters.ssbs;
    counters.avg_max_trail_size /= counters.runs;
    DEBUG ("c15u: explore: done!");
+
+   ASSERT (counters.ssbs == 0 or alt_algorithm != Alt_algorithm::OPTIMAL);
 }
 
 void C15unfolder::cut_to_replay (const Cut &c, std::vector<int> &replay)
@@ -276,6 +280,8 @@ void C15unfolder::cut_to_replay (const Cut &c1, const Cut &c2, std::vector<int> 
    Event *e, *ee;
    Cut cc (std::min (c1.num_procs(), u.num_procs()));
 
+   // we need to replay every event in c1 that is not in c2
+
    DEBUG ("c15u: cut-to-replay: cut1 %s cut2 %s",
          c1.str().c_str(), c2.str().c_str());
 
@@ -288,9 +294,11 @@ void C15unfolder::cut_to_replay (const Cut &c1, const Cut &c2, std::vector<int> 
       // compute len, the number of events that we will run in process i
       e = c1[i];
       if (! e) continue;
+      DEBUG ("c15u: cut-to-replay: at least one  %d events on proc %d", len, i);
       len = e->depth_proc();
       if (c2[i]) len -= (int) c2[i]->depth_proc(); else len++;
       if (len <= 0) continue;
+      DEBUG ("c15u: cut-to-replay: running %d events on proc %d", len, i);
 
       // set up the Event's next pointer in order to run forward
       ee = nullptr;
@@ -302,9 +310,10 @@ void C15unfolder::cut_to_replay (const Cut &c1, const Cut &c2, std::vector<int> 
       }
 
       // we set cc to be a suitable starting state for (c1 \setminus c2), which
-      // is "the next layer of events above" the cut of (c1 \cap c2)
+      // is "the layer of events one above" the cut of (c1 \cap c2)
       cc[i] = ee;
    }
+   DEBUG ("c15u: cut-to-replay: running forward cc %s", cc.str().c_str());
 
    // in a round-robbin fashion, we run each process until we cannot continue in
    // that process; this continues until we are unable to make progress
@@ -315,13 +324,13 @@ void C15unfolder::cut_to_replay (const Cut &c1, const Cut &c2, std::vector<int> 
       for (i = 0; i < nrp; i++)
       {
          e = cc[i];
-         //DEBUG ("c15u: cut-to-replay: ctxsw to pid %d, event %p", i, e);
+         DEBUG ("c15u: cut-to-replay: ctxsw to pid %d, event %p", i, e);
          count = 0;
          // we replay as many events as possible on process i
          for (; e; e = e->next)
          {
             // if event has non-visited causal predecessor, abort this process
-            //SHOW (e->str().c_str(), "s");
+            SHOW (e->str().c_str(), "s");
             if (e->pre_other()
                   and i != e->pre_other()->pid()
                   and cc[e->pre_other()->pid()]
@@ -378,10 +387,30 @@ void C15unfolder::alt_to_replay (const Trail &t, const Cut &c, const Cut &j,
    // replay the trail (exacty in that order) followed by the replay of
    // J \setminus C (in any order).
 
+   unsigned i;
+
    replay.clear();
    trail_to_replay (t, replay);
+   i = replay.size();
    cut_to_replay (j, c, replay);
    replay.push_back (-1);
+
+   TRACE ("c15u: explore: replay seq: %s", replay2str(replay,i).c_str());
+}
+
+std::string C15unfolder::replay2str (std::vector<int> &replay, unsigned altidx)
+{
+   std::string s;
+   unsigned i;
+
+   ASSERT (altidx % 2 == 0);
+   for (i = 0; replay[i] != -1; i += 2)
+   {
+      if (i == altidx) s += "|| ";
+      s += fmt ("%d %d; ", replay[i], replay[i+1]);
+   }
+   s += "-1";
+   return s;
 }
 
 void C15unfolder::compute_cex_lock (Event *e, Event **head)
@@ -395,7 +424,7 @@ void C15unfolder::compute_cex_lock (Event *e, Event **head)
 
    Event *ep, *em, *ee;
 
-   PRINT ("c15u: cex-lock: starting from %s", e->str().c_str());
+   // DEBUG ("c15u: cex-lock: starting from %s", e->str().c_str());
    ASSERT (e)
    ASSERT (e->action.type == ActionType::MTXLOCK);
 
@@ -420,7 +449,7 @@ void C15unfolder::compute_cex_lock (Event *e, Event **head)
 
       // (action, ep, em) is a possibly new event
       ee = u.event (e->action, ep, em);
-      PRINT ("c15u: cex-lock:  new cex: %s", ee->str().c_str());
+      DEBUG ("c15u: cex-lock:  new cex: %s", ee->str().c_str());
 
       // we add it to the linked-list
       ee->next = *head; // next is also used in cut_to_replay
@@ -470,6 +499,7 @@ bool C15unfolder::enumerate_combination (unsigned i,
    // - the partial solution is stored in sol
    // - if sol is conflict-free, we return true
 
+   ASSERT (i < comb.size());
    for (auto e : comb[i])
    {
       if (! is_conflict_free (sol, e)) continue;
@@ -497,13 +527,23 @@ bool C15unfolder::might_find_alternative (Config &c, Disset &d, Event *e)
 inline bool C15unfolder::find_alternative (const Trail &t, const Config &c, const Disset &d, Cut &j)
 {
    bool b;
-   b = find_alternative_only_last (c, d, j);
-   //b = find_alternative_optim_comb (c, d, j);
+   
+   switch (alt_algorithm) {
+   case Alt_algorithm::KPARTIAL :
+      b = find_alternative_kpartial (c, d, j);
+      break;
+   case Alt_algorithm::OPTIMAL :
+      b = find_alternative_optim_comb (c, d, j);
+      break;
+   case Alt_algorithm::ONLYLAST :
+      b = find_alternative_only_last (c, d, j);
+      break;
+   }
 
    TRACE_ ("c15u: explore: %s: alt: [", explore_stat (t, d).c_str());
    for (auto e : d.unjustified)  TRACE_("%u ", e->icfls().size());
    TRACE ("\b] %s", b ? "found" : "no");
-   if (b) DEBUG ("c15u: explore: %s: j: %s", explore_stat (t, d).c_str(), j.str().c_str());
+   if (b) DEBUG ("c15u: explore: %s: j: %s", explore_stat(t, d).c_str(), j.str().c_str());
    return b;
 }
 
@@ -545,7 +585,7 @@ std::string comb2str (std::vector<std::vector<Event *>> &comb)
 
    for (i = 0; i < comb.size(); i++)
    {
-      s += fmt ("i %u len %u [", i, comb[i].size());
+      s += fmt ("spike %u len %u [", i, comb[i].size());
       for (j = 0; j < comb[i].size(); j++)
       {
          s += fmt ("%s ", comb[i][j]->suid().c_str());
@@ -579,9 +619,8 @@ bool C15unfolder::find_alternative_optim_comb (const Config &c, const Disset &d,
    DEBUG ("c15u: alt: optim: comb: initially:\n%s", comb2str(comb).c_str());
 
    // remove from each spike those events in D or in conflict with someone in C
-   for (auto spike : comb)
+   for (auto &spike : comb)
    {
-      if (spike.empty()) return false;
       i = 0;
       while (i < spike.size())
       {
@@ -593,6 +632,8 @@ bool C15unfolder::find_alternative_optim_comb (const Config &c, const Disset &d,
          else
             i++;
       }
+      // if one spike becomes empty, there is no alternative
+      if (spike.empty()) return false;
    }
    DEBUG ("c15u: alt: optim: comb: after removing D and #(C):\n%s", comb2str(comb).c_str());
 
@@ -606,6 +647,63 @@ bool C15unfolder::find_alternative_optim_comb (const Config &c, const Disset &d,
 //         DEBUG("");
 //      }
 //   DEBUG("END COMB");
+
+   if (enumerate_combination (0, comb, solution))
+   {
+      j.clear();
+      for (auto e : solution) j.maxhull (e);
+      return true;
+   }
+   return false;
+}
+
+bool C15unfolder::find_alternative_kpartial (const Config &c, const Disset &d, Cut &j)
+{
+   // We do an exahustive search for alternatives to D after C, we will find one
+   // iff one exists. We use a comb that has one spike per unjustified event D.
+   // Each spike is made out of the immediate conflicts of that event in D. The
+   // unjustified events in D are all enabled in C, none of them is in cex(C).
+
+   unsigned i;
+   std::vector<std::vector<Event *>> comb;
+   std::vector<Event*> solution;
+
+   DEBUG_ ("c15u: alt: kpartial: k %u c %s d.unjust [",
+         kpartial_bound, c.str().c_str());
+   for (auto e : d.unjustified)  DEBUG_("%p ", e);
+   DEBUG ("\b]");
+
+   // build the spikes of the comb
+   for (auto e : d.unjustified) comb.push_back (e->icfls());
+   if (comb.empty()) return false;
+
+   DEBUG ("c15u: alt: kpartial: comb: initially:\n%s", comb2str(comb).c_str());
+
+   // remove from each spike those events in D or in conflict with someone in C
+   for (auto &spike : comb)
+   {
+      i = 0;
+      while (i < spike.size())
+      {
+         if (spike[i]->flags.ind or spike[i]->in_cfl_with(c))
+         {
+            spike[i] = spike.back();
+            spike.pop_back();
+         }
+         else
+            i++;
+      }
+      // if one spike becomes empty, there is no alternative
+      if (spike.empty()) return false;
+   }
+
+   // bound the comb to k spikes; there is many other ways to select the
+   // interesting spikes much more intelling than this plain truncation ...
+   ASSERT (kpartial_bound >= 1);
+   if (comb.size() > kpartial_bound) comb.resize (kpartial_bound);
+
+   DEBUG ("c15u: alt: kpartial: comb: after removing D and #(C), and bounding:\n%s",
+         comb2str(comb).c_str());
 
    if (enumerate_combination (0, comb, solution))
    {

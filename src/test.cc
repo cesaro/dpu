@@ -653,7 +653,7 @@ void test35 ()
 
    try
    {
-      C15unfolder unf;
+      C15unfolder unf (C15unfolder::Alt_algorithm::OPTIMAL, 0);
 
       // load code and set argv
       unf.load_bytecode ("./input.ll");
@@ -705,7 +705,7 @@ void test36 ()
    try
    {
       std::vector<int> replay {-1};
-      C15unfolder unf;
+      C15unfolder unf (C15unfolder::Alt_algorithm::OPTIMAL, 1);
       unf.load_bytecode ("./input.ll");
       unf.set_args (argv);
 
@@ -727,7 +727,7 @@ void test36 ()
 void test37 ()
 {
    DEBUG("Test compute_cex");
-   C15unfolder unf;
+   C15unfolder unf (C15unfolder::Alt_algorithm::OPTIMAL, 1);
    Event *e = nullptr;
 
    /*
@@ -835,7 +835,7 @@ void test37 ()
 void test38 ()
 {
    DEBUG("Test find_alternative");
-   C15unfolder unf;
+   C15unfolder unf (C15unfolder::Alt_algorithm::OPTIMAL, 1);
    Event *e = nullptr;
 
    /*
@@ -944,7 +944,7 @@ void test39 ()
 {
    //test for find_alternative_only last
    DEBUG("Test find_alternative");
-   C15unfolder unf;
+   C15unfolder unf (C15unfolder::Alt_algorithm::OPTIMAL, 1);
    Event *e = nullptr;
 
    /*
@@ -1093,7 +1093,7 @@ void test41 ()
 {
    //test for find_alternative_only last
       DEBUG("Test find_alternative");
-      C15unfolder unf;
+      C15unfolder unf (C15unfolder::Alt_algorithm::OPTIMAL, 1);
       Event *e = nullptr;
 
       /*
@@ -1206,7 +1206,7 @@ void test42 ()
 {
    try
       {
-         C15unfolder unf;
+         C15unfolder unf (C15unfolder::Alt_algorithm::OPTIMAL, 1);
 
          // load code and set argv
          unf.load_bytecode ("./input.ll");
@@ -1267,7 +1267,7 @@ void test50 ()
 
    try
    {
-      C15unfolder unf;
+      C15unfolder unf (C15unfolder::Alt_algorithm::OPTIMAL, 1);
 
       // load code and set argv
       unf.load_bytecode ("./input.ll");
@@ -1296,7 +1296,7 @@ void test51 ()
    {
       Event *e = nullptr;
       std::vector<int> replay {-1};
-      C15unfolder unf;
+      C15unfolder unf (C15unfolder::Alt_algorithm::OPTIMAL, 1);
       unf.load_bytecode ("./input.ll");
       unf.set_args (argv);
 
@@ -1327,7 +1327,7 @@ void test52 ()
       Event *e = nullptr, *ee;
 
       std::vector<int> replay {-1};
-      C15unfolder unf;
+      C15unfolder unf (C15unfolder::Alt_algorithm::OPTIMAL, 1);
       unf.load_bytecode ("./input.ll");
       unf.set_args ({"prog", "main4"});
       
@@ -1397,7 +1397,7 @@ void test52 ()
 void test53 ()
 {
    Event *es, *ec, *el, *eu, *xx, *ej, *ex, *es1, *ex1, *el1, *eu1 ;
-   C15unfolder unf;
+   C15unfolder unf (C15unfolder::Alt_algorithm::OPTIMAL, 1);
 
    /*
     * Th 0           Th 1
@@ -1489,7 +1489,7 @@ void test54 ()
 {
    try
    {
-      C15unfolder unf;
+      C15unfolder unf (C15unfolder::Alt_algorithm::OPTIMAL, 1);
 
       // load code and set argv
       unf.load_bytecode ("./input.ll");

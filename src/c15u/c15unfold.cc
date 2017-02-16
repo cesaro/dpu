@@ -198,7 +198,7 @@ void C15unfolder::explore ()
    Cut j (Unfolding::MAX_PROC);
    std::vector<int> replay {-1};
    Event *e = nullptr;
-   int i = 0;
+   //int i = 0;
 
    while (1)
    {
@@ -223,6 +223,7 @@ void C15unfolder::explore ()
       compute_cex (c, &e);
       counters.avg_max_trail_size += t.size();
 
+#if 0
       // FIXME turn this into a commandline option
       std::ofstream f (fmt ("dot/c%02d.dot", i));
       //u.print_dot (c, f, fmt ("Config %d", i));
@@ -231,6 +232,7 @@ void C15unfolder::explore ()
       u.print_dot (c, f, fmt ("Config %d", i));
       f.close ();
       i++;
+#endif
 
       // backtrack until we find some right subtree to explore
       DEBUG ("");

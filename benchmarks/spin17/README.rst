@@ -4,7 +4,6 @@ Status
 
 - pi, we take it
 - mutex-unlock/2-1 -> ok but very simple, and there is bug?
-- philo: semaphores -> mutexes
 
 - astrometry.net
 - ogg123
@@ -14,6 +13,7 @@ Status
 Not used:
 
 - c-ring, illegal use of posix mutexes (threads unlock mutexes not belonging to them)
+- philo: semaphores -> illegal use of posix mutexes (valid with semaphores, but not with mutexes)
 - runtime/uncontested -> trivial
 - runtime/contested -> uses a signal to stop an infinite loop :(
 

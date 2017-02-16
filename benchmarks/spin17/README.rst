@@ -8,7 +8,11 @@ Status
 - astrometry.net
 - ogg123
 
+- 2 or 3 parametric programs with exponentially many SSBs
+- the one in ODPOR
 - ssbexp, ssb3 -> turn into realistic programs, Marcelo
+
+- examples where K < number of conflicts 
 
 Not used:
 
@@ -19,6 +23,6 @@ Not used:
 
 
 Commandline arguments
-=====================
+=====
 
 dpu pi/pth_pi_mutex.c -- pi 4 8192

@@ -3,8 +3,8 @@
 #include <stdio.h>
 #include <unistd.h>
 
-#define LEN 5
-#define NUM 8
+#define LEN 1
+#define NUM 1
 
 int x = 0;
 int y = 0;
@@ -42,7 +42,7 @@ void *thread_rz (void *arg)
    l = z;
    printf ("rz: read z %d\n", l);
    pthread_mutex_unlock (&mz);
-   if (l)
+   if (l == 1 && NUM > 0)
    {
 #if 0
       for (i = 0; i < NUM; i++)
@@ -101,7 +101,6 @@ int main1 ()
 
    printf ("== start ==\n");
 
-   pthread_mutex_init (&mx, 0);
    pthread_mutex_init (&mz, 0);
    pthread_mutex_init (&mc, 0);
 
@@ -130,6 +129,7 @@ void *thread2 (void *arg)
    {
       pthread_mutex_lock (&mx);
       x = 10;
+      printf ("thread2: write x\n");
       pthread_mutex_unlock (&mx);
    }
    return 0;
@@ -139,12 +139,14 @@ int main2 ()
 {
    int i;
    pthread_t t;
+   pthread_mutex_init (&mx, 0);
    pthread_create (&t, 0, thread2, 0);
 
    for (i = 0; i < LEN; i++)
    {
       pthread_mutex_lock (&mx);
       x = 20;
+      printf ("main2: write x\n");
       pthread_mutex_unlock (&mx);
    }
 

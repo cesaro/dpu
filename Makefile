@@ -42,11 +42,13 @@ input.ll : program.ll ../steroid/rt/rt.bc
 
 ifeq ($(shell id -nu),cesar)
 #program.ll : benchmarks/basic/cjlu.ll
-program.ll : benchmarks/svcomp16/twostage_3_false-unreach-call.ll
+#program.ll : benchmarks/svcomp16/twostage_3_false-unreach-call.ll
+program.ll : ssbexpr.ll
 #program.ll : /tmp/cunf3.ll
 #program.ll : benchmarks/basic/hello.ll
 else
-program.ll : benchmarks/basic/cjlu.ll
+program.ll : ssbexpr.ll
+#program.ll : benchmarks/basic/cjlu.ll
 endif
 	opt-3.7 -S -O3 -mem2reg $< > $@
 	#opt-3.7 -S -verify $< > $@

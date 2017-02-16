@@ -10,7 +10,12 @@ Status
 - astrometry.net
 - ogg123
 
+- 2 or 3 parametric programs with exponentially many SSBs
+- the one in ODPOR
 - ssbexp, ssb3 -> Marcelo
+
+- examples where K < number of conflicts 
+- 
 
 Not used:
 

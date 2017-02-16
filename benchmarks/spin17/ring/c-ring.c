@@ -10,15 +10,8 @@
 #include <string.h>
 #include <limits.h>
 
-#define THREADS (503)
-
-#ifdef STATIC_TH_STACK
-struct stack {
-    char x[PTHREAD_STACK_MIN];
-};
-static struct stack* stacks;
-//static struct stack stacks[THREADS];
-#endif
+#define TOKEN 20
+#define THREADS 8
 
 /* staticaly initialize mutex[0] mutex */
 static pthread_mutex_t* mutex;
@@ -30,7 +23,7 @@ static int nbth;
 
 static void* thread(void *num)
 {
-  int l = (int)num;
+  int l = (long int)num;
   int r = (l+1) % nbth;
   int token;
 
@@ -43,52 +36,53 @@ static void* thread(void *num)
     token = data[l];
     if (token) {
       data[r] = token - 1;
+      printf ("t%d: recv %d send %d\n", l, token, token - 1);
       pthread_mutex_unlock(mutex + r);
     } else {
       data[r] = 0;
+      printf ("t%d: recv 0 send 0; exit!\n", l);
       pthread_mutex_unlock(mutex + r);
       pthread_exit( 0 );
     }
   }
 }
 
-
+void usage ()
+{
+  printf ("Usage: ring [TOKEN [NTH]]\n");
+  printf (" TOKEN is %d by default\n", TOKEN);
+  printf (" NTH is %d by default\n", THREADS);
+  exit (1);
+}
 
 int main(int argc, char **argv)
 {
-    int i;
+  long int i;
+  int token;
   pthread_t* cthread;
   pthread_attr_t stack_attr;
 
-  if ( argc < 2 )
-    exit(255);
-
-  if ( argc >= 3 ){
+  // parse arguments
+  if (argc > 3) usage ();
+  if (argc == 3)
       nbth = atoi(argv[2]);
-  } else {
+  else
       nbth = THREADS;
-  }
+  if (argc >= 2)
+      token = atoi(argv[1]);
+  else
+      token = TOKEN;
+  printf ("ring: nbth %d, token %d\n", nbth, token);
 
   cthread = (pthread_t*) malloc( nbth * sizeof( pthread_t ) );
   data = (int*) malloc( nbth * sizeof( int ) );
   mutex = (pthread_mutex_t*) malloc( nbth * sizeof( pthread_mutex_t ) );
-#ifdef STATIC_TH_STACK
-  stacks = (struct stack*) malloc( nbth * sizeof( struct stack ) );
-#endif
-  pthread_attr_init(&stack_attr);
+  data[0] = token;
 
-  data[0] = atoi(argv[1]);
-
-#ifndef STATIC_TH_STACK
-  pthread_attr_setstacksize( &stack_attr, /* PTHREAD_STACK_MIN*/ sizeof( char ) );
-#endif
   for (i = 0; i < nbth; i++) {
     pthread_mutex_init(mutex + i, NULL);
     pthread_mutex_lock(mutex + i);
-#ifdef STATIC_TH_STACK
-    pthread_attr_setstack(&stack_attr, &stacks[i], sizeof(struct stack));
-#endif
-    pthread_create( &(cthread[i]), &stack_attr, thread, (void*)i );
+    pthread_create( &(cthread[i]), 0, thread, (void*)i );
   }
 
   // pthread_mutex_unlock( mutex );
@@ -100,9 +94,5 @@ int main(int argc, char **argv)
   if( NULL != cthread ) { free( cthread ); cthread = NULL; }
   if( NULL != data ) { free( data ); data = NULL; }
   if( NULL != mutex ) { free( mutex ); mutex = NULL; }
-  pthread_attr_destroy( &stack_attr );
-#ifdef STATIC_TH_STACK
-  if( NULL != stacks ) { free( stacks ); stacks = NULL; }
-#endif
  return EXIT_SUCCESS;
 }

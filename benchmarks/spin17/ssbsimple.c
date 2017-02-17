@@ -17,6 +17,7 @@ void *ta(void *arg)
 
  pthread_mutex_lock(&mz);
  pthread_mutex_unlock(&mz);
+ return NULL;
 }
 
 void *tb(void *arg)
@@ -28,6 +29,7 @@ void *tb(void *arg)
      pthread_mutex_unlock (&my);
    }
  pthread_mutex_unlock (&mx);
+ return NULL;
 }
 
 void *tc(void *arg)
@@ -36,6 +38,7 @@ void *tc(void *arg)
    pthread_mutex_lock (&mz);
    pthread_mutex_unlock (&mz);
  pthread_mutex_unlock (&my);
+ return NULL;
 }
 
 int main()
@@ -54,4 +57,6 @@ int main()
  pthread_join(ida,NULL);
  pthread_join(idb,NULL);
  pthread_join(idc,NULL);
+
+ return 0;
 }

@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <unistd.h>
 
-#define LEN 6
+#define LEN 8
 #define NUM 10
 
 int x = 0;

@@ -142,7 +142,7 @@ bool Disset::trail_push (Event *e, int idx)
    {
       ssb_count++;
 
-#if VERB_LEVEL_TRACE
+#ifdef VERB_LEVEL_TRACE
       unsigned u, j;
       u = j = 0;
       for (auto it = justified.begin(), end = justified.end();

@@ -29,6 +29,9 @@ public:
       long unsigned runs;
       long unsigned ssbs;
       long unsigned maxconfs;
+      long unsigned altcalls;
+      long unsigned max_unjust_when_alt_call;
+      float avg_unjust_when_alt_call;
       float avg_max_trail_size;
    } counters;
 

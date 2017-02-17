@@ -14,9 +14,9 @@ extern bool development;
 extern int verbosity;
 extern std::string inpath;
 extern std::vector<const char *> argv;
-
 extern unsigned kbound;
 extern C15unfolder::Alt_algorithm alt_algo;
+extern std::string dotpath;
 
 
 void parse (int argc, char **argv_);

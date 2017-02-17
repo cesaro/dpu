@@ -123,6 +123,7 @@ void test27 ()
 
    for (unsigned i = 0; i < u.num_procs(); i++)
    {
+#ifdef VERB_LEVEL_DEBUG
       Process *p = u.proc (i);
       DEBUG ("proc %p pid %d first-event %p", p, p->pid(), p->first_event());
       ASSERT (p->first_event() and p->first_event()->action.type == ActionType::THSTART);
@@ -135,6 +136,7 @@ void test27 ()
                e.flags.boxlast ? 1 : 0,
                action_type_str (e.action.type));
       }
+#endif
    }
 
    DEBUG ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
@@ -1066,8 +1068,7 @@ void test40 ()
          i = i * 10;
    }
 
-   for (auto & i : v)
-      DEBUG("%d ", i);
+   //for (auto & i : v) DEBUG("%d ", i);
    // Dung while
 //   int i = 0;
 //   while (i < v.size())
@@ -1321,7 +1322,7 @@ void test51 ()
 
 void test52 ()
 {
-   unsigned i, j;
+   unsigned i;
    try
    {
       Event *e = nullptr, *ee;
@@ -1361,10 +1362,12 @@ void test52 ()
 
             // and printing its immediate conflicts
             DEBUG (" icfls %d", ee->icfls().size());
+#ifdef VERB_LEVEL_DEBUG
             for (Event *eee : ee->icfls ())
             {
                DEBUG (" icfl %s", eee->str().c_str());
             }
+#endif
          }
          DEBUG ("xxxxxxxxxxxxxx");
       }
@@ -1372,9 +1375,10 @@ void test52 ()
       // n^2 causality / conflict tests
       for (i = 0; i < unf.u.num_procs(); i++)
       {
+#ifdef VERB_LEVEL_DEBUG
          for (Event &e : *unf.u.proc(i))
          {
-            for (j = 0; j < unf.u.num_procs(); j++)
+            for (unsigned j = 0; j < unf.u.num_procs(); j++)
             {
                for (Event &ee : *unf.u.proc(j))
                {
@@ -1386,6 +1390,7 @@ void test52 ()
                }
             }
          }
+#endif
       }
 
    } catch (const std::exception &e) {

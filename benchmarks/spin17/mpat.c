@@ -1,7 +1,7 @@
 #include <pthread.h>
 #include <assert.h>
 
-#define K 2 
+#define K 2
 
 /*
 The left part of the unfolding:
@@ -34,6 +34,7 @@ void *wa(void *arg)
  unsigned id = (unsigned long) arg;
  pthread_mutex_lock(&ma[id]);
  pthread_mutex_unlock(&ma[id]);
+ return 0;
 }
 
 // ra locks on a common lock
@@ -59,6 +60,7 @@ void *ra(void *arg)
   pthread_mutex_lock (&ma[id]);
   pthread_mutex_unlock (&ma[id]);
  pthread_mutex_unlock (&mi);
+ return 0;
 }
 
 int main()
@@ -80,3 +82,129 @@ int main()
    pthread_join(idr[i],NULL);
  }
 }
+
+/*
+
+Exec 1
+------
+1     2     3     4
+w0    r0    w1    r1
+===== ===== ===== =====
+a0
+      lmi
+      a0
+      umi
+            a1          --
+                  lmi
+                  a1    **
+                  umi
+c15u: explore: replay seq: 0 5; 1 4; 2 6; 3 1; || 4 3; -1
+
+Exec 2
+------
+1     2     3     4
+w0    r0    w1    r1
+===== ===== ===== =====
+a0
+      lmi               ---
+      a0
+      umi
+                  lmi   **
+                  a1
+                  umi
+            a1
+c15u: explore: replay seq: 0 5; 1 4; 2 1; || 4 2; -1
+
+Exec 3
+------
+1     2     3     4
+w0    r0    w1    r1
+===== ===== ===== =====
+a0
+                  lmi
+                  a1    --
+                  umi
+            a1          **
+      lmi               
+      a0
+      umi
+c15u: explore: replay seq: 0 5; 1 4; 2 1; 4 2; || 3 2; -1
+
+Exec 4
+------
+1     2     3     4
+w0    r0    w1    r1
+===== ===== ===== =====
+a0                      --
+                  lmi      
+            a1          
+                  a1    
+                  umi
+      lmi                  
+      a0                **
+      umi
+c15u: explore: replay seq: 0 5; 1 1; || 2 1; 3 3; 4 5; 2 2; -1
+
+Exec 5
+------
+1     2     3     4
+w0    r0    w1    r1
+===== ===== ===== =====
+            a1          
+                  lmi   --
+                  a1    
+                  umi
+      lmi               **
+      a0                
+      umi
+a0                      
+c15u: explore: replay seq: 0 5; 1 1; 2 1; 3 4; 4 1; || 2 1; -1
+
+
+Exec 6
+------
+1     2     3     4
+w0    r0    w1    r1
+===== ===== ===== =====
+            a1          
+      lmi                  
+      a0                
+      umi
+                  lmi      
+                  a1    
+                  umi
+a0                      
+c15u: explore: replay seq: 0 5; 1 1; 2 1; 3 1; || 2 4; 4 3; -1
+
+Exec 7
+------
+1     2     3     4
+w0    r0    w1    r1
+===== ===== ===== =====
+      lmi               --
+      a0                
+      umi
+                  lmi   **
+                  a1    
+                  umi
+            a1          
+a0                      
+c15u: explore: replay seq: 0 5; 1 1; 2 1; 3 1; || 4 2; -1
+
+c15u: disset: SSB, count 1, |trail| 14, |D| 3 (2 just, 1 unjust)
+c15u: explore: 14e  2j  1u: #0 @0 S C1 C2 C3 C4;  #1 @5 S;  #2 S;  #3 S;  #4 S L00 @10 X01 U00 E
+
+Exec 8 (it should explore it!)
+------
+1     2     3     4
+w0    r0    w1    r1
+===== ===== ===== =====
+                  lmi      
+                  a1    
+                  umi
+      lmi                  
+      a0                
+      umi
+            a1          
+a0                      
+*/

@@ -194,7 +194,7 @@ bool Primecon::in_cfl_with (const Primecon *other) const
 
 bool Primecon::in_cfl_with (const Config &c) const
 {
-   // We need to return true iff this configuration union c is conflict-free.
+   // We need to return false iff this configuration union c is conflict-free.
    // The union is conflict-free iff for every "sequential tree" of the
    // unfolding (one per process, one per lock) the union contains only a
    // sequence and no two forking branches. Processes never branch on their own,

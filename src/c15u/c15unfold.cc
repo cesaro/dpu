@@ -2,6 +2,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <math.h>
 
 #include <cstdint>
 #include <cstring>
@@ -37,7 +38,7 @@ static void _ir_write_ll (const llvm::Module *m, const char *filename)
 
 
 C15unfolder::C15unfolder (Alt_algorithm a, unsigned kbound) :
-   counters {0, 0, 0, 0},
+   counters {0, 0, 0, 0, 0, 0, 0},
    m (nullptr),
    exec (nullptr),
    alt_algorithm (a),
@@ -210,14 +211,18 @@ void C15unfolder::explore ()
       counters.runs++;
       action_streamt s (exec->get_trace ());
       DEBUG ("c15u: explore: the stream: %s:", explore_stat (t,d).c_str());
+#ifdef VERB_LEVEL_DEBUG
       if (verb_debug) s.print ();
+#endif
       b = stream_to_events (c, s, &t, &d);
       if (!b) counters.ssbs++;
       DEBUG ("c15u: explore: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
+#ifdef VERB_LEVEL_TRACE
       if (verb_trace)
          t.dump2 (fmt ("c15u: explore: %s: ", explore_stat(t,d).c_str()).c_str());
       if (verb_debug) c.dump ();
       if (verb_debug) d.dump ();
+#endif
 
       // add conflicting extensions
       compute_cex (c, &e);
@@ -262,6 +267,14 @@ void C15unfolder::explore ()
    ASSERT (counters.ssbs == d.ssb_count);
    counters.maxconfs = counters.runs - counters.ssbs;
    counters.avg_max_trail_size /= counters.runs;
+   if (counters.altcalls != 0)
+   {
+      counters.avg_unjust_when_alt_call /= counters.altcalls;
+   }
+   else
+   {
+      counters.avg_unjust_when_alt_call = NAN;
+   }
    DEBUG ("c15u: explore: done!");
 
    ASSERT (counters.ssbs == 0 or alt_algorithm != Alt_algorithm::OPTIMAL);
@@ -408,7 +421,7 @@ std::string C15unfolder::replay2str (std::vector<int> &replay, unsigned altidx)
    ASSERT (altidx % 2 == 0);
    for (i = 0; replay[i] != -1; i += 2)
    {
-      if (i == altidx) s += "|| ";
+      if (i == altidx) s += "** ";
       s += fmt ("%d %d; ", replay[i], replay[i+1]);
    }
    s += "-1";
@@ -419,10 +432,13 @@ void C15unfolder::compute_cex_lock (Event *e, Event **head)
 {
    // 1. let ep be the pre-proc of e
    // 2. let em be the pre-mem of e
-   // 3. if em <= ep, then return (there is no cex)
-   // 4. em = em.pre-mem.pre-mem (checking for null)
-   // 5. insert event (e.action, ep, em)
-   // 6. goto 3
+   //
+   // 3. if em <= ep, then return   // there is no cex
+   // 4. em = em.pre-em             // em is now a LOCK
+   // 5. if (em <= ep) return       // because when you fire [ep] the lock is acquired!
+   // 6. em = em.pre-mem            // em is now an UNLOCK
+   // 7. insert event (e.action, ep, em)
+   // 8. goto 3
 
    Event *ep, *em, *ee;
 
@@ -430,26 +446,27 @@ void C15unfolder::compute_cex_lock (Event *e, Event **head)
    ASSERT (e)
    ASSERT (e->action.type == ActionType::MTXLOCK);
 
-   // ep/em are the predecessors in process/memory
+   // 1,2: ep/em are the predecessors in process/memory
    ep = e->pre_proc();
    em = e->pre_other();
 
    while (1)
    {
-      // we are done if we got em <= ep (em == null means em = bottom!)
+      // 3. we are done if we got em <= ep (em == null means em = bottom!)
       if (!em or em->is_predeq_of (ep)) return;
 
-      // jump back 2 predecessors in memory; if we get null or another event in
-      // the same process, then em <= ep
+      // 4,5: jump back 1 predecessor in memory, if we got em <= ep, return
       ASSERT (em->action.type == ActionType::MTXUNLK);
       em = em->pre_other();
       ASSERT (em);
       ASSERT (em->action.type == ActionType::MTXLOCK);
-      // em should be a lock, but just in case ...
-      if (em) em = em->pre_other();
+      if (em->is_predeq_of (ep)) return;
+
+      // 6. back 1 more predecessor
+      em = em->pre_other();
       ASSERT (!em or em->action.type == ActionType::MTXUNLK);
 
-      // (action, ep, em) is a possibly new event
+      // 7. (action, ep, em) is a possibly new event
       ee = u.event (e->action, ep, em);
       DEBUG ("c15u: cex-lock:  new cex: %s", ee->str().c_str());
 
@@ -529,7 +546,7 @@ bool C15unfolder::might_find_alternative (Config &c, Disset &d, Event *e)
 inline bool C15unfolder::find_alternative (const Trail &t, const Config &c, const Disset &d, Cut &j)
 {
    bool b;
-   
+
    switch (alt_algorithm) {
    case Alt_algorithm::KPARTIAL :
       b = find_alternative_kpartial (c, d, j);
@@ -543,7 +560,9 @@ inline bool C15unfolder::find_alternative (const Trail &t, const Config &c, cons
    }
 
    TRACE_ ("c15u: explore: %s: alt: [", explore_stat (t, d).c_str());
+#ifdef VERB_LEVEL_TRACE
    for (auto e : d.unjustified)  TRACE_("%u ", e->icfls().size());
+#endif
    TRACE ("\b] %s", b ? "found" : "no");
    if (b) DEBUG ("c15u: explore: %s: j: %s", explore_stat(t, d).c_str(), j.str().c_str());
    return b;
@@ -611,7 +630,9 @@ bool C15unfolder::find_alternative_optim_comb (const Config &c, const Disset &d,
    std::vector<Event*> solution;
 
    DEBUG_ ("c15u: alt: optim: c %s d.unjust [", c.str().c_str());
+#ifdef VERB_LEVEL_DEBUG
    for (auto e : d.unjustified)  DEBUG_("%p ", e);
+#endif
    DEBUG ("\b]");
 
    // build the spikes of the comb
@@ -639,16 +660,11 @@ bool C15unfolder::find_alternative_optim_comb (const Config &c, const Disset &d,
    }
    DEBUG ("c15u: alt: optim: comb: after removing D and #(C):\n%s", comb2str(comb).c_str());
 
-//   // show the comb
-//   DEBUG("COMB: %d spikes: ", comb.size());
-//      for (unsigned i = 0; i < comb.size(); i++)
-//      {
-//         DEBUG_ ("  spike %d: (#%p (len %d): ", i, d[i], comb[i].size());
-//         for (unsigned j = 0; j < comb[i].size(); j++)
-//            DEBUG_(" %p", comb[i][j]);
-//         DEBUG("");
-//      }
-//   DEBUG("END COMB");
+   // report statistics
+   counters.altcalls++;
+   if (comb.size() > counters.max_unjust_when_alt_call)
+      counters.max_unjust_when_alt_call = comb.size();
+   counters.avg_unjust_when_alt_call += comb.size();
 
    if (enumerate_combination (0, comb, solution))
    {
@@ -667,12 +683,17 @@ bool C15unfolder::find_alternative_kpartial (const Config &c, const Disset &d, C
    // unjustified events in D are all enabled in C, none of them is in cex(C).
 
    unsigned i;
+   static unsigned hack_count = 0;
    std::vector<std::vector<Event *>> comb;
+   std::vector<std::vector<Event *>> comb2;
    std::vector<Event*> solution;
+   std::vector<Event*> solution2;
 
    DEBUG_ ("c15u: alt: kpartial: k %u c %s d.unjust [",
          kpartial_bound, c.str().c_str());
+#ifdef VERB_LEVEL_DEBUG
    for (auto e : d.unjustified)  DEBUG_("%p ", e);
+#endif
    DEBUG ("\b]");
 
    // build the spikes of the comb
@@ -699,6 +720,16 @@ bool C15unfolder::find_alternative_kpartial (const Config &c, const Disset &d, C
       if (spike.empty()) return false;
    }
 
+   // report statistics
+   counters.altcalls++;
+   if (comb.size() > counters.max_unjust_when_alt_call)
+      counters.max_unjust_when_alt_call = comb.size();
+   counters.avg_unjust_when_alt_call += comb.size();
+
+   // FIXME - HACK to overcome the problem with the lack of sleeping processes
+   // in steroids
+   comb2 = comb;
+
    // bound the comb to k spikes; there is many other ways to select the
    // interesting spikes much more intelling than this plain truncation ...
    ASSERT (kpartial_bound >= 1);
@@ -709,6 +740,15 @@ bool C15unfolder::find_alternative_kpartial (const Config &c, const Disset &d, C
 
    if (enumerate_combination (0, comb, solution))
    {
+      // HACK
+      if (enumerate_combination (0, comb2, solution2))
+      {
+         hack_count++;
+         TRACE ("c15u: alt: kpartial: warning: overriding unoptimal comb "
+               "solution with optimal one (count %u)", hack_count);
+         solution = solution2;
+      }
+
       j.clear();
       for (auto e : solution) j.maxhull (e);
       return true;

@@ -18,6 +18,7 @@ std::string inpath;
 std::vector<const char *> argv;
 unsigned kbound;
 C15unfolder::Alt_algorithm alt_algo;
+std::string dotpath;
 
 void parse (int argc, char **argv_)
 {
@@ -31,6 +32,7 @@ void parse (int argc, char **argv_)
 			{"devel", no_argument, nullptr, 'd'},
 			{"alt", required_argument, nullptr, 'a'},
 			{"arg0", required_argument, nullptr, '0'},
+			{"dot", required_argument, nullptr, 'D'},
 			{0, 0, 0, 0}};
 
    // default options
@@ -38,7 +40,9 @@ void parse (int argc, char **argv_)
    development = false;
 	verbosity = VERB_PRINT;
    inpath = "";
-   alt_algo = C15unfolder::Alt_algorithm::ONLYLAST;
+   dotpath = "";
+   alt_algo = C15unfolder::Alt_algorithm::KPARTIAL;
+   kbound = 1;
 
 	// parse the command line, supress automatic error messages by getopt
 	opterr = 0;
@@ -57,12 +61,19 @@ void parse (int argc, char **argv_)
          if (i < 0) usage();
          switch (i) {
          case 0 : alt_algo = C15unfolder::Alt_algorithm::OPTIMAL; break;
-         case 1 : alt_algo = C15unfolder::Alt_algorithm::ONLYLAST; break;
+         case 1 :
+            //alt_algo = C15unfolder::Alt_algorithm::ONLYLAST;
+            alt_algo = C15unfolder::Alt_algorithm::KPARTIAL;
+            kbound = 1;
+            break;
          default :
             alt_algo = C15unfolder::Alt_algorithm::KPARTIAL;
             kbound = i;
             break;
          }
+         break;
+		case 'D' :
+			dotpath = optarg;
          break;
 		case 'v' :
 			if (! optarg || optarg[0] == 0) { verbosity++; break; }
@@ -98,11 +109,13 @@ void usage ()
 {
    fprintf (stderr, "Usage: %s file.{bc,ll} ANALYZEROPTS -- PROGRAMOPTS\n", progname);
    fprintf (stderr, "Where ANALYZEROPTS can be:\n");
-   fprintf (stderr, " -h, --help                shows this message\n");
-   fprintf (stderr, " -V, --version             displays version information\n");
-   fprintf (stderr, " -v, --verb=N              increments verbosity level by optional parameter N (1 to 3)\n");
-   fprintf (stderr, "     --devel               for internal use (calls internal tests)\n");
-   fprintf (stderr, " -a {0,1,K}, --alt={0,1,K} alternatives: 0 optimal, 1 only-last, K K-partial (default 1)\n");
+   fprintf (stderr, " -h,   --help            shows this message\n");
+   fprintf (stderr, " -V,   --version         displays version information\n");
+   fprintf (stderr, " -v,   --verb=N          increments verbosity level by optional parameter N (1 to 3)\n");
+   fprintf (stderr, "       --devel           for internal use (calls internal tests)\n");
+   fprintf (stderr, "       --dot=PATH        dumps DOT for full infolding into PATH\n");
+   //fprintf (stderr, " -a {0,1,K}, --alt={0,1,K} alternatives: 0 optimal, 1 only-last, K K-partial (default 1)\n");
+   fprintf (stderr, " -a K, --alt=K           alternatives: K=0 -> optimal, K>=1 -> K-partial (default 1)\n");
 
    exit (1);
 }
@@ -139,6 +152,7 @@ void dump ()
       PRINT (" alt         only-last");
       break;
    }
+   PRINT (" dot         '%s'", dotpath.c_str());
    PRINT ("== end arguments ==");
 }
 

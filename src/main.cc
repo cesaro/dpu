@@ -50,10 +50,12 @@ void print_statistics (C15unfolder &unf)
    //PRINT ("\ndpu: POR statistics:");
    PRINT ("dpu: stats: por: %lu executions", unf.counters.runs);
    PRINT ("dpu: stats: por: %lu SSBs", unf.counters.ssbs);
-   PRINT ("dpu: stats: por: %.2f average max trail size", unf.counters.avg_max_trail_size);
+   PRINT ("dpu: stats: por: %.1f average max trail size",
+         unf.counters.avg_max_trail_size);
 
-   PRINT ("\ndpu: summary: %lu max-configs, %lu SSBs, %lu events",
-      unf.counters.maxconfs, unf.counters.ssbs, events);
+   PRINT ("\ndpu: summary: %lu max-configs, %lu SSBs, %lu events, %.1f ev/trail",
+         unf.counters.maxconfs, unf.counters.ssbs, events,
+         unf.counters.avg_max_trail_size);
 }
 
 int main (int argc, char **argv)

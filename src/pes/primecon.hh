@@ -28,7 +28,7 @@ public:
    /// returns true iff (this # other)
    bool in_cfl_with (const Primecon *other) const;
 
-   /// returns true iff (this \cup c is conflict-free)
+   /// returns false iff (this \cup c is conflict-free)
    bool in_cfl_with (const Config &c) const;
 
 protected :

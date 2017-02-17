@@ -408,7 +408,7 @@ std::string C15unfolder::replay2str (std::vector<int> &replay, unsigned altidx)
    ASSERT (altidx % 2 == 0);
    for (i = 0; replay[i] != -1; i += 2)
    {
-      if (i == altidx) s += "|| ";
+      if (i == altidx) s += "** ";
       s += fmt ("%d %d; ", replay[i], replay[i+1]);
    }
    s += "-1";
@@ -419,10 +419,13 @@ void C15unfolder::compute_cex_lock (Event *e, Event **head)
 {
    // 1. let ep be the pre-proc of e
    // 2. let em be the pre-mem of e
-   // 3. if em <= ep, then return (there is no cex)
-   // 4. em = em.pre-mem.pre-mem (checking for null)
-   // 5. insert event (e.action, ep, em)
-   // 6. goto 3
+   //
+   // 3. if em <= ep, then return   // there is no cex
+   // 4. em = em.pre-em             // em is now a LOCK
+   // 5. if (em <= ep) return       // because when you fire [ep] the lock is acquired!
+   // 6. em = em.pre-mem            // em is now an UNLOCK
+   // 7. insert event (e.action, ep, em)
+   // 8. goto 3
 
    Event *ep, *em, *ee;
 
@@ -430,26 +433,27 @@ void C15unfolder::compute_cex_lock (Event *e, Event **head)
    ASSERT (e)
    ASSERT (e->action.type == ActionType::MTXLOCK);
 
-   // ep/em are the predecessors in process/memory
+   // 1,2: ep/em are the predecessors in process/memory
    ep = e->pre_proc();
    em = e->pre_other();
 
    while (1)
    {
-      // we are done if we got em <= ep (em == null means em = bottom!)
+      // 3. we are done if we got em <= ep (em == null means em = bottom!)
       if (!em or em->is_predeq_of (ep)) return;
 
-      // jump back 2 predecessors in memory; if we get null or another event in
-      // the same process, then em <= ep
+      // 4,5: jump back 1 predecessor in memory, if we got em <= ep, return
       ASSERT (em->action.type == ActionType::MTXUNLK);
       em = em->pre_other();
       ASSERT (em);
       ASSERT (em->action.type == ActionType::MTXLOCK);
-      // em should be a lock, but just in case ...
-      if (em) em = em->pre_other();
+      if (em->is_predeq_of (ep)) return;
+
+      // 6. back 1 more predecessor
+      em = em->pre_other();
       ASSERT (!em or em->action.type == ActionType::MTXUNLK);
 
-      // (action, ep, em) is a possibly new event
+      // 7. (action, ep, em) is a possibly new event
       ee = u.event (e->action, ep, em);
       DEBUG ("c15u: cex-lock:  new cex: %s", ee->str().c_str());
 

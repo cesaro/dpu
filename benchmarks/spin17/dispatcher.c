@@ -38,7 +38,7 @@
 */
 
 #define RNUM 2  // number of requests
-#define SNUM 2  // number of servers
+#define SNUM 1  // number of servers
 
 pthread_mutex_t servers[SNUM];
 pthread_mutex_t k;
@@ -53,17 +53,22 @@ int out_channel[SNUM]; // output communicatino channel
 void *pick_server(void *arg)
 {
  unsigned last_server_id = (unsigned long) arg;
+
  // printf ("pick_server: last sid %d\n", last_server_id); 
+ 
  for (int x = 0; x < SNUM; x++)
  {
  //  if (x == last_server_id || x == sid)
  //    continue;
- 
+   printf ("pick_server: before lock k\n");
    pthread_mutex_lock(&k);
+   printf ("pick_server: after lock k\n");
     sid = x; 
  //   printf ("pick_server: sid %d\n", sid);
    pthread_mutex_unlock(&k);
+   printf ("pick_server: after unlock k\n");
  }
+ printf ("pick_server: exited\n");
  return 0;
 }
 
@@ -74,6 +79,7 @@ void *server(void *arg)
 
  // locks on the server mutex
  pthread_mutex_lock(&servers[id]);
+   printf ("server: lock servers %u\n",id);
   //  printf ("server %u: works\n", id);
   // checks if it has something in 
   // the input channel and if so 
@@ -81,6 +87,7 @@ void *server(void *arg)
   if (in_channel[id] > 0)
     out_channel[id] = in_channel[id]; 
  pthread_mutex_unlock(&servers[id]);
+ printf ("server: unlock servers %u\n",id);
 
  return 0;
 }
@@ -94,8 +101,10 @@ int process_request(int req_id, int last_server_id)
  // picks a server non-deterministically
  pthread_create(&s, NULL, pick_server, (void*) (long) last_server_id);
 
+ printf ("process_request %d: after create s\n",req_id);
  // get the server chosen
  pthread_mutex_lock (&k);
+ printf ("process_request %d: lock k\n",req_id);
   idx = sid;
   // printf ("process_request: read choice from pick_server %d\n", idx);
   // if (idx == last_server_id && SNUM > 0) 
@@ -104,17 +113,22 @@ int process_request(int req_id, int last_server_id)
   // }
   // printf ("process_request: chosen server %d\n", idx);
  pthread_mutex_unlock (&k);
+ printf ("process_request %d: unlock k\n",req_id);
 
  if (SNUM > 0)
  {
   // send req to server 
   pthread_mutex_lock (&servers[idx]);
-  //  printf ("process_request: req %d sent to server %d\n", req_id, idx);
+   printf ("process_request %d: lock servers %d\n",req_id,idx);
+   // printf ("process_request: req %d sent to server %d\n", req_id, idx);
    in_channel[idx] = in_channel[idx] + 1;
   pthread_mutex_unlock (&servers[idx]);
+  printf ("process_request %d: unlock servers %d\n",req_id,idx);
  }
 
+ printf ("process_request %d: before joining s\n",req_id);
  pthread_join(s, NULL);
+ printf ("process_request %d: after joining s\n",req_id);
 
  return idx;
 }
@@ -124,7 +138,7 @@ int main()
   pthread_t idw[SNUM];
   int picked_servers[RNUM];
 
-  // printf ("== start ==\n");
+  printf ("== start ==\n");
 
   // spawn servers 
   pthread_mutex_init(&k, NULL);
@@ -143,7 +157,8 @@ int main()
     else
       picked_servers[r] = process_request(r,picked_servers[r-1]); 
   }
-
+  
+  printf ("main: before joining servers\n");
   // wait for servers to join
   for (int x = 0; x < SNUM; x++)
     pthread_join(idw[x],NULL);
@@ -174,6 +189,6 @@ int main()
   }
   
   // printf ("total number of missed %d\n", missed_req);
-  // printf ("== end ==\n");
+  printf ("== end ==\n");
   return 0;
 }

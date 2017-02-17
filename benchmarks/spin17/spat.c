@@ -32,7 +32,7 @@ void *th(void *arg)
 
  // Locks
  while (i < K && j < 4) {
-   // printf ("th %u: lock %d\n", id, i);
+   printf ("th %u: lock %d\n", id, i);
    pthread_mutex_lock(&m[i]);
    i+=j;
    j++;
@@ -42,7 +42,7 @@ void *th(void *arg)
  while (i > id) {
    j--;
    i-=j;
-   // printf ("th %u: unlock %d\n", id, i);
+   printf ("th %u: unlock %d\n", id, i);
    pthread_mutex_unlock(&m[i]);
  }
 }

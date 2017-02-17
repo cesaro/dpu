@@ -57,7 +57,11 @@ void parse (int argc, char **argv_)
          if (i < 0) usage();
          switch (i) {
          case 0 : alt_algo = C15unfolder::Alt_algorithm::OPTIMAL; break;
-         case 1 : alt_algo = C15unfolder::Alt_algorithm::ONLYLAST; break;
+         case 1 :
+            //alt_algo = C15unfolder::Alt_algorithm::ONLYLAST;
+            alt_algo = C15unfolder::Alt_algorithm::KPARTIAL;
+            kbound = 1;
+            break;
          default :
             alt_algo = C15unfolder::Alt_algorithm::KPARTIAL;
             kbound = i;
@@ -102,7 +106,8 @@ void usage ()
    fprintf (stderr, " -V, --version             displays version information\n");
    fprintf (stderr, " -v, --verb=N              increments verbosity level by optional parameter N (1 to 3)\n");
    fprintf (stderr, "     --devel               for internal use (calls internal tests)\n");
-   fprintf (stderr, " -a {0,1,K}, --alt={0,1,K} alternatives: 0 optimal, 1 only-last, K K-partial (default 1)\n");
+   //fprintf (stderr, " -a {0,1,K}, --alt={0,1,K} alternatives: 0 optimal, 1 only-last, K K-partial (default 1)\n");
+   fprintf (stderr, " -a K --alt=K alternatives: K=0 -> optimal, K>=1 -> K-partial (default 1)\n");
 
    exit (1);
 }

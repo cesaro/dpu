@@ -667,8 +667,11 @@ bool C15unfolder::find_alternative_kpartial (const Config &c, const Disset &d, C
    // unjustified events in D are all enabled in C, none of them is in cex(C).
 
    unsigned i;
+   static unsigned hack_count = 0;
    std::vector<std::vector<Event *>> comb;
+   std::vector<std::vector<Event *>> comb2;
    std::vector<Event*> solution;
+   std::vector<Event*> solution2;
 
    DEBUG_ ("c15u: alt: kpartial: k %u c %s d.unjust [",
          kpartial_bound, c.str().c_str());
@@ -699,6 +702,10 @@ bool C15unfolder::find_alternative_kpartial (const Config &c, const Disset &d, C
       if (spike.empty()) return false;
    }
 
+   // FIXME - HACK to overcome the problem with the lack of sleeping processes
+   // in steroids
+   comb2 = comb;
+
    // bound the comb to k spikes; there is many other ways to select the
    // interesting spikes much more intelling than this plain truncation ...
    ASSERT (kpartial_bound >= 1);
@@ -709,6 +716,15 @@ bool C15unfolder::find_alternative_kpartial (const Config &c, const Disset &d, C
 
    if (enumerate_combination (0, comb, solution))
    {
+      // HACK
+      if (enumerate_combination (0, comb2, solution2))
+      {
+         hack_count++;
+         TRACE ("c15u: alt: kpartial: warning: overriding unoptimal comb "
+               "solution with optimal one (count %u)", hack_count);
+         solution = solution2;
+      }
+
       j.clear();
       for (auto e : solution) j.maxhull (e);
       return true;

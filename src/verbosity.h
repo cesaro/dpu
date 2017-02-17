@@ -29,6 +29,18 @@ extern int verb_info;
 void verb_set (int i);
 int verb_get ();
 
+// we define macros according to the maximum level of information the user wants
+// to see
+#if CONFIG_MAX_VERB_LEVEL >= 3
+#define VERB_LEVEL_DEBUG
+#endif
+#if CONFIG_MAX_VERB_LEVEL >= 2
+#define VERB_LEVEL_TRACE
+#endif
+#if CONFIG_MAX_VERB_LEVEL >= 1
+#define VERB_LEVEL_INFO
+#endif
+
 // the actual primitives you should use, with and without new line
 #define DEBUG(fmt,args...)    mylog (3, fmt "\n", ##args)
 #define TRACE(fmt,args...)    mylog (2, fmt "\n", ##args)
@@ -39,6 +51,28 @@ int verb_get ();
 #define TRACE_(fmt,args...)   mylog (2, fmt, ##args)
 #define INFO_(fmt,args...)    mylog (1, fmt, ##args)
 #define PRINT_(fmt,args...)   mylog (0, fmt, ##args)
+
+// remove at compile time primitives that will never be active
+#ifndef VERB_LEVEL_DEBUG
+#undef DEBUG
+#undef DEBUG_
+#define DEBUG(fmt,args...)
+#define DEBUG_(fmt,args...)
+#endif
+
+#ifndef VERB_LEVEL_TRACE
+#undef TRACE
+#undef TRACE_
+#define TRACE(fmt,args...)
+#define TRACE_(fmt,args...)
+#endif
+
+#ifndef VERB_LEVEL_INFO
+#undef INFO
+#undef INFO_
+#define INFO(fmt,args...)
+#define INFO_(fmt,args...)
+#endif
 
 // the implementation
 static inline void mylog (int level, const char * fmt, ...)
@@ -51,16 +85,6 @@ static inline void mylog (int level, const char * fmt, ...)
    vprintf (fmt, ap);
    va_end (ap);
 }
-
-#if CONFIG_MAX_VERB_LEVEL >= 3
-#define VERB_LEVEL_DEBUG
-#endif
-#if CONFIG_MAX_VERB_LEVEL >= 2
-#define VERB_LEVEL_TRACE
-#endif
-#if CONFIG_MAX_VERB_LEVEL >= 1
-#define VERB_LEVEL_INFO
-#endif
 
 
 // more debugging primitives

@@ -2,6 +2,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <math.h>
 
 #include <cstdint>
 #include <cstring>
@@ -37,7 +38,7 @@ static void _ir_write_ll (const llvm::Module *m, const char *filename)
 
 
 C15unfolder::C15unfolder (Alt_algorithm a, unsigned kbound) :
-   counters {0, 0, 0, 0},
+   counters {0, 0, 0, 0, 0, 0, 0},
    m (nullptr),
    exec (nullptr),
    alt_algorithm (a),
@@ -210,14 +211,18 @@ void C15unfolder::explore ()
       counters.runs++;
       action_streamt s (exec->get_trace ());
       DEBUG ("c15u: explore: the stream: %s:", explore_stat (t,d).c_str());
+#ifdef VERB_LEVEL_DEBUG
       if (verb_debug) s.print ();
+#endif
       b = stream_to_events (c, s, &t, &d);
       if (!b) counters.ssbs++;
       DEBUG ("c15u: explore: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
+#ifdef VERB_LEVEL_TRACE
       if (verb_trace)
          t.dump2 (fmt ("c15u: explore: %s: ", explore_stat(t,d).c_str()).c_str());
       if (verb_debug) c.dump ();
       if (verb_debug) d.dump ();
+#endif
 
       // add conflicting extensions
       compute_cex (c, &e);
@@ -262,6 +267,14 @@ void C15unfolder::explore ()
    ASSERT (counters.ssbs == d.ssb_count);
    counters.maxconfs = counters.runs - counters.ssbs;
    counters.avg_max_trail_size /= counters.runs;
+   if (counters.altcalls != 0)
+   {
+      counters.avg_unjust_when_alt_call /= counters.altcalls;
+   }
+   else
+   {
+      counters.avg_unjust_when_alt_call = NAN;
+   }
    DEBUG ("c15u: explore: done!");
 
    ASSERT (counters.ssbs == 0 or alt_algorithm != Alt_algorithm::OPTIMAL);
@@ -533,7 +546,7 @@ bool C15unfolder::might_find_alternative (Config &c, Disset &d, Event *e)
 inline bool C15unfolder::find_alternative (const Trail &t, const Config &c, const Disset &d, Cut &j)
 {
    bool b;
-   
+
    switch (alt_algorithm) {
    case Alt_algorithm::KPARTIAL :
       b = find_alternative_kpartial (c, d, j);
@@ -547,7 +560,9 @@ inline bool C15unfolder::find_alternative (const Trail &t, const Config &c, cons
    }
 
    TRACE_ ("c15u: explore: %s: alt: [", explore_stat (t, d).c_str());
+#ifdef VERB_LEVEL_TRACE
    for (auto e : d.unjustified)  TRACE_("%u ", e->icfls().size());
+#endif
    TRACE ("\b] %s", b ? "found" : "no");
    if (b) DEBUG ("c15u: explore: %s: j: %s", explore_stat(t, d).c_str(), j.str().c_str());
    return b;
@@ -615,7 +630,9 @@ bool C15unfolder::find_alternative_optim_comb (const Config &c, const Disset &d,
    std::vector<Event*> solution;
 
    DEBUG_ ("c15u: alt: optim: c %s d.unjust [", c.str().c_str());
+#ifdef VERB_LEVEL_DEBUG
    for (auto e : d.unjustified)  DEBUG_("%p ", e);
+#endif
    DEBUG ("\b]");
 
    // build the spikes of the comb
@@ -643,16 +660,11 @@ bool C15unfolder::find_alternative_optim_comb (const Config &c, const Disset &d,
    }
    DEBUG ("c15u: alt: optim: comb: after removing D and #(C):\n%s", comb2str(comb).c_str());
 
-//   // show the comb
-//   DEBUG("COMB: %d spikes: ", comb.size());
-//      for (unsigned i = 0; i < comb.size(); i++)
-//      {
-//         DEBUG_ ("  spike %d: (#%p (len %d): ", i, d[i], comb[i].size());
-//         for (unsigned j = 0; j < comb[i].size(); j++)
-//            DEBUG_(" %p", comb[i][j]);
-//         DEBUG("");
-//      }
-//   DEBUG("END COMB");
+   // report statistics
+   counters.altcalls++;
+   if (comb.size() > counters.max_unjust_when_alt_call)
+      counters.max_unjust_when_alt_call = comb.size();
+   counters.avg_unjust_when_alt_call += comb.size();
 
    if (enumerate_combination (0, comb, solution))
    {
@@ -679,7 +691,9 @@ bool C15unfolder::find_alternative_kpartial (const Config &c, const Disset &d, C
 
    DEBUG_ ("c15u: alt: kpartial: k %u c %s d.unjust [",
          kpartial_bound, c.str().c_str());
+#ifdef VERB_LEVEL_DEBUG
    for (auto e : d.unjustified)  DEBUG_("%p ", e);
+#endif
    DEBUG ("\b]");
 
    // build the spikes of the comb
@@ -705,6 +719,12 @@ bool C15unfolder::find_alternative_kpartial (const Config &c, const Disset &d, C
       // if one spike becomes empty, there is no alternative
       if (spike.empty()) return false;
    }
+
+   // report statistics
+   counters.altcalls++;
+   if (comb.size() > counters.max_unjust_when_alt_call)
+      counters.max_unjust_when_alt_call = comb.size();
+   counters.avg_unjust_when_alt_call += comb.size();
 
    // FIXME - HACK to overcome the problem with the lack of sleeping processes
    // in steroids

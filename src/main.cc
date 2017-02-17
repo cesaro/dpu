@@ -52,6 +52,11 @@ void print_statistics (C15unfolder &unf)
    PRINT ("dpu: stats: por: %lu SSBs", unf.counters.ssbs);
    PRINT ("dpu: stats: por: %.1f average max trail size",
          unf.counters.avg_max_trail_size);
+   PRINT ("dpu: stats: por: %lu calls to Alt(C,D) -- after trivial simplification", unf.counters.altcalls);
+   PRINT ("dpu: stats: por: %lu largest |D| (unjust. only) on call to Alt(C,D) -- after trivial simplification",
+         unf.counters.max_unjust_when_alt_call);
+   PRINT ("dpu: stats: por: %.2f average |D| (unjust. only) on call to Alt(C,D) -- after trivial simplification",
+         unf.counters.avg_unjust_when_alt_call);
 
    PRINT ("\ndpu: summary: %lu max-configs, %lu SSBs, %lu events, %.1f ev/trail",
          unf.counters.maxconfs, unf.counters.ssbs, events,
@@ -99,10 +104,13 @@ int main (int argc, char **argv)
       PRINT ("dpu: finished unfolding construction");
 
       // print dot
-      PRINT ("dpu: dumping unfolding to /tmp/unf.dot");
-      std::ofstream f ("/tmp/unf.dot");
-      unf.u.print_dot (f);
-      f.close ();
+      if (opts::dotpath.size())
+      {
+         PRINT ("dpu: dumping unfolding to '%s'", opts::dotpath.c_str());
+         std::ofstream f (opts::dotpath.c_str());
+         unf.u.print_dot (f);
+         f.close ();
+      }
 
       // dump unfolding to stdout
       if (verb_debug) unf.u.dump ();

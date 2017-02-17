@@ -4,7 +4,7 @@ Cut::Cut (unsigned n) :
    nrp (n),
    max (new Event* [nrp])
 {
-   int i;
+   unsigned i;
    //DEBUG ("Cut.ctor: this %p nrp %d", this, nrp);
    ASSERT (nrp >= 1);
 
@@ -91,7 +91,7 @@ unsigned Cut::num_procs() const
 
 bool Cut::is_empty() const
 {
-   for (int i = 0; i < nrp; i++)
+   for (unsigned i = 0; i < nrp; i++)
       if (max[i] != nullptr)
          return false;
    return true;

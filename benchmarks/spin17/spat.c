@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <assert.h>
 
-#define T 6
+#define T 8
 #define K 20
 
 pthread_mutex_t m[K];
@@ -33,7 +33,7 @@ void *th(void *arg)
  // Locks
  while (i < K && j < 4) {
    pthread_mutex_lock(&m[i]);
-   printf ("t%u: lock %d\n", id, i);
+   //printf ("t%u: lock %d\n", id, i);
    i+=j;
    j++;
  }
@@ -42,7 +42,7 @@ void *th(void *arg)
  while (i > id) {
    j--;
    i-=j;
-   printf ("t%u: unlock %d\n", id, i);
+   //printf ("t%u: unlock %d\n", id, i);
    pthread_mutex_unlock(&m[i]);
  }
  return NULL;
@@ -52,7 +52,7 @@ int main()
 {
  pthread_t ids[T];
 
- printf ("== start ==\n");
+ //printf ("== start ==\n");
  for (int i = 0; i < K; i++)
  {
    pthread_mutex_init(&m[i], NULL);
@@ -67,6 +67,6 @@ int main()
  {
    pthread_join(ids[i],NULL);
  }
- printf ("== end ==\n");
+ //printf ("== end ==\n");
  return 0;
 }

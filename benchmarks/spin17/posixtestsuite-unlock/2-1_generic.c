@@ -35,14 +35,15 @@
 
 void *func(void *parm);
 
-pthread_mutex_t    mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t    mutex;// = PTHREAD_MUTEX_INITIALIZER;
 int                value;	/* value protected by mutex */
 
 int main()
 {
   	int                   i, rc;
   	pthread_t             threads[THREAD_NUM];
-
+	pthread_mutex_init( &mutex, NULL );
+	
   	/* Create threads */
   	fprintf(stderr,"Creating %d threads\n", THREAD_NUM);
   	for (i=0; i<THREAD_NUM; ++i)
@@ -83,7 +84,7 @@ void *func(void *parm)
     		tmp = value;
     		tmp = tmp+1;
     		fprintf(stderr,"Thread(0x%p) holds the mutex\n",(void*)self);
-    		usleep(1000);	  /* delay the increasement operation */
+		//    		usleep(1000);	  /* delay the increasement operation */
     		value = tmp;
 
       		rc = pthread_mutex_unlock(&mutex);
@@ -91,7 +92,7 @@ void *func(void *parm)
         		fprintf(stderr,"Error on pthread_mutex_unlock(), rc=%d\n", rc);
  			return (void*)(PTS_UNRESOLVED);
       		}
-    		sleep(1);
+		   // 		sleep(1);
   	}
   	pthread_exit(0);
   	return (void*)(0);

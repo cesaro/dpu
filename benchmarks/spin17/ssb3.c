@@ -3,8 +3,8 @@
 #include <stdio.h>
 #include <unistd.h>
 
-#define LEN 5
-#define NUM 10
+#define LEN YYYY
+#define NUM XXXX
 
 int x = 0;
 int y = 0;

@@ -37,8 +37,8 @@
  number of SSBs in nidhugg. 
 */
 
-#define RNUM 2  // number of requests
-#define SNUM 1  // number of servers
+#define RNUM XXXX  // number of requests
+#define SNUM YYYY  // number of servers
 
 pthread_mutex_t servers[SNUM];
 pthread_mutex_t k;

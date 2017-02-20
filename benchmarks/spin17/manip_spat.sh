@@ -1,8 +1,7 @@
 #!/bin/bash
 
 
-FILENAME=pth_pi_mutex_generic.c
-TERMS=131072
+FILENAME=spat.c
 EXTRACTBC=extract-bc
 DPU=${HOME}/dpu2/dist/bin/dpu
 NIDHUGG=./nidhugg.sh
@@ -21,10 +20,8 @@ function runtest {
     $WLLVM $COPTS -o generated generated.c $LIBS
     $EXTRACTBC generated
     $LLVMDIS generated.bc
-    # transform it for Nidhugg
- #   $NIDHUGG --transform=nidhugg.ll generated.ll 2&>1 | grep -v "warning" | grep -v "Warning"
 
-    LINENAME="Pi $2 & $1 & "
+    LINENAME="SPAT $2 & $1 & "
     
     # run DPU experiments
     for ALT in 0 1 2 3 ; do
@@ -54,6 +51,8 @@ function runtest {
 
 }
 
-for NT in 2 3 4 5 6 8 10 ; do 
-    runtest $NT $TERMS
+for K in 10 20 30 50 100 200 300 500 1000 ; do
+    for TH in 1 2 3 4 5 6 8; do
+	runtest $TH $K
+    done
 done

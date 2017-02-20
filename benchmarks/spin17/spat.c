@@ -2,8 +2,8 @@
 #include <stdio.h>
 #include <assert.h>
 
-#define T 8
-#define K 20
+#define T XXXX
+#define K YYYY
 
 pthread_mutex_t m[K];
 

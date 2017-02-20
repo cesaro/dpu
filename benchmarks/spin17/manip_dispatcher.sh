@@ -1,7 +1,7 @@
 #!/bin/bash
 
 
-FILENAME=pth_pi_mutex_generic.c
+FILENAME=dispatcher.c
 TERMS=131072
 EXTRACTBC=extract-bc
 DPU=${HOME}/dpu2/dist/bin/dpu
@@ -21,10 +21,8 @@ function runtest {
     $WLLVM $COPTS -o generated generated.c $LIBS
     $EXTRACTBC generated
     $LLVMDIS generated.bc
-    # transform it for Nidhugg
- #   $NIDHUGG --transform=nidhugg.ll generated.ll 2&>1 | grep -v "warning" | grep -v "Warning"
 
-    LINENAME="Pi $2 & $1 & "
+    LINENAME="Disp. & $1 & $2 & "
     
     # run DPU experiments
     for ALT in 0 1 2 3 ; do
@@ -41,19 +39,23 @@ function runtest {
 	if [ $ALT -eq 0  ] ; then
 	    # run Nihugg experiment
 	    BEGIN=`date +%s%N`
-	    $NIDHUGG -sc generated.ll > trace 2> log
+#	    $NIDHUGG -sc generated.ll > trace 2> log
 	    END=`date +%s%N`
 	    EXECTIME=`round $(($END-$BEGIN))`
 	    STAT=`grep "Trace" trace | awk '{print $3 " & " $5}'`
-	    echo -n $EXECTIME " & " $STAT
-	    echo "\\\\"
-	else
-	    echo "&&\\\\"
+#	    echo -n $EXECTIME " & " $STAT
+#	    echo "\\\\"
+#	else
 	fi
+	    echo "&&\\\\"
     done
 
 }
 
-for NT in 2 3 4 5 6 8 10 ; do 
-    runtest $NT $TERMS
+for SNUM in 1 2 3 4 5 ; do
+    for RNUM  in 2 3 4 5 ; do
+	if [ $RNUM -ge $SNUM ] ; then
+	    runtest $SNUM $RNUM
+	fi
+    done
 done

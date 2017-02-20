@@ -31,7 +31,9 @@ STIDLDFLAGS=-L ../steroid/src/
 # traditional variables
 DEFS=-D_POSIX_C_SOURCE=200809L -D__STDC_LIMIT_MACROS -D__STDC_FORMAT_MACROS 
 CFLAGS:=-Wall -std=c11 -O3
+#CFLAGS:=-Wall -std=c11 -g
 CXXFLAGS:=-Wall -std=c++11 -O3
+#CXXFLAGS:=-Wall -std=c++11 -g
 CPPFLAGS:=-I src/ $(LLVMCXXFLAGS) $(STIDCPPFLAGS)
 #LDFLAGS:=-dead_strip -static
 LDFLAGS:=$(LLVMLDFLAGS) $(STIDLDFLAGS)
@@ -78,12 +80,12 @@ SVGS=$(DOTS:.dot=.svg)
 %.d : %.c
 	@echo "DEP $<"
 	@set -e; $(CC) -MM -MT $*.o $(CFLAGS) $(CPPFLAGS) $< | \
-	sed 's,\($*\)\.o[ :]*,\1.o \1.i $@ : ,g' > $@;
+	sed 's,\($*\)\.o[ :]*,\1.o \1.i $@ : Makefile defs.mk ,g' > $@;
 
 %.d : %.cc
 	@echo "DEP $<"
 	@set -e; $(CXX) -MM -MT $*.o $(CXXFLAGS) $(CPPFLAGS) $< | \
-	sed 's,\($*\)\.o[ :]*,\1.o \1.i $@ : ,g' > $@;
+	sed 's,\($*\)\.o[ :]*,\1.o \1.i $@ : Makefile defs.mk ,g' > $@;
 
 %.cc : %.l
 	@echo "LEX $<"

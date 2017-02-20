@@ -19,56 +19,32 @@ include defs.mk
 	
 
 ifeq ($(shell id -nu),cesar)
-all : compile run2
+all : dist run2
 else
 all : compile
 endif
 
 compile: $(TARGETS)
 
-run: compile input.ll
+run: dist
 	rm -f dot/*.dot dot/*.svg
-	./src/main --devel --verb=3 --arg0=prog input.ll -- main4
+	./dist/bin/dpu benchmarks/basic/cjlu.c -vv --dot dot/u.dot -- p main3
 	make dot
 
 run2: dist
 	rm -f dot/*.dot dot/*.svg
-	./dist/bin/dpu benchmarks/svcomp16/twostage_3_false-unreach-call.c -vvv --arg0=prog
+	./dist/bin/dpu benchmarks/basic/cjlu.c -vv --dot dot/u.dot -- p main3
 	make dot
-
-input.ll : program.ll ../steroid/rt/rt.bc
-	llvm-link-$(LLVMVERS) -S $^ -o $@
-
-
-ifeq ($(shell id -nu),cesar)
-#program.ll : benchmarks/basic/cjlu.ll
-#program.ll : benchmarks/svcomp16/twostage_3_false-unreach-call.ll
-program.ll : ssbexpr.ll
-#program.ll : /tmp/cunf3.ll
-#program.ll : benchmarks/basic/hello.ll
-else
-program.ll : ssbexpr.ll
-#program.ll : benchmarks/basic/cjlu.ll
-endif
-	opt-3.7 -S -O3 -mem2reg $< > $@
-	#opt-3.7 -S -verify $< > $@
 
 $(TARGETS) : % : %.o $(OBJS)
 	@echo "LD  $@"
 	@$(CXX) $(LDFLAGS) -o $@ $^ ../steroid/src/libsteroids.a $(LDLIBS)
     
-#$(MINISAT)/build/release/lib/libminisat.a :
-#	cd $(MINISAT); make lr
-
-prof : $(TARGETS)
-	rm gmon.out.*
-	src/main /tmp/ele4.ll_net
-
 tags : $(SRCS)
 	ctags -R --c++-kinds=+p --fields=+K --extra=+q src/ $(shell llvm-config-$(LLVMVERS) --includedir)
 
-g gdb : compile input.ll
-	gdb ./src/main
+g gdb : dist
+	./dist/bin/dpu benchmarks/basic/cjlu.c -vv --gdb -- p main3
 		
 vars :
 	@echo "CC       $(CC)"

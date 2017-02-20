@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <unistd.h>
 
-#define LEN 8
+#define LEN 5
 #define NUM 10
 
 int x = 0;
@@ -156,5 +156,6 @@ int main2 ()
 
 int main ()
 {
-   return main1 ();
+   main1 ();
+   return 0;
 }

@@ -29,7 +29,7 @@ TOP   coreutils/sort                                                            
 
 Easy to feed test data:
 - coreutils (sort) -> it has conditional variables !!! :(
-- unrar-nonfree -> C++, does not link properly :(
+- unrar-nonfree -> C++, does not link properly, has conditional variables :(
 - vorbis-tools (ogg123)
 - astrometry.net
 - rrdtool: looks quite self-contained

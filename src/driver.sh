@@ -11,6 +11,7 @@ BACKEND=$PREFIX/lib/dpu/dpu-backend
 PROGNAME=$0
 INPUT=
 ARGS=
+GDB=0
 
 usage ()
 {
@@ -48,16 +49,21 @@ main_ ()
    stopif "llvm-link"
 
    # dump .bc files, for debugging purposes
-   llvm-dis-$LLVMVERS $TMP/orig.bc -o $TMP/orig.ll
-   llvm-dis-$LLVMVERS $TMP/input.bc -o $TMP/input.ll
-
-   # FIXME -- remove this
-   rm -Rf /tmp/dot/*
+   #llvm-dis-$LLVMVERS $TMP/orig.bc -o $TMP/orig.ll
+   #llvm-dis-$LLVMVERS $TMP/input.bc -o $TMP/input.ll
 
    # run the backend analyzer
-   set -x
-   $BACKEND $TMP/input.bc $ARGS
-   #exit $?
+   echo "$BACKEND $TMP/input.bc $ARGS"
+   if test $GDB -eq 1; then
+      gdb $BACKEND \
+         -ex 'break main' \
+         -ex 'break breakme' \
+         -ex 'info break' \
+         -ex "run $TMP/input.bc $ARGS"
+   else
+      $BACKEND $TMP/input.bc $ARGS
+      exit $?
+   fi
 
    # FIXME - remote this from ehre, build svgs if we detect dot files in tmp
    #for f in /tmp/dot/*.dot; do dot -Tsvg -O $f; done
@@ -74,6 +80,7 @@ ARGS=
 for a in $@;
 do
    if test $first -eq 1; then first=0; continue; fi
+   if test $a = '--gdb'; then GDB=1; continue; fi
    ARGS="$ARGS $a"
 done
 if test "$INPUT" = "--help"; then

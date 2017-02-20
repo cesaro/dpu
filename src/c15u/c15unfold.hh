@@ -111,7 +111,6 @@ public:
    inline void __stream_match_trail
          (const action_streamt &s,
          action_stream_itt &it,
-         std::vector<unsigned> &pidmap,
          Trail &t);
 
    /// extends the replay vector with a replay sequence for the configuration c
@@ -137,6 +136,16 @@ public:
 
 private:
    std::string explore_stat (const Trail &t, const Disset &d) const;
+
+   /// maps thread numbers in steroids to DPU
+   inline unsigned &s2dpid (unsigned stidpid);
+   /// maps thread numbers in DPU to steroids
+   inline unsigned &d2spid (unsigned dpupid);
+   /// dump the pidmaps
+   void dump_pidmaps () const;
+
+   std::vector<unsigned> pidmap_s2d;
+   std::vector<unsigned> pidmap_d2s;
 };
 
 // implementation of inline methods

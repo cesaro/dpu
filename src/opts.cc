@@ -107,12 +107,13 @@ void parse (int argc, char **argv_)
 
 void usage ()
 {
-   fprintf (stderr, "Usage: %s file.{bc,ll} ANALYZEROPTS -- PROGRAMOPTS\n", progname);
+   fprintf (stderr, "Usage: %s FILE.{c,bc,ll} ANALYZEROPTS -- PROGRAMOPTS\n", progname);
    fprintf (stderr, "Where ANALYZEROPTS can be:\n");
    fprintf (stderr, " -h,   --help            shows this message\n");
    fprintf (stderr, " -V,   --version         displays version information\n");
    fprintf (stderr, " -v,   --verb=N          increments verbosity level by optional parameter N (1 to 3)\n");
    fprintf (stderr, "       --devel           for internal use (calls internal tests)\n");
+   fprintf (stderr, "       --gdb             starts a gdb session with the backend\n");
    fprintf (stderr, "       --dot=PATH        dumps DOT for full infolding into PATH\n");
    //fprintf (stderr, " -a {0,1,K}, --alt={0,1,K} alternatives: 0 optimal, 1 only-last, K K-partial (default 1)\n");
    fprintf (stderr, " -a K, --alt=K           alternatives: K=0 -> optimal, K>=1 -> K-partial (default 1)\n");

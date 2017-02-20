@@ -2,7 +2,6 @@
 void C15unfolder::__stream_match_trail
          (const action_streamt &s,
          action_stream_itt &it,
-         std::vector<unsigned> &pidmap,
          Trail &t)
 {
    // We can see the stream as a sequence of subsequences, starting either by a
@@ -62,8 +61,7 @@ void C15unfolder::__stream_match_trail
          ASSERT (t[i]->action.type == ActionType::THCREAT);
          ASSERT (t[i]->pid() == pid);
          ASSERT (t[i]->flags.crb);
-         ASSERT (it.id() < pidmap.size()); // pid in bounds
-         pidmap[it.id()] = t[i]->action.val; // update pidmap
+         ASSERT (s2dpid (it.id()) == t[i]->action.val);
          count = 0;
          break;
 
@@ -87,11 +85,9 @@ void C15unfolder::__stream_match_trail
 
       case RT_THCTXSW :
          ASSERT (t[i]->redbox.size() == count);
-         // pid in bounds
-         ASSERT (it.id() < pidmap.size());
          // map is defined
-         ASSERT (it.id() == 0 or pidmap[it.id()] != 0);
-         pid = pidmap[it.id()];
+         ASSERT (it.id() == 0 or s2dpid (it.id()) != 0);
+         pid = s2dpid(it.id());
          // if this is the first context switch (whcih we detect by looking into
          // the trail), we match a THSTART action with the trail and reset the
          // counter and 
@@ -155,7 +151,6 @@ bool C15unfolder::stream_to_events
    Event *e, *ee;
    action_stream_itt it (s.begin());
    const action_stream_itt end (s.end());
-   std::vector<unsigned> pidmap (s.get_rt()->trace.num_ths);
 
    // disset => trail
    ASSERT (!d or t);
@@ -167,6 +162,8 @@ bool C15unfolder::stream_to_events
    ASSERT (!t or !t->size() or (*t)[0]->is_bottom ());
    // non-empty stream
    ASSERT (it != end);
+   // we didn't get too many threads
+   ASSERT (s.get_rt()->trace.num_ths <= Unfolding::MAX_PROC);
 
    DEBUG ("c15u: s2e: c %s t %d", c.str().c_str(), t ? t->size() : -1);
 
@@ -185,7 +182,7 @@ bool C15unfolder::stream_to_events
       // config must not be empty
       ASSERT (! c.is_empty());
       e = t->back();
-      __stream_match_trail (s, it, pidmap, *t);
+      __stream_match_trail (s, it, *t);
    }
    else
    {
@@ -224,13 +221,12 @@ bool C15unfolder::stream_to_events
 
       case RT_THCTXSW :
          e->flags.crb = 1;
-         ASSERT (it.id() < pidmap.size()); // pid in bounds
-         ASSERT (it.id() == 0 or pidmap[it.id()] != 0); // map is defined
-         e = c[pidmap[it.id()]];
+         ASSERT (it.id() == 0 or s2dpid(it.id()) != 0); // map is defined
+         e = c[s2dpid(it.id())];
          // on first context switch to a thread we push the THSTART event
          if (!e)
          {
-            e = u.proc(pidmap[it.id()])->first_event();
+            e = u.proc(s2dpid(it.id()))->first_event();
             if (d and ! d->trail_push (e, t->size())) return false;
             if (t) t->push (e);
             c.fire (e);
@@ -239,15 +235,15 @@ bool C15unfolder::stream_to_events
 
       case RT_THCREAT :
          e->flags.crb = 1;
-         ASSERT (it.id() < pidmap.size()); // pid in bounds
-         ASSERT (it.id() >= 1 and pidmap[it.id()] == 0); // map entry undefined
+         ASSERT (it.id() >= 1);
          // creat
          e = u.event ({.type = ActionType::THCREAT}, e);
          // we create now the new process but delay inserting the THSTART event
          // into the config and the trail until the first context switch
          ee = u.event (e);
          e->action.val = ee->pid();
-         pidmap[it.id()] = ee->pid();
+         s2dpid(it.id()) = ee->pid(); // update the pid maps
+         d2spid(ee->pid()) = it.id();
          if (d and ! d->trail_push (e, t->size())) return false;
          if (t) t->push (e);
          c.fire (e);
@@ -263,10 +259,9 @@ bool C15unfolder::stream_to_events
 
       case RT_THJOIN :
          e->flags.crb = 1;
-         ASSERT (it.id() < pidmap.size()); // pid in bounds
-         ASSERT (it.id() >= 1 and pidmap[it.id()] != 0); // map is defined
-         ee = c[pidmap[it.id()]];
-         e = u.event ({.type = ActionType::THJOIN, .val = pidmap[it.id()]}, e, ee);
+         ASSERT (it.id() >= 1 and s2dpid(it.id()) != 0); // map is defined
+         ee = c[s2dpid(it.id())];
+         e = u.event ({.type = ActionType::THJOIN, .val = s2dpid(it.id())}, e, ee);
          if (d and ! d->trail_push (e, t->size())) return false;
          if (t) t->push (e);
          c.fire (e);
@@ -354,3 +349,14 @@ bool C15unfolder::stream_to_events
    return true;
 }
 
+unsigned & C15unfolder::s2dpid (unsigned stidpid)
+{
+   ASSERT (stidpid < pidmap_s2d.size());
+   return pidmap_s2d[stidpid];
+}
+
+unsigned & C15unfolder::d2spid (unsigned dpupid)
+{
+   ASSERT (dpupid < pidmap_d2s.size());
+   return pidmap_d2s[dpupid];
+}

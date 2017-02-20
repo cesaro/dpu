@@ -42,7 +42,9 @@ C15unfolder::C15unfolder (Alt_algorithm a, unsigned kbound) :
    m (nullptr),
    exec (nullptr),
    alt_algorithm (a),
-   kpartial_bound (kbound)
+   kpartial_bound (kbound),
+   pidmap_s2d (Unfolding::MAX_PROC),
+   pidmap_d2s (Unfolding::MAX_PROC)
 {
 }
 
@@ -276,7 +278,7 @@ void C15unfolder::explore ()
       counters.avg_unjust_when_alt_call = NAN;
    }
    DEBUG ("c15u: explore: done!");
-
+   if (verb_debug) dump_pidmaps ();
    ASSERT (counters.ssbs == 0 or alt_algorithm != Alt_algorithm::OPTIMAL);
 }
 
@@ -402,15 +404,29 @@ void C15unfolder::alt_to_replay (const Trail &t, const Cut &c, const Cut &j,
    // replay the trail (exacty in that order) followed by the replay of
    // J \setminus C (in any order).
 
-   unsigned i;
+   unsigned i, lim;
+   bool changed;
 
    replay.clear();
    trail_to_replay (t, replay);
-   i = replay.size();
+   lim = replay.size();
    cut_to_replay (j, c, replay);
    replay.push_back (-1);
 
-   TRACE ("c15u: explore: replay seq: %s", replay2str(replay,i).c_str());
+   TRACE ("c15u: explore: replay seq: %s", replay2str(replay,lim).c_str());
+
+   changed = false;
+   for (i = 0; replay[i] != -1; i += 2)
+   {
+      if (replay[i] != d2spid (replay[i]))
+      {
+         changed = true;
+         replay[i] = d2spid (replay[i]);
+      }
+   }
+   if (changed)
+      TRACE ("c15u: explore: replay seq: %s (translated pids)",
+            replay2str(replay,lim).c_str());
 }
 
 std::string C15unfolder::replay2str (std::vector<int> &replay, unsigned altidx)
@@ -421,6 +437,8 @@ std::string C15unfolder::replay2str (std::vector<int> &replay, unsigned altidx)
    ASSERT (altidx % 2 == 0);
    for (i = 0; replay[i] != -1; i += 2)
    {
+      ASSERT (i < replay.size());
+      ASSERT (i+1 < replay.size());
       if (i == altidx) s += "** ";
       s += fmt ("%d %d; ", replay[i], replay[i+1]);
    }
@@ -754,6 +772,31 @@ bool C15unfolder::find_alternative_kpartial (const Config &c, const Disset &d, C
       return true;
    }
    return false;
+}
+
+void C15unfolder::dump_pidmaps () const
+{
+   unsigned i;
+
+   PRINT ("== begin pidmaps =="); 
+   PRINT (" dpu -> stid");
+
+   for (i = 0; i < pidmap_d2s.size(); i++)
+   {
+      if (i and pidmap_d2s[i] == 0) break;
+      ASSERT (i >= pidmap_d2s[i]);
+      PRINT (" %3u -> %-u", i, pidmap_d2s[i]);
+   }
+   for (; i < pidmap_d2s.size(); i++) ASSERT (pidmap_d2s[i] == 0);
+   for (i = 0; i < pidmap_s2d.size(); i++)
+   {
+      if (i and pidmap_s2d[i] == 0) break;
+      ASSERT (pidmap_s2d[i] < pidmap_d2s.size());
+      ASSERT (pidmap_d2s[pidmap_s2d[i]] == i);
+   }
+   for (; i < pidmap_s2d.size(); i++) ASSERT (pidmap_s2d[i] == 0);
+
+   PRINT ("== end pidmaps =="); 
 }
 
 } // namespace dpu

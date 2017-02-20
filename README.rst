@@ -47,10 +47,10 @@ x write the driver script: c -> ll -> add runtime -> optimize -> verify
 x Trail::dump(prefix) with only replay info
 x find_alternative_optim_comb comb [1 7 30 4] prun 27 cq 130 no|found
 x test on 10 svcomp bench
-- test alt-optim()
-- make visible the SSB counter
-- optimize
-- debug printing to understand when the alt() NP-hard explosion happens
+x test alt-optim()
+x make visible the SSB counter
+x optimize
+x debug printing to understand when the alt() NP-hard explosion happens
 
 
 Huyen:
@@ -128,6 +128,13 @@ x translate e->action.val on thread creation, so that it contains the pid in the
 - We reserve a fixed capacity for the vector Disset::stack to avoid rellocations
   that break pointers in the linked lists. This could be done more nicely done.
 
+- do a simple configure script, allowing to select for debug compilation
+  (CONFIG_DEBUG, -g, no optimization) and release compilation (undef
+  CONFIG_DEBUG, -O3, low verbosity level
+
+- turn CONFIG_GUEST_MEMORY_SIZE and friends into commandline options
+
+- prepare regression tests and a Makefile goal "tests" to run them
 
 Alternatives
 ============
@@ -172,3 +179,4 @@ Dependencies
 - coreutils
 - llvm-3.7
 - steroids
+

@@ -65,6 +65,8 @@ void print_statistics (C15unfolder &unf)
 
 int main (int argc, char **argv)
 {
+   unsigned i;
+
    // parse commandline options
    opts::parse (argc, argv);
    if (verb_debug) opts::dump ();
@@ -83,7 +85,13 @@ int main (int argc, char **argv)
       // load code and set argv
       PRINT ("dpu: loading bytecode");
       unf.load_bytecode (std::string (opts::inpath));
-      PRINT ("dpu: setting argv");
+      INFO ("dpu: setting commandline arguments:");
+      INFO ("dpu: argc = %zu", opts::argv.size());
+      INFO_ ("dpu: argv = [");
+      for (i = 0; i < opts::argv.size(); i++)
+         INFO_ ("\"%s\"%s", opts::argv[i], i + 1 < opts::argv.size() ? ", " : "");
+      INFO ("]");
+
       unf.set_args (opts::argv);
 
       switch (opts::alt_algo) {

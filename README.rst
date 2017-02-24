@@ -136,6 +136,18 @@ x translate e->action.val on thread creation, so that it contains the pid in the
 
 - prepare regression tests and a Makefile goal "tests" to run them
 
+- Add an option ``-D MACRO`` to dpu
+
+- We can make the maximum number of processes dynamic (commandline option) if we
+  keep the max number of events per process static (define). To do it we
+  mallocate memory for nprocs*evperproc*sizeof(Event) with the best alignment
+  possile, using a trial and error process. If we manage to mallocate something
+  suitable for that nprocs, then we are done. Otherwise we divide nprocs by 2
+  and restart. We continue until we get it done, and inform the user if nprocs
+  have been reduced. We could even remove the commandline option and let the
+  tool start with a high nprocs and find automatically the maximum accepted on
+  the machine.
+
 Alternatives
 ============
 

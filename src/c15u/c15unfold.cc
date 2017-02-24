@@ -24,6 +24,7 @@
 #include "misc.hh"
 #include "verbosity.h"
 #include "pes/process.hh"
+#include "opts.hh"
 
 namespace dpu
 {
@@ -98,11 +99,11 @@ void C15unfolder::load_bytecode (std::string &&filepath)
    // memory
    // FIXME - make this configurable via methods of the C15unfolder
    ExecutorConfig conf;
-   conf.memsize = CONFIG_GUEST_MEMORY_SIZE;
-   conf.stacksize = CONFIG_GUEST_THREAD_STACK_SIZE;
+   conf.memsize = opts::memsize;
+   conf.defaultstacksize = opts::stacksize;
    conf.tracesize = CONFIG_GUEST_TRACE_BUFFER_SIZE;
 
-   DEBUG ("c15u: load-bytecode: creating a bytecode executor...");
+   DEBUG ("c15u: load-bytecode: setting up the bytecode executor...");
    try {
       exec = new Executor (std::move (mod), conf);
    } catch (const std::exception &e) {
@@ -112,8 +113,11 @@ void C15unfolder::load_bytecode (std::string &&filepath)
    }
    DEBUG ("c15u: load-bytecode: executor successfully created!");
 
-   TRACE ("c15u: load-bytecode: saving instrumented bytecode to /tmp/output.ll");
-   _ir_write_ll (m, "/tmp/output.ll");
+   if (opts::instpath.size())
+   {
+      TRACE ("c15u: load-bytecode: saving instrumented bytecode to %s", opts::instpath.c_str());
+      _ir_write_ll (m, opts::instpath.c_str());
+   }
 
    DEBUG ("c15u: load-bytecode: done!");
 }
@@ -199,7 +203,7 @@ void C15unfolder::explore ()
    Disset d;
    Config c (Unfolding::MAX_PROC);
    Cut j (Unfolding::MAX_PROC);
-   std::vector<int> replay {-1};
+   std::vector<int> replay;
    Event *e = nullptr;
    //int i = 0;
 
@@ -208,7 +212,6 @@ void C15unfolder::explore ()
       // explore the leftmost branch starting from our current node
       DEBUG ("c15u: explore: %s: running the system...",
             explore_stat (t, d).c_str());
-      exec->set_replay (replay.data(), replay.size());
       exec->run ();
       counters.runs++;
       action_streamt s (exec->get_trace ());
@@ -260,9 +263,10 @@ void C15unfolder::explore ()
       }
 
       // if the trail is now empty, we finished; otherwise we compute a replay
-      // and restart
+      // and pass it to steroids
       if (! t.size ()) break;
       alt_to_replay (t, c, j, replay);
+      set_replay_and_sleepset (replay, j, d);
    }
 
    // statistics
@@ -405,7 +409,6 @@ void C15unfolder::alt_to_replay (const Trail &t, const Cut &c, const Cut &j,
    // J \setminus C (in any order).
 
    unsigned i, lim;
-   bool changed;
 
    replay.clear();
    trail_to_replay (t, replay);
@@ -413,20 +416,37 @@ void C15unfolder::alt_to_replay (const Trail &t, const Cut &c, const Cut &j,
    cut_to_replay (j, c, replay);
    replay.push_back (-1);
 
-   TRACE ("c15u: explore: replay seq: %s", replay2str(replay,lim).c_str());
-
-   changed = false;
    for (i = 0; replay[i] != -1; i += 2)
-   {
       if (replay[i] != d2spid (replay[i]))
-      {
-         changed = true;
          replay[i] = d2spid (replay[i]);
+   TRACE ("c15u: explore: replay seq: %s", replay2str(replay,lim).c_str());
+}
+
+void C15unfolder::set_replay_and_sleepset (std::vector<int> &replay, const Cut &j,
+         const Disset &d)
+{
+   unsigned tid;
+
+   exec->set_replay (replay.data(), replay.size());
+
+   // no need for sleepsets if we are optimal
+   if (alt_algorithm == Alt_algorithm::OPTIMAL) return;
+
+   // otherwise we set sleeping the thread of every unjustified event in D that
+   // is still enabled at J; this assumes that J contains C
+   TRACE_ ("c15u: explore: sleep set: ");
+   exec->clear_sleepset();
+   for (auto e : d.unjustified)
+   {
+      ASSERT (e->action.type == ActionType::MTXLOCK);
+      if (! j.ex_is_cex (e))
+      {
+         tid = d2spid (e->pid());
+         exec->add_sleepset (tid, (void*) e->action.addr);
+         TRACE_ ("%u (%p); ", tid, (void*) e->action.addr);
       }
    }
-   if (changed)
-      TRACE ("c15u: explore: replay seq: %s (translated pids)",
-            replay2str(replay,lim).c_str());
+   TRACE ("");
 }
 
 std::string C15unfolder::replay2str (std::vector<int> &replay, unsigned altidx)
@@ -566,11 +586,9 @@ inline bool C15unfolder::find_alternative (const Trail &t, const Config &c, cons
    bool b;
 
    switch (alt_algorithm) {
+   case Alt_algorithm::OPTIMAL :
    case Alt_algorithm::KPARTIAL :
       b = find_alternative_kpartial (c, d, j);
-      break;
-   case Alt_algorithm::OPTIMAL :
-      b = find_alternative_optim_comb (c, d, j);
       break;
    case Alt_algorithm::ONLYLAST :
       b = find_alternative_only_last (c, d, j);
@@ -636,63 +654,6 @@ std::string comb2str (std::vector<std::vector<Event *>> &comb)
    return s;
 }
 
-bool C15unfolder::find_alternative_optim_comb (const Config &c, const Disset &d, Cut &j)
-{
-   // We do an exahustive search for alternatives to D after C, we will find one
-   // iff one exists. We use a comb that has one spike per unjustified event D.
-   // Each spike is made out of the immediate conflicts of that event in D. The
-   // unjustified events in D are all enabled in C, none of them is in cex(C).
-
-   unsigned i;
-   std::vector<std::vector<Event *>> comb;
-   std::vector<Event*> solution;
-
-   DEBUG_ ("c15u: alt: optim: c %s d.unjust [", c.str().c_str());
-#ifdef VERB_LEVEL_DEBUG
-   for (auto e : d.unjustified)  DEBUG_("%p ", e);
-#endif
-   DEBUG ("\b]");
-
-   // build the spikes of the comb
-   for (auto e : d.unjustified) comb.push_back (e->icfls());
-   if (comb.empty()) return false;
-
-   DEBUG ("c15u: alt: optim: comb: initially:\n%s", comb2str(comb).c_str());
-
-   // remove from each spike those events in D or in conflict with someone in C
-   for (auto &spike : comb)
-   {
-      i = 0;
-      while (i < spike.size())
-      {
-         if (spike[i]->flags.ind or spike[i]->in_cfl_with(c))
-         {
-            spike[i] = spike.back();
-            spike.pop_back();
-         }
-         else
-            i++;
-      }
-      // if one spike becomes empty, there is no alternative
-      if (spike.empty()) return false;
-   }
-   DEBUG ("c15u: alt: optim: comb: after removing D and #(C):\n%s", comb2str(comb).c_str());
-
-   // report statistics
-   counters.altcalls++;
-   if (comb.size() > counters.max_unjust_when_alt_call)
-      counters.max_unjust_when_alt_call = comb.size();
-   counters.avg_unjust_when_alt_call += comb.size();
-
-   if (enumerate_combination (0, comb, solution))
-   {
-      j.clear();
-      for (auto e : solution) j.maxhull (e);
-      return true;
-   }
-   return false;
-}
-
 bool C15unfolder::find_alternative_kpartial (const Config &c, const Disset &d, Cut &j)
 {
    // We do an exahustive search for alternatives to D after C, we will find one
@@ -701,16 +662,13 @@ bool C15unfolder::find_alternative_kpartial (const Config &c, const Disset &d, C
    // unjustified events in D are all enabled in C, none of them is in cex(C).
 
    unsigned i;
-   static unsigned hack_count = 0;
    std::vector<std::vector<Event *>> comb;
-   std::vector<std::vector<Event *>> comb2;
    std::vector<Event*> solution;
-   std::vector<Event*> solution2;
 
    DEBUG_ ("c15u: alt: kpartial: k %u c %s d.unjust [",
          kpartial_bound, c.str().c_str());
 #ifdef VERB_LEVEL_DEBUG
-   for (auto e : d.unjustified)  DEBUG_("%p ", e);
+   for (auto e : d.unjustified) DEBUG_("%p ", e);
 #endif
    DEBUG ("\b]");
 
@@ -744,31 +702,29 @@ bool C15unfolder::find_alternative_kpartial (const Config &c, const Disset &d, C
       counters.max_unjust_when_alt_call = comb.size();
    counters.avg_unjust_when_alt_call += comb.size();
 
-   // FIXME - HACK to overcome the problem with the lack of sleeping processes
-   // in steroids
-   comb2 = comb;
-
    // bound the comb to k spikes; there is many other ways to select the
    // interesting spikes much more intelling than this plain truncation ...
-   ASSERT (kpartial_bound >= 1);
-   if (comb.size() > kpartial_bound) comb.resize (kpartial_bound);
-
+   ASSERT (alt_algorithm == Alt_algorithm::OPTIMAL or
+         alt_algorithm == Alt_algorithm::KPARTIAL);
+   if (alt_algorithm == Alt_algorithm::KPARTIAL)
+   {
+      ASSERT (kpartial_bound >= 1);
+      if (comb.size() > kpartial_bound) comb.resize (kpartial_bound);
+   }
    DEBUG ("c15u: alt: kpartial: comb: after removing D and #(C), and bounding:\n%s",
          comb2str(comb).c_str());
 
+   // explore the comb, the combinatorial explosion could happen here
    if (enumerate_combination (0, comb, solution))
    {
-      // HACK
-      if (enumerate_combination (0, comb2, solution2))
-      {
-         hack_count++;
-         TRACE ("c15u: alt: kpartial: warning: overriding unoptimal comb "
-               "solution with optimal one (count %u)", hack_count);
-         solution = solution2;
-      }
+      // we include C in J, it doesn't hurt and it will make the calls to
+      // j.unionn() run faster; alternatively we could do j.clear(), but we need
+      // C to be in J to compute sleepsets
+      j = c;
 
-      j.clear();
-      for (auto e : solution) j.maxhull (e);
+      // we build a cut as the union of of all local configurations for events
+      // in the solution
+      for (auto e : solution) j.unionn (e);
       return true;
    }
    return false;

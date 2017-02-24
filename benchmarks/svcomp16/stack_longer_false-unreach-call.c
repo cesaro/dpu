@@ -1,4 +1,4 @@
-extern void __VERIFIER_error() __attribute__ ((__noreturn__));
+
 #include <pthread.h>
 #include <stdio.h>
 
@@ -15,7 +15,8 @@ pthread_mutex_t m;
 _Bool flag=FALSE;
 
 void error(void) 
-{   ERROR: __VERIFIER_error();  return;
+{
+  printf ("VERIFIER error\n");
 }
 
 void inc_top(void)

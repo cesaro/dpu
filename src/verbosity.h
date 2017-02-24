@@ -11,6 +11,16 @@
 extern "C" {
 #endif
 
+// clean state
+#ifdef DEBUG
+#undef DEBUG
+#undef TRACE
+#undef INFO
+#undef PRINT
+#undef BREAK
+#undef ASSERT
+#endif
+
 // the different levels of verbosity in the program
 #define VERB_DEBUG   3
 #define VERB_TRACE   2

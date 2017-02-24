@@ -127,7 +127,7 @@ void *main4_thd (void *arg)
    int ret, i;
    (void) arg;
 
-   for (i = 0; i < 5; i++)
+   for (i = 0; i < 3; i++)
    {
       // enter cs
       ret = pthread_mutex_lock (&m3);
@@ -150,10 +150,13 @@ int main4 (int argc, char ** argv)
    (void) argc;
    (void) argv;
 
+   ret = pthread_mutex_init (&m3, 0);
+   assert (ret == 0);
+
    ret = pthread_create (&th, 0, main4_thd, 0);
    assert (ret == 0);
 
-   for (i = 0; i < 10; i++)
+   for (i = 0; i < 3; i++)
    {
       // enter cs
       ret = pthread_mutex_lock (&m3);
@@ -172,6 +175,9 @@ int main4 (int argc, char ** argv)
 
 int main (int argc, char ** argv)
 {
+   if (argc <= 1)
+      return  main4 (argc, argv);
+
    assert (argc == 2);
    if (strcmp (argv[1], "main1") == 0) return main1 (argc, argv);
    if (strcmp (argv[1], "main2") == 0) return main2 (argc, argv);

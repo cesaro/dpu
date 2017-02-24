@@ -146,7 +146,8 @@ bool Event::is_pred_of (const Event *e) const
 
 bool Event::in_cfl_with (const Event *e) const
 {
-   bool b = this == e ? false : cone.in_cfl_with (&e->cone);
+   bool b;
+   b = this == e ? false : cone.in_cfl_with (&e->cone);
    //DEBUG ("Event.in_cfl_with: this %p pid %u e %p pid %u ret %d", this, pid(), e, e->pid(), b);
    return b;
 }
@@ -156,14 +157,6 @@ bool Event::in_cfl_with (const Config &c) const
    bool b = cone.in_cfl_with (c);
    //DEBUG ("Event.in_cfl_with: this %p pid %u c %p ret %d", this, pid(), &c, b);
    return b;
-}
-/// return true iff e is in conflict with one event in s, s is not empty
-bool Event:: in_cfl_with (std::vector<Event *> s)
-{
-   for (auto e: s)
-      if (in_cfl_with (e))
-         return true;
-   return false;
 }
 
 bool Event::in_icfl_with (const Event *e) const

@@ -1,5 +1,3 @@
-extern void __VERIFIER_error() __attribute__ ((__noreturn__));
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
@@ -47,7 +45,6 @@ void *funcB(void *param) {
 
     if (t2 != (t1 + 1)) {
         fprintf(stderr, "Bug found!\n");
-//ERROR:      __VERIFIER_error();
     }
 
     return NULL;
@@ -56,6 +53,7 @@ void *funcB(void *param) {
 int main(int argc, char *argv[]) {
     int i,err;
 
+#if 0
     if (argc != 1) {
         if (argc != 3) {
             fprintf(stderr, USAGE);
@@ -65,6 +63,7 @@ int main(int argc, char *argv[]) {
             sscanf(argv[2], "%d", &iRThreads);
         }
     }
+#endif
 
     data1Lock = (pthread_mutex_t *) malloc(sizeof(pthread_mutex_t));
     data2Lock = (pthread_mutex_t *) malloc(sizeof(pthread_mutex_t));

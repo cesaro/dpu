@@ -49,8 +49,12 @@ Cut::~Cut ()
 Cut & Cut::operator= (const Cut & other)
 {
    //DEBUG("Cut.op= this %p other %p", this, &other);
+   if (nrp < other.nrp)
+   {
+      delete[] max;
+      max = new Event* [other.nrp];
+   }
    nrp = other.nrp;
-   max = new Event* [nrp];
    memcpy (max, other.max, nrp * sizeof (Event*));
    return *this;
 }
@@ -60,7 +64,7 @@ Cut & Cut::operator= (Cut && other)
    //DEBUG("Cut.op= this %p other %p (move)", this, &other);
    nrp = other.nrp;
    max = other.max;
-   other.max = 0; // only suitable for destruction
+   other.max = nullptr; // only suitable for destruction
    return *this;
 }
 
@@ -96,3 +100,25 @@ bool Cut::is_empty() const
          return false;
    return true;
 }
+
+bool Cut::is_enabled (const Event *e) const
+{
+   // unimplemented
+   ASSERT (0);
+   return false;
+}
+
+bool Cut::is_extension (const Event *e) const
+{
+   // unimplemented
+   ASSERT (0);
+   return false;
+}
+
+bool Cut::is_cex (const Event *e) const
+{
+   // unimplemented
+   ASSERT (0);
+   return false;
+}
+

@@ -17,38 +17,58 @@ class Cut
 public:
    /// creates an empty cut for as much as u.num_procs processes
    Cut (const Unfolding &u);
+
    /// creates an empty cut for as much as n processes
    inline Cut (unsigned n);
+
    /// copy constructor
    inline Cut (const Cut &other);
+
    /// max of two cuts
    Cut (const Cut &c1, const Cut &c2);
+
    /// destructor
    inline ~Cut ();
 
    /// assignment operator
    inline Cut & operator= (const Cut & other);
+
    /// move-assignment operator
    inline Cut & operator= (Cut && other);
 
    /// fires an event enabled at the cut and adds it to the cut
    void fire (Event *e);
+
    /// removes an event of the cut and updates the cut with its predecessors
    void unfire (Event *e);
 
-   /// it sets max[e->pid()] to e iff e is a causal successor of the current
-   /// value of max[e->pid()]
-   void maxhull (Event *e);
+   /// updates the Cut so that it becomes the cut of the configuration
+   /// [this] \cup [e]
+   void unionn (Event *e);
 
    /// empties the configuration
    inline void clear ();
+
    /// prints the cut in stdout
    void dump () const;
+
    /// returns a human-readable description
    std::string str () const;
 
    /// returns true if the cut (configuration) is empty
    inline bool is_empty() const;
+
+   /// returns true iff event e \in en(C), where C is this Cut
+   inline bool is_enabled (const Event *e) const;
+
+   /// returns true iff event e \in ex(C), where C is this Cut
+   inline bool is_extension (const Event *e) const;
+
+   /// returns true iff event e \in cex(C), where C is this Cut
+   inline bool is_cex (const Event *e) const;
+
+   /// assumes that e is in ex(C); returns true iff e in cex(C)
+   bool ex_is_cex (const Event *e) const;
 
    /// returns the maximal event of process pid in the cut
    inline Event *operator[] (unsigned pid) const;

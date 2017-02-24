@@ -23,9 +23,8 @@ Cut::Cut (const Cut &other, Event *e) :
    fire (e);
 }
 
-
 Cut::Cut (const Cut &c1, const Cut &c2) :
-   nrp (c1.nrp > c2.nrp ? c1.nrp : c2.nrp),
+   nrp (std::max (c1.nrp, c2.nrp)),
    max (new Event* [nrp])
 {
    unsigned i;
@@ -106,7 +105,7 @@ void Cut::unfire (Event *e)
    max[e->pid()] = e->pre_proc();
 }
 
-void Cut::maxhull (Event *e)
+void Cut::unionn (Event *e)
 {
    unsigned pid, min;
    Event *ee;
@@ -185,6 +184,35 @@ void Cut::colorize (unsigned color)
    for (i = 0; i < nrp; i++)
       for (e = max[i]; e; e = e->pre_proc())
          e->color = color;
+}
+
+bool Cut::ex_is_cex (const Event *e) const
+{
+   // This method assumes that e is an extension of the configuration, and
+   // returns true iff it is in conflict with some event in the configuration.
+   // Because it is an extension, all its causes are in the configuration.
+   // So it can be in conflict only if it is a lock and the pre-mem is not the
+   // maximal event in the configuuration in the chain of lock/unlocks of the
+   // address of the pre-mem.
+
+   unsigned i;
+   const Event *em, *emm;
+
+   if (e->action.type != ActionType::MTXLOCK) return false;
+
+   // we compute the maximal lock/unlock in the configuration, the hard way
+   em = nullptr;
+   for (i = 0; i < nrp; i++)
+   {
+      if (! max[i]) continue;
+      emm = max[i]->cone.mutex_max (e->action.addr);
+      ASSERT (!em or !emm or em->action.addr == emm->action.addr);
+      if (emm and (!em or em->depth_other() < emm->depth_other())) em = emm;
+   }
+
+   // now e is in conflict with the cut iff e->pre_other is not em -- this
+   // assumes that e \in cex(C)
+   return em != e->pre_other();
 }
 
 } // namespace

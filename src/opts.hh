@@ -17,11 +17,16 @@ extern std::vector<const char *> argv;
 extern unsigned kbound;
 extern C15unfolder::Alt_algorithm alt_algo;
 extern std::string dotpath;
+extern std::string instpath;
+extern size_t memsize;
+extern size_t stacksize;
 
 
 void parse (int argc, char **argv_);
+size_t parse_size (const char *str, char default_units);
 void dump ();
-void usage ();
+void usage (int exitcode);
+void print_options ();
 void help ();
 void version ();
 

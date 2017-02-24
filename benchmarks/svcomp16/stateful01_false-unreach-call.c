@@ -1,4 +1,4 @@
-extern void __VERIFIER_error() __attribute__ ((__noreturn__));
+extern void __VERIFIER_error();
 
 #include <pthread.h>
 #include <stdio.h>
@@ -51,8 +51,7 @@ int main()
   printf ("data1 %d data2 %d\n", data1, data2);
   if (data1==16 && data2==5)
   {
-    ERROR: __VERIFIER_error();
-      ;    
+    printf ("error!\n");
   }
 
   return 0;

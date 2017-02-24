@@ -33,7 +33,7 @@ run: dist
 
 run2: dist
 	rm -f dot/*.dot dot/*.svg
-	./dist/bin/dpu benchmarks/basic/cjlu.c -vv --dot dot/u.dot -- p main3
+	./dist/bin/dpu benchmarks/basic/cjlu.c -vv --dot dot/u.dot -- p main4
 	make dot
 
 $(TARGETS) : % : %.o $(OBJS)

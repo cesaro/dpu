@@ -81,26 +81,15 @@ public:
    /// here the specific algorithm that we cal
    bool find_alternative (const Trail &t, const Config &c, const Disset &d, Cut &j);
 
-   /// implementation 1: complete, optimal, based on the comb
-   bool find_alternative_optim_comb (const Config &c, const Disset &d, Cut &j);
-
-   /// implementation 2: complete, unoptimal, searches conflict to only last event
+   /// implementation 1: complete, unoptimal, searches conflict to only last event
    bool find_alternative_only_last (const Config &c, const Disset &d, Cut &j);
 
-   /// implementation 3: complete, unoptimal, based on the comb
+   /// implementation 2: complete, optimal/unoptimal, based on the comb
    bool find_alternative_kpartial (const Config &c, const Disset &d, Cut &j);
 
-public:
-   std::vector<std::string> argv;
-   Alt_algorithm alt_algorithm;
-   unsigned kpartial_bound;
-
    /// translates the stream of actions into events, updating c, t, and d
-   inline bool stream_to_events
-         (Config &c,
-         const action_streamt &s,
-         Trail *t = nullptr,
-         Disset *d = nullptr);
+   inline bool stream_to_events (Config &c, const action_streamt &s,
+         Trail *t = nullptr, Disset *d = nullptr);
 
    /// receives a stream, an iterator to that stream, a vector mapping stream
    /// pids to our pids, and a trail; this method advances the iterator of the
@@ -108,9 +97,7 @@ public:
    /// the trail; the iterator is left pointing at one plus the (blue) action
    /// matched with the last event in the trail; it also updates the pidmap at
    /// thread-creation events
-   inline void __stream_match_trail
-         (const action_streamt &s,
-         action_stream_itt &it,
+   inline void __stream_match_trail (const action_streamt &s, action_stream_itt &it,
          Trail &t);
 
    /// extends the replay vector with a replay sequence for the configuration c
@@ -123,6 +110,9 @@ public:
    /// stores in the replay vector a suitable replay for the trail followed by
    /// J \setminus C
    void alt_to_replay (const Trail &t, const Cut &c, const Cut &j, std::vector<int> &replay);
+
+   void set_replay_and_sleepset (std::vector<int> &replay, const Cut &j,
+         const Disset &d);
 
    /// prints the replay into one string, marking the beginning of the replay of
    /// the alternative, after the replay for the trail finishes
@@ -143,6 +133,10 @@ private:
    inline unsigned &d2spid (unsigned dpupid);
    /// dump the pidmaps
    void dump_pidmaps () const;
+
+   std::vector<std::string> argv;
+   Alt_algorithm alt_algorithm;
+   unsigned kpartial_bound;
 
    std::vector<unsigned> pidmap_s2d;
    std::vector<unsigned> pidmap_d2s;

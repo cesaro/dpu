@@ -4,6 +4,7 @@
 
 #include <vector>
 #include "pes/cut.hh"
+#include "pes/action.hh"
 
 namespace dpu
 {
@@ -31,6 +32,10 @@ public:
    /// returns false iff (this \cup c is conflict-free)
    bool in_cfl_with (const Config &c) const;
 
+   /// returns the maximal lock/unlock for address a
+   const Event *mutex_max (Addr a) const;
+   Event *mutex_max (Addr a);
+
 protected :
    /// the list of maximal lock/unlock events sorted by the increasing value of
    /// the address
@@ -39,7 +44,7 @@ protected :
    void __dump_lockmax () const;
 };
 
-#include "primecon.hpp"
+#include "pes/primecon.hpp"
 
 } // namespace dpu
 #endif

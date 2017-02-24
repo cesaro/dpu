@@ -1,10 +1,15 @@
-extern void __VERIFIER_error() __attribute__ ((__noreturn__));
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
 #include <string.h>
 
-void __VERIFIER_assert(int expression) { if (!expression) { ERROR: __VERIFIER_error();}; return; }
+void __VERIFIER_myerror()
+{
+   printf ("VERIFIER error executed!!!\n");
+}
+
+void __VERIFIER_assert(int expression) { if (!expression) { ERROR: __VERIFIER_myerror();}; return; }
 
 char *v;
 pthread_mutex_t m = PTHREAD_MUTEX_INITIALIZER;
@@ -53,6 +58,7 @@ int main(void)
 {
   pthread_t t;
 
+  pthread_mutex_init (&m, 0);
   pthread_create(&t, 0, thread0, 0);
   pthread_join(t, 0);
 

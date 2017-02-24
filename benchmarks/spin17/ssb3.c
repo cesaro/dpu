@@ -27,7 +27,7 @@ void *thread1 (void *arg)
    unsigned id = (unsigned long) arg;
 
    pthread_mutex_lock (mut + id);
-   //printf ("a%d: lock\n", id);
+   //printf ("w%d: lock\n", id);
    tab[id] = 123;
    pthread_mutex_unlock (mut + id);
 

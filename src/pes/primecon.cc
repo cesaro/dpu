@@ -257,5 +257,21 @@ std::string Primecon::str () const
    return s + "]";
 }
 
+const Event *Primecon::mutex_max (Addr a) const
+{
+   // FIXME - substitute this by a binary search!
+   for (const Event *e : lockmax)
+   {
+      if (e->action.addr == a) return e;
+      if (e->action.addr > a) return 0; // because it's sorted!
+   }
+   return 0;
+}
+
+Event *Primecon::mutex_max (Addr a)
+{
+   return const_cast<Event*> (const_cast<const Primecon*>(this)->mutex_max (a));
+}
+
 } // namespace dpu
 

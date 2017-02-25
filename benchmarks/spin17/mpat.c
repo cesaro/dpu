@@ -1,7 +1,7 @@
 #include <pthread.h>
 #include <assert.h>
 
-#define K XXXX
+#define K PARAM1
 
 /*
 The left part of the unfolding:

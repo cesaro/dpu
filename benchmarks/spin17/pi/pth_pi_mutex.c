@@ -31,6 +31,15 @@
 #include <pthread.h>
 #include "timer.h"
 
+// we define THREADS and ITERS this only if PARAM1 and PARMA2 are defined
+#ifdef PARAM1
+#ifdef PARAM2
+
+#define THREADS PARAM1 // number of threads
+#define ITERS   PARAM2 // number of iterations
+
+#endif
+#endif
 
 long thread_count;
 long long n;
@@ -136,12 +145,12 @@ double Serial_pi(long long n) {
  */
 void Get_args(int argc, char* argv[]) {
 
-   thread_count = 5;
-   n = 10 * 1000;
-   printf ("WARNING: fixing thread_count %ld and n %lld\n", thread_count, n);
+#ifdef THREADS
+   thread_count = THREADS;
+   n = ITERS;
+   //printf ("WARNING: fixing thread_count %ld and n %lld\n", thread_count, n);
    // this is because nidhugg does not support commandline arguments
-
-#if 0
+#else
    if (argc != 3) Usage(argv[0]);
    thread_count = strtol(argv[1], NULL, 10);  
    if (thread_count <= 0) Usage(argv[0]);

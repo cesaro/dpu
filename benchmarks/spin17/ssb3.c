@@ -3,8 +3,8 @@
 #include <stdio.h>
 #include <unistd.h>
 
-#define LEN YYYY
-#define NUM XXXX
+#define NUM PARAM1 // number of writer threads
+#define LEN PARAM2 // length of the sequence of conflicts
 
 int x = 0;
 int y = 0;

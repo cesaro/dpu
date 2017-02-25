@@ -33,8 +33,8 @@
 */
 
 
-#define N XXXX  // NUM THREADS
-#define K YYYY  // NUM ITER
+#define N PARAM1  // NUM THREADS
+#define K PARAM2  // NUM ITER
 
 pthread_mutex_t ma[N];
 int a[N];

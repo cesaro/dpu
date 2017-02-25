@@ -5,13 +5,8 @@
 
 DPU=dpu
 
-#NIDHUGG=/usr/local/bin/nidhuggc \
-#    --nidhugg=/usr/local/bin/nidhugg \
-#    -extfun-no-race=printf \
-#    -extfun-no-race=write \
-#    -extfun-no-race=exit \
-#    -extfun-no-race=atoi
-NIDHUGG=mynidhugg
+NIDHUGG="/usr/local/bin/nidhuggc --c -sc --nidhugg=/usr/local/bin/nidhugg -extfun-no-race=printf -extfun-no-race=write -extfun-no-race=exit -extfun-no-race=atoi" 
+#NIDHUGG=mynidhugg
 
 # 1s = 1 second; 2m = 2 minutes; 3h = 3 hours
 TIMEOUT=8s
@@ -218,19 +213,19 @@ test_can_run ()
    $NIDHUGG --help
 
    echo
-   echo If see errors above this line,
+   echo If you see errors above this line,
    echo then check that you understand what you are doing.
    echo
 }
 
 main ()
 {
-   rm -Rf logs/
-   mkdir logs
+   #rm -Rf logs/
+   #mkdir logs
 
    test_can_run
-   generate_bench
-   run_dpu
+   #generate_bench
+   #run_dpu
    run_nidhugg
    dump_latex
 }

@@ -138,7 +138,7 @@ int main()
   pthread_t idw[SNUM];
   int picked_servers[RNUM];
 
-  printf ("== start ==\n");
+  //printf ("== start ==\n");
 
   // spawn servers 
   pthread_mutex_init(&k, NULL);
@@ -189,6 +189,6 @@ int main()
   }
   
   // printf ("total number of missed %d\n", missed_req);
-  printf ("== end ==\n");
+  //printf ("== end ==\n");
   return 0;
 }

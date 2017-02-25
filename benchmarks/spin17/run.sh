@@ -5,19 +5,18 @@
 
 DPU=dpu
 
-NIDHUGG=/usr/local/bin/nidhuggc \
-    --nidhugg=/usr/local/bin/nidhugg \
-    -extfun-no-race=printf \
-    -extfun-no-race=write \
-    -extfun-no-race=exit \
-    -extfun-no-race=atoi
+#NIDHUGG=/usr/local/bin/nidhuggc \
+#    --nidhugg=/usr/local/bin/nidhugg \
+#    -extfun-no-race=printf \
+#    -extfun-no-race=write \
+#    -extfun-no-race=exit \
+#    -extfun-no-race=atoi
+NIDHUGG=mynidhugg
 
 # 1s = 1 second; 2m = 2 minutes; 3h = 3 hours
-TIMEOUT=2s
+TIMEOUT=8s
 
 # ==== END CONFIGURATION VARIABLES ====
-
-
 
 
 
@@ -46,7 +45,7 @@ preprocess_family()
    for P1 in `echo $P1VALS`; do
       for P2 in `echo $P2VALS`; do
          P1_=$(echo "$P1" | sed 's/^0\+//') # remove trailing 0s
-         P2_=$(echo "$P1" | sed 's/^0\+//') # remove trailing 0s
+         P2_=$(echo "$P2" | sed 's/^0\+//') # remove trailing 0s
          CMD="$CPP -E -D PARAM1=$P1_ -D PARAM2=$P2_ $CFILE -o ${IPATH}_${P1NAME}=${P1}_${P2NAME}=${P2}.i"
          echo $CMD
          $CMD
@@ -56,13 +55,13 @@ preprocess_family()
 
 generate_bench ()
 {
-   preprocess_family dispatcher.c cpp/dispatcher   "srvs" "1 2 3 4 5 6" "reqs" "1 2 3 4"
-   preprocess_family mpat.c       cpp/mpat         "k" "`seq -w 1 20`"
-   preprocess_family poke.c       cpp/poke         "thrs" "1 2 3 4 5 6" "iters" "1 2 3 4 5 6 7 8 9"
-   preprocess_family spat.c       cpp/spat         "thrs" "1 2 3 4 5 6" "mut" "1 2 3 4 5"
-   preprocess_family ssb3.c       cpp/ssb3         "writers" "`seq -w 1 15`" "seqlen" "2 4 6 8"
-   preprocess_family ssbexp.c     cpp/ssbexp       "writers" "`seq -w 1 25`"
-   preprocess_family pi/pth_pi_mutex.c cpp/pi      "thrs" "`seq -w 1 6`" "iters" "`seq -w 1000 2000 9000`"
+   preprocess_family dispatcher.c logs/dispatcher   "srvs" "1 2 3" "reqs" "1 2 3 4 5 6"
+   preprocess_family mpat.c       logs/mpat         "k" "`seq -w 1 7`"
+   preprocess_family poke.c       logs/poke         "thrs" "1 2 3" "iters" "`seq -w 1 2 15`"
+   preprocess_family spat.c       logs/spat         "thrs" "1 2 3 4 5 6" "mut" "1 2 3 4 5"
+   preprocess_family ssb3.c       logs/ssb3         "writers" "`seq -w 1 9`" "seqlen" "2 4 6 8"
+   preprocess_family ssbexp.c     logs/ssbexp       "writers" "`seq -w 1 18`"
+   preprocess_family pi/pth_pi_mutex.c logs/pi      "thrs" "`seq -w 1 6`" "iters" "`seq -w 1000 2000 9000`"
 }
 
 round() {
@@ -71,17 +70,18 @@ round() {
 
 run_dpu ()
 {
-   for i in cpp/*.i; do
+   for i in logs/*.i; do
       N=`echo "$i" | sed s/.i$//`
       for a in -1 0 1 2; do
          LOG=${N}_dpu_alt=${a}.log
-         CMD="time timeout $TIMEOUT $DPU $i -a $a"
+         CMD="time timeout $TIMEOUT $DPU $i -a $a --mem 128M --stack 6M -v"
          echo "name      $N" > $LOG
          echo "cmd       $CMD" >> $LOG
          echo "alt       $a" >> $LOG
 
          # run the program
-         echo $CMD
+         echo "$CMD"
+         echo "> $LOG"
          BEGIN=`date +%s%N`
          $CMD > ${LOG}.stdout 2> ${LOG}.stderr
          EXITCODE=$?
@@ -94,7 +94,7 @@ run_dpu ()
             SSBS="-"
             EVENTS="-"
          elif test "$EXITCODE" != 0; then
-            if grep -q "dpu: error.*unhandled" ${LOG}.{stdout,stderr}; then
+            if grep "dpu: error.*unhandled" ${LOG}.{stdout,stderr}; then
                WALLTIME="MO"
             else
                WALLTIME="ERR"
@@ -120,7 +120,7 @@ run_dpu ()
          echo "events    $EVENTS" >> $LOG
 
          # print a summary
-         printf 'walltime=%-8s max-confs=%-4s ssbs=%-5s events=%-5s\n' $WALLTIME $MAXCONFS $SSBS $EVENTS
+         printf 'WTIME=%-8s MAXCONF=%-4s SSBS=%-5s EVENTS=%-5s\n\n' $WALLTIME $MAXCONFS $SSBS $EVENTS
 
          echo -e "\n\nstdout:" >> $LOG
          cat ${LOG}.stdout >> $LOG
@@ -134,7 +134,7 @@ run_dpu ()
 
 run_nidhugg ()
 {
-   for i in cpp/*.i; do
+   for i in logs/*.i; do
       N=`echo "$i" | sed s/.i$//`
       LOG=${N}_nidhugg.log
       CMD="time timeout $TIMEOUT $NIDHUGG $i"
@@ -142,7 +142,8 @@ run_nidhugg ()
       echo "cmd       $CMD" >> $LOG
 
       # run the program
-      echo $CMD
+      echo "$CMD"
+      echo "> $LOG"
       BEGIN=`date +%s%N`
       $CMD > ${LOG}.stdout 2> ${LOG}.stderr
       EXITCODE=$?
@@ -173,7 +174,7 @@ run_nidhugg ()
       echo "SSBs      $SSBS" >> $LOG
 
       # print a summary
-      printf 'walltime=%-8s max-confs=%-4s ssbs=%-5s\n' $WALLTIME $MAXCONFS $SSBS
+      printf 'WTIME=%-8s MAXCONF=%-4s SSBS=%-5s\n\n' $WALLTIME $MAXCONFS $SSBS
 
       echo -e "\n\nstdout:" >> $LOG
       cat ${LOG}.stdout >> $LOG
@@ -186,7 +187,7 @@ run_nidhugg ()
 
 dump_latex ()
 {
-   # in a loop, scan all .i files in cpp/
+   # in a loop, scan all .i files in logs/
    # for each .i determine the lowest K such that DPU was optimal
    # using that file determine the number of configurations and events
    # the DPU columns will be from that file
@@ -202,19 +203,39 @@ usage ()
 {
    echo "Usage:"
    echo " run.sh        Generates the benchmarks and runs dpu and nidhugg"
-   echo " run.sh gen    Generates the bemchmarks (see folder cpp/)"
+   echo " run.sh gen    Generates the bemchmarks (see folder logs/)"
    echo " run.sh run    Assumes that BLA "
+}
+
+test_can_run ()
+{
+   echo
+   echo "$DPU --help"
+   $DPU --help
+
+   echo
+   echo "$NIDHUGG --help"
+   $NIDHUGG --help
+
+   echo
+   echo If see errors above this line,
+   echo then check that you understand what you are doing.
+   echo
 }
 
 main ()
 {
-   rm -Rf cpp/
-   mkdir cpp
+   rm -Rf logs/
+   mkdir logs
 
+   test_can_run
    generate_bench
    run_dpu
    run_nidhugg
    dump_latex
 }
 
-main
+MAINLOG=mainlog.$(date -R | sed -e 's/ /_/g' -e 's/[,:+]//g').log
+
+main 2>&1 | tee $MAINLOG
+

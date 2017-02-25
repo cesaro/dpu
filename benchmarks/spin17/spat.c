@@ -2,8 +2,8 @@
 #include <stdio.h>
 #include <assert.h>
 
-#define T XXXX
-#define K YYYY
+#define T PARAM1 // number of threads
+#define K PARAM2 // number of mutexes
 
 pthread_mutex_t m[K];
 

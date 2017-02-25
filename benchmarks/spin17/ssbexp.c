@@ -3,7 +3,7 @@
 #include <assert.h>
 
 #ifndef PARAM1
-#define PARAM1 6 // default value
+#define PARAM1 10 // default value
 #endif
 
 #define K PARAM1
@@ -19,7 +19,7 @@ void *counter()
   {
     pthread_mutex_lock(&mi);
     i = x; 
-    printf ("count: i %d\n", i);
+    //printf ("count: i %d\n", i);
     pthread_mutex_unlock(&mi);
   }
   return 0;
@@ -29,7 +29,7 @@ void *wa(void *aux)
 {
   long x = (long) aux;
   pthread_mutex_lock(&ma[x]);
-  printf ("w%ld: locking\n", x);
+  //printf ("w%ld: locking\n", x);
   pthread_mutex_unlock(&ma[x]);
   return 0;
 }
@@ -41,7 +41,7 @@ int main()
   pthread_t idk;
   pthread_t idw[K];
 
-  printf ("== start ==\n");
+  //printf ("== start ==\n");
   pthread_mutex_init(&mi, NULL);
   for (x = 0; x < K; x++)
   {
@@ -52,16 +52,16 @@ int main()
 
   pthread_mutex_lock (&mi);
   idx = i;
-  printf ("m: reading %d\n", idx);
+  //printf ("m: reading %d\n", idx);
   pthread_mutex_unlock (&mi);
 
   pthread_mutex_lock (&ma[idx]);
-  printf ("m: locking %d\n", idx);
+  //printf ("m: locking %d\n", idx);
   pthread_mutex_unlock (&ma[idx]);
 
   for (x = 0; x < K; x++)
     pthread_join(idw[x],NULL);
   pthread_join(idk,NULL);
-  printf ("== end ==\n");
+  //printf ("== end ==\n");
   return 0;
 }

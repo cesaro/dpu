@@ -104,6 +104,9 @@ int main (int argc, char **argv)
       case C15unfolder::Alt_algorithm::ONLYLAST :
          PRINT ("dpu: using 'only-last' (1-partial) alternatives");
          break;
+      case C15unfolder::Alt_algorithm::SDPOR :
+         PRINT ("dpu: using 'sdpor' alternatives");
+         break;
       }
 
       // build entire unfolding

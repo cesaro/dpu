@@ -18,12 +18,12 @@
 
 
 /* see src/verbosity.h for more info */
-#define CONFIG_MAX_VERB_LEVEL 3
+#define CONFIG_MAX_VERB_LEVEL 2
 
 /* test and debug */
-#define CONFIG_DEBUG
+#undef CONFIG_DEBUG
 
-#define CONFIG_MAX_PROCESSES 24
+#define CONFIG_MAX_PROCESSES 50
 #define CONFIG_MAX_EVENTS_PER_PROCCESS 40000
 
 #define CONFIG_GUEST_DEFAULT_MEMORY_SIZE (64 << 20)

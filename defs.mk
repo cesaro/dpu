@@ -30,10 +30,10 @@ STIDLDFLAGS=-L ../steroid/src/
 
 # traditional variables
 DEFS=-D_POSIX_C_SOURCE=200809L -D__STDC_LIMIT_MACROS -D__STDC_FORMAT_MACROS 
-#CFLAGS:=-Wall -std=c11 -O3
-CFLAGS:=-Wall -std=c11 -g
-#CXXFLAGS:=-Wall -std=c++11 -O3
-CXXFLAGS:=-Wall -std=c++11 -g
+CFLAGS:=-Wall -std=c11 -O3
+#CFLAGS:=-Wall -std=c11 -g
+CXXFLAGS:=-Wall -std=c++11 -O3
+#CXXFLAGS:=-Wall -std=c++11 -g
 CPPFLAGS:=-I src/ $(LLVMCXXFLAGS) $(STIDCPPFLAGS)
 #LDFLAGS:=-dead_strip -static
 LDFLAGS:=$(LLVMLDFLAGS) $(STIDLDFLAGS)

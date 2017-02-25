@@ -22,7 +22,7 @@ namespace dpu
 class C15unfolder
 {
 public:
-   typedef enum { ONLYLAST, KPARTIAL, OPTIMAL } Alt_algorithm;
+   typedef enum { SDPOR, ONLYLAST, KPARTIAL, OPTIMAL } Alt_algorithm;
 
    Unfolding u;
    struct {
@@ -79,13 +79,16 @@ public:
 
    /// finds one alternative for C after D, and stores it in J; we select from
    /// here the specific algorithm that we cal
-   bool find_alternative (const Trail &t, const Config &c, const Disset &d, Cut &j);
+   bool find_alternative (const Trail &t, Config &c, const Disset &d, Cut &j);
 
    /// implementation 1: complete, unoptimal, searches conflict to only last event
    bool find_alternative_only_last (const Config &c, const Disset &d, Cut &j);
 
    /// implementation 2: complete, optimal/unoptimal, based on the comb
    bool find_alternative_kpartial (const Config &c, const Disset &d, Cut &j);
+
+   /// implementation 2: complete, unoptimal
+   bool find_alternative_sdpor (Config &c, const Disset &d, Cut &j);
 
    /// translates the stream of actions into events, updating c, t, and d
    inline bool stream_to_events (Config &c, const action_streamt &s,

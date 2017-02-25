@@ -420,6 +420,17 @@ void C15unfolder::alt_to_replay (const Trail &t, const Cut &c, const Cut &j,
       if (replay[i] != d2spid (replay[i]))
          replay[i] = d2spid (replay[i]);
    TRACE ("c15u: explore: replay seq: %s", replay2str(replay,lim).c_str());
+
+#if 0
+   // quick and dirty way to limit alternatives to 1 event, but won't work
+   // because it introduces lack of coherence betwen the alternative and the
+   // sleeping thraeds that DPU will communicate to steroids
+   ASSERT (lim + 3 <= replay.size());
+   replay.resize (lim + 3);
+   replay[lim + 2] = -1;
+   replay[lim + 1] = 1;
+   TRACE ("c15u: explore: SDPOR replay seq: %s", replay2str(replay,lim).c_str());
+#endif
 }
 
 void C15unfolder::set_replay_and_sleepset (std::vector<int> &replay, const Cut &j,
@@ -462,6 +473,7 @@ std::string C15unfolder::replay2str (std::vector<int> &replay, unsigned altidx)
       if (i == altidx) s += "** ";
       s += fmt ("%d %d; ", replay[i], replay[i+1]);
    }
+   if (i == altidx) s += "** ";
    s += "-1";
    return s;
 }
@@ -581,7 +593,7 @@ bool C15unfolder::might_find_alternative (Config &c, Disset &d, Event *e)
    return e->action.type == ActionType::MTXLOCK;
 }
 
-inline bool C15unfolder::find_alternative (const Trail &t, const Config &c, const Disset &d, Cut &j)
+inline bool C15unfolder::find_alternative (const Trail &t, Config &c, const Disset &d, Cut &j)
 {
    bool b;
 
@@ -592,6 +604,8 @@ inline bool C15unfolder::find_alternative (const Trail &t, const Config &c, cons
       break;
    case Alt_algorithm::ONLYLAST :
       b = find_alternative_only_last (c, d, j);
+   case Alt_algorithm::SDPOR :
+      b = find_alternative_sdpor (c, d, j);
       break;
    }
 
@@ -611,6 +625,8 @@ bool C15unfolder::find_alternative_only_last (const Config &c, const Disset &d, 
    // - if you find some immediate conflict e' of e that is compatible with C (that
    //   is, e' is not in conflict with any event in proc-max(C)), then set J = [e']
    //   and return it
+   // - in fact we set J = C \cup [e'], because of the way we need to compute
+   //   the sleeping threads to pass them to steroids
    // - as an optimization to avoid some SSB executions, you could skip from the
    //   previous iteration those e' in D, as those will necessarily be blocked
    // - if you don't find any such e', return false
@@ -628,7 +644,8 @@ bool C15unfolder::find_alternative_only_last (const Config &c, const Disset &d, 
    {
       if (!ee->flags.ind and !ee->in_cfl_with (c))
       {
-         j = ee->cone;
+         j = c;
+         j.unionn (ee);
          return true;
       }
    }
@@ -728,6 +745,53 @@ bool C15unfolder::find_alternative_kpartial (const Config &c, const Disset &d, C
       return true;
    }
    return false;
+}
+
+bool C15unfolder::find_alternative_sdpor (Config &c, const Disset &d, Cut &j)
+{
+   Event * e;
+   bool b;
+   unsigned i, color;
+
+   // find alternatives for only the last event in D
+   b = find_alternative_only_last (c, d, j);
+   if (! b) return b;
+
+   // colorize all events in C
+   color = u.get_fresh_color();
+   c.colorize (color);
+
+   // scan J until we find some event in J enabled at C
+   //j.dump ();
+   //c.dump ();
+   for (i = 0; i < j.num_procs(); i++)
+   {
+      for (e = j[i]; e; e = e->pre_proc())
+      {
+         SHOW (e->str().c_str(), "s");
+         // if e is in C, then this is "too low"
+         if (e->color == color) break;
+         // skip events where the pre-proc is not in C
+         if (e->pre_proc() and e->pre_proc()->color != color) continue;
+         // skip events where the pre-other is not in C
+         if (e->pre_other() and e->pre_other()->color != color) continue;
+         // we found the right e
+         i = c.num_procs();
+         break;
+      }
+   }
+
+   // assert that e is enabled at C
+   ASSERT (e);
+   ASSERT (e->color != color);
+   ASSERT (e->pre_proc() == c.proc_max (e->pid()));
+   ASSERT (! e->pre_other() or e->pre_other()->color == color);
+   ASSERT (! e->in_cfl_with (c));
+
+   // our alternative is J := C \cup {e}
+   j = c;
+   j.unionn (e); // for fun, comment out this line ;)
+   return true;
 }
 
 void C15unfolder::dump_pidmaps () const

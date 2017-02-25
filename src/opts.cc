@@ -47,7 +47,8 @@ void parse (int argc, char **argv_)
 	verbosity = VERB_PRINT;
    inpath = "";
    dotpath = "";
-   alt_algo = C15unfolder::Alt_algorithm::KPARTIAL;
+   //alt_algo = C15unfolder::Alt_algorithm::KPARTIAL;
+   alt_algo = C15unfolder::Alt_algorithm::ONLYLAST;
    kbound = 1;
    memsize = CONFIG_GUEST_DEFAULT_MEMORY_SIZE;
    stacksize = CONFIG_GUEST_DEFAULT_THREAD_STACK_SIZE;
@@ -66,12 +67,17 @@ void parse (int argc, char **argv_)
          break;
 		case 'a' :
 			i = strtol (optarg, &endptr, 10);
-         if (i < 0) usage(1);
+         if (i < -1) usage(1);
          switch (i) {
-         case 0 : alt_algo = C15unfolder::Alt_algorithm::OPTIMAL; break;
+         case -1 :
+            alt_algo = C15unfolder::Alt_algorithm::SDPOR;
+            break;
+         case 0 :
+            alt_algo = C15unfolder::Alt_algorithm::OPTIMAL;
+            break;
          case 1 :
-            //alt_algo = C15unfolder::Alt_algorithm::ONLYLAST;
-            alt_algo = C15unfolder::Alt_algorithm::KPARTIAL;
+            //alt_algo = C15unfolder::Alt_algorithm::KPARTIAL;
+            alt_algo = C15unfolder::Alt_algorithm::ONLYLAST;
             kbound = 1;
             break;
          default :
@@ -203,6 +209,9 @@ void dump ()
       break;
    case C15unfolder::Alt_algorithm::ONLYLAST :
       PRINT (" alt            only-last");
+      break;
+   case C15unfolder::Alt_algorithm::SDPOR :
+      PRINT (" alt            sdpor");
       break;
    }
    PRINT (" dot            '%s'", dotpath.c_str());

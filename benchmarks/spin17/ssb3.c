@@ -3,6 +3,14 @@
 #include <stdio.h>
 #include <unistd.h>
 
+// default values for PARAM1 and PARAM2
+#ifndef PARAM1
+#define PARAM1 5
+#endif
+#ifndef PARAM2
+#define PARAM2 2
+#endif
+
 #define NUM PARAM1 // number of writer threads
 #define LEN PARAM2 // length of the sequence of conflicts
 
@@ -111,6 +119,8 @@ int main1 ()
    }
    pthread_create (&t3, 0, thread_wc, 0);
    pthread_create (&t2, 0, thread_rz, 0);
+
+   //pthread_exit (0);
 
    for (i = 0; i < NUM; i++)
    {

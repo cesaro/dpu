@@ -1,6 +1,11 @@
 #include <pthread.h>
 #include <assert.h>
 
+// default value
+#ifndef PARAM1
+#define PARAM1 2
+#endif
+
 #define K PARAM1
 
 /*
@@ -76,6 +81,7 @@ int main()
    pthread_create(&idr[i], NULL, ra, (void*) (long) i);
  }
 
+ //pthread_exit (0);
  for (int i = 0; i < K; i++)
  {
    pthread_join(idw[i],NULL);

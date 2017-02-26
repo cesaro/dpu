@@ -54,9 +54,10 @@ int main()
  pthread_create(&idb,  NULL, tb, NULL);
  pthread_create(&ida,  NULL, ta, NULL);
 
- pthread_join(ida,NULL);
- pthread_join(idb,NULL);
- pthread_join(idc,NULL);
+ //pthread_join(ida,NULL);
+ //pthread_join(idb,NULL);
+ //pthread_join(idc,NULL);
 
+ pthread_exit (0);
  return 0;
 }

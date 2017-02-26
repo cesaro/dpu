@@ -220,12 +220,12 @@ test_can_run ()
 
 main ()
 {
-   #rm -Rf logs/
-   #mkdir logs
+   rm -Rf logs/
+   mkdir logs
 
    test_can_run
-   #generate_bench
-   #run_dpu
+   generate_bench
+   run_dpu
    run_nidhugg
    dump_latex
 }

@@ -3,7 +3,7 @@
 
 # ==== BEGIN CONFIGURATION VARIABLES ====
 
-DPU=dpu
+DPU="/home/msousa/dpu2/dist/bin/dpu"
 
 NIDHUGG="/usr/local/bin/nidhuggc --c -sc --nidhugg=/usr/local/bin/nidhugg -extfun-no-race=printf -extfun-no-race=write -extfun-no-race=exit -extfun-no-race=atoi" 
 #NIDHUGG=mynidhugg
@@ -50,9 +50,9 @@ preprocess_family()
 
 generate_bench ()
 {
-   preprocess_family dispatcher.c logs/dispatcher   "srvs" "1 2 3" "reqs" "1 2 3 4 5 6"
+   preprocess_family dispatcher.c logs/dispatcher   "srvs" "`seq -w 1 10`" "reqs" "1 2 3 4 5 6 8 10 12 13 14"
    preprocess_family mpat.c       logs/mpat         "k" "`seq -w 1 7`"
-   preprocess_family poke.c       logs/poke         "thrs" "1 2 3" "iters" "`seq -w 1 2 15`"
+   preprocess_family poke.c       logs/poke         "thrs" "`seq -w 1 7`" "iters" "`seq -w 1 2 15`"
    preprocess_family spat.c       logs/spat         "thrs" "1 2 3 4 5 6" "mut" "1 2 3 4 5"
    preprocess_family ssb3.c       logs/ssb3         "writers" "`seq -w 1 9`" "seqlen" "2 4 6 8"
    preprocess_family ssbexp.c     logs/ssbexp       "writers" "`seq -w 1 18`"

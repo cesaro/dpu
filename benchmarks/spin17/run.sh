@@ -3,9 +3,11 @@
 
 # ==== BEGIN CONFIGURATION VARIABLES ====
 
-DPU="/home/msousa/dpu2/dist/bin/dpu"
+DPU="${HOME}/dpu2/dist/bin/dpu"
 
-NIDHUGG="/usr/local/bin/nidhuggc --c -sc --nidhugg=/usr/local/bin/nidhugg -extfun-no-race=printf -extfun-no-race=write -extfun-no-race=exit -extfun-no-race=atoi" 
+NIDHUGGBIN=`which nidhugg`
+NIDHUGGCBIN=`which nidhuggc`
+NIDHUGG="${NIDHUGGCBIN} --c -sc --nidhugg=${NIDHUGGBIN} -extfun-no-race=printf -extfun-no-race=write -extfun-no-race=exit -extfun-no-race=atoi" 
 #NIDHUGG=mynidhugg
 
 # 1s = 1 second; 2m = 2 minutes; 3h = 3 hours

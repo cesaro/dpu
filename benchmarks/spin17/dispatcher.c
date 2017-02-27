@@ -158,6 +158,9 @@ int main()
       picked_servers[r] = process_request(r,picked_servers[r-1]); 
   }
   
+  
+  //pthread_exit (0);
+
   //printf ("main: before joining servers\n");
   // wait for servers to join
   for (int x = 0; x < SNUM; x++)

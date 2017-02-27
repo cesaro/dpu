@@ -32,6 +32,14 @@
  as SSBs in nidhugg. 
 */
 
+#ifndef PARAM1
+#define PARAM1 1
+#endif
+
+#ifndef PARAM2
+#define PARAM2 1
+#endif
+
 
 #define N PARAM1  // NUM THREADS
 #define K PARAM2  // NUM ITER
@@ -143,5 +151,6 @@ int main()
  
  //printf ("main: %d threads, %d iter, %d succ pokes\n",N,K,d);
  //printf ("== end ==\n");
+ pthread_exit (0);
  return 0;
 }

@@ -18,7 +18,7 @@
 
 
 /* see src/verbosity.h for more info */
-#define CONFIG_MAX_VERB_LEVEL 2
+#define CONFIG_MAX_VERB_LEVEL 1
 
 /* test and debug */
 #undef CONFIG_DEBUG

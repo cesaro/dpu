@@ -3,6 +3,9 @@
 #include <cstdlib>
 #include <cstring>
 
+#include <execinfo.h>
+#include <signal.h>
+
 #include "c15u/c15unfold.hh" // must be before verbosity.h
 #include "verbosity.h"
 #include "test.hh"
@@ -28,6 +31,21 @@ void devel_hook ()
    exit (0);
 }
 
+void handler (int sig) {
+   void *array[10];
+   size_t size;
+
+   // get void*'s for all entries on the stack
+   size = backtrace(array, 10);
+
+   // print out all the frames to stderr
+   PRINT ("%s: error: received signal %d (SIGSEGV):\n", opts::progname, sig);
+   backtrace_symbols_fd (array, size, 0);
+   PRINT ("\n%s: aborting!", opts::progname);
+   exit(1);
+}
+
+
 void print_statistics (C15unfolder &unf)
 {
    unsigned long events;
@@ -39,7 +57,11 @@ void print_statistics (C15unfolder &unf)
 
    //PRINT ("\ndpu: unfolding statistics:");
    PRINT ("dpu: stats: unfolding: %lu max-configs", unf.counters.maxconfs);
-   PRINT ("dpu: stats: unfolding: %lu threads created", unf.u.num_procs());
+   PRINT_ ("dpu: stats: unfolding: %lu threads created", unf.u.num_procs());
+   if (unf.u.num_procs() != unf.counters.stid_threads)
+      PRINT (" (%d actual threads)", unf.counters.stid_threads);
+   else
+      PRINT ("");
    PRINT ("dpu: stats: unfolding: %lu events", events);
    for (i = 0; i < unf.u.num_procs(); i++)
    {
@@ -66,6 +88,9 @@ void print_statistics (C15unfolder &unf)
 int main (int argc, char **argv)
 {
    unsigned i;
+
+   // install signal handler for segfaults
+   signal (SIGSEGV, handler);
 
    // parse commandline options
    opts::parse (argc, argv);

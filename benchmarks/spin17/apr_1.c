@@ -99,7 +99,6 @@ typedef unsigned long int __u_quad_t;
 # 1 "/usr/include/x86_64-linux-gnu/bits/typesizes.h" 1 3 4
 # 122 "/usr/include/x86_64-linux-gnu/bits/types.h" 2 3 4
 
-
 typedef unsigned long int __dev_t;
 typedef unsigned int __uid_t;
 typedef unsigned int __gid_t;
@@ -9190,6 +9189,8 @@ struct apr_thread_mutex_t {
 # 1 "../include/apr_want.h" 1
 # 20 "./../locks/unix/thread_mutex.c" 2
 
+pthread_mutex_t l[3];
+
 
 
 static apr_status_t thread_mutex_cleanup(void *data)
@@ -13152,6 +13153,9 @@ apr_status_t apr_threadattr_guardsize_set(apr_threadattr_t *attr,
 static void *dummy_worker(void *opaque)
 {
     apr_thread_t *thread = (apr_thread_t*)opaque;
+    int tid = *(int*)(thread->data);
+    pthread_mutex_lock( &(l[tid]) );
+    pthread_mutex_unlock( &(l[tid]) );    
     return thread->func(thread, thread->data);
 }
 
@@ -13784,17 +13788,23 @@ void test_atomics_threaded_1(abts_case *tc, void *data)
     apr_status_t rv;
     int i;
 
-
-
-
-
+    for( i = 0 ; i < 3 ; i++ ) {
+      pthread_mutex_init( &(l[i]), 0 );
+    }
+    for( i = 0 ; i < 3 ; i++ ) {
+      pthread_mutex_lock( &(l[i]) );
+    }
+    
     rv = apr_thread_mutex_create(&thread_lock, 0x0, p);
     (((rv == 0) && "Could not create lock") ? (void) (0) : __assert_fail ("(rv == 0) && \"Could not create lock\"", "main1.c", 46, __PRETTY_FUNCTION__));
 
     for (i = 0; i < 3; i++) {
         apr_status_t r1;
-        r1 = apr_thread_create(&t1[i], ((void*)0), thread_func_mutex, ((void*)0), p);
+        r1 = apr_thread_create(&t1[i], ((void*)0), thread_func_mutex, ((void*)&i), p);
         ((!r1 && "Failed creating threads") ? (void) (0) : __assert_fail ("!r1 && \"Failed creating threads\"", "main1.c", 51, __PRETTY_FUNCTION__));
+    }
+    for( i = 0 ; i < 3 ; i++ ) {
+      pthread_mutex_unlock( &(l[i]) );
     }
 
     for (i = 0; i < 3; i++) {
@@ -13814,7 +13824,7 @@ void test_atomics_threaded_1(abts_case *tc, void *data)
 int main(int argc, char *argv[]){
 
   initialize();
-
+  printf( " - * _ * - * _ * INIT DONE _ * - * _ * -\n" );
   abts_case tc;
   tc.failed = 0;
   tc.suite = ((void*)0);

@@ -2,6 +2,14 @@
 #include <stdio.h>
 #include <assert.h>
 
+#ifndef PARAM1
+#define PARAM1 1
+#endif
+
+#ifndef PARAM2
+#define PARAM2 1
+#endif
+
 #define T PARAM1 // number of threads
 #define K PARAM2 // number of mutexes
 

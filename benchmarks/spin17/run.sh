@@ -17,7 +17,7 @@ elif test $(hostname) = polaris; then
    DPU=dpu
    NIDHUGG=mynidhugg
 elif test $(hostname) = poet; then
-   DPU=../../dist/bin/dpu
+   DPU="/home/msousa/dpu2/dist/bin/dpu"
    NIDHUGG="nidhuggc --c -sc -extfun-no-race=printf -extfun-no-race=write -extfun-no-race=exit -extfun-no-race=atoi"
 else
    DPU=../../dist/bin/dpu
@@ -60,26 +60,34 @@ preprocess_family()
 
 generate_bench ()
 {
-   preprocess_family ../dispatcher.c dispatcher   "serv" "1 2 3" "reqs" "1 2 3 4 5 6"
+   preprocess_family ../dispatcher.c dispatcher   "serv" "`seq -w 1 12`" "reqs" "1 2 3 4 5 6 8 10 12"
    preprocess_family ../mpat.c       mpat         "k" "`seq -w 1 7`"
    preprocess_family ../poke.c       poke         "threads" "1 2 3" "iters" "`seq -w 1 2 15`"
    preprocess_family ../spat.c       spat         "threads" "1 2 3 4 5 6" "mut" "1 2 3 4 5"
    preprocess_family ../ssb3.c       ssb3         "writers" "`seq -w 1 9`" "seqlen" "2 4 6 8"
    preprocess_family ../ssbexp.c     ssbexp       "writers" "`seq -w 1 18`"
    preprocess_family ../pi/pth_pi_mutex.c pi      "threads" "`seq -w 1 6`" "iters" "`seq -w 1000 2000 9000`"
+
+   # PROPOSAL OF MARCELO: ???
+   #preprocess_family ../dispatcher.c dispatcher   "serv" "`seq -w 1 10`" "reqs" "1 2 3 4 5 6 8 10 12 13 14"
+   #preprocess_family ../mpat.c       mpat         "k" "`seq -w 1 7`"
+   #preprocess_family ../poke.c       poke         "threads" "`seq -w 1 7`" "iters" "`seq -w 1 2 15`"
+   #preprocess_family ../spat.c       spat         "threads" "1 2 3 4 5 6" "mut" "1 2 3 4 5"
+   #preprocess_family ../ssb3.c       ssb3         "writers" "`seq -w 1 9`" "seqlen" "2 4 6 8"
+   #preprocess_family ../ssbexp.c     ssbexp       "writers" "`seq -w 1 18`"
+   #preprocess_family ../pi/pth_pi_mutex.c pi      "threads" "`seq -w 1 6`" "iters" "`seq -w 1000 2000 9000`"
 }
 
 generate_bench_smallest ()
 {
-   #preprocess_family ../dispatcher.c dispatcher   "serv" "2 3" "reqs" "3 4"
-   #preprocess_family ../mpat.c       mpat         "k" "`seq -w 2 6`"
-   #preprocess_family ../poke.c       poke         "th" "1 2 3" "iters" "`seq -w 1 2 6`"
-   #preprocess_family ../spat.c       spat         "threads" "1 2 3 4 5 6" "mut" "1 2 3 4 5"
-   #preprocess_family ../ssb3.c       ssb3         "writers" "`seq -w 1 9`" "seqlen" "2 4 6 8"
-   #preprocess_family ../ssbexp.c     ssbexp       "writers" "`seq -w 1 18`"
-   #preprocess_family ../pi/pth_pi_mutex.c pi      "threads" "`seq -w 1 3`" "iters" "`seq -w 1000 2000 9000`"
+   preprocess_family ../dispatcher.c dispatcher   "serv" "2 3" "reqs" "3 4"
+   preprocess_family ../mpat.c       mpat         "k" "`seq -w 2 6`"
+   preprocess_family ../poke.c       poke         "th" "1 2 3" "iters" "`seq -w 1 2 6`"
+   preprocess_family ../spat.c       spat         "threads" "2 3 4" "mut" "2 3"
+   preprocess_family ../ssb3.c       ssb3         "writers" "`seq -w 2 5`" "seqlen" "4 6"
+   preprocess_family ../ssbexp.c     ssbexp       "writers" "`seq -w 2 5`"
+   preprocess_family ../pi/pth_pi_mutex.c pi      "threads" "`seq -w 1 3`" "iters" "`seq -w 1000 2000 9000`"
 }
-
 
 round() {
     python -c "print '%.3f' % (float ($1) / (1000 * 1000 * 1000))"

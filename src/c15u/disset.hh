@@ -114,6 +114,13 @@ public:
    /// that were, so far, justified, or removes one event from D
    inline void trail_pop (int idx);
 
+   /// return true iff [e] intersects with the list of unjustified events in D
+   inline bool intersects_with (const Event *e) const;
+
+   /// return true iff the list of unjustified events in D intersects with the
+   /// configuration denoted by the cut c
+   inline bool intersects_with (const Cut &c) const;
+
    /// dumps debug information to stdout
    void dump () const;
 

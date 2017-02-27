@@ -31,6 +31,7 @@ public:
       long unsigned maxconfs;
       long unsigned altcalls;
       long unsigned max_unjust_when_alt_call;
+      long unsigned stid_threads;
       float avg_unjust_when_alt_call;
       float avg_max_trail_size;
    } counters;

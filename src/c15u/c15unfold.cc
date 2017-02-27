@@ -39,7 +39,7 @@ static void _ir_write_ll (const llvm::Module *m, const char *filename)
 
 
 C15unfolder::C15unfolder (Alt_algorithm a, unsigned kbound) :
-   counters {0, 0, 0, 0, 0, 0, 0},
+   counters {0, 0, 0, 0, 0, 0, 0, 0},
    m (nullptr),
    exec (nullptr),
    alt_algorithm (a),
@@ -47,6 +47,8 @@ C15unfolder::C15unfolder (Alt_algorithm a, unsigned kbound) :
    pidmap_s2d (Unfolding::MAX_PROC),
    pidmap_d2s (Unfolding::MAX_PROC)
 {
+   if (alt_algorithm == Alt_algorithm::OPTIMAL)
+      kpartial_bound = UINT_MAX;
 }
 
 C15unfolder::~C15unfolder ()
@@ -205,7 +207,7 @@ void C15unfolder::explore ()
    Cut j (Unfolding::MAX_PROC);
    std::vector<int> replay;
    Event *e = nullptr;
-   //int i = 0;
+   int i = 0;
 
    while (1)
    {
@@ -213,8 +215,10 @@ void C15unfolder::explore ()
       DEBUG ("c15u: explore: %s: running the system...",
             explore_stat (t, d).c_str());
       exec->run ();
-      counters.runs++;
       action_streamt s (exec->get_trace ());
+      counters.runs++;
+      i = s.get_rt()->trace.num_ths;
+      if (counters.stid_threads < i) counters.stid_threads = i;
       DEBUG ("c15u: explore: the stream: %s:", explore_stat (t,d).c_str());
 #ifdef VERB_LEVEL_DEBUG
       if (verb_debug) s.print ();
@@ -409,6 +413,7 @@ void C15unfolder::alt_to_replay (const Trail &t, const Cut &c, const Cut &j,
    // J \setminus C (in any order).
 
    unsigned i, lim;
+   bool changed = false;
 
    replay.clear();
    trail_to_replay (t, replay);
@@ -416,21 +421,19 @@ void C15unfolder::alt_to_replay (const Trail &t, const Cut &c, const Cut &j,
    cut_to_replay (j, c, replay);
    replay.push_back (-1);
 
+   TRACE_ ("c15u: explore: replay seq: %s", replay2str(replay,lim).c_str());
    for (i = 0; replay[i] != -1; i += 2)
+   {
       if (replay[i] != d2spid (replay[i]))
+      {
          replay[i] = d2spid (replay[i]);
-   TRACE ("c15u: explore: replay seq: %s", replay2str(replay,lim).c_str());
-
-#if 0
-   // quick and dirty way to limit alternatives to 1 event, but won't work
-   // because it introduces lack of coherence betwen the alternative and the
-   // sleeping thraeds that DPU will communicate to steroids
-   ASSERT (lim + 3 <= replay.size());
-   replay.resize (lim + 3);
-   replay[lim + 2] = -1;
-   replay[lim + 1] = 1;
-   TRACE ("c15u: explore: SDPOR replay seq: %s", replay2str(replay,lim).c_str());
-#endif
+         changed = true;
+      }
+   }
+   if (changed)
+      TRACE (" (!=)");
+   else
+      TRACE ("");
 }
 
 void C15unfolder::set_replay_and_sleepset (std::vector<int> &replay, const Cut &j,
@@ -452,9 +455,9 @@ void C15unfolder::set_replay_and_sleepset (std::vector<int> &replay, const Cut &
       ASSERT (e->action.type == ActionType::MTXLOCK);
       if (! j.ex_is_cex (e))
       {
+         TRACE_ ("t%u (%p); ", e->pid(), (void*) e->action.addr);
          tid = d2spid (e->pid());
          exec->add_sleepset (tid, (void*) e->action.addr);
-         TRACE_ ("%u (%p); ", tid, (void*) e->action.addr);
       }
    }
    TRACE ("");
@@ -604,9 +607,21 @@ inline bool C15unfolder::find_alternative (const Trail &t, Config &c, const Diss
       break;
    case Alt_algorithm::ONLYLAST :
       b = find_alternative_only_last (c, d, j);
+      break;
    case Alt_algorithm::SDPOR :
       b = find_alternative_sdpor (c, d, j);
       break;
+   }
+
+   // no alternative may intersect with d
+   if (b)
+   {
+      if (d.intersects_with (j))
+      {
+         d.dump ();
+         j.dump ();
+      }
+      ASSERT (! d.intersects_with (j));
    }
 
    TRACE_ ("c15u: explore: %s: alt: [", explore_stat (t, d).c_str());
@@ -632,17 +647,27 @@ bool C15unfolder::find_alternative_only_last (const Config &c, const Disset &d, 
    // - if you don't find any such e', return false
 
    Event * e;
+   unsigned num_unjust;
 
    // D is not empty
    ASSERT (d.unjustified.begin() != d.unjustified.end());
+
+   // statistics
+   counters.altcalls++;
+   num_unjust = 0;
+   for (auto e : d.unjustified) { (void) e; num_unjust++; } // count unjustified in D
+   if (num_unjust > counters.max_unjust_when_alt_call)
+      counters.max_unjust_when_alt_call = num_unjust;
+   counters.avg_unjust_when_alt_call += num_unjust;
 
    // last event added to D
    e = *d.unjustified.begin();
    DEBUG ("c15u: alt: only-last: c %s e %s", c.str().c_str(), e->suid().c_str());
 
+   // scan the spike of that guy
    for (Event *ee : e->icfls())
    {
-      if (!ee->flags.ind and !ee->in_cfl_with (c))
+      if (!ee->flags.ind and !ee->in_cfl_with (c) and !d.intersects_with (ee))
       {
          j = c;
          j.unionn (ee);
@@ -678,7 +703,7 @@ bool C15unfolder::find_alternative_kpartial (const Config &c, const Disset &d, C
    // Each spike is made out of the immediate conflicts of that event in D. The
    // unjustified events in D are all enabled in C, none of them is in cex(C).
 
-   unsigned i;
+   unsigned i, num_unjust;
    std::vector<std::vector<Event *>> comb;
    std::vector<Event*> solution;
 
@@ -689,19 +714,34 @@ bool C15unfolder::find_alternative_kpartial (const Config &c, const Disset &d, C
 #endif
    DEBUG ("\b]");
 
-   // build the spikes of the comb
-   for (auto e : d.unjustified) comb.push_back (e->icfls());
+   // build the spikes of the comb; there is many other ways to select the
+   // interesting spikes much more interesting than this plain truncation ...
+   ASSERT (alt_algorithm == Alt_algorithm::OPTIMAL or
+         alt_algorithm == Alt_algorithm::KPARTIAL);
+   ASSERT (alt_algorithm != Alt_algorithm::OPTIMAL or
+         kpartial_bound == UINT_MAX);
+   ASSERT (kpartial_bound >= 1);
+   num_unjust = 0;
+   for (auto e : d.unjustified)
+   {
+      if (num_unjust < kpartial_bound) comb.push_back (e->icfls());
+      num_unjust++;
+   }
    if (comb.empty()) return false;
-
    DEBUG ("c15u: alt: kpartial: comb: initially:\n%s", comb2str(comb).c_str());
 
-   // remove from each spike those events in D or in conflict with someone in C
+   // remove from each spike those events whose local configuration includes
+   // some ujustified event in D, or in conflict with someone in C; the
+   // (expensive) check "d.intersects_with" could be avoided if we are computing
+   // optimal alternatives, as those events could never make part of a solution;
+   // however, if we are computing partial alternatives, the check is
+   // unavoidable
    for (auto &spike : comb)
    {
       i = 0;
       while (i < spike.size())
       {
-         if (spike[i]->flags.ind or spike[i]->in_cfl_with(c))
+         if (spike[i]->flags.ind or spike[i]->in_cfl_with(c) or d.intersects_with (spike[i]))
          {
             spike[i] = spike.back();
             spike.pop_back();
@@ -715,19 +755,10 @@ bool C15unfolder::find_alternative_kpartial (const Config &c, const Disset &d, C
 
    // report statistics
    counters.altcalls++;
-   if (comb.size() > counters.max_unjust_when_alt_call)
-      counters.max_unjust_when_alt_call = comb.size();
-   counters.avg_unjust_when_alt_call += comb.size();
+   if (num_unjust > counters.max_unjust_when_alt_call)
+      counters.max_unjust_when_alt_call = num_unjust;
+   counters.avg_unjust_when_alt_call += num_unjust;
 
-   // bound the comb to k spikes; there is many other ways to select the
-   // interesting spikes much more intelling than this plain truncation ...
-   ASSERT (alt_algorithm == Alt_algorithm::OPTIMAL or
-         alt_algorithm == Alt_algorithm::KPARTIAL);
-   if (alt_algorithm == Alt_algorithm::KPARTIAL)
-   {
-      ASSERT (kpartial_bound >= 1);
-      if (comb.size() > kpartial_bound) comb.resize (kpartial_bound);
-   }
    DEBUG ("c15u: alt: kpartial: comb: after removing D and #(C), and bounding:\n%s",
          comb2str(comb).c_str());
 
@@ -735,8 +766,8 @@ bool C15unfolder::find_alternative_kpartial (const Config &c, const Disset &d, C
    if (enumerate_combination (0, comb, solution))
    {
       // we include C in J, it doesn't hurt and it will make the calls to
-      // j.unionn() run faster; alternatively we could do j.clear(), but we need
-      // C to be in J to compute sleepsets
+      // j.unionn() run faster; an alternative could be to do j.clear(), but we
+      // cannot do it: we need C to be in J to compute sleepsets
       j = c;
 
       // we build a cut as the union of of all local configurations for events
@@ -787,6 +818,9 @@ bool C15unfolder::find_alternative_sdpor (Config &c, const Disset &d, Cut &j)
    ASSERT (e->pre_proc() == c.proc_max (e->pid()));
    ASSERT (! e->pre_other() or e->pre_other()->color == color);
    ASSERT (! e->in_cfl_with (c));
+
+   // and that it is not in D !!
+   ASSERT (! e->flags.ind);
 
    // our alternative is J := C \cup {e}
    j = c;

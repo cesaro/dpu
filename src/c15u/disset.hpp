@@ -209,3 +209,19 @@ void Disset::trail_pop (int idx)
       top_disabler = just_isempty () ? -1 : just_peek()->disabler;
    }
 }
+
+bool Disset::intersects_with (const Event *e) const
+{
+   const Elem *el;
+   for (el = unjust; el; el = el->next)
+      if (el->e->is_predeq_of (e)) return true;
+   return false;
+}
+
+bool Disset::intersects_with (const Cut &c) const
+{
+   unsigned i;
+   for (i = 0; i < c.num_procs(); i++)
+      if (c[i] and intersects_with (c[i])) return true;
+   return false;
+}

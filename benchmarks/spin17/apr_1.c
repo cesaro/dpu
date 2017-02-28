@@ -6593,11 +6593,11 @@ apr_status_t exit_ret_val = 123;
 void * thread_func_mutex(apr_thread_t *thd, void *data)
 {
     int i;
-
+    
     for (i = 0; i < 1; i++) {
-        apr_thread_mutex_lock(thread_lock);
-        mutex_locks++;
-        apr_thread_mutex_unlock(thread_lock);
+      apr_thread_mutex_lock(thread_lock);
+      mutex_locks++;
+      apr_thread_mutex_unlock(thread_lock);
     }
     apr_thread_exit(thd, exit_ret_val);
     return ((void*)0);
@@ -6617,39 +6617,41 @@ void * thread_func_atomic(apr_thread_t *thd, void *data)
     return ((void*)0);
 }
 
+/* CAMILLE */
+#define NTHREADS 2
+pthread_mutex_t l[NTHREADS];
+
+
+
 static void test_atomics_threaded(abts_case *tc, void *data)
 {
-    apr_thread_t *t1[3];
-    apr_thread_t *t2[3];
+    apr_thread_t *t1[NTHREADS];
+    apr_thread_t *t2[NTHREADS];
     apr_status_t rv;
     int i;
-
-
-
-
 
     rv = apr_thread_mutex_create(&thread_lock, 0x0, p);
     apr_assert_success(tc, "Could not create lock", rv, 283);
 
-    for (i = 0; i < 3; i++) {
-        apr_status_t r1, r2;
-        r1 = apr_thread_create(&t1[i], ((void*)0), thread_func_mutex, ((void*)0), p);
-        r2 = apr_thread_create(&t2[i], ((void*)0), thread_func_atomic, ((void*)0), p);
-        abts_assert(tc, "Failed creating threads", !r1 && !r2, 289);;
+    for (i = 0; i < NTHREADS; i++) {
+            apr_status_t r1, r2;
+	r1 = apr_thread_create(&t1[i], ((void*)0), thread_func_mutex, ((void*)0), p);
+	r2 = apr_thread_create(&t2[i], ((void*)0), thread_func_atomic, ((void*)0), p);
+	abts_assert(tc, "Failed creating threads", !r1 && !r2, 289);;
     }
 
-    for (i = 0; i < 3; i++) {
-        apr_status_t s1, s2;
-        apr_thread_join(&s1, t1[i]);
-        apr_thread_join(&s2, t2[i]);
-
-        abts_assert(tc, "Invalid return value from thread_join", s1 == exit_ret_val && s2 == exit_ret_val, 298);;
+    for (i = 0; i < NTHREADS; i++) {
+      apr_status_t s1, s2;
+      apr_thread_join(&s1, t1[i]);
+      apr_thread_join(&s2, t2[i]);
+      
+      abts_assert(tc, "Invalid return value from thread_join", s1 == exit_ret_val && s2 == exit_ret_val, 298);;
 
     }
+    
 
-    abts_int_equal(tc, 3 * 1, mutex_locks, 301);
-    abts_int_equal(tc, 3 * 1, apr_atomic_read32(&atomic_ops), 303);
-
+    abts_int_equal(tc, NTHREADS * 1, mutex_locks, 301);
+    abts_int_equal(tc, NTHREADS * 1, apr_atomic_read32(&atomic_ops), 303);
 
     rv = apr_thread_mutex_destroy(thread_lock);
     abts_assert(tc, "Failed creating threads", rv == 0, 306);;
@@ -9189,10 +9191,6 @@ struct apr_thread_mutex_t {
 # 1 "../include/apr_want.h" 1
 # 20 "./../locks/unix/thread_mutex.c" 2
 
-pthread_mutex_t l[3];
-
-
-
 static apr_status_t thread_mutex_cleanup(void *data)
 {
     apr_thread_mutex_t *mutex = data;
@@ -11661,10 +11659,10 @@ apr_status_t apr_pool_create_ex(apr_pool_t **newpool,
     if ((pool->parent = parent) != ((void*)0)) {
 
         apr_thread_mutex_t *mutex;
-
-        if ((mutex = apr_allocator_mutex_get(parent->allocator)) != ((void*)0))
+	/* CAMILLE */
+	/*       if ((mutex = apr_allocator_mutex_get(parent->allocator)) != ((void*)0))
             apr_thread_mutex_lock(mutex);
-
+	*/
 
         if ((pool->sibling = parent->child) != ((void*)0))
             pool->sibling->ref = &pool->sibling;
@@ -11673,8 +11671,8 @@ apr_status_t apr_pool_create_ex(apr_pool_t **newpool,
         pool->ref = &parent->child;
 
 
-        if (mutex)
-            apr_thread_mutex_unlock(mutex);
+	/*        if (mutex)
+		  apr_thread_mutex_unlock(mutex);*/
 
     }
     else {
@@ -13153,9 +13151,9 @@ apr_status_t apr_threadattr_guardsize_set(apr_threadattr_t *attr,
 static void *dummy_worker(void *opaque)
 {
     apr_thread_t *thread = (apr_thread_t*)opaque;
-    int tid = *(int*)(thread->data);
+    int tid = *(int*)(thread->data); /* CAMILLE */
     pthread_mutex_lock( &(l[tid]) );
-    pthread_mutex_unlock( &(l[tid]) );    
+    pthread_mutex_unlock( &(l[tid]) ); 
     return thread->func(thread, thread->data);
 }
 
@@ -13187,12 +13185,12 @@ apr_status_t apr_thread_create(apr_thread_t **new,
         temp = &attr->attr;
     else
         temp = ((void*)0);
-
+    
     stat = apr_pool_create_ex(&(*new)->pool, pool, ((void*)0), ((void*)0));
     if (stat != 0) {
         return stat;
     }
-
+    
     if ((stat = pthread_create((*new)->td, temp, dummy_worker, (*new))) == 0) {
         return 0;
     }
@@ -13784,39 +13782,39 @@ int fprintf(FILE *stream, const char *format, ...){
 
 void test_atomics_threaded_1(abts_case *tc, void *data)
 {
-    apr_thread_t *t1[3];
+    apr_thread_t *t1[NTHREADS];
     apr_status_t rv;
     int i;
 
-    for( i = 0 ; i < 3 ; i++ ) {
+    for( i = 0 ; i < NTHREADS ; i++ ) {
       pthread_mutex_init( &(l[i]), 0 );
     }
-    for( i = 0 ; i < 3 ; i++ ) {
+    for( i = 0 ; i < NTHREADS ; i++ ) {
       pthread_mutex_lock( &(l[i]) );
     }
     
     rv = apr_thread_mutex_create(&thread_lock, 0x0, p);
     (((rv == 0) && "Could not create lock") ? (void) (0) : __assert_fail ("(rv == 0) && \"Could not create lock\"", "main1.c", 46, __PRETTY_FUNCTION__));
-
-    for (i = 0; i < 3; i++) {
-        apr_status_t r1;
-        r1 = apr_thread_create(&t1[i], ((void*)0), thread_func_mutex, ((void*)&i), p);
-        ((!r1 && "Failed creating threads") ? (void) (0) : __assert_fail ("!r1 && \"Failed creating threads\"", "main1.c", 51, __PRETTY_FUNCTION__));
+    
+    for (i = 0; i < NTHREADS; i++) {
+      apr_status_t r1;
+      r1 = apr_thread_create(&t1[i], ((void*)0), thread_func_mutex, ((void*)&i), p);
+      ((!r1 && "Failed creating threads") ? (void) (0) : __assert_fail ("!r1 && \"Failed creating threads\"", "main1.c", 51, __PRETTY_FUNCTION__));
     }
-    for( i = 0 ; i < 3 ; i++ ) {
+    for( i = 0 ; i < NTHREADS ; i++ ) {
       pthread_mutex_unlock( &(l[i]) );
     }
-
-    for (i = 0; i < 3; i++) {
-        apr_status_t s1;
-        apr_thread_join(&s1, t1[i]);
-
-        ((s1 == exit_ret_val && "Invalid return value from thread_join") ? (void) (0) : __assert_fail ("s1 == exit_ret_val && \"Invalid return value from thread_join\"", "main1.c", 59, __PRETTY_FUNCTION__));
-
+    
+    for (i = 0; i < NTHREADS; i++) {
+      apr_status_t s1;
+      apr_thread_join(&s1, t1[i]);
+      
+      ((s1 == exit_ret_val && "Invalid return value from thread_join") ? (void) (0) : __assert_fail ("s1 == exit_ret_val && \"Invalid return value from thread_join\"", "main1.c", 59, __PRETTY_FUNCTION__));
+      
     }
-
-    abts_int_equal(tc, 3 * 1, mutex_locks, 62);
-
+    
+    abts_int_equal(tc, NTHREADS * 1, mutex_locks, 62);
+    
     rv = apr_thread_mutex_destroy(thread_lock);
     ((rv == 0 && "Failed creating threads") ? (void) (0) : __assert_fail ("rv == 0 && \"Failed creating threads\"", "main1.c", 65, __PRETTY_FUNCTION__));
 }
@@ -13824,11 +13822,10 @@ void test_atomics_threaded_1(abts_case *tc, void *data)
 int main(int argc, char *argv[]){
 
   initialize();
-  printf( " - * _ * - * _ * INIT DONE _ * - * _ * -\n" );
   abts_case tc;
   tc.failed = 0;
   tc.suite = ((void*)0);
-  test_atomics_threaded_1(&tc,((void*)0));
+  test_atomics_threaded_1(&tc,((void*)0)); 
 
   return 0;
 }

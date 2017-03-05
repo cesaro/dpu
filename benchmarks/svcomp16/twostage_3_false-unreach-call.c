@@ -20,8 +20,10 @@ void *funcA(void *param) {
     data1Value = 1;
     pthread_mutex_unlock(data1Lock);
 
+   int l;
     pthread_mutex_lock(data2Lock);
     data2Value = data1Value + 1;
+    // nidhugg introduces a spurious / unnecessary race due to reading // data1Value here; check this
     pthread_mutex_unlock(data2Lock);
 
     return NULL;

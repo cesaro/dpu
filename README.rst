@@ -192,3 +192,8 @@ Dependencies
 - llvm-3.7
 - steroids
 
+
+         if echo $i | grep -q ssb3; then
+            CMD="time timeout $TIMEOUT $DPU $i -a $a --mem 128M --stack 6M -v"
+         else
+            CMD="time timeout $TIMEOUT $DPU $i -a $a --mem 128M --stack 6M -v"

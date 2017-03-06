@@ -208,7 +208,7 @@ find_and_run ()
       I=$(($I + 1))
    done
 
-   msg "\n\nDone.\n\n"
+   msg "\nDone.\n\n"
    msg "$FAIL FAIL; $PASS PASS; $SKIP SKIPPED\n"
 }
 
@@ -220,7 +220,6 @@ locate_program ()
       exit_ 1
    fi
    PROG="$(readlink -f $X)"
-   echo $PROG
 }
 
 export_variables ()

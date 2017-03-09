@@ -1,0 +1,53 @@
+# m pattern
+
+# xxx i=1 xxx
+# dpu: summary: 2 max-configs, 0 SSBs, 21 events, 14.0 ev/trail
+# xxx i=2 xxx
+# dpu: summary: 8 max-configs, 0 SSBs, 88 events, 26.0 ev/trail
+# xxx i=3 xxx
+# dpu: summary: 48 max-configs, 0 SSBs, 491 events, 38.0 ev/trail
+# xxx i=4 xxx
+# dpu: summary: 384 max-configs, 0 SSBs, 3822 events, 50.0 ev/trail
+# xxx i=5 xxx
+# dpu: summary: 3840 max-configs, 0 SSBs, 38017 events, 62.0 ev/trail
+
+# FIXME fill the conv_ev array
+conf_ev[1]="2 21"
+conf_ev[2]="8 88"
+conf_ev[2]="48 491"
+export conf_ev
+
+MAX=5
+K=$(seq 1 $MAX)
+
+for i in $K; do
+   gcc -E mpat.c -D PARAM1=$i -o input.$i.i
+done
+
+# the command to test
+cmd for i in $K; do \
+      $PROG input.$i.i -a2 -s 1M -vv > out.$i; done;
+
+# the checks to perform on the output
+echo K is -$K-
+test $EXITCODE = 0
+ls -l out*
+
+for i in $K; do \
+   echo xxx i=$i xxx; grep "dpu: stats: " out.$i; done
+
+for i in $K; do \
+   echo xxx i=$i xxx; grep "dpu: summary: " out.$i; done
+
+for i in $K; do \
+   grep "0 SSBs" out.$i; done
+
+for i in $K; do \
+   for j in $L; do \
+      grep -i " unfolding: $(($i + 4)) threads created" out.$i.$j; done; done
+
+for i in $K; do \
+   test "$(grep "dpu: summary: " out.$i | awk '{print $3, $7}')" = "${conf_ev[$i]}"; done
+
+for i in $K; do \
+   rm input.$i.i; rm out.$i; done

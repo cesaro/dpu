@@ -32,11 +32,11 @@
 #
 # compile
 # clean
+# realclean
 # vars
-# c -> o
-# cc -> o
-# pdf -> sv
-# ...
+# c -> [oi]
+# cc -> [oi]
+# dot -> {svg,pdf}
 
 .DEFAULT_GOAL := all
 .PHONY: all clean realclean compile
@@ -70,11 +70,11 @@ STIDLDFLAGS := -L $(CONFIG_STEROIDS_ROOT)/src/
 STIDLDLIBS := -lsteroids
 
 # traditional variables
-ifeq ($(CONFIG_RELEASE),debug)
+ifdef CONFIG_DEBUG
 CFLAGS = -Wall -std=c11 -g
 CXXFLAGS = -Wall -std=c++11 -g
 endif
-ifeq ($(CONFIG_RELEASE),release)
+ifdef CONFIG_RELEASE
 CFLAGS = -Wall -std=c11 -g -O3
 CXXFLAGS = -Wall -std=c++11 -O3
 endif
@@ -98,13 +98,11 @@ LINK.cc = $(CXX) $(LDFLAGS) -o $@ $^ $(LDLIBS)
 
 %.d : %.c
 	@echo "DEP $<"
-	@set -e; $(CC) -MM -MT $*.o $(CFLAGS) $(CPPFLAGS) $< | \
-	sed 's,\($*\)\.o[ :]*,\1.o \1.i $@ : $R/config.mk ,g' > $@;
+	@$(CC) -MM -MT "$*.o $*.i $@" $(CFLAGS) $(CPPFLAGS) $< -o $@
 
 %.d : %.cc
 	@echo "DEP $<"
-	@set -e; $(CXX) -MM -MT $*.o $(CXXFLAGS) $(CPPFLAGS) $< | \
-	sed 's,\($*\)\.o[ :]*,\1.o \1.i $@ : $R/config.mk ,g' > $@;
+	@$(CXX) -MM -MT "$*.o $*.i $@" $(CXXFLAGS) $(CPPFLAGS) $< -o $@
 
 %.cc : %.l
 	@echo "LEX $<"
@@ -113,6 +111,10 @@ LINK.cc = $(CXX) $(LDFLAGS) -o $@ $^ $(LDLIBS)
 %.cc : %.y
 	@echo "YAC $<"
 	@$(YACC) -o $@ $^
+
+#%.h : %.mk
+#	@echo "M2H $<"
+#	@$R/scripts/mk2h.py < $^ > $@
 
 # cancelling gnu make builtin rules for lex/yacc to c
 # http://ftp.gnu.org/old-gnu/Manuals/make-3.79.1/html_chapter/make_10.html#SEC104
@@ -201,5 +203,6 @@ realclean : clean
 
 # dependency files
 DEPS = $(patsubst %.o,%.d,$(OBJS) $(MOBJS))
+$(DEPS) : $R/config.h
 -include $(DEPS)
 

@@ -3,20 +3,54 @@
 R ?= .
 
 # compilation configuration: debug/release
-#CONFIG_RELEASE=debug
-CONFIG_RELEASE=release
+CONFIG_DEBUG = 1
+#CONFIG_RELEASE = 1
+
+# version of the tool
+CONFIG_VERSION = v0.2
 
 # folder where the tool will be installed
 CONFIG_PREFIX = ~/x/local
 
-# maximum verbosity level (make this conditional)
-CONFIG_VERBOSITY_LEVEL = 3
+# maximum verbosity level at which the tool produces output when requested to be
+# verbose with --verb=N
+ifdef CONFIG_DEBUG
+CONFIG_MAX_VERB_LEVEL = 3
+endif
+ifdef CONFIG_RELEASE
+CONFIG_MAX_VERB_LEVEL = 2
+endif
 
 # LLVM version
-CONFIG_LLVM_VER := 3.7
+CONFIG_LLVM_VER = 3.7
 
 # location of the steroids project
-CONFIG_STEROIDS_ROOT := $R/../steroid
+CONFIG_STEROIDS_ROOT = $R/../steroid
 
-# configuration parameters
-# conditional compilation of features
+# maximum number of unfolding processes
+CONFIG_MAX_PROCESSES = 50
+
+# maximum number of events per process
+CONFIG_MAX_EVENTS_PER_PROCCESS = 40000
+
+# default memoery size for guest code execution
+CONFIG_GUEST_DEFAULT_MEMORY_SIZE = $(shell echo '64 * 2^20' | bc)
+
+# default size of the stack per thread
+CONFIG_GUEST_DEFAULT_THREAD_STACK_SIZE = $(shell echo '4 * 2^20' | bc)
+
+# number of events in the communication buffer between steroids and DPU
+CONFIG_GUEST_TRACE_BUFFER_SIZE = $(shell echo '2^20' | bc)
+
+########################
+
+CONFIG_CFLAGS=$(CFLAGS)
+CONFIG_COMPILE=$(COMPILE.cc)
+CONFIG_LINK=$(LINK.cc)
+
+CONFIGVARS=$(filter CONFIG_%,$(.VARIABLES))
+export $(CONFIGVARS)
+
+$R/config.h : $R/config.mk
+	@echo "GEN $@"
+	@$R/scripts/env2h.py $(CONFIGVARS) > $@

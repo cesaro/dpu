@@ -1,5 +1,5 @@
 
-# Copyright (C) 2010-2016  Cesar Rodriguez <cesar.rodriguez@lipn.fr>
+# Copyright (C) 2010-2017  Cesar Rodriguez <cesar.rodriguez@lipn.fr>
 #
 # This program is free software: you can redistribute it and/or modify it
 # under the terms of the GNU General Public License as published by the Free
@@ -15,11 +15,14 @@
 
 .PHONY: all g test distclean realclean dist compile tags run run2 dot
 .PHONY: unittest regression
-	
-include config.mk
+
+R:=.
+SRCS:=
+MSRCS:=
+include common.mk
 
 ifeq ($(shell id -nu),cesar)
-all : dist run2
+all : dist #run2
 else
 all : dist
 endif
@@ -47,29 +50,38 @@ run2: dist
 	make u.svg
 
 tags :
-	ctags -R --c++-kinds=+p --fields=+K --extra=+q src/ $(shell llvm-config-$(LLVMVERS) --includedir)
+	ctags -R --c++-kinds=+p --fields=+K --extra=+q src/ config.h $(shell llvm-config-$(LLVMVERS) --includedir)
 
 g gdb : dist
 	./dist/bin/dpu benchmarks/basic/cjlu.c -vv --gdb -- p main3
 
 tests : unittests regression
 
-unittest :
+unittest : compile
 	make -f tests/unit/Makefile R=.
-regression :
+
+regression : dist
 	make -f tests/regression/Makefile R=.
 
 clean : clean_
-	make -f src/Makefile R=. $@
-	make -f tests/unit/Makefile R=. $@
+clean_ :
+	make -f src/Makefile R=. clean
+	make -f tests/unit/Makefile R=. clean
+	make -f tests/regression/Makefile R=. clean
+	rm -f u.dot
+	rm -f dot/*.dot
+	rm -f dot/*.png
+	rm -f dot/*.pdf
 
 distclean : realclean
-realclean :
-	@make -f src/Makefile R=. $@
-	@make -f tests/unit/Makefile R=. $@
-	@rm -f $(DEPS)
-	@rm -Rf dist/
-	@echo Mr. Proper done.
+realclean : realclean_
+realclean_ :
+	make -f src/Makefile R=. realclean
+	make -f tests/unit/Makefile R=. realclean
+	make -f tests/regression/Makefile R=. realclean
+	rm -Rf dist/
+	rm -f config.h
+	rm -f regression.log*
 
 install : dist
 	cd dist; cp -Rv * $(CONFIG_PREFIX)
@@ -82,11 +94,4 @@ dot: $(SVGS)
 
 o open :
 	(ls dot/*.svg | head -n1 | xargs eog) &
- 	     
-clean : clean_
-clean_ :
-	@rm -f u.dot
-	@rm -f dot/*.dot
-	@rm -f dot/*.png
-	@rm -f dot/*.pdf
 

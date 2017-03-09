@@ -17,3 +17,4 @@ dot/*.png
 *.pdftex_t
 tags
 benchmarks/basic/*.ll
+config.h

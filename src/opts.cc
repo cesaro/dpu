@@ -186,7 +186,17 @@ void print_options ()
 
 void version (void)
 {
-	PRINT ("v.0.1");
+	PRINT ("dpu %s %s", CONFIG_VERSION,
+#ifdef CONFIG_DEBUG
+   "(debug compilation)"
+#endif
+#ifdef CONFIG_RELEASE
+   "(release compilation)"
+#endif
+   );
+   PRINT ("Maximum verbosity level: %d", CONFIG_MAX_VERB_LEVEL);
+	PRINT ("Compilation: %s", CONFIG_COMPILE);
+	//PRINT ("Linking: %s", CONFIG_LINK);
 	exit (EXIT_SUCCESS);
 }
 

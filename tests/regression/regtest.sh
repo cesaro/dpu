@@ -10,8 +10,10 @@ I=
 LOGG=
 LOG=
 OUT=
+AUX=
 ERR=
 PRE=
+EXPORT=
 TEST=
 TESTPATH=
 EXITCODE=
@@ -26,7 +28,7 @@ usage ()
    echo ""
    echo "Where:"
    echo " PROGRAM   is the name of the program to test"
-   echo " REGRPATH  is 0 or more directories to search for tests (.rt files)"
+   echo " REGRPATH  is 0 or more directories to search for tests (.test.sh files)"
    exit 0
 }
 
@@ -55,7 +57,7 @@ time_s() {
    python -c "print '%.3f' % (float ($1) / (1000 * 1000 * 1000))"
 }
 
-run_test_line ()
+run_check_line ()
 {
    # variables defined at this point:
    # LINE
@@ -66,15 +68,20 @@ run_test_line ()
    # THIS_PASSED
    # THIS_SKIPPED
 
-   cat $OUT $ERR | bash -c "set -e; $LINE" > /dev/null 2> /dev/null
+   echo "--- begin ---" >> $AUX
+   cat $OUT $ERR | bash -c "set -e; source $EXPORT; $LINE" >> $AUX 2>> $AUX
    EC=$?
+   echo "--- end ---" >> $AUX
    if test $EC = 0; then
       RES="OK"
       THIS_PASSED=$(($THIS_PASSED + 1))
    else
       RES="FAILS"
    fi
-   printf "%s:%-3s [%-6s] $EC $LINE\n" "$TEST" "${L}:" $RES >> "$LOG"
+   INFOLINE=$(printf "%s:%-4s [%-6s] $EC $(sed 's/\s\+/ /g' <<< "$LINE")\n" "$TEST" "${L}:" $RES)
+   echo "$INFOLINE" >> "$LOG"
+   echo "$INFOLINE" >> "$AUX"
+   echo -e "\n" >> "$AUX"
 }
 
 run_test ()
@@ -100,7 +107,7 @@ run_test ()
    # dump to PRE all lines before the 'cmd ' keyword
    L=2
    CMD=
-   echo 'set -e' >&8
+   echo 'set -ea' >&8
    while read -u 9 LINE; do
       if grep -q '^cmd ' <<< "$LINE"; then
          CMD=$(sed 's/^cmd\s\+//' <<< "$LINE")
@@ -118,20 +125,23 @@ run_test ()
       return 1
    fi
 
-   # close PRE; cd to the folder and run PRE
+   # close PRE and run it; export variables from PRE
+   echo -e "\nexport > $EXPORT" >&8
    exec 8>&-
+   > $EXPORT
    bash < $PRE > $OUT 2> $ERR
    EXITCODE=$?
+   sed -i '/^declare -x \(TEST\|TESTPATH\|EXITCODE\)/d' $EXPORT
 
    # dump the first lines to the log file
    echo -e "\nDESCRIPTION    $DESCR\n" >> "$LOG"
    echo "TEST           $TEST" >> "$LOG"
-   echo "PROG           $PROG" >> "$LOG"
+   echo "COMMAND        set -e; $(sed 's/\s\+/ /g' <<< "$CMD")" >> "$LOG"
    echo "PRE-EXITCODE   $EXITCODE" >> "$LOG"
 
    # run the program
    BEGIN=`date +%s%N`
-   bash -c "set -e; $CMD" >> $OUT 2>> $ERR
+   bash -c "set -e; source $EXPORT; $CMD" >> $OUT 2>> $ERR
    EXITCODE=$?
    END=`date +%s%N`
    WALLTIME=$(time_ms $(($END-$BEGIN)))
@@ -144,6 +154,7 @@ run_test ()
    THIS_PASSED=0
    THIS_SKIPPED=0
    COUNT=0
+   > $AUX
    while read -u 9 LINE; do
       L=$(($L + 1))
 
@@ -153,7 +164,7 @@ run_test ()
       if grep -q '^#' <<< "$LINE"; then continue; fi
 
       COUNT=$(($COUNT + 1))
-      run_test_line
+      run_check_line
    done
 
    # copy stdout and stderr to the log file
@@ -163,11 +174,17 @@ run_test ()
    echo -e "\n== begin stderr ==" >> "$LOG"
    cat $ERR >> "$LOG"
    echo "== end stderr ==" >> "$LOG"
+   echo -e "\n\n== begin checks ==" >> "$LOG"
+   cat $AUX >> "$LOG"
+   echo "== end checks ==" >> "$LOG"
 
    # the tests passes only if all lines pass; it is skipped only if all lines
    # are skipped
    if test $THIS_PASSED != $COUNT; then THIS_PASSED=0; fi
    if test $THIS_SKIPPED != $COUNT; then THIS_SKIPPED=0; fi
+
+   # if we executed 0 checks then we pass
+   if test $COUNT = 0; then THIS_PASSED=1; fi
 
    # close test description and cd back
    exec 9>&-
@@ -179,16 +196,18 @@ find_and_run ()
    # create temporary files for stdout, stderr, and the preliminary commands
    OUT=$(mktemp /tmp/regtest.out.XXXXXX)
    ERR=$(mktemp /tmp/regtest.err.XXXXXX)
+   AUX=$(mktemp /tmp/regtest.aux.XXXXXX)
    PRE=$(mktemp /tmp/regtest.pre.XXXXXX)
-   RM="$RM $PRE $OUT $ERR"
+   EXPORT=$(mktemp /tmp/regtest.export.XXXXXX)
+   RM="$RM $PRE $EXPORT $OUT $ERR"
    I=1
 
    msg "Loading tests... "
-   NR=$(find $DIRS |grep '.rt$' | wc -l)
+   NR=$(find $DIRS |grep '\.test.sh$' | wc -l)
    msg "Done.\n\n"
    msg "Running $NR tests:\n\n"
 
-   for TESTPATH in $(find $DIRS | grep '.rt$')
+   for TESTPATH in $(find $DIRS | grep '\.test.sh$')
    do
       printf "%03d [Running] %s" $I "$TESTPATH"
       THIS_PASSED=0
@@ -216,7 +235,7 @@ locate_program ()
 {
    X="$(type -p "$PROG")"
    if test -z "$X"; then
-      msg "$PROGNAME: $PROG: unable to locate it\n"
+      msg "$PROGNAME: $PROG: unable to locate the program to test\n"
       exit_ 1
    fi
    PROG="$(readlink -f $X)"
@@ -225,30 +244,14 @@ locate_program ()
 export_variables ()
 {
    export PROG
-   export EXITCODE="0"
+   export EXITCODE="123"
    export TEST="/dev/null"
    export TESTPATH="/dev/null"
    export OUT="/dev/null"
+   export AUX="/dev/null"
    export ERR="/dev/null"
    export WALLTIME=0
    LOG="/dev/null"
-}
-
-aha ()
-{
-   exec 10< test.c
-   read -u 10 LINE
-   echo $?
-   echo "$LINE" xxx $(wc -c <<< "$LINE")
-   read -u 10 LINE
-   echo $?
-   echo "$LINE" xxx $(wc -c <<< "$LINE")
-   read -u 10 LINE
-   echo $?
-   echo "$LINE" xxx $(wc -c <<< "$LINE")
-   read -u 10 LINE
-   echo $?
-   echo "$LINE" xxx $(wc -c <<< "$LINE")
 }
 
 main ()

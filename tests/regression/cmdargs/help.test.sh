@@ -11,5 +11,3 @@ grep -i Usage
 grep -i -- --help
 grep -i -- --gdb
 grep -i default
-
-# vim:syn=sh:

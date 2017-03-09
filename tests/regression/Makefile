@@ -1,16 +1,14 @@
 
 R ?= ../..
-D := tests/regression
-TARGETS :=
-
-include $R/common.mk
+D := $R/tests/regression
 
 all : run
 
 run :
-	./regtest.sh $R/dist/bin/dpu .
+	$D/regtest.sh $R/dist/bin/dpu $D
 
-clean : clean_
-clean_ :
-	rm -f regression.log*
-	find . | grep '.log$$' | xargs rm -f
+clean : clean
+	rm -f $D/regression.log*
+	find $D | grep '.log$$' | xargs rm -f
+
+realclean :

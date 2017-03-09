@@ -17,7 +17,7 @@ public:
    unsigned depth;
    /// immediate predecessor
    T * pre;
-   /// skiptab[i] is the predecessors at distance SS^(i+1), for i < skiptab_size()
+   /// skiptab[i] is the predecessor at distance SS^(i+1), for i < skiptab_size()
    T ** skiptab;
    /// immediate causal successors
    std::vector<T*> post;
@@ -58,12 +58,12 @@ class MultiNode
 public:
    Node<T,SS> node[2];
 
-  // inline MultiNode();
+   // inline MultiNode();
    inline MultiNode(T *pred0, T *pred1);
    inline MultiNode(T *pred0);
 };
 
-// implemntation of inline methods
+// implementation of inline methods
 #include "cfltree.hpp"
 
 } // end of namespace

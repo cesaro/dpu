@@ -20,7 +20,7 @@
 # MSRCS     Optional (default "$D/main.cc"). Sources that contain a main()
 # LIBS      Optional (default ""). Libraries to link with (.{a,o,so} files)
 #
-# defines
+# defines the following variables:
 # CC
 # CXX
 # CFLAGS, CPPFLAGS, LDFLAGS
@@ -28,8 +28,7 @@
 # COMPILE.cc
 # LINK.cc
 #
-# provides goals:
-#
+# provides the following goals:
 # compile
 # clean
 # realclean

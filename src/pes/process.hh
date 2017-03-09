@@ -64,7 +64,7 @@ public :
    inline Event *add_event_2p (Action ac, Event *p, Event *m);
 
    struct {
-      long unsigned events;
+      unsigned events;
    } counters;
 
 private :

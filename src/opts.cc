@@ -186,14 +186,17 @@ void print_options ()
 
 void version (void)
 {
-	PRINT ("dpu %s %s", CONFIG_VERSION,
+	PRINT ("dpu %s (%s%s), compiled %s",
+         CONFIG_VERSION,
+         CONFIG_BUILD_COMMIT,
+         CONFIG_BUILD_DIRTY ? ", dirty" : "",
+         CONFIG_BUILD_DATE);
 #ifdef CONFIG_DEBUG
-   "(debug compilation)"
+	PRINT ("Build type: debug");
 #endif
 #ifdef CONFIG_RELEASE
-   "(release compilation)"
+	PRINT ("Build type: release");
 #endif
-   );
    PRINT ("Maximum verbosity level: %d", CONFIG_MAX_VERB_LEVEL);
 	PRINT ("Compilation: %s", CONFIG_COMPILE);
 	//PRINT ("Linking: %s", CONFIG_LINK);

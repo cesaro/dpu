@@ -7,7 +7,7 @@ CONFIG_DEBUG = 1
 #CONFIG_RELEASE = 1
 
 # version of the tool
-CONFIG_VERSION = v0.2
+CONFIG_VERSION = v0.2.0
 
 # folder where the tool will be installed
 CONFIG_PREFIX = ~/x/local
@@ -47,6 +47,15 @@ CONFIG_GUEST_TRACE_BUFFER_SIZE = $(shell echo '2^20' | bc)
 CONFIG_CFLAGS=$(CFLAGS)
 CONFIG_COMPILE=$(COMPILE.cc)
 CONFIG_LINK=$(LINK.cc)
+CONFIG_BUILD_DATE=$(shell date -R)
+CONFIG_BUILD_COMMIT="$(shell git show --oneline | head -n1 | awk '{print $$1}')"
+CONFIG_BUILD_DIRTY=$(shell if git diff-index --quiet HEAD --; then echo 0; else echo 1; fi)
+
+ifdef CONFIG_DEBUG
+ifdef CONFIG_RELEASE
+$(error CONFIG_DEBUG and CONFIG_RELEASE are both defined, but are mutually exclusive)
+endif
+endif
 
 CONFIGVARS=$(filter CONFIG_%,$(.VARIABLES))
 export $(CONFIGVARS)

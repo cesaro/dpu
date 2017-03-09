@@ -68,8 +68,8 @@ Event *Event::pre_proc ()
 const Event *Event::pre_proc (bool bf) const
 {
 
-   // if this is the first in the box, then make magic with the addresses ...
-   // if the vent is the THSTART (root of the tree), the Eventbox::pre already
+   // if this is the first in the box, then we make magic with the addresses ...
+   // if the event is the THSTART (root of the tree), the Eventbox::pre already
    // stores a null pointer ;)
    if (bf) return box_below()->pre();
    

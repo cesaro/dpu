@@ -66,8 +66,8 @@ LLVMLIBS := $(shell llvm-config-$(CONFIG_LLVM_VER) --libs all) -lz -lpthread -lf
 # == steroids ==
 STIDCPPFLAGS := -I $(CONFIG_STEROIDS_ROOT)/include/
 STIDLDFLAGS := -L $(CONFIG_STEROIDS_ROOT)/src/
-#STIDLDLIBS := -Wl,-Bstatic -lsteroids -Wl,-Bdynamic
-STIDLDLIBS := -lsteroids
+STIDLDLIBS := -Wl,-Bstatic -lsteroids -Wl,-Bdynamic
+#STIDLDLIBS := -lsteroids
 
 # traditional variables
 ifdef CONFIG_DEBUG

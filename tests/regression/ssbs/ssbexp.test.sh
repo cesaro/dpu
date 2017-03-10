@@ -1,4 +1,4 @@
-# The great and only SSB3 example !!
+# Exponentially many SSBs and simpler than SSB3
 
 #xxx i=2 xxx
 #dpu: summary: 4 max-configs, 0 SSBs, 53 events, 24.0 ev/trail

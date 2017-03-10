@@ -98,8 +98,9 @@ run_test ()
 
    # parse the first line, the test name
    read -u 9 DESCR
-   if grep -vq '^#' <<< "$DESCR"; then
-      syntax $1 1 "expected '# test name'" >> "$LOG";
+   if ! grep -q '^#' <<< "$DESCR"; then
+      syntax "$TEST" 1 "expected '# test description'" >> "$LOG";
+      DESCR="??"
       cd - > /dev/null; return 1
    fi
    DESCR=$(sed 's/^# //' <<< "$DESCR")
@@ -193,6 +194,14 @@ run_test ()
 
 find_and_run ()
 {
+   # check that the target directories exist
+   for d in $DIRS; do
+      if test ! -e $d; then
+         msg "$PROGNAME: $d: not such file or directory\n"
+         exit_ 1
+      fi
+   done
+
    # create temporary files for stdout, stderr, and the preliminary commands
    OUT=$(mktemp /tmp/regtest.out.XXXXXX)
    ERR=$(mktemp /tmp/regtest.err.XXXXXX)
@@ -215,13 +224,13 @@ find_and_run ()
       run_test
       echo -ne "\r"
       if test $THIS_PASSED != 0; then
-         msg "$(printf "%03d [OK     ] ${TESTPATH}.log" $I)\n"
+         msg "$(printf "%03d [OK     ] ${TESTPATH}.log -- $DESCR" $I)\n"
          PASS=$(($PASS + 1))
       elif test $THIS_SKIPPED != 0; then
-         msg "$(printf "%03d [SKIPPED] ${TESTPATH}.log" $I)\n"
+         msg "$(printf "%03d [SKIPPED] ${TESTPATH}.log -- $DESCR" $I)\n"
          SKIP=$(($SKIP + 1))
       else
-         msg "$(printf "%03d [FAILS  ] ${TESTPATH}.log" $I)\n"
+         msg "$(printf "%03d [FAILS  ] ${TESTPATH}.log -- $DESCR" $I)\n"
          FAIL=$(($FAIL + 1))
       fi
       I=$(($I + 1))

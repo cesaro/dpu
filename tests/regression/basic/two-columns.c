@@ -4,7 +4,7 @@
 #include <assert.h>
 
 #ifndef N
-#define N 5
+#define N 6
 #endif
 
 // N  max confs (according to nidhugg)
@@ -18,11 +18,13 @@
 // 8  12870
 
 pthread_mutex_t m;
+int count = 0;
 
 void *thread (void *arg)
 {
    int ret, i;
    long j = (long) arg;
+   int done = 0;
 
    for (i = 0; i < N; i++)
    {
@@ -30,10 +32,21 @@ void *thread (void *arg)
       ret = pthread_mutex_lock (&m);
       assert (ret == 0);
 
-      printf ("t%ld: in cs, i %d\n", j, i);
+      count++;
+      printf ("t%ld: in cs, i %d, count %d\n", j, i, count);
+      if (count == 2*N)
+      {
+         done = 1;
+      }
 
       // exit cs
       ret = pthread_mutex_unlock (&m);
+      assert (ret == 0);
+   }
+
+   if (done)
+   {
+      ret = pthread_mutex_destroy (&m);
       assert (ret == 0);
    }
    return 0;
@@ -43,7 +56,7 @@ int main (int argc, char ** argv)
 {
    int ret;
    long i;
-   pthread_t th[2];
+   pthread_t th;
 
    (void) argc;
    (void) argv;
@@ -51,17 +64,13 @@ int main (int argc, char ** argv)
    ret = pthread_mutex_init (&m, 0);
    assert (ret == 0);
 
-   for (i = 0; i < 1; i++)
-   {
-      ret = pthread_create (th + i, 0, thread, (void*) i);
-      assert (ret == 0);
-   }
+   ret = pthread_create (&th, 0, thread, (void*) 1);
+   assert (ret == 0);
 
    // we do the second thread
-   thread ((void*) 1);
+   thread ((void*) 0);
 
    // we do not wait for our children
    pthread_exit (0);
+   return 0;
 }
-
-

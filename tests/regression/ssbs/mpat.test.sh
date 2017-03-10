@@ -14,7 +14,9 @@
 # FIXME fill the conv_ev array
 conf_ev[1]="2 21"
 conf_ev[2]="8 88"
-conf_ev[2]="48 491"
+conf_ev[3]="48 491"
+conf_ev[4]="384 3822"
+conf_ev[5]="3840 38017"
 export conf_ev
 
 MAX=5

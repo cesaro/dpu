@@ -44,7 +44,7 @@ done
 cmd for i in $N; do \
       for j in $K; do \
          [ $i -ge 8 -a $j = 2 ] && continue; \
-         $PROG input.$i.$j.i -a2 -s 1M -vv > out.$i.$j; done; done
+         $PROG input.$i.$j.i -a3 -s 1M -vv > out.$i.$j; done; done
 
 # the checks to perform on the output
 echo N is -$N-
@@ -67,10 +67,12 @@ for i in $N; do \
       [ $i -ge 8 -a $j = 2 ] && continue; \
       grep "0 SSBs" out.$i.$j; done; done
 
+set -x; \
 for i in $N; do \
    for j in $K; do \
       [ $i -ge 8 -a $j = 2 ] && continue; \
-      grep -i " unfolding: $(($i + 4)) threads created" out.$i.$j; done; done
+      grep -i " threads created ($(($i + 2*$j)) actual threads" out.$i.$j; done; done
+      # this will fail, we need something more advanced
 
 k=1; \
 for i in $N; do \

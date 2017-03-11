@@ -1,6 +1,8 @@
 
 CPPFLAGS=-I include -I .
 CFLAGS=-Wall -Wextra
+CC=clang-3.7
+CXX=clang++-3.7
 
 all : gtest.a gtest_main.a
 

@@ -18,7 +18,6 @@ Process *Unfolding::proc (unsigned p) const
    return (Process *) (procs + p * PROC_SIZE);
 }
 
-
 Event *Unfolding::find1 (Action *ac, Event *p)
 {
    ASSERT (p);

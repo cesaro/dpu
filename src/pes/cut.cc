@@ -65,7 +65,8 @@ void Cut::fire (Event *e)
    ASSERT (e->pid() < nrp);
 
    // the unfolding might have changed the number of process after this
-   // configuration was constructed; assert it didn't happen
+   // configuration was constructed; assert that that such change is irrelevant
+   // for us
    ASSERT (e->pid() < nrp);
 
    // adding e to the cut must not break causal-closendness

@@ -240,7 +240,9 @@ bool C15unfolder::stream_to_events
          e = u.event ({.type = ActionType::THCREAT}, e);
          // we create now the new process but delay inserting the THSTART event
          // into the config and the trail until the first context switch
+         e->action.val = u.num_procs(); // XXX request for new creation
          ee = u.event (e);
+         ASSERT (ee->pid() <= e->action.val);
          e->action.val = ee->pid();
          s2dpid(it.id()) = ee->pid(); // update the pid maps
          d2spid(ee->pid()) = it.id();

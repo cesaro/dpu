@@ -45,25 +45,42 @@ Eventbox *Process::first_box () const
    return ((Eventbox *) (this + 1));
 }
 
+/// THSTART, 0 process predecessor, 1 predecessor (THCREAT) in another process
+Event *Process::add_event_0p (Event *creat)
+{
+   Event *e;
+
+   ASSERT (last); // we have a last
+   ASSERT (pid() == last->pid()); // last point inside us
+   ASSERT (! last->flags.boxlast); // box should be open
+
+   // check for available space
+   have_room ();
+
+   // close the box, add a new box, insert the THSTART
+   last->flags.boxlast = 1;
+   Eventbox *b = new (last + 1) Eventbox (0); // null pre-proc
+   e = b->event_above ();
+   new (e) Event (creat);
+   e->flags.boxfirst = 1;
+
+   // update the last pointer and the counters
+   last = e;
+   counters.events++;
+   return e;
+}
+
 /// THCREAT(tid), THEXIT(), one predecessor (in the process)
 Event *Process::add_event_1p (Action ac, Event *p)
 {
    Event *e;
 
-   ASSERT (last);
-   ASSERT (pid() == last->pid());
-   ASSERT (! last->flags.boxlast);
+   ASSERT (last); // we have a last
+   ASSERT (pid() == last->pid()); // last point inside us
+   ASSERT (! last->flags.boxlast); // box should be open
 
-   // check that we have enough memory
-   // last points to the last event
-   // last+1 is the base address of the new one; last+3 is the upper limit of
-   // one event + one box
-   static_assert (sizeof (Event) >= sizeof (Eventbox), "Event should be larger than Eventbox");
-   if (offset (last + 3) >= Unfolding::PROC_SIZE)
-   {
-      throw std::range_error (fmt
-            ("Process %d: failure to add new events: out of memory", pid ()));
-   }
+   // check for available space
+   have_room ();
 
    if (p == last)
    {
@@ -91,20 +108,12 @@ Event * Process::add_event_2p (Action ac, Event *p, Event *m)
 {
    Event *e;
 
-   ASSERT (last);
-   ASSERT (pid() == last->pid());
-   ASSERT (! last->flags.boxlast);
+   ASSERT (last); // we have a last
+   ASSERT (pid() == last->pid()); // last point inside us
+   ASSERT (! last->flags.boxlast); // box should be open
 
-   // check that we have enough memory
-   // last points to the last event
-   // last+1 is the base address of the new one; last+3 is the upper limit of
-   // one event + one box
-   static_assert (sizeof (Event) >= sizeof (Eventbox), "Event should be larger than Eventbox");
-   if (offset (last + 3) >= Unfolding::PROC_SIZE)
-   {
-      throw std::range_error (fmt
-            ("Process %d: failure to add new events: out of memory", pid ()));
-   }
+   // check for available space
+   have_room ();
 
    if (p == last)
    {
@@ -128,3 +137,16 @@ Event * Process::add_event_2p (Action ac, Event *p, Event *m)
    return e;
 }
 
+void Process::have_room () const
+{
+   // check that we have enough memory
+   // this->last points to the last event
+   // last+1 is the base address of the new one; last+3 is the upper limit of
+   // one event + one box
+   static_assert (sizeof (Event) >= sizeof (Eventbox), "Event should be larger than Eventbox");
+   if (offset (last + 3) >= Unfolding::PROC_SIZE)
+   {
+      throw std::range_error (fmt
+            ("Process %d: failure to add new events: out of memory", pid ()));
+   }
+}

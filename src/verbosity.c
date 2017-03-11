@@ -13,17 +13,13 @@ void verb_set (int i)
 
 #ifdef VERB_LEVEL_DEBUG
 	verb_debug = i >= VERB_DEBUG;
-   printf ("debug\n");
 #endif
 #ifdef VERB_LEVEL_TRACE
 	verb_trace = i >= VERB_TRACE;
-   printf ("trace\n");
 #endif
 #ifdef VERB_LEVEL_INFO
 	verb_info = i >= VERB_INFO;
-   printf ("info\n");
 #endif
-   printf ("%d %d %d\n", verb_debug, verb_trace, verb_info);
 }
 
 int verb_get ()

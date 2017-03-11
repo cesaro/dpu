@@ -11,7 +11,6 @@
 #include "c15u/c15unfold.hh" // must be before verbosity.h
 #include "verbosity.h"
 #include "misc.hh"
-#include "test.hh"
 #include "pes/event.hh"
 #include "pes/unfolding.hh"
 #include "pes/process.hh"
@@ -20,7 +19,6 @@
 #include "pes/cut.hh"
 #include "por.hh"
 #include "opts.hh"
-
 
 namespace dpu
 {
@@ -1517,7 +1515,154 @@ void test54 ()
 
 void test55 ()
 {
+   Event *es, *ec, *el, *eu, *ecc, *ex;
+   Event *es1, *ex1, *el1, *eu1;
+   Event *es2, *ex2;
+   C15unfolder unf (C15unfolder::Alt_algorithm::OPTIMAL, 1);
+
+   /*
+    * Th 0           Th 1           Th2
+    * -------------- -------------- -------------
+    * Execution 1
+    * ***********
+    * start    
+    * creat 1
+    * lock 0x100
+    * unlock 0x100
+    * creat 2
+    * exit
+    *                start
+    *                lock 0x100
+    *                unlock 0x100
+    *                exit
+    *                               start
+    *                               exit
+    *
+    * Execution 2
+    * ***********
+    * start    
+    * creat 1
+    *                start
+    *                lock 0x100
+    *                unlock 0x100
+    *                exit
+    * lock 0x100
+    * unlock 0x100
+    * creat 2
+    *                               start
+    *                               exit
+    * exit
+    */
+
+   // Execution 1 ****************
+
+   // start
+   es = unf.u.event (nullptr); // bottom
+
+   // creat
+   ec = unf.u.event ({.type = ActionType::THCREAT, .val = 1}, es);
+
+   // lock
+   el = unf.u.event ({.type = ActionType::MTXLOCK, .addr = 0x100}, ec, nullptr);
+
+   // unlock
+   eu = unf.u.event ({.type = ActionType::MTXUNLK, .addr = 0x100}, el, el);
+
+   // creat
+   ecc = unf.u.event ({.type = ActionType::THCREAT, .val = 2}, eu);
+
+   // exit
+   ex = unf.u.event ({.type = ActionType::THEXIT}, ecc);
+
+   // start in thread 1
+   es1 = unf.u.event (ec);
+
+   // lock
+   el1 = unf.u.event ({.type = ActionType::MTXLOCK, .addr = 0x100}, es1, eu);
+
+   // unlock
+   eu1 = unf.u.event ({.type = ActionType::MTXUNLK, .addr = 0x100}, el1, el1);
+
+   // exit in thread 1
+   ex1 = unf.u.event ({.type = ActionType::THEXIT}, eu1);
+
+   // start in thread 2
+   es2 = unf.u.event (ecc);
+
+   // exit in thread 2
+   ex2 = unf.u.event ({.type = ActionType::THEXIT}, es2);
+
+   Cut c (5);
+   c.fire (es);
+   c.fire (ec);
+   c.fire (el);
+   c.fire (eu);
+   c.fire (ecc);
+   c.fire (es2);
+   c.fire (ex2);
+   c.fire (es1);
+
+   // Execution 2 ****************
+
+   // start
+   es = unf.u.event (nullptr); // bottom
+
+   // creat
+   ec = unf.u.event ({.type = ActionType::THCREAT, .val = 1}, es);
+
+   // start in thread 1
+   es1 = unf.u.event (ec);
+
+   // lock
+   el1 = unf.u.event ({.type = ActionType::MTXLOCK, .addr = 0x100}, es1, nullptr);
+
+   // unlock
+   eu1 = unf.u.event ({.type = ActionType::MTXUNLK, .addr = 0x100}, el1, el1);
+
+   // exit in thread 1
+   ex1 = unf.u.event ({.type = ActionType::THEXIT}, eu1);
+
+   // lock
+   el = unf.u.event ({.type = ActionType::MTXLOCK, .addr = 0x100}, ec, eu1);
+
+   // unlock
+   eu = unf.u.event ({.type = ActionType::MTXUNLK, .addr = 0x100}, el, el);
+
+   // creat
+   ecc = unf.u.event ({.type = ActionType::THCREAT, .val = 2}, eu);
+
+   // exit
+   ex = unf.u.event ({.type = ActionType::THEXIT}, ecc);
+
+   // start in thread 2
+   es2 = unf.u.event (ecc);
+
+   // exit in thread 2
+   ex2 = unf.u.event ({.type = ActionType::THEXIT}, es2);
+
+   unf.u.dump ();
+   std::ofstream fs ("u.dot", std::fstream::out);
+   unf.u.print_dot (fs);
+   fs.close();
+   printf ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n");
+
+   DEBUG ("execution 1:");
+   c.dump ();
+
+   Cut j (5);
+   j.fire (es);
+   j.fire (ec);
+   j.fire (es1);
+   j.fire (el1);
+   j.fire (eu1);
+   j.fire (el);
+   j.fire (eu);
+   j.fire (ecc);
+   j.fire (es2);
+   j.fire (ex2);
+   j.dump ();
 }
+
 void test56 ()
 {
 }

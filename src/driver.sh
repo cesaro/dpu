@@ -54,12 +54,17 @@ main_ ()
 
    # run the backend analyzer
    echo "$BACKEND $TMP/input.bc $ARGS"
-   if test $GDB -eq 1; then
+   if test $GDB = 1; then
       gdb $BACKEND \
          -ex 'break main' \
          -ex 'break breakme' \
          -ex 'info break' \
          -ex "run $TMP/input.bc $ARGS"
+   elif test $GDB = 2; then
+      gdb $BACKEND \
+         -ex "run $TMP/input.bc $ARGS"
+   elif test $GDB = 3; then
+      valgrind $BACKEND $TMP/input.bc $ARGS
    else
       $BACKEND $TMP/input.bc $ARGS
       exit $?
@@ -81,6 +86,8 @@ for a in $@;
 do
    if test $first -eq 1; then first=0; continue; fi
    if test $a = '--gdb'; then GDB=1; continue; fi
+   if test $a = '--gdb2'; then GDB=2; continue; fi
+   if test $a = '--valgrind'; then GDB=3; continue; fi
    ARGS="$ARGS $a"
 done
 if test "$INPUT" = "--help"; then

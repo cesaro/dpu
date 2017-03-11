@@ -22,7 +22,7 @@ MSRCS:=
 include common.mk
 
 ifeq ($(shell id -nu),cesar)
-all : dist #run2
+all : ut
 else
 all : dist
 endif
@@ -50,15 +50,16 @@ run2: dist
 	make u.svg
 
 tags :
-	ctags -R --c++-kinds=+p --fields=+K --extra=+q src/ config.h $(shell llvm-config-$(LLVMVERS) --includedir)
+	ctags -R --c++-kinds=+p --fields=+K --extra=+q src/ tests/unit/ config.h $(shell llvm-config-$(LLVMVERS) --includedir)
 
 g gdb : dist
 	./dist/bin/dpu benchmarks/basic/cjlu.c -vv --gdb -- p main3
 
 tests : unittests regression
 
-unittest : compile
+unittest ut : compile
 	make -f tests/unit/Makefile R=.
+	make u.svg
 
 regression : dist
 	make -f tests/regression/Makefile R=.

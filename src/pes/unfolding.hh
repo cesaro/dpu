@@ -79,6 +79,9 @@ private :
    /// event
    inline Process *new_proc (Event *creat);
 
+   /// returns the (only) immediate causal successor of c (which is a THCREAT)
+   /// if it exists, or NULL if it doesn't
+   Event *find0 (Event *c);
    /// returns the (only) immediate process causal successor of p with action *ac, or NULL
    inline Event *find1 (Action *ac, Event *p);
    /// returns the (only) immediate causal successor of {p,m} with action *ac, or NULL

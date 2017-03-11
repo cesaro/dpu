@@ -8,7 +8,6 @@
 
 #include "c15u/c15unfold.hh" // must be before verbosity.h
 #include "verbosity.h"
-#include "test.hh"
 #include "opts.hh"
 
 namespace dpu
@@ -21,12 +20,12 @@ void devel_hook ()
    if (user and strcmp (user, "cesar") == 0)
    {
       // for Cesar
-      test54 ();
+      //test54 ();
    }
    else
    {
       // for the rest
-      test54();
+      //test54();
    }
    exit (0);
 }
@@ -90,7 +89,7 @@ int main (int argc, char **argv)
    unsigned i;
 
    // install signal handler for segfaults
-   signal (SIGSEGV, handler);
+   //signal (SIGSEGV, handler);
 
    // parse commandline options
    opts::parse (argc, argv);

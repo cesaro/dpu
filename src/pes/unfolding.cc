@@ -39,12 +39,11 @@ Unfolding::Unfolding () :
    DEBUG ("Unfolding.ctor: done, procs %p", procs);
 }
 
-/// THSTART(), creat is the corresponding THCREAT; this will
-/// create a new process
-Event *Unfolding::event (Event *creat)
+Event *Unfolding::find0 (Event *c)
 {
-   // if creat is null, we return bottom, already present in the unfolding
-   if (creat == nullptr)
+   // if the create event (c) is null, we return bottom, already present in the
+   // unfolding
+   if (c == nullptr)
    {
       ASSERT (proc(0)->first_event());
       ASSERT (proc(0)->first_event()->action.type == ActionType::THSTART);
@@ -54,20 +53,49 @@ Event *Unfolding::event (Event *creat)
    // otherwise we are searching for the root event in a process that we might
    // or might not have already created; if creat has a causal successor in the
    // node[1] tree, then it can be the only one and it must be our event
-   if (creat->node[1].post.size())
+   if (c->node[1].post.size())
    {
-      ASSERT (creat->node[1].post.size() == 1);
-      ASSERT (creat->node[1].post[0]->action.type == ActionType::THSTART);
-      ASSERT (creat->pid() < creat->node[1].post[0]->pid());
-      return creat->node[1].post[0];
+      ASSERT (c->node[1].post.size() == 1);
+      ASSERT (c->node[1].post[0]->action.type == ActionType::THSTART);
+      ASSERT (c->pid() < c->node[1].post[0]->pid());
+      return c->node[1].post[0];
    }
 
-   // otherwise we need to create a new process and return its root
-   Process *p = new_proc (creat);
-   ASSERT (p);
-   Event *e = p->first_event();
-   ASSERT (e->flags.boxfirst);
-   return e;
+   // otherwise the requested event is not yet in the unfolding
+   return nullptr;
+}
+
+/// THSTART(), creat is the corresponding THCREAT; this will
+/// create a new process
+Event *Unfolding::event (Event *creat)
+{
+   Event *e;
+
+   // if the event already exist, we return it
+   e = find0 (creat);
+   if (e) return e;
+
+   // otherwise we need to create a new THSTART event in the process whose pid
+   // is creat->action.val. If such process does not exist yet in the unfolding,
+   // we need to create first the process (and return its root); otherwise we
+   // need to insert a new event in that process
+
+   ASSERT (creat); // cannot be a THSTART for pid=0
+   ASSERT (creat->action.val <= nrp); // an existing process or the next fresh pid
+   if (creat->action.val == nrp)
+   {
+      // new process
+      Process *p = new_proc (creat);
+      ASSERT (p);
+      ASSERT (p->pid() == creat->action.val);
+      Event *e = p->first_event();
+      ASSERT (e->flags.boxfirst);
+      return e;
+   }
+
+   // existing process
+   ASSERT (creat->pid() != creat->action.val);
+   return proc(creat->action.val)->add_event_0p (creat);
 }
 
 /// THCREAT(tid) or THEXIT(), one predecessor (in the process)

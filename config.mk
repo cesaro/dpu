@@ -33,8 +33,8 @@ CONFIG_MAX_PROCESSES = 50
 # maximum number of events per process
 CONFIG_MAX_EVENTS_PER_PROCCESS = 40000
 
-# default memoery size for guest code execution
-CONFIG_GUEST_DEFAULT_MEMORY_SIZE = $(shell echo '64 * 2^20' | bc)
+# default memory size for guest code execution
+CONFIG_GUEST_DEFAULT_MEMORY_SIZE = $(shell echo '128 * 2^20' | bc)
 
 # default size of the stack per thread
 CONFIG_GUEST_DEFAULT_THREAD_STACK_SIZE = $(shell echo '4 * 2^20' | bc)

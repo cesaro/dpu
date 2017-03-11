@@ -39,7 +39,7 @@ private:
 class Process
 {
 public :
-   /// ctor, creat is null for the first process or the THCREAT event that
+   /// ctor, creat is null for the first process or the first THCREAT event that
    /// created this process
    inline Process (Event *creat);
 
@@ -55,9 +55,11 @@ public :
    /// returns the offset of a pointer within the memory pool of this process
    inline size_t offset (void *ptr) const;
 
-   /// returns the THSTART event of this process
+   /// returns the first event (necessarily a THSTART) of this process
    inline Event *first_event () const;
 
+   /// THSTART, 0 process predecessor, 1 predecessor (THCREAT) in another process
+   inline Event *add_event_0p (Event *creat);
    /// THCREAT(tid), THEXIT(), one predecessor (in the process)
    inline Event *add_event_1p (Action ac, Event *p);
    /// THJOIN(tid), MTXLOCK(addr), MTXUNLK(addr), two predecessors (process, memory/exit)
@@ -71,7 +73,10 @@ private :
    /// last event inserted in the memory pool of this process
    Event *last;
 
+   /// returns a pointer to the first box (lowest address) in the process
    inline Eventbox *first_box () const;
+   /// raises an exception iff we have no more space to store new events
+   inline void have_room () const;
 };
 
 // implementation of inline methods

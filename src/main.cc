@@ -44,28 +44,54 @@ void handler (int sig) {
    exit(1);
 }
 
+size_t get_precise_memory_size (C15unfolder &unf)
+{
+   unsigned i;
+   size_t size;
+
+   size = 0;
+   for (i = 0; i < unf.u.num_procs(); i++)
+   {
+      size += unf.u.proc(i)->memory_size ();
+      size += unf.u.proc(i)->pointed_memory_size (); // slow
+   }
+   return size;
+}
 
 void print_statistics (C15unfolder &unf)
 {
    unsigned long events;
    unsigned i;
+   size_t size;
 
    events = 0;
+   size = 0;
    for (i = 0; i < unf.u.num_procs(); i++)
+   {
       events += unf.u.proc(i)->counters.events;
+      size += unf.u.proc(i)->memory_size();
+   }
 
    //PRINT ("\ndpu: unfolding statistics:");
    PRINT ("dpu: stats: unfolding: %lu max-configs", unf.counters.maxconfs);
-   PRINT_ ("dpu: stats: unfolding: %lu threads created", unf.u.num_procs());
-   if (unf.u.num_procs() != unf.counters.stid_threads)
-      PRINT (" (%d actual threads)", unf.counters.stid_threads);
-   else
-      PRINT ("");
-   PRINT ("dpu: stats: unfolding: %lu events", events);
+   PRINT ("dpu: stats: unfolding: %lu threads created", unf.counters.stid_threads);
+   PRINT ("dpu: stats: unfolding: %lu process slots used", unf.u.num_procs());
+   if (verb_trace)
+   {
+      size_t size2 = get_precise_memory_size (unf);
+      PRINT ("dpu: stats: unfolding: %u%s total memory (%.1f bytes/event)",
+         UNITS_SIZE (size2), UNITS_UNIT (size2),
+         size2 / (float) events);
+   }
+   PRINT ("dpu: stats: unfolding: %lu events (aprox. %u%s of memory)",
+      events, UNITS_SIZE (size), UNITS_UNIT (size));
    for (i = 0; i < unf.u.num_procs(); i++)
    {
-      PRINT ("dpu: stats: unfolding: thread%u: %lu events",
-            i, unf.u.proc(i)->counters.events);
+      PRINT ("dpu: stats: unfolding: t%u: %lu events (%u%s, %.1f%%)",
+            i, unf.u.proc(i)->counters.events,
+            UNITS_SIZE(unf.u.proc(i)->memory_size()),
+            UNITS_UNIT(unf.u.proc(i)->memory_size()),
+            (100.0 * unf.u.proc(i)->memory_size()) / size);
    }
 
    //PRINT ("\ndpu: POR statistics:");

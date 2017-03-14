@@ -9,6 +9,7 @@
 #include <sys/stat.h>
 
 #include "c15u/c15unfold.hh" // must be before verbosity.h
+#include "c15u/pidpool.hh"
 #include "verbosity.h"
 #include "misc.hh"
 #include "pes/event.hh"
@@ -23,6 +24,7 @@
 namespace dpu
 {
 
+#if 0
 void test27 ()
 {
    Unfolding u;
@@ -1513,6 +1515,8 @@ void test54 ()
    }
 }
 
+#endif
+
 void test55 ()
 {
    Event *es, *ec, *el, *eu, *ecc, *ex;
@@ -1665,7 +1669,12 @@ void test55 ()
 
 void test56 ()
 {
+   Unfolding u;
+   Pidpool p (u);
+   p.dump ();
+   u.dump ();
 }
+
 void test57 ()
 {
 }

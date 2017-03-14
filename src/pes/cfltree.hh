@@ -39,12 +39,16 @@ public:
    template <int idx>
    void dump () const;
 
-private:
-   /// allocates and initializes the skiptab, called only from the ctor
-   inline T **skiptab_alloc (int idx);
+   /// returns the memory size of the data pointed by fields in this object
+   size_t pointed_memory_size () const
+      { return (skiptab_size() + post.capacity()) * sizeof (void*); }
 
+private:
    /// computes the size of the skiptab table
    inline unsigned skiptab_size () const;
+
+   /// allocates and initializes the skiptab, called only from the ctor
+   inline T **skiptab_alloc (int idx);
 
    /// returns a the predecessor of this node that makes for the longest
    /// possible jump that still allows to reach the target depth
@@ -61,6 +65,10 @@ public:
    // inline MultiNode();
    inline MultiNode(T *pred0, T *pred1);
    inline MultiNode(T *pred0);
+
+   /// returns the memory size of the data pointed by fields in this object
+   size_t pointed_memory_size () const
+      { return node[0].pointed_memory_size() + node[1].pointed_memory_size(); }
 };
 
 // implementation of inline methods

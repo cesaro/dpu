@@ -3,8 +3,8 @@
 R ?= .
 
 # compilation configuration: debug/release
-CONFIG_DEBUG = 1
-#CONFIG_RELEASE = 1
+#CONFIG_DEBUG = 1
+CONFIG_RELEASE = 1
 
 # version of the tool
 CONFIG_VERSION = v0.2.0

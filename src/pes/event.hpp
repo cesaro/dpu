@@ -1,18 +1,21 @@
 
 /// THSTART(), creat is the corresponding THCREAT (or null for p0)
-Event::Event (Event *creat) :
-   MultiNode(nullptr, creat),
-   flags ({.boxfirst = 1, .boxlast = 0, .crb = 0, .ind = 0}),
+Event::Event (Event *creat, bool bf) :
+   MultiNode(pre_proc(bf), creat),
+   flags ({.boxfirst = bf, .boxlast = 0, .crb = 0, .ind = 0}),
    action ({.type = ActionType::THSTART}),
    redbox (),
    color (0),
+   // pre_proc(bf) is null or a causal predecessor of creat->cone[pid()], so
+   // it's safe to construct our cone like this:
    cone (creat ? Primecon (creat->cone, this) : Primecon (pid() + 1, this)),
    depth (creat ? creat->depth + 1 : 0)
 {
    ASSERT (action.type == ActionType::THSTART);
-   ASSERT (pre_proc() == 0);
    ASSERT (pre_other() == creat);
    ASSERT (!creat or creat->action.type == ActionType::THCREAT);
+   // the first THSTART needs to have a null process predecessor
+   ASSERT (pre_proc() == (creat ? creat->cone[pid()] : nullptr));
 
    //DEBUG ("Event.ctor: %s", str().c_str());
    //DEBUG ("Event.ctor: e %-16p %s", this, cone.str().c_str());
@@ -57,7 +60,6 @@ Event::Event (Action ac, Event *m, bool bf) :
 
 const Event *Event::pre_proc () const
 {
-   ASSERT (action.type != ActionType::THSTART or flags.boxfirst);
    return pre_proc (flags.boxfirst);
 }
 Event *Event::pre_proc ()
@@ -199,4 +201,12 @@ std::vector<Event*> Event::icfls () const
       if (e->proc() != proc()) v.push_back (e);
    }
    return v;
+}
+
+size_t Event::pointed_memory_size () const
+{
+   return \
+      MultiNode::pointed_memory_size() + \
+      redbox.capacity() * sizeof(Action) +
+      cone.pointed_memory_size ();
 }

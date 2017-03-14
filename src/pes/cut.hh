@@ -80,6 +80,9 @@ public:
    /// sets the Event::color field for all events in the Cut
    void colorize (unsigned color);
 
+   /// returns the memory size of the data pointed by fields in this object
+   inline size_t pointed_memory_size () const;
+
 protected:
    /// size of the map below (u.num_procs())
    unsigned nrp;

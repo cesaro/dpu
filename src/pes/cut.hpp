@@ -122,3 +122,9 @@ bool Cut::is_cex (const Event *e) const
    return false;
 }
 
+/// returns the memory size of the data pointed by fields in this object
+inline size_t Cut::pointed_memory_size () const
+{
+   return nrp * sizeof (Event*);
+}
+

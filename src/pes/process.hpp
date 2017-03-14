@@ -10,21 +10,30 @@ Process::Process (Event *creat) :
 
    // construct a THSTART event in the first box
    Event *e = b->event_above ();
-   new (e) Event (creat);
-   e->flags.boxfirst = 1;
+   new (e) Event (creat, true);
 
    // initialize the pointer to the last event created
-   last = b->event_above();
+   last = e;
 }
 
-EventIt Process::begin ()
+Process::It<Event> Process::begin ()
 {
-   return EventIt (first_event());
+   return Process::It<Event> (first_event());
 }
-EventIt Process::end ()
+Process::It<Event> Process::end ()
 {
-   return EventIt (last + 1);
+   return Process::It<Event> (last + 1);
 }
+
+const Process::It<const Event> Process::begin () const
+{
+   return Process::It<const Event> (first_event());
+}
+const Process::It<const Event> Process::end () const
+{
+   return Process::It<const Event> (last + 1);
+}
+
 
 unsigned Process::pid () const
 {
@@ -50,6 +59,7 @@ Event *Process::add_event_0p (Event *creat)
 {
    Event *e;
 
+   ASSERT (creat); // insertion of bottom is done elsewhere
    ASSERT (last); // we have a last
    ASSERT (pid() == last->pid()); // last point inside us
    ASSERT (! last->flags.boxlast); // box should be open
@@ -57,12 +67,21 @@ Event *Process::add_event_0p (Event *creat)
    // check for available space
    have_room ();
 
-   // close the box, add a new box, insert the THSTART
-   last->flags.boxlast = 1;
-   Eventbox *b = new (last + 1) Eventbox (0); // null pre-proc
-   e = b->event_above ();
-   new (e) Event (creat);
-   e->flags.boxfirst = 1;
+   if (last == creat->cone[pid()])
+   {
+      // add one event at the end of the pool
+      e = last + 1;
+      new (e) Event (creat, false);
+   }
+   else
+   {
+      // close the box, add a new box, insert the THSTART
+      last->flags.boxlast = 1;
+      Eventbox *b = new (last + 1) Eventbox (creat->cone[pid()]);
+      e = b->event_above ();
+      new (e) Event (creat, true);
+      ASSERT (e->flags.boxfirst);
+   }
 
    // update the last pointer and the counters
    last = e;
@@ -95,7 +114,7 @@ Event *Process::add_event_1p (Action ac, Event *p)
       Eventbox *b = new (last + 1) Eventbox (p);
       e = b->event_above ();
       new (e) Event (ac, true);
-      e->flags.boxfirst = 1;
+      ASSERT (e->flags.boxfirst);
    }
 
    counters.events++;
@@ -117,7 +136,6 @@ Event * Process::add_event_2p (Action ac, Event *p, Event *m)
 
    if (p == last)
    {
-      // FIXME: errors when adding the first LOCK
       // add one event at the end of the pool
       e = last + 1;
       new (e) Event (ac, m, false);
@@ -129,7 +147,7 @@ Event * Process::add_event_2p (Action ac, Event *p, Event *m)
       Eventbox *b = new (last + 1) Eventbox (p);
       e = b->event_above ();
       new (e) Event (ac, m, true);
-      e->flags.boxfirst = 1;
+      ASSERT (e->flags.boxfirst);
    }
 
    counters.events++;
@@ -149,4 +167,15 @@ void Process::have_room () const
       throw std::range_error (fmt
             ("Process %d: failure to add new events: out of memory", pid ()));
    }
+}
+
+/// returns the memory size of the data (indirectly) pointed by fields in this object
+size_t Process::pointed_memory_size () const
+{
+   size_t size;
+
+   size = 0;
+   for (const Event &e : *this)
+      size += e.pointed_memory_size();
+   return size;
 }

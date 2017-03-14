@@ -62,7 +62,6 @@ void Cut::fire (Event *e)
 
    //DEBUG("Cut.fire: this %p nrp %d e %p e.pid %d", this, nrp, e, e->pid());
    ASSERT (e);
-   ASSERT (e->pid() < nrp);
 
    // the unfolding might have changed the number of process after this
    // configuration was constructed; assert that that such change is irrelevant
@@ -71,6 +70,9 @@ void Cut::fire (Event *e)
 
    // adding e to the cut must not break causal-closendness
    ASSERT (e->pre_proc() == max[e->pid()]);
+         //(e->pre_proc() == nullptr and // specific for the case of e == THSTART
+         //max[e->pid()]->action.type == ActionType::THEXIT and
+         //max[e->pid()]->is_pred_of (e)));
    ASSERT (!e->pre_other() or max[e->pre_other()->pid()]);
    ASSERT (!e->pre_other() or e->pre_other()->is_predeq_of (max[e->pre_other()->pid()]));
 

@@ -84,7 +84,7 @@ Event *Unfolding::event (Event *creat)
    ASSERT (creat->action.val <= nrp); // an existing process or the next fresh pid
    if (creat->action.val == nrp)
    {
-      // new process
+      // new process, insert the 1st THSTART in the process
       Process *p = new_proc (creat);
       ASSERT (p);
       ASSERT (p->pid() == creat->action.val);
@@ -104,6 +104,7 @@ Event *Unfolding::event (Action ac, Event *p)
    Event *e;
 
    ASSERT (p);
+   ASSERT (p->action.type != ActionType::THEXIT);
    ASSERT (ac.type == ActionType::THCREAT or ac.type == ActionType::THEXIT);
 
    // if the event already exist, we return it
@@ -121,6 +122,7 @@ Event *Unfolding::event (Action ac, Event *p, Event *m)
 
    // checking that this method was correctly invoked
    ASSERT (p);
+   ASSERT (p->action.type != ActionType::THEXIT);
    if (ac.type == ActionType::THJOIN) ASSERT (m and m->action.type == ActionType::THEXIT);
    if (ac.type == ActionType::MTXLOCK)
    {

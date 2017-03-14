@@ -77,7 +77,7 @@ int main (int argc, char **argv)
 {
    verb_set (VERB_DEBUG);
 #if 1
-   dpu::test55 ();
+   dpu::test56 ();
    return 0;
 #else
    ::testing::InitGoogleTest(&argc, argv);

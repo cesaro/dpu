@@ -44,11 +44,17 @@ C15unfolder::C15unfolder (Alt_algorithm a, unsigned kbound) :
    exec (nullptr),
    alt_algorithm (a),
    kpartial_bound (kbound),
-   pidmap_s2d (Unfolding::MAX_PROC),
-   pidmap_d2s (Unfolding::MAX_PROC)
+   pidpool (u),
+   pidmap ()
 {
+   unsigned i;
+
    if (alt_algorithm == Alt_algorithm::OPTIMAL)
       kpartial_bound = UINT_MAX;
+
+   // initialize the start array (this is an invariant expected and maintained
+   // by stream_to_events)
+   for (i = 0; i < Unfolding::MAX_PROC; i++) start[i] = nullptr;
 }
 
 C15unfolder::~C15unfolder ()
@@ -136,7 +142,7 @@ void C15unfolder::set_args (std::vector<const char *> argv)
    exec->argv = argv;
 }
 
-Config C15unfolder::add_one_run (const std::vector<int> &replay)
+Config C15unfolder::add_one_run (const std::vector<struct replayevent> &replay)
 {
    Config c (Unfolding::MAX_PROC);
 
@@ -155,16 +161,15 @@ Config C15unfolder::add_one_run (const std::vector<int> &replay)
    return c;
 }
 
-void C15unfolder::add_multiple_runs (const std::vector<int> &replay)
+void C15unfolder::add_multiple_runs (const std::vector<struct replayevent> &replay)
 {
    Event *e;
-   std::vector<int> rep;
+   std::vector<struct replayevent> rep;
    std::vector<Event *>cex;
-   Config c (add_one_run (replay));
 
+   Config c (add_one_run (replay));
    // add_one_run executes the system up to completion, we now compute all cex
    // of the resulting configuration and iterate through them
-
    c.dump ();
 
    // compute cex
@@ -177,10 +182,11 @@ void C15unfolder::add_multiple_runs (const std::vector<int> &replay)
    // run the system once more for every cex
    for (Event *e : cex)
    {
-      cut_to_replay (e->cone, rep);
-      rep.push_back (-1);
-      add_one_run (rep);
       rep.clear ();
+
+      cut_to_replay (e->cone, rep);
+      rep.push_back ({-1, -1});
+      add_one_run (rep);
    }
 }
 
@@ -205,7 +211,7 @@ void C15unfolder::explore ()
    Disset d;
    Config c (Unfolding::MAX_PROC);
    Cut j (Unfolding::MAX_PROC);
-   std::vector<int> replay;
+   std::vector<struct replayevent> replay;
    Event *e = nullptr;
    int i = 0;
 
@@ -229,6 +235,8 @@ void C15unfolder::explore ()
 #ifdef VERB_LEVEL_TRACE
       if (verb_trace)
          t.dump2 (fmt ("c15u: explore: %s: ", explore_stat(t,d).c_str()).c_str());
+      if (verb_debug) pidmap.dump (true);
+      if (verb_debug) pidpool.dump ();
       if (verb_debug) c.dump ();
       if (verb_debug) d.dump ();
 #endif
@@ -236,17 +244,6 @@ void C15unfolder::explore ()
       // add conflicting extensions
       compute_cex (c, &e);
       counters.avg_max_trail_size += t.size();
-
-#if 0
-      // FIXME turn this into a commandline option
-      std::ofstream f (fmt ("dot/c%02d.dot", i));
-      //u.print_dot (c, f, fmt ("Config %d", i));
-      f.close ();
-      f.open (fmt ("/tmp/dot/c%02d.dot", i));
-      u.print_dot (c, f, fmt ("Config %d", i));
-      f.close ();
-      i++;
-#endif
 
       // backtrack until we find some right subtree to explore
       DEBUG ("");
@@ -286,18 +283,19 @@ void C15unfolder::explore ()
       counters.avg_unjust_when_alt_call = NAN;
    }
    DEBUG ("c15u: explore: done!");
-   if (verb_debug) dump_pidmaps ();
    ASSERT (counters.ssbs == 0 or alt_algorithm != Alt_algorithm::OPTIMAL);
 }
 
-void C15unfolder::cut_to_replay (const Cut &c, std::vector<int> &replay)
+void C15unfolder::cut_to_replay (const Cut &c,
+      std::vector<struct replayevent> &replay)
 {
    static const Cut empty (Unfolding::MAX_PROC);
 
    cut_to_replay (c, empty, replay);
 }
 
-void C15unfolder::cut_to_replay (const Cut &c1, const Cut &c2, std::vector<int> &replay)
+void C15unfolder::cut_to_replay (const Cut &c1, const Cut &c2,
+      std::vector<struct replayevent> &replay)
 {
    int count, len, j;
    unsigned i, nrp;
@@ -319,13 +317,13 @@ void C15unfolder::cut_to_replay (const Cut &c1, const Cut &c2, std::vector<int> 
       // compute len, the number of events that we will run in process i
       e = c1[i];
       if (! e) continue;
-      DEBUG ("c15u: cut-to-replay: at least one  %d events on proc %d", len, i);
       len = e->depth_proc();
       if (c2[i]) len -= (int) c2[i]->depth_proc(); else len++;
       if (len <= 0) continue;
-      DEBUG ("c15u: cut-to-replay: running %d events on proc %d", len, i);
+      DEBUG ("c15u: cut-to-replay: pid %d: will replay %d events", i, len);
 
-      // set up the Event's next pointer in order to run forward
+      // set up the Event's next pointer in order to run forward; the last event
+      // that we set is one above c2[i], due to the way we have computed the len
       ee = nullptr;
       for (j = 0; j < len; j++)
       {
@@ -338,7 +336,7 @@ void C15unfolder::cut_to_replay (const Cut &c1, const Cut &c2, std::vector<int> 
       // is "the layer of events one above" the cut of (c1 \cap c2)
       cc[i] = ee;
    }
-   DEBUG ("c15u: cut-to-replay: running forward cc %s", cc.str().c_str());
+   DEBUG ("c15u: cut-to-replay: now forward, from cc %s", cc.str().c_str());
 
    // in a round-robbin fashion, we run each process until we cannot continue in
    // that process; this continues until we are unable to make progress
@@ -348,38 +346,40 @@ void C15unfolder::cut_to_replay (const Cut &c1, const Cut &c2, std::vector<int> 
       progress = false;
       for (i = 0; i < nrp; i++)
       {
+         // we replay as many events as possible on process i, starting from e
+         // INVARIANT: we have not executed e, the loop below relies and
+         // maintains this invariant, after the update c[i] = e below
          e = cc[i];
-         DEBUG ("c15u: cut-to-replay: ctxsw to pid %d, event %p", i, e);
          count = 0;
-         // we replay as many events as possible on process i
          for (; e; e = e->next)
          {
+            DEBUG ("c15u: cut-to-replay: at pid %d, trying %s", i, e->str().c_str());
             // if event has non-visited causal predecessor, abort this process
-            SHOW (e->str().c_str(), "s");
             if (e->pre_other()
                   and i != e->pre_other()->pid()
                   and cc[e->pre_other()->pid()]
-                  and e->pre_other()->depth_proc() > cc[e->pre_other()->pid()]->depth_proc())
+                  and e->pre_other()->depth_proc() >= cc[e->pre_other()->pid()]->depth_proc())
                      break;
             count++;
+            if (e->action.type == ActionType::THCREAT)
+               pidmap.add (e->action.val, pidmap.get_next_tid());
          }
 
          if (count)
          {
             cc[i] = e;
-            replay.push_back (i);
-            replay.push_back (count);
-            DEBUG ("c15u: cut-to-replay: %u %d", i, count);
+            DEBUG ("c15u: cut-to-replay: r%u (#%u) count %d", pidmap.get(i), i, count);
+            replay.push_back ({(int) pidmap.get(i), count});
             progress = true;
          }
       }
    }
 }
 
-void C15unfolder::trail_to_replay (const Trail &t, std::vector<int> &replay) const
+void C15unfolder::trail_to_replay (const Trail &t, std::vector<struct replayevent> &replay)
 {
    unsigned pid;
-   unsigned count;
+   int count;
 
    // if there is at least one event, then the first is for pid 0
    count = pid = 0;
@@ -387,56 +387,74 @@ void C15unfolder::trail_to_replay (const Trail &t, std::vector<int> &replay) con
 
    for (Event *e : t)
    {
+      // on context switches, add a new entry
       if (e->pid() != pid)
       {
-         DEBUG ("c15u: trail-to-replay: %u %d", pid, count);
-         replay.push_back (pid);
-         replay.push_back (count);
+         DEBUG ("c15u: trail-to-replay: r%u (#%d) count %d",
+               pidmap.get(pid), pid, count);
+         replay.push_back ({(int) pidmap.get(pid), count});
          pid = e->pid ();
          count = 0;
       }
+      // on thread creation, add a new entry to the pid map
+      if (e->action.type == ActionType::THCREAT)
+         pidmap.add (e->action.val, pidmap.get_next_tid());
       count++;
    }
    if (count)
    {
-      DEBUG ("c15u: trail-to-replay: %u %d", pid, count);
-      replay.push_back (pid);
-      replay.push_back (count);
+      DEBUG ("c15u: trail-to-replay: r%u (#%d) count %d",
+            pidmap.get(pid), pid, count);
+      replay.push_back ({(int) pidmap.get(pid), count});
    }
 }
 
 void C15unfolder::alt_to_replay (const Trail &t, const Cut &c, const Cut &j,
-      std::vector<int> &replay)
+      std::vector<struct replayevent> &replay)
 {
    // the sequence of number that we need to compute here allows steroids to
    // replay the trail (exacty in that order) followed by the replay of
    // J \setminus C (in any order).
 
-   unsigned i, lim;
-   bool changed = false;
+   unsigned lim, i;
+   bool first;
+
+   // We map pids in dpu to tids in steroids, the id of a given thread in a
+   // replay is defined when the corresponding THCREAT event happens; the
+   // communication protocol with steroids establishes that the tid which that
+   // thread gets at that moment is equal to 1 + the number of times a THCREAT
+   // event has been replayed before that THCREAT. Every time we replay a
+   // THCREAT we add one entry to the map. We use the size of the map to keep
+   // track of the next fresh tid. The map automagically keeps track of the
+   // mapping 0 -> 0. We now reset the map.
+   pidmap.reset ();
+   ASSERT (pidmap.size() == 1);
+   ASSERT (pidmap.get(0) == 0);
 
    replay.clear();
    trail_to_replay (t, replay);
    lim = replay.size();
    cut_to_replay (j, c, replay);
-   replay.push_back (-1);
+   replay.push_back ({-1, -1});
 
    TRACE_ ("c15u: explore: replay seq: %s", replay2str(replay,lim).c_str());
-   for (i = 0; replay[i] != -1; i += 2)
+   first = true;
+   for (i = 0; i < pidmap.size(); i++)
    {
-      if (replay[i] != d2spid (replay[i]))
+      if (i != pidmap.get(i))
       {
-         replay[i] = d2spid (replay[i]);
-         changed = true;
+         if (first) TRACE_ (" (pidmap: ");
+         first = false;
+         TRACE_ ("#%u -> r%u; ", i, pidmap.get(i));
       }
    }
-   if (changed)
-      TRACE (" (!=)");
-   else
+   if (first)
       TRACE ("");
+   else
+      TRACE (")");
 }
 
-void C15unfolder::set_replay_and_sleepset (std::vector<int> &replay, const Cut &j,
+void C15unfolder::set_replay_and_sleepset (std::vector<struct replayevent> &replay, const Cut &j,
          const Disset &d)
 {
    unsigned tid;
@@ -455,29 +473,36 @@ void C15unfolder::set_replay_and_sleepset (std::vector<int> &replay, const Cut &
       ASSERT (e->action.type == ActionType::MTXLOCK);
       if (! j.ex_is_cex (e))
       {
-         TRACE_ ("t%u (%p); ", e->pid(), (void*) e->action.addr);
-         tid = d2spid (e->pid());
+         tid = pidmap.get(e->pid());
+         TRACE_ ("r%u (#%u) %p; ", tid, e->pid(), (void*) e->action.addr);
          exec->add_sleepset (tid, (void*) e->action.addr);
       }
    }
    TRACE ("");
 }
 
-std::string C15unfolder::replay2str (std::vector<int> &replay, unsigned altidx)
+std::string C15unfolder::replay2str (std::vector<struct replayevent> &replay, unsigned altidx)
 {
    std::string s;
    unsigned i;
 
-   ASSERT (altidx % 2 == 0);
-   for (i = 0; replay[i] != -1; i += 2)
+   i = 0;
+   for (auto &e : replay)
    {
-      ASSERT (i < replay.size());
-      ASSERT (i+1 < replay.size());
+      if (i) s += "; ";
       if (i == altidx) s += "** ";
-      s += fmt ("%d %d; ", replay[i], replay[i+1]);
+      if (e.tid == -1)
+      {
+         ASSERT (e.count == -1);
+         s += "-1";
+      }
+      else
+      {
+         ASSERT (e.tid >= 0 and e.count >= 1);
+         s += fmt ("%u %u", e.tid, e.count);
+      }
+      i++;
    }
-   if (i == altidx) s += "** ";
-   s += "-1";
    return s;
 }
 
@@ -826,31 +851,6 @@ bool C15unfolder::find_alternative_sdpor (Config &c, const Disset &d, Cut &j)
    j = c;
    j.unionn (e); // for fun, comment out this line ;)
    return true;
-}
-
-void C15unfolder::dump_pidmaps () const
-{
-   unsigned i;
-
-   PRINT ("== begin pidmaps =="); 
-   PRINT (" dpu -> stid");
-
-   for (i = 0; i < pidmap_d2s.size(); i++)
-   {
-      if (i and pidmap_d2s[i] == 0) break;
-      ASSERT (i >= pidmap_d2s[i]);
-      PRINT (" %3u -> %-u", i, pidmap_d2s[i]);
-   }
-   for (; i < pidmap_d2s.size(); i++) ASSERT (pidmap_d2s[i] == 0);
-   for (i = 0; i < pidmap_s2d.size(); i++)
-   {
-      if (i and pidmap_s2d[i] == 0) break;
-      ASSERT (pidmap_s2d[i] < pidmap_d2s.size());
-      ASSERT (pidmap_d2s[pidmap_s2d[i]] == i);
-   }
-   for (; i < pidmap_s2d.size(); i++) ASSERT (pidmap_s2d[i] == 0);
-
-   PRINT ("== end pidmaps =="); 
 }
 
 } // namespace dpu

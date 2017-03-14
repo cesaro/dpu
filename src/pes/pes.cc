@@ -1,3 +1,11 @@
+
+// This file contains an early implementation made by Huyen, mid 2016, of the
+// decision procedures for causality and conflict based on trees, together with
+// other classes (notably Ident) that didn't make it into the final
+// implementation.
+//
+// All code in this file is currently unused, and commented out.
+
  /*
  * pes.cc
  *

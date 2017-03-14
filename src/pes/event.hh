@@ -21,8 +21,8 @@ class Event : public MultiNode<Event,2> // 2 trees, skip step = 3
 public:
    int inside; // a flag to mark that an event is inside some set or not
 
-   /// THSTART(), creat is the corresponding THCREAT (or null for p0)
-   inline Event (Event *creat);
+   /// THSTART(creat), where creat is the THCREAT, null for p0
+   inline Event (Event *creat, bool boxfirst);
    /// THCREAT(tid) or THEXIT(), one predecessor (in the process)
    inline Event (Action ac, bool boxfirst);
    /// THJOIN(tid), MTXLOCK(addr), MTXUNLK(addr), two predecessors (process, memory/exit)
@@ -95,6 +95,9 @@ public:
    /// immediate conflicts of "this"
    inline std::vector<Event*> icfls () const;
 
+   /// returns the memory size of the data pointed by fields in this object
+   inline size_t pointed_memory_size () const;
+
    /// the cut of the local configuration of the event
    const Primecon cone;
 
@@ -108,7 +111,7 @@ private:
    inline Eventbox *box_above () const;
    Eventbox *box_below () const;
 
-   friend class EventIt;
+   friend class Process;
 };
 
 // implementation of inline methods

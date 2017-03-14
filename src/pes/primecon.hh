@@ -36,6 +36,9 @@ public:
    const Event *mutex_max (Addr a) const;
    Event *mutex_max (Addr a);
 
+   /// returns the memory size of the data pointed by fields in this object
+   inline size_t pointed_memory_size () const;
+
 protected :
    /// the list of maximal lock/unlock events sorted by the increasing value of
    /// the address

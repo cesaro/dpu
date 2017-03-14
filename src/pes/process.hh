@@ -7,37 +7,33 @@
 namespace dpu
 {
 
-class EventIt
-{
-public :
-   bool operator== (const EventIt &other) const
-      { return e == other.e; }
-   bool operator!= (const EventIt &other) const
-      { return e != other.e; }
-
-   EventIt &operator++ ()
-      { e = e->flags.boxlast ? e->box_above()->event_above() : e + 1; return *this; }
-   EventIt operator++ (int x)
-      { EventIt copy = *this; ++(*this); return copy; }
-
-   Event &operator* ()
-      { return *e; }
-   Event *operator-> ()
-      { return e; }
-
-private:
-   /// the event currently pointed by this iterator
-   Event *e;
-
-   /// constructor
-   EventIt (Event *e) :
-      e (e)
-      { }
-   friend class Process;
-};
-
 class Process
 {
+protected :
+   template <class T>
+   class It
+   {
+   public :
+      It (T *e) : e (e) {}
+
+      bool operator== (const It &other) const
+         { return e == other.e; }
+      bool operator!= (const It &other) const
+         { return e != other.e; }
+
+      It &operator++ ()
+         { e = e->flags.boxlast ? e->box_above()->event_above() : e + 1; return *this; }
+      It operator++ (int x)
+         { It copy = *this; ++(*this); return copy; }
+
+      T &operator* () { return *e; }
+      T *operator-> () { return e; }
+
+   private:
+      /// the event currently pointed by this iterator
+      T *e;
+   };
+
 public :
    /// ctor, creat is null for the first process or the first THCREAT event that
    /// created this process
@@ -47,8 +43,10 @@ public :
    void dump ();
 
    /// iterator over the events in this process
-   inline EventIt begin ();
-   inline EventIt end ();
+   inline It<Event> begin ();
+   inline It<Event> end ();
+   inline const It<const Event> begin () const;
+   inline const It<const Event> end () const;
 
    /// returns the pid of this process
    inline unsigned pid () const;
@@ -64,6 +62,13 @@ public :
    inline Event *add_event_1p (Action ac, Event *p);
    /// THJOIN(tid), MTXLOCK(addr), MTXUNLK(addr), two predecessors (process, memory/exit)
    inline Event *add_event_2p (Action ac, Event *p, Event *m);
+
+   /// returns the number of bytes of memory consumed by this process
+   size_t memory_size () const
+      { return (size_t) (((char*) last) - (char*) this) + sizeof (Event); }
+
+   /// returns the memory size of the data (indirectly) pointed by fields in this object
+   inline size_t pointed_memory_size () const;
 
    struct {
       unsigned events;

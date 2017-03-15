@@ -56,7 +56,6 @@ main_ ()
    echo "$BACKEND $TMP/input.bc $ARGS"
    if test $GDB = 1; then
       gdb $BACKEND \
-         -ex 'break main' \
          -ex 'break breakme' \
          -ex 'info break' \
          -ex "run $TMP/input.bc $ARGS"

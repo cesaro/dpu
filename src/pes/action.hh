@@ -3,6 +3,7 @@
 #define __PES_ACTION_HH_
 
 #include <cstdint>
+#include <ostream>
 
 // necessary for the .hpp
 #include "verbosity.h"
@@ -37,6 +38,8 @@ enum class ActionType
    MTXLOCK,
    MTXUNLK,
 };
+
+static std::ostream & operator<< (std::ostream &os, const enum ActionType &a);
 
 const char *action_type_str (ActionType t);
 const char *action_type_str (unsigned t);

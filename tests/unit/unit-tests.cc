@@ -76,7 +76,7 @@ void test59 ();
 int main (int argc, char **argv)
 {
    verb_set (VERB_DEBUG);
-#if 1
+#if 0
    dpu::test56 ();
    return 0;
 #else

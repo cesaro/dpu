@@ -20,7 +20,4 @@
 
 TEST (Unfolding, Addressing)
 {
-  EXPECT_EQ(1, 2);
-  EXPECT_GT(10, -2);
-  EXPECT_FALSE(true);
 }

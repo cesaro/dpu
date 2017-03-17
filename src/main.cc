@@ -170,9 +170,101 @@ void print_tree_stats (C15unfolder &unf)
    delete[] pb;
 }
 
+#ifdef CONFIG_STATS_DETAILED
+void print_causality_stats (C15unfolder &unf)
+{
+   long unsigned calls, trivial, nontrivial, null, eq, invdep, empty;
+
+   // causality
+   calls   = Event::counters.causality.calls;
+   null    = Event::counters.causality.trivial_null;
+   eq      = Event::counters.causality.trivial_eq;
+   invdep  = Event::counters.causality.trivial_invdep;
+   trivial = null + eq + invdep;
+   nontrivial = calls - trivial;
+
+   SHOW (Event::counters.causality.calls, "lu");
+   SHOW (Event::counters.causality.trivial_null, "lu");
+   SHOW (Event::counters.causality.trivial_eq, "lu");
+   SHOW (Event::counters.causality.trivial_invdep, "lu");
+   SHOW (trivial, "lu");
+
+   PRINT ("dpu: stats: <: on events:");
+   PRINT ("dpu: stats: <:   %lu calls", calls);
+   PRINT ("dpu: stats: <:   %lu trivial (%.1f%%), solved by null/eq/invdep %lu/%lu/%lu checks",
+         trivial,
+         calls ?  trivial * 100.0 / calls : 0.0,
+         null, eq, invdep);
+   PRINT ("dpu: stats: <:   %lu non-trivial (%.1f%%)",
+      nontrivial,
+      calls ?  nontrivial * 100.0 / calls : 0.0);
+
+   PRINT ("dpu: stats: <: on sequential trees:");
+   PRINT ("dpu: stats: <:   max depth: size/nc=%s; "
+         "min/max/avg=%s; {depth=count/mass}={%s}",
+         Event::counters.causality.depth.summary_snc().c_str(),
+         Event::counters.causality.depth.summary_mma().c_str(),
+         Event::counters.causality.depth.summary_freq_maxc(5).c_str());
+   PRINT ("dpu: stats: <:   diff depth: size/nc=%s; "
+         "min/max/avg=%s; {diff=count/mass}={%s}",
+         Event::counters.causality.diff.summary_snc().c_str(),
+         Event::counters.causality.diff.summary_mma().c_str(),
+         Event::counters.causality.diff.summary_freq_maxc(5).c_str());
+
+   // conflict
+   calls      = Event::counters.conflict.calls_event;
+   eq         = Event::counters.conflict.trivial_eq;
+   empty      = Event::counters.conflict.trivial_empty;
+   trivial    = eq + empty;
+   nontrivial = calls - trivial;
+
+   PRINT ("dpu: stats: #: on events (e#e):");
+   PRINT ("dpu: stats: #:   %lu calls", calls);
+   PRINT ("dpu: stats: #:   %lu trivial (%.1f%%), solved by eq/empty %lu/%lu checks",
+         trivial,
+         calls ? trivial * 100.0 / calls : 0.0,
+         eq, empty);
+   PRINT ("dpu: stats: #:   %lu non-trivial (%.1f%%)",
+      nontrivial, calls ? nontrivial * 100.0 / calls : 0.0);
+
+   PRINT ("dpu: stats: #: on event-config (e#C):");
+   PRINT ("dpu: stats: #:   %lu calls, all non-trivial",
+         Event::counters.conflict.calls_conf);
+
+   // FIXME -- we need to use Node<Event,X> where X is the skip step that we
+   // have used to define the class Event, otherwise won't get the right
+   // statistics!!
+   unsigned constexpr ss = CONFIG_SKIP_STEP;
+   calls      = Node<Event,ss>::nodecounters.conflict.calls;
+   trivial    = Node<Event,ss>::nodecounters.conflict.trivial_eq;
+   nontrivial = calls - trivial;
+   PRINT ("dpu: stats: #: on sequential trees:");
+   PRINT ("dpu: stats: #:   %lu calls", calls);
+   PRINT ("dpu: stats: #:   %lu trivial (%.1f%%), solved by eq checks",
+         trivial, calls ? trivial * 100.0 / calls : 0.0);
+   PRINT ("dpu: stats: #:   %lu non-trivial (%.1f%%)",
+      nontrivial, calls ? nontrivial * 100.0 / calls : 0.0);
+   PRINT ("dpu: stats: #:   max depth: size/nc=%s; "
+         "min/max/avg=%s; {depth=count/mass}={%s}",
+         Node<Event,ss>::nodecounters.conflict.depth.summary_snc().c_str(),
+         Node<Event,ss>::nodecounters.conflict.depth.summary_mma().c_str(),
+         Node<Event,ss>::nodecounters.conflict.depth.summary_freq_maxc(5).c_str());
+   PRINT ("dpu: stats: #:   depth diff: size/nc=%s; "
+         "min/max/avg=%s; {diff=count/mass}={%s}",
+         Node<Event,ss>::nodecounters.conflict.diff.summary_snc().c_str(),
+         Node<Event,ss>::nodecounters.conflict.diff.summary_mma().c_str(),
+         Node<Event,ss>::nodecounters.conflict.diff.summary_freq_maxc(5).c_str());
+   PRINT ("dpu: stats: </#: steps: size/nc=%s; "
+         "min/max/avg=%s; {steps=count/mass}={%s}",
+         Node<Event,ss>::nodecounters.conflict.steps.summary_snc().c_str(),
+         Node<Event,ss>::nodecounters.conflict.steps.summary_mma().c_str(),
+         Node<Event,ss>::nodecounters.conflict.steps.summary_freq_maxc(6).c_str());
+}
+#endif
+
 void print_stats (C15unfolder &unf)
 {
-   unsigned long events;
+   unsigned long events, calls, built, expl;
    unsigned i;
    size_t size;
 
@@ -207,17 +299,39 @@ void print_stats (C15unfolder &unf)
    }
 
    if (verb_info) print_tree_stats (unf);
+#ifdef CONFIG_STATS_DETAILED
+   if (verb_info) print_causality_stats (unf);
+#endif
 
-   //PRINT ("\ndpu: POR statistics:");
+   // POR statistics
    PRINT ("dpu: stats: por: %lu executions", unf.counters.runs);
    PRINT ("dpu: stats: por: %lu SSBs", unf.counters.ssbs);
    PRINT ("dpu: stats: por: %.1f average ev/trail",
          unf.counters.avg_max_trail_size);
-   PRINT ("dpu: stats: por: alt: %lu calls (after trivial simplifications)", unf.counters.altcalls);
-   PRINT ("dpu: stats: por: alt: %lu largest |D| (unjust. only)",
-         unf.counters.max_unjust_when_alt_call);
-   PRINT ("dpu: stats: por: alt: %.2f average |D| (unjust. only)",
-         unf.counters.avg_unjust_when_alt_call);
+
+   // alternatives
+   calls = unf.counters.alt.calls;
+   built = unf.counters.alt.calls_built_comb;
+   expl = unf.counters.alt.calls_explore_comb;
+   PRINT ("dpu: stats: por: alt: %lu calls", calls);
+   PRINT ("dpu: stats: por: alt: %lu calls built a comb (%.1f%%)",
+         built, calls ? built * 100.0 / calls : 0.0);
+   PRINT ("dpu: stats: por: alt: %lu calls explored a comb (%.1f%%)",
+         expl, calls ? expl * 100.0 / calls : 0.0);
+   PRINT ("dpu: stats: por: |comb|: size/nc=%s; "
+         "min/max/avg=%s; {size=count/mass}={%s}",
+         unf.counters.alt.spikes.summary_snc().c_str(),
+         unf.counters.alt.spikes.summary_mma().c_str(),
+         unf.counters.alt.spikes.summary_freq_maxc(3).c_str());
+#ifdef CONFIG_STATS_DETAILED
+   PRINT ("dpu: stats: por: |comb.spike|: size/nc=%s; "
+         "min/max/avg=%s; {size=count/mass}={%s}",
+         unf.counters.alt.spikesize.summary_snc().c_str(),
+         unf.counters.alt.spikesize.summary_mma().c_str(),
+         unf.counters.alt.spikesize.summary_freq_maxc(3).c_str());
+#endif
+
+   // print times here as well!
 
    PRINT ("\ndpu: summary: %lu max-configs, %lu SSBs, %lu events, %.1f ev/trail",
          unf.counters.maxconfs, unf.counters.ssbs, events,

@@ -131,10 +131,39 @@ bool Event::is_predeq_of (const Event *e) const
    //DEBUG ("Event.is_pred_of: this %p pid %u e %p pid %u ee %p",
    //      this, pid(), e, e->pid(), ee);
 
+#ifdef CONFIG_STATS_DETAILED
+   Event::counters.causality.calls++;
+#endif
+   SHOW (this->str().c_str(), "s");
+   SHOW (e ? e->str().c_str() : "NULL!", "s");
+   breakme ();
+
    // if there is no event, or it's depth is superior to this.depth, then false
-   if (! ee) return false;
-   if (ee == this) return true;
-   if (node[0].depth >= ee->node[0].depth) return false;
+   if (! ee) {
+#ifdef CONFIG_STATS_DETAILED
+      Event::counters.causality.trivial_null++;
+#endif
+      return false;
+   }
+
+   if (ee == this) {
+#ifdef CONFIG_STATS_DETAILED
+   Event::counters.causality.trivial_eq++;
+#endif
+      return true;
+   }
+
+   if (node[0].depth >= ee->node[0].depth) {
+#ifdef CONFIG_STATS_DETAILED
+   Event::counters.causality.trivial_invdep++;
+#endif
+      return false;
+   }
+
+#ifdef CONFIG_STATS_DETAILED
+   Event::counters.causality.depth.sample (ee->node[0].depth);
+   Event::counters.causality.diff.sample (ee->node[0].depth - node[0].depth);
+#endif
 
    // otherwise, we need to scan the process tree
    return this == ee->node[0].find_pred<0> (node[0].depth);
@@ -142,21 +171,44 @@ bool Event::is_predeq_of (const Event *e) const
 
 bool Event::is_pred_of (const Event *e) const
 {
+#ifdef CONFIG_STATS_DETAILED
+   Event::counters.causality.calls++;
+   Event::counters.causality.trivial_eq++;
+#endif
    if (e == this) return false;
+#ifdef CONFIG_STATS_DETAILED
+   Event::counters.causality.trivial_eq--;
+   Event::counters.causality.calls--; // incremented again in is_predeq_of
+#endif
    return is_predeq_of (e);
 }
 
 bool Event::in_cfl_with (const Event *e) const
 {
    bool b;
-   b = this == e ? false : cone.in_cfl_with (&e->cone);
-   //DEBUG ("Event.in_cfl_with: this %p pid %u e %p pid %u ret %d", this, pid(), e, e->pid(), b);
+#ifdef CONFIG_STATS_DETAILED
+   Event::counters.conflict.calls_event++;
+#endif
+   if (this == e) {
+      b = false;
+#ifdef CONFIG_STATS_DETAILED
+      Event::counters.conflict.trivial_eq++;
+#endif
+   } else {
+      b = cone.in_cfl_with (&e->cone);
+   }
+   DEBUG ("Event.in_cfl_with: this %p pid %u e %p pid %u ret %d", this, pid(), e, e->pid(), b);
    return b;
 }
 
 bool Event::in_cfl_with (const Config &c) const
 {
-   bool b = cone.in_cfl_with (c);
+   bool b;
+
+#ifdef CONFIG_STATS_DETAILED
+      Event::counters.conflict.calls_conf++;
+#endif
+   b = cone.in_cfl_with (c);
    //DEBUG ("Event.in_cfl_with: this %p pid %u c %p ret %d", this, pid(), &c, b);
    return b;
 }

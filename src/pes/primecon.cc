@@ -3,6 +3,8 @@
 #include "pes/event.hh"
 #include "pes/config.hh"
 
+#include "config.h"
+
 namespace dpu
 {
 
@@ -156,9 +158,15 @@ bool Primecon::in_cfl_with (const Primecon *other) const
    decltype(lockmax)::const_iterator it = lockmax.begin();
    decltype(other->lockmax)::const_iterator it_ = other->lockmax.begin();
 
+#ifdef CONFIG_STATS_DETAILED
+   Event::counters.conflict.trivial_empty++;
+#endif
    // if one of the vectors is empty, there is no conflict
    if (it == lockmax.end()) return false;
    if (it_ == other->lockmax.end()) return false;
+#ifdef CONFIG_STATS_DETAILED
+   Event::counters.conflict.trivial_empty--;
+#endif
    
    while (1)
    {

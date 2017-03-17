@@ -74,4 +74,8 @@ std::string Event::str () const
    return s;
 }
 
+#ifdef CONFIG_STATS_DETAILED
+Event::Counters Event::counters;
+#endif
+
 } // namespace

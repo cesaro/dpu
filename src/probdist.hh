@@ -5,6 +5,7 @@
 #include <map>
 #include <vector>
 #include <string>
+#include <sstream>
 
 template <class T>
 class Probdist

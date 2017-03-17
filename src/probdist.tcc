@@ -1,5 +1,6 @@
 
-#include <sstream>
+#include <algorithm>
+#include <cmath>
 
 template <class T>
 Probdist<T>::Probdist () :
@@ -44,8 +45,7 @@ unsigned Probdist<T>::count (T e) const
 template <class T>
 float Probdist<T>::mass (T e) const
 {
-   if (samples == 0)
-      throw std::out_of_range ("The distribution is empty");
+   if (samples == 0) return NAN;
    return count2mass (count(e));
 }
 
@@ -56,7 +56,7 @@ T Probdist<T>::max () const
    T max;
 
    if (samples == 0)
-      throw std::out_of_range ("The distribution is empty");
+      throw std::out_of_range ("Empty sample");
 
    first = true;
    for (auto &kv : _counters)
@@ -78,7 +78,7 @@ T Probdist<T>::min () const
    T min;
 
    if (samples == 0)
-      throw std::out_of_range ("The distribution is empty");
+      throw std::out_of_range ("Empty sample");
 
    first = true;
    for (auto &kv : _counters)
@@ -120,7 +120,10 @@ std::string Probdist<T>::summary_mma () const
 {
    std::ostringstream ss;
    ss.precision (2);
-   ss << min() << "/" << max() << "/" << std::fixed << average();
+   if (size())
+      ss << min() << "/" << max() << "/" << std::fixed << average();
+   else
+      ss << "nan/nan/nan";
    return ss.str();
 }
 
@@ -129,8 +132,12 @@ std::string Probdist<T>::summary_mmac () const
 {
    std::ostringstream ss;
    ss.precision (2);
-   ss << _counters.size() << "/";
-   ss << min() << "/" << max() << "/" << std::fixed << average();
+   if (size()) {
+      ss << _counters.size() << "/";
+      ss << min() << "/" << max() << "/" << std::fixed << average();
+   } else {
+      ss << "0/nan/nan/nan";
+   }
    return ss.str();
 }
 

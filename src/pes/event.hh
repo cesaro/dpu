@@ -10,13 +10,18 @@
 #include "pes/primecon.hh"
 
 #include "verbosity.h"
+#include "config.h"
+
+#ifdef CONFIG_STATS_DETAILED
+#include "probdist.hh"
+#endif
 
 namespace dpu
 {
 
 class Process;
 
-class Event : public MultiNode<Event,2> // 2 trees, skip step = 3
+class Event : public MultiNode<Event,CONFIG_SKIP_STEP>
 {
 public:
    int inside; // a flag to mark that an event is inside some set or not
@@ -103,6 +108,26 @@ public:
 
    /// depth of the event in the unfolding
    const unsigned depth;
+
+   /// counters to obtain statistics
+#ifdef CONFIG_STATS_DETAILED
+   static struct Counters {
+      struct {
+         long unsigned calls = 0;
+         long unsigned trivial_null = 0;
+         long unsigned trivial_eq = 0;
+         long unsigned trivial_invdep = 0;
+         Probdist<unsigned> depth;
+         Probdist<unsigned> diff;
+      } causality;
+      struct {
+         long unsigned calls_event = 0;
+         long unsigned calls_conf = 0;
+         long unsigned trivial_empty = 0;
+         long unsigned trivial_eq = 0;
+      } conflict;
+   } counters;
+#endif
 
 private:
    inline const Event *pre_proc (bool bf) const;

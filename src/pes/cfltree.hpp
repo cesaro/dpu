@@ -1,8 +1,4 @@
-/*
- * cfltree.cc
- */
 
-//-----------------------
 template <class T, int SS >
 Node<T,SS>::Node(int idx, T *_this, T *_pre) :
    depth (_pre ? _pre->node[idx].depth + 1 : 0),
@@ -16,6 +12,8 @@ Node<T,SS>::Node(int idx, T *_this, T *_pre) :
    //s += "]";
    //DEBUG("Node<Ev,%d>.ctor: idx %d depth %d pre %p |tab| %u %s",
    //      SS, idx, depth, pre, skiptab_size (), s.c_str());
+
+   ASSERT (SS >= 2);
 
    // add ourselfs to our parent's post
    if (_pre) _pre->node[idx].post.push_back (_this);
@@ -131,16 +129,25 @@ template <int idx>
 const T *Node<T,SS>::find_pred (unsigned d) const
 {
    const T *p;
+#ifdef CONFIG_STATS_DETAILED
+   unsigned steps = 0;
+#endif
 
    //DEBUG ("Node<Ev,%d>.find-pred<%d>: target %u depth %u", SS, idx, d, depth);
    ASSERT (d < depth);
    for (p = best_pred (d); p->node[idx].depth > d; p = p->node[idx].best_pred (d))
    {
+#ifdef CONFIG_STATS_DETAILED
+      steps++;
+#endif
       ASSERT (p->node[idx].best_pred(d)->node[idx].depth < p->node[idx].depth);
       //DEBUG ("Node<Ev,%d>.find-pred<%d>: at %u", SS, idx, p->node[idx].depth);
    }
    //DEBUG ("Node<Ev,%d>.find-pred<%d>: at %u", SS, idx, p->node[idx].depth);
    ASSERT (p->node[idx].depth == d);
+#ifdef CONFIG_STATS_DETAILED
+   Node::nodecounters.conflict.steps.sample (steps);
+#endif
    return p;
 }
 
@@ -158,6 +165,12 @@ bool Node<T,SS>::in_cfl_with (const T *other) const
    unsigned d;
 
    d = other->node[idx].depth;
+#ifdef CONFIG_STATS_DETAILED
+   Node::nodecounters.conflict.calls++;
+   if (depth == d) Node::nodecounters.conflict.trivial_eq++;
+   if (depth != d) Node::nodecounters.conflict.depth.sample (std::max (d, depth));
+   if (depth != d) Node::nodecounters.conflict.diff.sample (std::max (d, depth) - std::min (d, depth));
+#endif
    if (depth == d) return this != &other->node[idx];
    if (depth < d)
    {

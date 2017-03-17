@@ -31,14 +31,20 @@ public:
 
    /// counters to obtain statistics
    struct {
-      long unsigned runs;
-      long unsigned ssbs;
-      long unsigned maxconfs;
-      long unsigned altcalls;
-      long unsigned max_unjust_when_alt_call;
-      long unsigned stid_threads;
-      float avg_unjust_when_alt_call;
-      float avg_max_trail_size;
+      long unsigned runs = 0;
+      long unsigned ssbs = 0;
+      long unsigned maxconfs = 0;
+      long unsigned stid_threads = 0;
+      float avg_max_trail_size = 0;
+      struct {
+         long unsigned calls = 0; // all calls
+         long unsigned calls_built_comb = 0; // had to build the comb
+         long unsigned calls_explore_comb = 0; // got to explore the comb
+         Probdist<unsigned> spikes; // number of spikes
+#ifdef CONFIG_STATS_DETAILED
+         Probdist<unsigned> spikesize; // size of the spikes
+#endif
+      } alt;
    } counters;
 
    // dynamic executor

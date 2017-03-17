@@ -42,6 +42,13 @@ CONFIG_GUEST_DEFAULT_THREAD_STACK_SIZE = $(shell echo '4 * 2^20' | bc)
 # number of events in the communication buffer between steroids and DPU
 CONFIG_GUEST_TRACE_BUFFER_SIZE = $(shell echo '2^20' | bc)
 
+# defines the skip step for the sequential tree skip lists (>= 2)
+CONFIG_SKIP_STEP = 3
+
+# define this to compile support to visualize statistics about causality/conflict
+# checks
+#CONFIG_STATS_DETAILED = 1
+
 ########################
 
 CONFIG_CFLAGS=$(CFLAGS)

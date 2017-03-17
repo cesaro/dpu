@@ -39,7 +39,6 @@ static void _ir_write_ll (const llvm::Module *m, const char *filename)
 
 
 C15unfolder::C15unfolder (Alt_algorithm a, unsigned kbound) :
-   counters {0, 0, 0, 0, 0, 0, 0, 0},
    m (nullptr),
    exec (nullptr),
    alt_algorithm (a),
@@ -257,6 +256,7 @@ void C15unfolder::explore ()
          d.trail_pop (t.size ());
 
          // check for alternatives
+         counters.alt.calls++;
          if (! might_find_alternative (c, d, e)) continue;
          d.add (e, t.size());
          if (find_alternative (t, c, d, j)) break;
@@ -274,14 +274,6 @@ void C15unfolder::explore ()
    ASSERT (counters.ssbs == d.ssb_count);
    counters.maxconfs = counters.runs - counters.ssbs;
    counters.avg_max_trail_size /= counters.runs;
-   if (counters.altcalls != 0)
-   {
-      counters.avg_unjust_when_alt_call /= counters.altcalls;
-   }
-   else
-   {
-      counters.avg_unjust_when_alt_call = NAN;
-   }
    DEBUG ("c15u: explore: done!");
    ASSERT (counters.ssbs == 0 or alt_algorithm != Alt_algorithm::OPTIMAL);
 }
@@ -641,11 +633,7 @@ inline bool C15unfolder::find_alternative (const Trail &t, Config &c, const Diss
    // no alternative may intersect with d
    if (b)
    {
-      if (d.intersects_with (j))
-      {
-         d.dump ();
-         j.dump ();
-      }
+      //if (d.intersects_with (j)) { d.dump (); j.dump (); }
       ASSERT (! d.intersects_with (j));
    }
 
@@ -672,18 +660,21 @@ bool C15unfolder::find_alternative_only_last (const Config &c, const Disset &d, 
    // - if you don't find any such e', return false
 
    Event * e;
-   unsigned num_unjust;
 
    // D is not empty
    ASSERT (d.unjustified.begin() != d.unjustified.end());
 
    // statistics
-   counters.altcalls++;
-   num_unjust = 0;
+   counters.alt.calls_built_comb++;
+   counters.alt.calls_explore_comb++;
+   counters.alt.spikes.sample (1);
+#ifdef CONFIG_STATS_DETAILED
+   unsigned num_unjust = 0;
    for (auto e : d.unjustified) { (void) e; num_unjust++; } // count unjustified in D
-   if (num_unjust > counters.max_unjust_when_alt_call)
-      counters.max_unjust_when_alt_call = num_unjust;
-   counters.avg_unjust_when_alt_call += num_unjust;
+   counters.alt.spikesize.sample (num_unjust);
+   // the spike size recorded here is a different size (before filtering out)
+   // than that recorded in kpartial()
+#endif
 
    // last event added to D
    e = *d.unjustified.begin();
@@ -739,13 +730,14 @@ bool C15unfolder::find_alternative_kpartial (const Config &c, const Disset &d, C
 #endif
    DEBUG ("\b]");
 
-   // build the spikes of the comb; there is many other ways to select the
-   // interesting spikes much more interesting than this plain truncation ...
    ASSERT (alt_algorithm == Alt_algorithm::OPTIMAL or
          alt_algorithm == Alt_algorithm::KPARTIAL);
    ASSERT (alt_algorithm != Alt_algorithm::OPTIMAL or
          kpartial_bound == UINT_MAX);
    ASSERT (kpartial_bound >= 1);
+
+   // build the spikes of the comb; there are many other ways to select the
+   // interesting spikes much more interesting than this plain truncation ...
    num_unjust = 0;
    for (auto e : d.unjustified)
    {
@@ -754,6 +746,9 @@ bool C15unfolder::find_alternative_kpartial (const Config &c, const Disset &d, C
    }
    if (comb.empty()) return false;
    DEBUG ("c15u: alt: kpartial: comb: initially:\n%s", comb2str(comb).c_str());
+
+   // we have constructed a (non-empty) comb
+   counters.alt.calls_built_comb++;
 
    // remove from each spike those events whose local configuration includes
    // some ujustified event in D, or in conflict with someone in C; the
@@ -777,15 +772,15 @@ bool C15unfolder::find_alternative_kpartial (const Config &c, const Disset &d, C
       // if one spike becomes empty, there is no alternative
       if (spike.empty()) return false;
    }
-
-   // report statistics
-   counters.altcalls++;
-   if (num_unjust > counters.max_unjust_when_alt_call)
-      counters.max_unjust_when_alt_call = num_unjust;
-   counters.avg_unjust_when_alt_call += num_unjust;
-
    DEBUG ("c15u: alt: kpartial: comb: after removing D and #(C), and bounding:\n%s",
          comb2str(comb).c_str());
+
+   // we have to explore the comb
+   counters.alt.calls_explore_comb++;
+   counters.alt.spikes.sample (num_unjust);
+#ifdef CONFIG_STATS_DETAILED
+   for (auto &spike : comb) counters.alt.spikesize.sample (spike.size());
+#endif
 
    // explore the comb, the combinatorial explosion could happen here
    if (enumerate_combination (0, comb, solution))

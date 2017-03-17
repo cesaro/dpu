@@ -6,6 +6,8 @@
 
 // needed in the .hpp
 #include "misc.hh"
+#include "verbosity.h"
+#include "probdist.hh"
 
 namespace dpu{
 
@@ -43,6 +45,19 @@ public:
    size_t pointed_memory_size () const
       { return (skiptab_size() + post.capacity()) * sizeof (void*); }
 
+   /// counters to obtain statistics
+#ifdef CONFIG_STATS_DETAILED
+   static struct Nodecounters {
+      struct {
+         long unsigned calls = 0;
+         long unsigned trivial_eq = 0;
+         Probdist<unsigned> depth;
+         Probdist<unsigned> diff;
+         Probdist<unsigned> steps;
+      } conflict;
+   } nodecounters;
+#endif
+
 private:
    /// computes the size of the skiptab table
    inline unsigned skiptab_size () const;
@@ -54,6 +69,13 @@ private:
    /// possible jump that still allows to reach the target depth
    inline T *best_pred (unsigned target) const;
 };
+
+#ifdef CONFIG_STATS_DETAILED
+// compiler makes sure that only 1 copy gets linked !!
+template<class T, int SS>
+typename Node<T,SS>::Nodecounters Node<T,SS>::nodecounters;
+#endif
+
 
 //-------template class MultiNode------
 template <class T, int SS> // SS: skip step

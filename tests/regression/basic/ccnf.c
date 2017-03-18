@@ -3,7 +3,7 @@
 #include <assert.h>
 
 #ifndef N
-#define N 3
+#define N 9
 #endif
 
 #ifndef JOIN

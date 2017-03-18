@@ -4,7 +4,7 @@
 #include <assert.h>
 
 #ifndef N
-#define N 6
+#define N 5
 #endif
 
 // N  max confs (according to nidhugg)

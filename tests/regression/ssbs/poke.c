@@ -33,11 +33,11 @@
 */
 
 #ifndef PARAM1
-#define PARAM1 4
+#define PARAM1 6
 #endif
 
 #ifndef PARAM2
-#define PARAM2 3
+#define PARAM2 4
 #endif
 
 
@@ -54,8 +54,9 @@ int d = 0;
 // chooses a number i
 void *choice()
 {
+ int x;
  // printf ("choice: start\n");
- for (int x = 1; x < N; x++)
+ for (x = 1; x < N; x++)
  {
  // printf ("choice: it %d\n",x);
   pthread_mutex_lock(&mi);
@@ -109,6 +110,7 @@ void *ra()
 
 int main()
 {
+ int x;
  pthread_t idk;
  pthread_t idr;
  pthread_t idw[N];
@@ -118,7 +120,7 @@ int main()
  //printf ("== start ==\n");
 
  // spawn the write threads
- for (int x = 0; x < N; x++)
+ for (x = 0; x < N; x++)
  {
    // initialize the array index
    a[x] = 0;
@@ -132,7 +134,7 @@ int main()
  // how many elements have been initialized
  // by poking one thread non-deterministically
  // per iteration.
- for (int x = 0; x < K; x++)
+ for (x = 0; x < K; x++)
  {
   //printf ("main: iteration %d\n", x);
   // spawn the counter
@@ -145,7 +147,7 @@ int main()
  }
 
  // join the writer threads
- for (int x = 0; x < N; x++)
+ for (x = 0; x < N; x++)
    pthread_join(idw[x],NULL);
 
  

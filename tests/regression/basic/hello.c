@@ -57,9 +57,8 @@ void test1 (int argc, char ** argv)
 void test2 ()
 {
    struct cesar c[10];
-   uint64_t x[10];
-
-   x[5] = 23;
+   //uint64_t x[10];
+   //x[5] = 23;
 
    c[2].v32_0 = 123;
    c[2].v8_1 = 123;

@@ -4,7 +4,7 @@
 #include <assert.h>
 
 #ifndef N
-#define N 4
+#define N 2
 #endif
 
 pthread_mutex_t m;

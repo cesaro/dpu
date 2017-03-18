@@ -59,11 +59,12 @@ int out_channel[SNUM]; // output communicatino channel
 // Right now, it just chooses a server
 void *pick_server(void *arg)
 {
- unsigned last_server_id = (unsigned long) arg;
+ //unsigned last_server_id = (unsigned long) arg;
+ int x;
 
  // printf ("pick_server: last sid %d\n", last_server_id); 
  
- for (int x = 0; x < SNUM; x++)
+ for (x = 0; x < SNUM; x++)
  {
  //  if (x == last_server_id || x == sid)
  //    continue;
@@ -144,12 +145,13 @@ int main()
 {
   pthread_t idw[SNUM];
   int picked_servers[RNUM];
+  int x, r;
 
   //printf ("== start ==\n");
 
   // spawn servers 
   pthread_mutex_init(&k, NULL);
-  for (int x = 0; x < SNUM; x++)
+  for (x = 0; x < SNUM; x++)
   {
     in_channel[x] = 0;
     out_channel[x] = 0;
@@ -158,7 +160,7 @@ int main()
   }
 
   // process requests
-  for (int r = 0; r < RNUM; r++){
+  for (r = 0; r < RNUM; r++){
     if (r == 0)
       picked_servers[r] = process_request(r, SNUM);
     else
@@ -170,7 +172,7 @@ int main()
 
   //printf ("main: before joining servers\n");
   // wait for servers to join
-  for (int x = 0; x < SNUM; x++)
+  for (x = 0; x < SNUM; x++)
     pthread_join(idw[x],NULL);
 
   // process results:
@@ -179,7 +181,7 @@ int main()
   // - assert that a server could only be
   int missed_req = 0;
 
-  for (int r = 0; r < RNUM; r++)
+  for (r = 0; r < RNUM; r++)
   {
     int s = picked_servers[r];
     // printf ("main: s %d, val %d\n", s, out_channel[s]);

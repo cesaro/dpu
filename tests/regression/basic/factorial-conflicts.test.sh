@@ -8,7 +8,7 @@
 # dpu: summary: 720 max-configs, 0 SSBs, 10221 events, 38.0 ev/trail
 # dpu: summary: 5040 max-configs, 0 SSBs, 75113 events, 44.0 ev/trail
 
-MAX=7
+MAX=5
 N=$(seq 1 $MAX)
 
 configs[1]=1

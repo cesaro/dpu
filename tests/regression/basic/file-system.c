@@ -4,7 +4,7 @@
 #include <assert.h>
 
 #ifndef N
-#define N 3
+#define N 13
 #endif
 
 #define NUMBLOCK 26

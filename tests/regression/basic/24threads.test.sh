@@ -1,4 +1,4 @@
-# Can unfold with 2 threads
+# Can unfold with 24 threads
 
 gcc -E nthreads.c -D N=24 -o input.i
 

@@ -70,11 +70,12 @@ void *ra(void *arg)
 
 int main()
 {
+ int i;
  pthread_t idr[K];
  pthread_t idw[K];
  pthread_mutex_init(&mi, NULL);
 
- for (int i = 0; i < K; i++)
+ for (i = 0; i < K; i++)
  {
    pthread_mutex_init(&ma[i], NULL);
    pthread_create(&idw[i], NULL, wa, (void*) (long) i);
@@ -82,7 +83,7 @@ int main()
  }
 
  pthread_exit (0);
- for (int i = 0; i < K; i++)
+ for (i = 0; i < K; i++)
  {
    pthread_join(idw[i],NULL);
    pthread_join(idr[i],NULL);

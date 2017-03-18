@@ -3,7 +3,7 @@
 #include <assert.h>
 
 #ifndef N
-#define N 3
+#define N 1
 #endif
 
 pthread_mutex_t m = PTHREAD_MUTEX_INITIALIZER;

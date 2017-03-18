@@ -4,10 +4,21 @@
 #include <assert.h>
 
 #ifndef N
-#define N 8
+#define N 2
 #endif
 
 pthread_mutex_t m;
+
+void *thread3 (void *arg)
+{
+   int i;
+   for (i = 0; i < 2; i++)
+   {
+      pthread_mutex_lock (&m);
+      pthread_mutex_unlock (&m);
+   }
+   return 0;
+}
 
 void *thread2 (void *arg)
 {
@@ -55,6 +66,22 @@ int main (int argc, char ** argv)
    {
       ret = pthread_create (th + i, 0, thread, (void*) i);
       assert (ret == 0);
+   }
+
+   for (i = 0; i < N; i++)
+   {
+      ret = pthread_join (th[i], 0);
+      assert (ret == 0);
+   }
+
+   // create conflicts to force at least 1 replay
+   ret = pthread_create (th, 0, thread3, 0);
+   assert (ret == 0);
+
+   for (i = 0; i < 2; i++)
+   {
+      pthread_mutex_lock (&m);
+      pthread_mutex_unlock (&m);
    }
 
    // we do not wait for our children

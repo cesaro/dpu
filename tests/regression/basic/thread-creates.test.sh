@@ -22,7 +22,7 @@
 # out20:dpu: summary: 1 max-configs, 0 SSBs, 82 events, 82.0 ev/trail
 
 # initialization
-MAX=10
+MAX=20
 N=$(seq 1 $MAX)
 for i in $N; do
    gcc -E thread-creates.c -D N=$i -o input$i.i

@@ -58,20 +58,21 @@ void *th(void *arg)
 
 int main()
 {
+ int i;
  pthread_t ids[T];
 
  //printf ("== start ==\n");
- for (int i = 0; i < K; i++)
+ for (i = 0; i < K; i++)
  {
    pthread_mutex_init(&m[i], NULL);
  }
  //for (int i = T-1; i >= 0; i--)
- for (int i = 0; i < T; i++)
+ for (i = 0; i < T; i++)
  {
    pthread_create(&ids[i],  NULL, th, (void*) (long) i);
  }
 
- for (int i = 0; i < T; i++)
+ for (i = 0; i < T; i++)
  {
    pthread_join(ids[i],NULL);
  }

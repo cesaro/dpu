@@ -55,7 +55,7 @@ done
 # the command to test
 cmd for i in $S; do \
       for j in $R; do \
-         $PROG input.$i.$j.i -a2 -s 1M -vv > out.$i.$j; done; done
+         $PROG input.$i.$j.i -a3 -s 1M -vv > out.$i.$j; done; done
 
 # the checks to perform on the output
 echo S is -$S-
@@ -78,7 +78,7 @@ for i in $S; do \
 set -x; \
 for i in $S; do \
    for j in $R; do \
-      grep -i "threads created ($(($i + $j + 1)) actual threads)" out.$i.$j; done; done
+      grep -i "ding: $(($i + $j + 1)) threads created" out.$i.$j; done; done
 
 k=1; \
 for i in $S; do \

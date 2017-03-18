@@ -1,4 +1,4 @@
-# Unfolding with N threads and N! executions
+# [FG05] file-system example, 2^(N-13) executions
 
 # xxx 1 xxx
 # dpu: summary: 1 max-configs, 0 SSBs, 10 events, 10.0 ev/trail

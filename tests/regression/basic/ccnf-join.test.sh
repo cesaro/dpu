@@ -1,4 +1,4 @@
-# N threads enter CS and create new threads
+# Concurrent conflicts, 2N threads (1 <= N <= 11)
 
 # xxx 1 xxx
 # dpu: summary: 2 max-configs, 0 SSBs, 23 events, 14.0 ev/trail

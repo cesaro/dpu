@@ -55,7 +55,6 @@ void *thread (void *arg)
 int main (int argc, char ** argv)
 {
    int ret;
-   long i;
    pthread_t th;
 
    (void) argc;

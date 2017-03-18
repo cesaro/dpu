@@ -761,7 +761,8 @@ bool C15unfolder::find_alternative_kpartial (const Config &c, const Disset &d, C
       i = 0;
       while (i < spike.size())
       {
-         if (spike[i]->flags.ind or spike[i]->in_cfl_with(c) or d.intersects_with (spike[i]))
+         if (spike[i]->flags.ind or spike[i]->in_cfl_with(c) or
+               (alt_algorithm != Alt_algorithm::OPTIMAL and d.intersects_with (spike[i])))
          {
             spike[i] = spike.back();
             spike.pop_back();

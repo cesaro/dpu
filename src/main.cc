@@ -5,6 +5,8 @@
 
 #include <execinfo.h>
 #include <signal.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 #include "c15u/c15unfold.hh" // must be before verbosity.h
 #include "verbosity.h"
@@ -16,18 +18,7 @@ namespace dpu
 
 void devel_hook ()
 {
-   const char *user;
-   user = getenv ("USER");
-   if (user and strcmp (user, "cesar") == 0)
-   {
-      // for Cesar
-      //test54 ();
-   }
-   else
-   {
-      // for the rest
-      //test54();
-   }
+   // put here your code :)
    exit (0);
 }
 
@@ -350,12 +341,10 @@ int main (int argc, char **argv)
    // parse commandline options
    opts::parse (argc, argv);
    if (verb_debug) opts::dump ();
+   PRINT ("dpu %s running, pid %u", CONFIG_VERSION, getpid());
 
-   // --devel passed on commandline
-   if (opts::development)
-   {
-      devel_hook ();
-   }
+   //devel_hook ();
+
 
    // analysis
    try

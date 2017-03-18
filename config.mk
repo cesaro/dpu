@@ -7,7 +7,7 @@ R ?= .
 CONFIG_RELEASE = 1
 
 # version of the tool
-CONFIG_VERSION = v0.2.0
+CONFIG_VERSION = v0.3.0
 
 # folder where the tool will be installed
 CONFIG_PREFIX = ~/x/local
@@ -47,7 +47,7 @@ CONFIG_SKIP_STEP = 3
 
 # define this to compile support to visualize statistics about causality/conflict
 # checks
-#CONFIG_STATS_DETAILED = 1
+CONFIG_STATS_DETAILED = 1
 
 ########################
 

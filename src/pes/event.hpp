@@ -134,9 +134,6 @@ bool Event::is_predeq_of (const Event *e) const
 #ifdef CONFIG_STATS_DETAILED
    Event::counters.causality.calls++;
 #endif
-   SHOW (this->str().c_str(), "s");
-   SHOW (e ? e->str().c_str() : "NULL!", "s");
-   breakme ();
 
    // if there is no event, or it's depth is superior to this.depth, then false
    if (! ee) {

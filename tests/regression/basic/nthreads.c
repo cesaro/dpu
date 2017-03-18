@@ -4,7 +4,7 @@
 #include <assert.h>
 
 #ifndef N
-#define N 20
+#define N 40
 #endif
 
 int rets[N];

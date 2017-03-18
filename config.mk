@@ -28,16 +28,16 @@ CONFIG_LLVM_VER = 3.7
 CONFIG_STEROIDS_ROOT = $R/../steroid
 
 # maximum number of unfolding processes
-CONFIG_MAX_PROCESSES = 50
+CONFIG_MAX_PROCESSES = 64
 
 # maximum number of events per process
-CONFIG_MAX_EVENTS_PER_PROCCESS = 40000
+CONFIG_MAX_EVENTS_PER_PROCCESS = 128000
 
 # default memory size for guest code execution
 CONFIG_GUEST_DEFAULT_MEMORY_SIZE = $(shell echo '128 * 2^20' | bc)
 
 # default size of the stack per thread
-CONFIG_GUEST_DEFAULT_THREAD_STACK_SIZE = $(shell echo '4 * 2^20' | bc)
+CONFIG_GUEST_DEFAULT_THREAD_STACK_SIZE = $(shell echo '1 * 2^20' | bc)
 
 # number of events in the communication buffer between steroids and DPU
 CONFIG_GUEST_TRACE_BUFFER_SIZE = $(shell echo '2^20' | bc)

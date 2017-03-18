@@ -1,7 +1,7 @@
-# Can unfold up to 25 threads
+# Can create up to 64 threads
 
 # initialization
-N=$(seq 1 3 25)
+N=$(seq 7 8 64)
 for i in $N; do
    gcc -E nthreads.c -D N=$i -o input$i.i
 done

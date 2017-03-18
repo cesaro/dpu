@@ -5,6 +5,7 @@
 
 #include "opts.hh"
 #include "verbosity.h"
+#include "misc.hh"
 
 namespace dpu {
 namespace opts {
@@ -137,6 +138,7 @@ size_t parse_size (const char *str, char default_units)
    size_t s;
    
    s = strtoul (str, &endptr, 10);
+   if (endptr[0] and endptr[1]) return SIZE_MAX; // eg. "12xxx"
    units = *endptr ? *endptr : default_units;
    switch (units)
    {
@@ -197,6 +199,24 @@ void version (void)
 #ifdef CONFIG_RELEASE
 	PRINT ("Build type: release");
 #endif
+   PRINT_ ("Features: ");
+#ifdef CONFIG_STATS_DETAILED
+   PRINT_ ("+detailed-stats ");
+#else
+   PRINT_ ("-detailed-stats ");
+#endif
+   PRINT ("");
+   PRINT ("Event structure: %u slots, up to %u events/slot, %u%s memory per slot, "
+         "%u%s total memory, aligned to %u%s",
+         Unfolding::MAX_PROC,
+         Unfolding::PROC_SIZE / sizeof (Event),
+         UNITS_SIZE (Unfolding::PROC_SIZE),
+         UNITS_UNIT (Unfolding::PROC_SIZE),
+         UNITS_SIZE (Unfolding::PROC_SIZE * Unfolding::MAX_PROC),
+         UNITS_UNIT (Unfolding::PROC_SIZE * Unfolding::MAX_PROC),
+         UNITS_SIZE (Unfolding::ALIGN),
+         UNITS_UNIT (Unfolding::ALIGN));
+
    PRINT ("Maximum verbosity level: %d", CONFIG_MAX_VERB_LEVEL);
 	PRINT ("Compilation: %s", CONFIG_COMPILE);
 	//PRINT ("Linking: %s", CONFIG_LINK);

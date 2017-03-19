@@ -23,10 +23,12 @@ std::string dotpath;
 std::string instpath;
 size_t memsize;
 size_t stacksize;
+unsigned optlevel;
 
 void parse (int argc, char **argv_)
 {
    int op, i;
+   unsigned u;
 	char *endptr;
 	struct option longopts[] = {
 			{"help", no_argument, nullptr, 'h'},
@@ -53,11 +55,12 @@ void parse (int argc, char **argv_)
    kbound = 1;
    memsize = CONFIG_GUEST_DEFAULT_MEMORY_SIZE;
    stacksize = CONFIG_GUEST_DEFAULT_THREAD_STACK_SIZE;
+   optlevel = 3;
 
 	// parse the command line, supress automatic error messages by getopt
 	opterr = 0;
 	while (1) {
-		op = getopt_long (argc, argv_, "0:a:vhVm:s:", longopts, nullptr);
+		op = getopt_long (argc, argv_, "0:a:vhVm:s:O:", longopts, nullptr);
 		if (op == -1) break;
 		switch (op) {
 		case '0' :
@@ -86,6 +89,12 @@ void parse (int argc, char **argv_)
             kbound = i;
             break;
          }
+         break;
+      case 'O' :
+			u = strtoul (optarg, &endptr, 10);
+			if (*endptr != 0) usage (1);
+         if (u > 3) usage(1);
+         optlevel = u;
          break;
       case 'm' :
          memsize = parse_size (optarg, 'M');
@@ -184,6 +193,7 @@ void print_options ()
    fprintf (stderr, " -m N, --mem=N            sets the guest memory, in MB (default %zuM)\n", memsize / (1 << 20));
    fprintf (stderr, " -s N, --stack=N          sets default size for thread stacks, in MB (default %zuM)\n", stacksize / (1 << 20));
    fprintf (stderr, "       --dump-instr=PATH  dumps instrumented LLVM bytecode to PATH\n");
+   fprintf (stderr, " -O L                     optimization level (0 to 3) (default 3)\n");
 }
 
 void version (void)

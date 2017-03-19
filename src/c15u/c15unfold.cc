@@ -108,6 +108,7 @@ void C15unfolder::load_bytecode (std::string &&filepath)
    ExecutorConfig conf;
    conf.memsize = opts::memsize;
    conf.defaultstacksize = opts::stacksize;
+   conf.optlevel = opts::optlevel;
    conf.tracesize = CONFIG_GUEST_TRACE_BUFFER_SIZE;
 
    DEBUG ("c15u: load-bytecode: setting up the bytecode executor...");

@@ -12,6 +12,7 @@
 #include "verbosity.h"
 #include "opts.hh"
 #include "probdist.hh"
+#include "resources.hh"
 
 namespace dpu
 {
@@ -174,11 +175,11 @@ void print_causality_stats (C15unfolder &unf)
    trivial = null + eq + invdep;
    nontrivial = calls - trivial;
 
-   SHOW (Event::counters.causality.calls, "lu");
-   SHOW (Event::counters.causality.trivial_null, "lu");
-   SHOW (Event::counters.causality.trivial_eq, "lu");
-   SHOW (Event::counters.causality.trivial_invdep, "lu");
-   SHOW (trivial, "lu");
+   //SHOW (Event::counters.causality.calls, "lu");
+   //SHOW (Event::counters.causality.trivial_null, "lu");
+   //SHOW (Event::counters.causality.trivial_eq, "lu");
+   //SHOW (Event::counters.causality.trivial_invdep, "lu");
+   //SHOW (trivial, "lu");
 
    PRINT ("dpu: stats: <: on events:");
    PRINT ("dpu: stats: <:   %lu calls", calls);
@@ -253,7 +254,44 @@ void print_causality_stats (C15unfolder &unf)
 }
 #endif
 
-void print_stats (C15unfolder &unf)
+void print_res_stats (C15unfolder &unf, Resources &res, unsigned long events)
+{
+   unsigned long min;
+   float sec;
+
+   // sample time and memory usage
+   res.update ();
+
+   PRINT_ ("dpu: stats: resources: %.3f s wall time", res.walltime / 1000000.0);
+   if (res.walltime < 10000) // 10 ms
+   {
+      PRINT (" (%.3f ms)", res.walltime / 1000.0);
+   }
+   else if (res.walltime >= 60000000) // 1 min
+   {
+      min = res.walltime / 60000000;
+      sec = (res.walltime - min * 60000000) / 1000000.0;
+      PRINT (" (%umin %.3fsec)", min, sec);
+   }
+   else
+   {
+      PRINT ("");
+   }
+
+   PRINT ("dpu: stats: resources: %.3f s cpu time", res.cputime / 1000000.0);
+   PRINT ("dpu: stats: resources: %luM max RSS", res.maxrss / 1024);
+
+   // performance statistics
+   sec = res.walltime / 1000000.0;
+   PRINT ("dpu: stats: perf: %ld executions/sec",
+         (long) (unf.counters.runs / sec));
+   if (unf.counters.ssbs)
+      PRINT ("dpu: stats: perf: %ld max-confs/sec",
+            (long) (unf.counters.maxconfs / sec));
+   PRINT ("dpu: stats: perf: %ld ev/sec", (long) (events / sec));
+}
+
+void print_stats (C15unfolder &unf, Resources &res)
 {
    unsigned long events, calls, built, expl;
    unsigned i;
@@ -323,17 +361,21 @@ void print_stats (C15unfolder &unf)
 #endif
 
    // print times here as well!
+   print_res_stats (unf, res, events);
 
-   PRINT ("\ndpu: summary: %lu max-configs, %lu SSBs, %lu events, %.1f ev/trail",
+   PRINT ("\ndpu: summary: %lu max-configs, %lu SSBs, %lu events, %.3f sec, %.1f ev/trail",
          unf.counters.maxconfs, unf.counters.ssbs, events,
-         unf.counters.avg_max_trail_size);
+         res.walltime / 1000000.0, unf.counters.avg_max_trail_size);
 }
 
 int main (int argc, char **argv)
 {
    unsigned i;
+   Resources res;
 
    breakme ();
+
+
 
    // install signal handler for segfaults
    //signal (SIGSEGV, handler);
@@ -344,7 +386,6 @@ int main (int argc, char **argv)
    PRINT ("dpu %s running, pid %u", CONFIG_VERSION, getpid());
 
    //devel_hook ();
-
 
    // analysis
    try
@@ -396,7 +437,7 @@ int main (int argc, char **argv)
       if (verb_debug) unf.u.dump ();
 
       // report statistics
-      print_stats (unf);
+      print_stats (unf, res);
       fflush (stdout);
       fflush (stderr);
 

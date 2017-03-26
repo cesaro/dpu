@@ -13,6 +13,7 @@ extern const char *progname;
 extern bool development;
 extern int verbosity;
 extern std::string inpath;
+extern std::string defectspath;
 extern std::vector<const char *> argv;
 extern unsigned kbound;
 extern C15unfolder::Alt_algorithm alt_algo;

@@ -3,8 +3,8 @@
 R ?= .
 
 # compilation configuration: debug/release
-#CONFIG_DEBUG = 1
-CONFIG_RELEASE = 1
+CONFIG_DEBUG = 1
+#CONFIG_RELEASE = 1
 
 # version of the tool
 CONFIG_VERSION = v0.3.0
@@ -40,7 +40,7 @@ CONFIG_GUEST_DEFAULT_MEMORY_SIZE = $(shell echo '128 * 2^20' | bc)
 CONFIG_GUEST_DEFAULT_THREAD_STACK_SIZE = $(shell echo '1 * 2^20' | bc)
 
 # number of events in the communication buffer between steroids and DPU
-CONFIG_GUEST_TRACE_BUFFER_SIZE = $(shell echo '2^20' | bc)
+CONFIG_GUEST_TRACE_BUFFER_SIZE = $(shell echo '1 * 2^20' | bc)
 
 # defines the skip step for the sequential tree skip lists (>= 2)
 CONFIG_SKIP_STEP = 3

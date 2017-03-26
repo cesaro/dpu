@@ -40,12 +40,16 @@ main_ ()
       exit 1
    fi
 
+set -x
    # prepare the input
-   clang-$LLVMVERS -emit-llvm -c -o $TMP/orig.bc -- "$INPUT" 
-   stopif "clang"
-	opt-$LLVMVERS -O3 -mem2reg $TMP/orig.bc -o $TMP/opt.bc
-   stopif "opt"
-	llvm-link-$LLVMVERS $TMP/opt.bc $RT -o $TMP/input.bc
+   if echo "$INPUT" | grep -q '\.c$\|\.i$'; then
+      clang-$LLVMVERS -O3 -emit-llvm -c -o $TMP/opt.bc -- "$INPUT" 
+      stopif "clang"
+   else
+      opt-$LLVMVERS -mem2reg "$INPUT" -o $TMP/opt.bc
+      stopif "opt"
+   fi
+   llvm-link-$LLVMVERS $TMP/opt.bc $RT -o $TMP/input.bc
    stopif "llvm-link"
 
    # dump .bc files, for debugging purposes
@@ -53,7 +57,7 @@ main_ ()
    #llvm-dis-$LLVMVERS $TMP/input.bc -o $TMP/input.ll
 
    # run the backend analyzer
-   echo "$BACKEND $TMP/input.bc $ARGS"
+   #echo "$BACKEND $TMP/input.bc $ARGS"
    if test $GDB = 1; then
       gdb $BACKEND \
          -ex 'break breakme' \

@@ -21,6 +21,7 @@ unsigned kbound;
 C15unfolder::Alt_algorithm alt_algo;
 std::string dotpath;
 std::string instpath;
+std::string defectspath;
 size_t memsize;
 size_t stacksize;
 unsigned optlevel;
@@ -50,6 +51,7 @@ void parse (int argc, char **argv_)
 	verbosity = VERB_PRINT;
    inpath = "";
    dotpath = "";
+   defectspath = "./defects.yaml";
    //alt_algo = C15unfolder::Alt_algorithm::KPARTIAL;
    alt_algo = C15unfolder::Alt_algorithm::ONLYLAST;
    kbound = 1;
@@ -227,6 +229,8 @@ void version (void)
          UNITS_SIZE (Unfolding::ALIGN),
          UNITS_UNIT (Unfolding::ALIGN));
 
+   PRINT ("Trace buffer size: : %.1f Mevents",
+         CONFIG_GUEST_TRACE_BUFFER_SIZE / 1000000.0);
    PRINT ("Maximum verbosity level: %d", CONFIG_MAX_VERB_LEVEL);
 	PRINT ("Compilation: %s", CONFIG_COMPILE);
 	//PRINT ("Linking: %s", CONFIG_LINK);

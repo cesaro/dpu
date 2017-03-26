@@ -3,6 +3,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <math.h>
+#include <unistd.h>
 
 #include <cstdint>
 #include <cstring>
@@ -19,6 +20,9 @@
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Support/TargetSelect.h"
+#include <llvm/Support/YAMLTraits.h>
+
+#include "stid/executor.hh"
 
 #include "c15unfold.hh" // must be before verbosity.h
 #include "misc.hh"
@@ -73,7 +77,6 @@ void C15unfolder::load_bytecode (std::string &&filepath)
    ASSERT (path.size() == 0);
    ASSERT (exec == 0);
    ASSERT (m == 0);
-   ASSERT (argv.size() == 0);
    path = std::move (filepath);
 
    // necessary for the JIT engine; we should move this elsewhere
@@ -132,14 +135,28 @@ void C15unfolder::load_bytecode (std::string &&filepath)
 
 void C15unfolder::set_args (std::vector<const char *> argv)
 {
-   DEBUG ("c15u: set-args: |argv| %d", argv.size());
-
-   // FIXME - this should be moved to a proper API
-   exec->envp.push_back ("HOME=/home/cesar/");
-   exec->envp.push_back ("PWD=/usr/bin");
-   exec->envp.push_back (nullptr);
-
+   DEBUG ("c15u: set-args: |argv| %zu", argv.size());
    exec->argv = argv;
+}
+
+void C15unfolder::set_env (std::vector<const char *> env)
+{
+   if (env.empty() or env.back() != nullptr)
+      env.push_back (nullptr);
+   DEBUG ("c15u: set-env: |env| %zu", env.size());
+   exec->environ = env;
+}
+
+void C15unfolder::set_default_environment ()
+{
+   char * const * v;
+   std::vector<const char *> env;
+
+   // make a copy of our environment
+   for (v = environ; *v; ++v) env.push_back (*v);
+   env.push_back (nullptr);
+   DEBUG ("c15u: set-env: |env| %zu", env.size());
+   exec->environ = env;
 }
 
 Config C15unfolder::add_one_run (const std::vector<struct replayevent> &replay)
@@ -214,6 +231,10 @@ void C15unfolder::explore ()
    std::vector<struct replayevent> replay;
    Event *e = nullptr;
    int i = 0;
+
+   // initialize the defect report now that all settings for this verification
+   // exploration are fixed
+   report_init (report);
 
    while (1)
    {
@@ -848,6 +869,25 @@ bool C15unfolder::find_alternative_sdpor (Config &c, const Disset &d, Cut &j)
    j = c;
    j.unionn (e); // for fun, comment out this line ;)
    return true;
+}
+
+void C15unfolder::report_init (Defectreport &r) const
+{
+   std::vector<std::string> myargv (exec->argv.begin(), exec->argv.end());
+   breakme ();
+   std::vector<std::string> myenv (exec->environ.begin(), --(exec->environ.end()));
+
+   r.dpuversion = CONFIG_VERSION;
+   r.path = path;
+   r.argv = myargv;
+   r.environ = myenv;
+   r.alt = (int) alt_algorithm;
+   r.kbound = kpartial_bound;
+   r.memsize = exec->config.memsize;
+   r.defaultstacksize = exec->config.defaultstacksize;
+   r.tracesize = exec->config.tracesize;
+   r.optlevel = exec->config.optlevel;
+   r.defects.clear ();
 }
 
 } // namespace dpu

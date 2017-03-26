@@ -401,8 +401,10 @@ int main (int argc, char **argv)
       for (i = 0; i < opts::argv.size(); i++)
          INFO_ ("\"%s\"%s", opts::argv[i], i + 1 < opts::argv.size() ? ", " : "");
       INFO ("]");
-
       unf.set_args (opts::argv);
+
+      // set the environment
+      unf.set_default_environment();
 
       switch (opts::alt_algo) {
       case C15unfolder::Alt_algorithm::KPARTIAL :
@@ -431,6 +433,13 @@ int main (int argc, char **argv)
          std::ofstream f (opts::dotpath.c_str());
          unf.u.print_dot (f);
          f.close ();
+      }
+
+      // save the defects report if we got defects
+      if (unf.report.defects.size())
+      {
+         PRINT ("dpu: saving defects report to '%s'", opts::defectspath.c_str());
+         unf.report.save (opts::defectspath.c_str());
       }
 
       // dump unfolding to stdout

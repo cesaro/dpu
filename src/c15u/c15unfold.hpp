@@ -1,5 +1,5 @@
 
-void C15unfolder::__stream_match_trail
+void C15unfolder::stream_match_trail
          (const action_streamt &s,
          action_stream_itt &it,
          Trail &t)
@@ -29,6 +29,7 @@ void C15unfolder::__stream_match_trail
 
    // match trail events as long as the trail AND the stream contain events
    ASSERT (t.size());
+   ASSERT (it != end);
    ASSERT (t[0]->is_bottom());
    count = 0;
    pid = 0;
@@ -175,8 +176,6 @@ bool C15unfolder::stream_to_events
    ASSERT (!t or t->size() or c.is_empty());
    // if got a with at least 1 event => first event is bottom
    ASSERT (!t or !t->size() or (*t)[0]->is_bottom ());
-   // non-empty stream
-   ASSERT (it != end);
    // we didn't get too many threads
    ASSERT (s.get_rt()->trace.num_ths <= Unfolding::MAX_PROC);
 
@@ -188,7 +187,7 @@ bool C15unfolder::stream_to_events
    for (unsigned i = 0; i < Unfolding::MAX_PROC; i++) ASSERT (start[i] == nullptr);
 
    // skip the first context switch to pid 0, if present
-   if (it.type () == RT_THCTXSW)
+   if (it != end and it.type () == RT_THCTXSW)
    {
       ASSERT (it.has_id ());
       ASSERT (it.id() == 0);
@@ -202,7 +201,7 @@ bool C15unfolder::stream_to_events
       // config must not be empty
       ASSERT (! c.is_empty());
       e = t->back();
-      __stream_match_trail (s, it, *t);
+      stream_match_trail (s, it, *t);
    }
    else
    {

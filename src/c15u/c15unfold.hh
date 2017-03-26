@@ -18,6 +18,8 @@
 #include "c15u/pidmap.hh"
 #include "c15u/pidpool.hh"
 
+#include "defectreport.hh"
+
 namespace dpu
 {
 
@@ -28,6 +30,9 @@ public:
 
    /// the unfolding data structure
    Unfolding u;
+
+   /// The list of all defects found during the exploration
+   Defectreport report;
 
    /// counters to obtain statistics
    struct {
@@ -59,8 +64,15 @@ public:
    /// load the llvm module from the "path" file
    void load_bytecode (std::string &&filepath);
 
-   //void set_env (std::vector<const std::string> env);
+   /// Sets the argv vector of the program to verify
    void set_args (std::vector<const char *> argv);
+      
+   /// Sets the environment variables of the program to verify
+   void set_env (std::vector<const char *> env);
+
+   /// Sets the environment variables of the program to verify to be a copy of
+   /// our own environment, see environ(7)
+   void set_default_environment ();
 
    /// runs the system up to completion (termination) using the provided replay
    /// and returns the corresponding maximal configuration
@@ -112,7 +124,7 @@ public:
    /// the trail; the iterator is left pointing at one plus the (blue) action
    /// matched with the last event in the trail; it also updates the pidmap at
    /// thread-creation events
-   inline void __stream_match_trail (const action_streamt &s,
+   inline void stream_match_trail (const action_streamt &s,
          action_stream_itt &it, Trail &t);
 
    /// Extends the replay vector with a sequence suitable to replay the trail
@@ -142,8 +154,8 @@ public:
 
 private:
    std::string explore_stat (const Trail &t, const Disset &d) const;
+   void report_init (Defectreport &r) const;
 
-   std::vector<std::string> argv;
    Alt_algorithm alt_algorithm;
    unsigned kpartial_bound;
 

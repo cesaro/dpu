@@ -3,8 +3,8 @@
 R ?= .
 
 # compilation configuration: debug/release
-CONFIG_DEBUG = 1
-#CONFIG_RELEASE = 1
+#CONFIG_DEBUG = 1
+CONFIG_RELEASE = 1
 
 # version of the tool
 CONFIG_VERSION = v0.3.0
@@ -44,6 +44,10 @@ CONFIG_GUEST_TRACE_BUFFER_SIZE = $(shell echo '1 * 2^20' | bc)
 
 # defines the skip step for the sequential tree skip lists (>= 2)
 CONFIG_SKIP_STEP = 3
+
+# defines the maximum number of times that a defect will get repeated in the
+# defect report
+CONFIG_MAX_DEFECT_REPETITION = 10
 
 # define this to compile support to visualize statistics about causality/conflict
 # checks

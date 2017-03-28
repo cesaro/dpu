@@ -5,8 +5,6 @@
 #include "stid/executor.hh"
 #include "stid/action_stream.hh"
 
-#undef DEBUG // exported by <llvm/ExecutionEngine/ExecutionEngine.h>
-
 #include "pes/cut.hh"
 #include "pes/event.hh"
 #include "pes/config.hh"
@@ -15,8 +13,8 @@
 
 #include "c15u/disset.hh"
 #include "c15u/trail.hh"
-#include "c15u/pidmap.hh"
 #include "c15u/pidpool.hh"
+#include "c15u/replay.hh"
 
 #include "defectreport.hh"
 
@@ -55,7 +53,7 @@ public:
    // dynamic executor
    std::string path;
    llvm::Module *m;
-   Executor *exec;
+   stid::Executor *exec;
 
    // ctor and dtor
    C15unfolder (Alt_algorithm a, unsigned kbound);
@@ -63,6 +61,9 @@ public:
 
    /// load the llvm module from the "path" file
    void load_bytecode (std::string &&filepath);
+
+   /// List all external symbols in the lodaded bytecode
+   void print_external_syms (const char *prefix);
 
    /// Sets the argv vector of the program to verify
    void set_args (std::vector<const char *> argv);
@@ -76,12 +77,12 @@ public:
 
    /// runs the system up to completion (termination) using the provided replay
    /// and returns the corresponding maximal configuration
-   Config add_one_run (const std::vector<struct replayevent> &replay);
+   Config add_one_run (const Replay &r);
 
    /// runs the system up to completion using the replay, computes CEX of the
    /// resulting configuration, constructs a replay for each one of them and
    /// applies add_one_run for each one
-   void add_multiple_runs (const std::vector<struct replayevent> &replay);
+   void add_multiple_runs (const Replay &r);
 
    /// the CONCUR'15 POR algorithm
    void explore ();
@@ -115,7 +116,7 @@ public:
    bool find_alternative_sdpor (Config &c, const Disset &d, Cut &j);
 
    /// Translates the stream of actions into events, updating c, t, and d
-   inline bool stream_to_events (Config &c, const action_streamt &s,
+   inline bool stream_to_events (Config &c, const stid::action_streamt &s,
          Trail *t = nullptr, Disset *d = nullptr);
 
    /// Receives a stream, an iterator to that stream, a vector mapping stream
@@ -124,30 +125,10 @@ public:
    /// the trail; the iterator is left pointing at one plus the (blue) action
    /// matched with the last event in the trail; it also updates the pidmap at
    /// thread-creation events
-   inline void stream_match_trail (const action_streamt &s,
-         action_stream_itt &it, Trail &t);
+   inline bool stream_match_trail (const stid::action_streamt &s,
+         stid::action_stream_itt &it, Trail &t, Pidmap &pidmap);
 
-   /// Extends the replay vector with a sequence suitable to replay the trail
-   void trail_to_replay (const Trail &t, std::vector<struct replayevent> &replay);
-
-   /// Extends the replay vector with a replay sequence for the configuration c
-   void cut_to_replay (const Cut &c, std::vector<struct replayevent> &replay);
-
-   /// Extends the replay vector with a replay sequence for the events in
-   /// c1 \setminus c2; it assumes that c1 \cup c2 is a configuration
-   void cut_to_replay (const Cut &c1, const Cut &c2, std::vector<struct replayevent> &replay);
-
-   /// Stores in the replay vector a suitable replay for the trail followed by
-   /// J \setminus C
-   void alt_to_replay (const Trail &t, const Cut &c, const Cut &j,
-         std::vector<struct replayevent> &replay);
-
-   void set_replay_and_sleepset (std::vector<struct replayevent> &replay, const Cut &j,
-         const Disset &d);
-
-   /// Prints the replay into one string, marking the beginning of the replay of
-   /// the alternative, after the replay for the trail finishes
-   std::string replay2str (std::vector<struct replayevent> &replay, unsigned altidx);
+   void set_replay_and_sleepset (Replay &replay, const Cut &j, const Disset &d);
 
    /// Computes conflicting extensions associated to event e
    void compute_cex_lock (Event *e, Event **head);
@@ -155,6 +136,7 @@ public:
 private:
    std::string explore_stat (const Trail &t, const Disset &d) const;
    void report_init (Defectreport &r) const;
+   inline void report_add_nondet_violation (const Trail &t, unsigned where, ActionType found);
 
    Alt_algorithm alt_algorithm;
    unsigned kpartial_bound;
@@ -162,13 +144,6 @@ private:
    /// This object is used to select the pid of a process whenver we create a
    /// new THCREAT event
    Pidpool pidpool;
-
-   // This object maps steroids tids to dpu pids when transforming the action
-   // stream into events, and dpu pids to steroids tids when generating replays.
-   // It is cleared before starting any of these two transformations, but stores
-   // data shared across multiple methods involved in them. Pid #0 always maps
-   // to tid t0, and vice versa, so the map always has at least one entry.
-   Pidmap pidmap;
 
    /// The method __stream_match_trail() needs to communicate to
    /// stream_to_events() the THSTART events of every thread whose THCREAT was

@@ -22,6 +22,7 @@ extern std::string instpath;
 extern size_t memsize;
 extern size_t stacksize;
 extern unsigned optlevel;
+extern bool strace;
 
 
 void parse (int argc, char **argv_);

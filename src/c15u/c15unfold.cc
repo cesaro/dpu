@@ -21,6 +21,7 @@
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Support/TargetSelect.h"
 #include <llvm/Support/YAMLTraits.h>
+#include <llvm/Support/Format.h>
 
 #include "stid/executor.hh"
 
@@ -47,8 +48,7 @@ C15unfolder::C15unfolder (Alt_algorithm a, unsigned kbound) :
    exec (nullptr),
    alt_algorithm (a),
    kpartial_bound (kbound),
-   pidpool (u),
-   pidmap ()
+   pidpool (u)
 {
    unsigned i;
 
@@ -105,18 +105,31 @@ void C15unfolder::load_bytecode (std::string &&filepath)
       throw std::invalid_argument (errors);
    }
 
+   // print external symbols
+   if (verb_trace) print_external_syms ("dpu: ");
+
    // prepare an Executor, the constructor instruments and allocates guest
    // memory
    // FIXME - make this configurable via methods of the C15unfolder
-   ExecutorConfig conf;
+   stid::ExecutorConfig conf;
    conf.memsize = opts::memsize;
    conf.defaultstacksize = opts::stacksize;
    conf.optlevel = opts::optlevel;
    conf.tracesize = CONFIG_GUEST_TRACE_BUFFER_SIZE;
 
+   conf.flags.dosleep = 1;
+   conf.flags.verbose = opts::verbosity >= 3 ? 1 : 0;
+
+   unsigned i = opts::strace ? 1 : 0;
+   conf.strace.fs = i;
+   conf.strace.pthreads = i;
+   conf.strace.malloc = i;
+   conf.strace.proc = i;
+   conf.strace.others = i;
+
    DEBUG ("c15u: load-bytecode: setting up the bytecode executor...");
    try {
-      exec = new Executor (std::move (mod), conf);
+      exec = new stid::Executor (std::move (mod), conf);
    } catch (const std::exception &e) {
       DEBUG ("c15u: load-bytecode: errors preparing the bytecode executor");
       DEBUG ("c15u: load-bytecode: %s", e.what());
@@ -131,6 +144,54 @@ void C15unfolder::load_bytecode (std::string &&filepath)
    }
 
    DEBUG ("c15u: load-bytecode: done!");
+}
+
+void C15unfolder::print_external_syms (const char *prefix)
+{
+   std::string str;
+   llvm::raw_string_ostream os (str);
+   std::vector<std::pair<llvm::StringRef,llvm::Type*>> funs;
+   std::vector<std::pair<llvm::StringRef,llvm::Type*>> globs;
+   size_t len;
+
+   ASSERT (m);
+
+   // functions
+   len = 0;
+   for (llvm::Function &f : m->functions())
+   {
+      if (not f.isDeclaration()) continue;
+      funs.emplace_back (f.getName(), f.getType());
+      if (len < funs.back().first.size())
+         len = funs.back().first.size();
+   }
+   std::sort (funs.begin(), funs.end());
+   os << prefix << "External functions:\n";
+   for (auto &pair : funs)
+   {
+      os << prefix << llvm::format ("  %-*s ", len, pair.first);
+      os << *pair.second << "\n";
+   }
+
+
+   // global variables
+   len = 0;
+   for (llvm::GlobalVariable &g : m->globals())
+   {
+      if (not g.isDeclaration()) continue;
+      globs.emplace_back (g.getName(), g.getType());
+      if (len < globs.back().first.size())
+         len = globs.back().first.size();
+   }
+   std::sort (globs.begin(), globs.end());
+   os << prefix << "External variables:\n";
+   for (auto &pair : globs)
+   {
+      os << prefix << llvm::format ("  %-*s ", len, pair.first);
+      os << *pair.second << "\n";
+   }
+   os.flush ();
+   PRINT ("%s", str.c_str());
 }
 
 void C15unfolder::set_args (std::vector<const char *> argv)
@@ -159,32 +220,32 @@ void C15unfolder::set_default_environment ()
    exec->environ = env;
 }
 
-Config C15unfolder::add_one_run (const std::vector<struct replayevent> &replay)
+Config C15unfolder::add_one_run (const Replay &r)
 {
    Config c (Unfolding::MAX_PROC);
 
    ASSERT (exec);
 
    // run the guest
-   DEBUG ("c15u: add-1-run: this %p |replay| %d", this, replay.size());
-   exec->set_replay (replay.data(), replay.size());
+   DEBUG ("c15u: add-1-run: this %p |replay| %d", this, r.size());
+   exec->set_replay (r);
    DEBUG ("c15u: add-1-run: running the guest ...");
    exec->run ();
 
    // get a stream object from the executor and transform it into events
-   action_streamt actions (exec->get_trace ());
+   stid::action_streamt actions (exec->get_trace ());
    actions.print ();
    stream_to_events (c, actions);
    return c;
 }
 
-void C15unfolder::add_multiple_runs (const std::vector<struct replayevent> &replay)
+void C15unfolder::add_multiple_runs (const Replay &r)
 {
    Event *e;
-   std::vector<struct replayevent> rep;
+   Replay rep (u);
    std::vector<Event *>cex;
 
-   Config c (add_one_run (replay));
+   Config c (add_one_run (r));
    // add_one_run executes the system up to completion, we now compute all cex
    // of the resulting configuration and iterate through them
    c.dump ();
@@ -200,8 +261,7 @@ void C15unfolder::add_multiple_runs (const std::vector<struct replayevent> &repl
    for (Event *e : cex)
    {
       rep.clear ();
-
-      cut_to_replay (e->cone, rep);
+      rep.extend_from (e->cone);
       rep.push_back ({-1, -1});
       add_one_run (rep);
    }
@@ -228,7 +288,7 @@ void C15unfolder::explore ()
    Disset d;
    Config c (Unfolding::MAX_PROC);
    Cut j (Unfolding::MAX_PROC);
-   std::vector<struct replayevent> replay;
+   Replay replay (u);
    Event *e = nullptr;
    int i = 0;
 
@@ -242,7 +302,7 @@ void C15unfolder::explore ()
       DEBUG ("c15u: explore: %s: running the system...",
             explore_stat (t, d).c_str());
       exec->run ();
-      action_streamt s (exec->get_trace ());
+      stid::action_streamt s (exec->get_trace ());
       counters.runs++;
       i = s.get_rt()->trace.num_ths;
       if (counters.stid_threads < i) counters.stid_threads = i;
@@ -251,12 +311,11 @@ void C15unfolder::explore ()
       if (verb_debug) s.print ();
 #endif
       b = stream_to_events (c, s, &t, &d);
-      if (!b) counters.ssbs++;
+      // b could be false because of SSBs or defects
       DEBUG ("c15u: explore: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
 #ifdef VERB_LEVEL_TRACE
       if (verb_trace)
          t.dump2 (fmt ("c15u: explore: %s: ", explore_stat(t,d).c_str()).c_str());
-      if (verb_debug) pidmap.dump (true);
       if (verb_debug) pidpool.dump ();
       if (verb_debug) c.dump ();
       if (verb_debug) d.dump ();
@@ -288,192 +347,24 @@ void C15unfolder::explore ()
       // if the trail is now empty, we finished; otherwise we compute a replay
       // and pass it to steroids
       if (! t.size ()) break;
-      alt_to_replay (t, c, j, replay);
+      replay.build_from (t, c, j);
       set_replay_and_sleepset (replay, j, d);
    }
 
    // statistics
-   ASSERT (counters.ssbs == d.ssb_count);
+   counters.ssbs = d.ssb_count;
    counters.maxconfs = counters.runs - counters.ssbs;
    counters.avg_max_trail_size /= counters.runs;
    DEBUG ("c15u: explore: done!");
    ASSERT (counters.ssbs == 0 or alt_algorithm != Alt_algorithm::OPTIMAL);
 }
 
-void C15unfolder::cut_to_replay (const Cut &c,
-      std::vector<struct replayevent> &replay)
-{
-   static const Cut empty (Unfolding::MAX_PROC);
-
-   cut_to_replay (c, empty, replay);
-}
-
-void C15unfolder::cut_to_replay (const Cut &c1, const Cut &c2,
-      std::vector<struct replayevent> &replay)
-{
-   int count, len, j;
-   unsigned i, nrp;
-   bool progress;
-   Event *e, *ee;
-   Cut cc (std::min (c1.num_procs(), u.num_procs()));
-
-   // we need to replay every event in c1 that is not in c2
-
-   DEBUG ("c15u: cut-to-replay: cut1 %s cut2 %s",
-         c1.str().c_str(), c2.str().c_str());
-
-   // we use an auxiliary cut cc to run forward the events in c1 \setminus c2,
-   // to do so, we set up and use the Event's next pointer
-   nrp = cc.num_procs();
-   //SHOW (nrp, "u");
-   for (i = 0; i < nrp; i++)
-   {
-      // compute len, the number of events that we will run in process i
-      e = c1[i];
-      if (! e) continue;
-      len = e->depth_proc();
-      if (c2[i]) len -= (int) c2[i]->depth_proc(); else len++;
-      if (len <= 0) continue;
-      DEBUG ("c15u: cut-to-replay: pid %d: will replay %d events", i, len);
-
-      // set up the Event's next pointer in order to run forward; the last event
-      // that we set is one above c2[i], due to the way we have computed the len
-      ee = nullptr;
-      for (j = 0; j < len; j++)
-      {
-         e->next = ee;
-         ee = e;
-         e = e->pre_proc();
-      }
-
-      // we set cc to be a suitable starting state for (c1 \setminus c2), which
-      // is "the layer of events one above" the cut of (c1 \cap c2)
-      cc[i] = ee;
-   }
-   DEBUG ("c15u: cut-to-replay: now forward, from cc %s", cc.str().c_str());
-
-   // in a round-robbin fashion, we run each process until we cannot continue in
-   // that process; this continues until we are unable to make progress
-   progress = true;
-   while (progress)
-   {
-      progress = false;
-      for (i = 0; i < nrp; i++)
-      {
-         // we replay as many events as possible on process i, starting from e
-         // INVARIANT: we have not executed e, the loop below relies and
-         // maintains this invariant, after the update c[i] = e below
-         e = cc[i];
-         count = 0;
-         for (; e; e = e->next)
-         {
-            DEBUG ("c15u: cut-to-replay: at pid %d, trying %s", i, e->str().c_str());
-            // if event has non-visited causal predecessor, abort this process
-            if (e->pre_other()
-                  and i != e->pre_other()->pid()
-                  and cc[e->pre_other()->pid()]
-                  and e->pre_other()->depth_proc() >= cc[e->pre_other()->pid()]->depth_proc())
-                     break;
-            count++;
-            if (e->action.type == ActionType::THCREAT)
-               pidmap.add (e->action.val, pidmap.get_next_tid());
-         }
-
-         if (count)
-         {
-            cc[i] = e;
-            DEBUG ("c15u: cut-to-replay: r%u (#%u) count %d", pidmap.get(i), i, count);
-            replay.push_back ({(int) pidmap.get(i), count});
-            progress = true;
-         }
-      }
-   }
-}
-
-void C15unfolder::trail_to_replay (const Trail &t, std::vector<struct replayevent> &replay)
-{
-   unsigned pid;
-   int count;
-
-   // if there is at least one event, then the first is for pid 0
-   count = pid = 0;
-   ASSERT (t.size() == 0 or t[0]->pid() == pid);
-
-   for (Event *e : t)
-   {
-      // on context switches, add a new entry
-      if (e->pid() != pid)
-      {
-         DEBUG ("c15u: trail-to-replay: r%u (#%d) count %d",
-               pidmap.get(pid), pid, count);
-         replay.push_back ({(int) pidmap.get(pid), count});
-         pid = e->pid ();
-         count = 0;
-      }
-      // on thread creation, add a new entry to the pid map
-      if (e->action.type == ActionType::THCREAT)
-         pidmap.add (e->action.val, pidmap.get_next_tid());
-      count++;
-   }
-   if (count)
-   {
-      DEBUG ("c15u: trail-to-replay: r%u (#%d) count %d",
-            pidmap.get(pid), pid, count);
-      replay.push_back ({(int) pidmap.get(pid), count});
-   }
-}
-
-void C15unfolder::alt_to_replay (const Trail &t, const Cut &c, const Cut &j,
-      std::vector<struct replayevent> &replay)
-{
-   // the sequence of number that we need to compute here allows steroids to
-   // replay the trail (exacty in that order) followed by the replay of
-   // J \setminus C (in any order).
-
-   unsigned lim, i;
-   bool first;
-
-   // We map pids in dpu to tids in steroids, the id of a given thread in a
-   // replay is defined when the corresponding THCREAT event happens; the
-   // communication protocol with steroids establishes that the tid which that
-   // thread gets at that moment is equal to 1 + the number of times a THCREAT
-   // event has been replayed before that THCREAT. Every time we replay a
-   // THCREAT we add one entry to the map. We use the size of the map to keep
-   // track of the next fresh tid. The map automagically keeps track of the
-   // mapping 0 -> 0. We now reset the map.
-   pidmap.reset ();
-   ASSERT (pidmap.size() == 1);
-   ASSERT (pidmap.get(0) == 0);
-
-   replay.clear();
-   trail_to_replay (t, replay);
-   lim = replay.size();
-   cut_to_replay (j, c, replay);
-   replay.push_back ({-1, -1});
-
-   TRACE_ ("c15u: explore: replay seq: %s", replay2str(replay,lim).c_str());
-   first = true;
-   for (i = 0; i < pidmap.size(); i++)
-   {
-      if (i != pidmap.get(i))
-      {
-         if (first) TRACE_ (" (pidmap: ");
-         first = false;
-         TRACE_ ("#%u -> r%u; ", i, pidmap.get(i));
-      }
-   }
-   if (first)
-      TRACE ("");
-   else
-      TRACE (")");
-}
-
-void C15unfolder::set_replay_and_sleepset (std::vector<struct replayevent> &replay, const Cut &j,
-         const Disset &d)
+void C15unfolder::set_replay_and_sleepset (Replay &replay, const Cut &j,
+      const Disset &d)
 {
    unsigned tid;
 
-   exec->set_replay (replay.data(), replay.size());
+   exec->set_replay (replay);
 
    // no need for sleepsets if we are optimal
    if (alt_algorithm == Alt_algorithm::OPTIMAL) return;
@@ -487,37 +378,12 @@ void C15unfolder::set_replay_and_sleepset (std::vector<struct replayevent> &repl
       ASSERT (e->action.type == ActionType::MTXLOCK);
       if (! j.ex_is_cex (e))
       {
-         tid = pidmap.get(e->pid());
+         tid = replay.pidmap.get(e->pid());
          TRACE_ ("r%u (#%u) %p; ", tid, e->pid(), (void*) e->action.addr);
          exec->add_sleepset (tid, (void*) e->action.addr);
       }
    }
    TRACE ("");
-}
-
-std::string C15unfolder::replay2str (std::vector<struct replayevent> &replay, unsigned altidx)
-{
-   std::string s;
-   unsigned i;
-
-   i = 0;
-   for (auto &e : replay)
-   {
-      if (i) s += "; ";
-      if (i == altidx) s += "** ";
-      if (e.tid == -1)
-      {
-         ASSERT (e.count == -1);
-         s += "-1";
-      }
-      else
-      {
-         ASSERT (e.tid >= 0 and e.count >= 1);
-         s += fmt ("%u %u", e.tid, e.count);
-      }
-      i++;
-   }
-   return s;
 }
 
 void C15unfolder::compute_cex_lock (Event *e, Event **head)
@@ -874,7 +740,6 @@ bool C15unfolder::find_alternative_sdpor (Config &c, const Disset &d, Cut &j)
 void C15unfolder::report_init (Defectreport &r) const
 {
    std::vector<std::string> myargv (exec->argv.begin(), exec->argv.end());
-   breakme ();
    std::vector<std::string> myenv (exec->environ.begin(), --(exec->environ.end()));
 
    r.dpuversion = CONFIG_VERSION;
@@ -887,6 +752,9 @@ void C15unfolder::report_init (Defectreport &r) const
    r.defaultstacksize = exec->config.defaultstacksize;
    r.tracesize = exec->config.tracesize;
    r.optlevel = exec->config.optlevel;
+
+   r.nr_exitnz = 0;
+   r.nr_abort = 0;
    r.defects.clear ();
 }
 

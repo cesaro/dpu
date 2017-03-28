@@ -1,8 +1,26 @@
 
-void C15unfolder::stream_match_trail
-         (const action_streamt &s,
-         action_stream_itt &it,
-         Trail &t)
+inline void C15unfolder::report_add_nondet_violation (const Trail &t, unsigned where, ActionType found)
+{
+   Defect d;
+
+   ASSERT (where < t.size());
+   ASSERT (t[where]->action.type != found);
+
+   d.description = fmt (
+      "WARNING: the program dind't replay deterministically: "
+      "expected %s but got %s",
+      action_type_str (t[where]->action.type),
+      action_type_str (found));
+   d.replay = std::move (Replay::create (u, t, where + 1));
+
+   report.add_defect (std::move (d));
+}
+
+bool C15unfolder::stream_match_trail
+         (const stid::action_streamt &s,
+         stid::action_stream_itt &it,
+         Trail &t,
+         Pidmap &pidmap)
 {
    // We can see the stream as a sequence of subsequences, starting either by a
    // blue action or an "invisible" THSTART action, and followed by red actions.
@@ -25,7 +43,7 @@ void C15unfolder::stream_match_trail
    // of the next blue action in the stream will correctly increment i.
 
    unsigned i, count, pid, ret;
-   const action_stream_itt end (s.end());
+   const stid::action_stream_itt end (s.end());
 
    // match trail events as long as the trail AND the stream contain events
    ASSERT (t.size());
@@ -41,7 +59,11 @@ void C15unfolder::stream_match_trail
       case RT_MTXLOCK :
          ASSERT (t[i]->redbox.size() == count);
          i++;
-         ASSERT (t[i]->action.type == ActionType::MTXLOCK);
+         if (t[i]->action.type != ActionType::MTXLOCK)
+         {
+            report_add_nondet_violation (t, i, ActionType::MTXLOCK);
+            return false;
+         }
          ASSERT (t[i]->pid() == pid);
          ASSERT (t[i]->flags.crb);
          count = 0;
@@ -50,7 +72,11 @@ void C15unfolder::stream_match_trail
       case RT_MTXUNLK :
          ASSERT (t[i]->redbox.size() == count);
          i++;
-         ASSERT (t[i]->action.type == ActionType::MTXUNLK);
+         if (t[i]->action.type != ActionType::MTXUNLK)
+         {
+            report_add_nondet_violation (t, i, ActionType::MTXLOCK);
+            return false;
+         }
          ASSERT (t[i]->pid() == pid);
          ASSERT (t[i]->flags.crb);
          count = 0;
@@ -59,7 +85,11 @@ void C15unfolder::stream_match_trail
       case RT_THCREAT :
          ASSERT (t[i]->redbox.size() == count);
          i++;
-         ASSERT (t[i]->action.type == ActionType::THCREAT);
+         if (t[i]->action.type != ActionType::THCREAT)
+         {
+            report_add_nondet_violation (t, i, ActionType::THCREAT);
+            return false;
+         }
          ASSERT (t[i]->pid() == pid);
          ASSERT (t[i]->flags.crb);
          SHOW (it.str(), "s");
@@ -79,7 +109,11 @@ void C15unfolder::stream_match_trail
       case RT_THEXIT :
          ASSERT (t[i]->redbox.size() == count);
          i++;
-         ASSERT (t[i]->action.type == ActionType::THEXIT);
+         if (t[i]->action.type != ActionType::THEXIT)
+         {
+            report_add_nondet_violation (t, i, ActionType::THEXIT);
+            return false;
+         }
          ASSERT (t[i]->pid() == pid);
          ASSERT (t[i]->flags.crb);
          count = 0;
@@ -88,7 +122,11 @@ void C15unfolder::stream_match_trail
       case RT_THJOIN :
          ASSERT (t[i]->redbox.size() == count);
          i++;
-         ASSERT (t[i]->action.type == ActionType::THJOIN);
+         if (t[i]->action.type != ActionType::THJOIN)
+         {
+            report_add_nondet_violation (t, i, ActionType::THJOIN);
+            return false;
+         }
          ASSERT (t[i]->pid() == pid);
          ASSERT (t[i]->flags.crb);
          SHOW (it.str(), "s");
@@ -138,10 +176,11 @@ void C15unfolder::stream_match_trail
          break;
       }
    }
+   return true;
 }
 
 bool C15unfolder::stream_to_events
-      (Config &c, const action_streamt &s, Trail *t, Disset *d)
+      (Config &c, const stid::action_streamt &s, Trail *t, Disset *d)
 {
    // - If we get a Disset, then we also need to get a trail.
    // - If we get a Trail, then the Config represents the state *at the end* of
@@ -165,8 +204,10 @@ bool C15unfolder::stream_to_events
    // variables
    unsigned newpid;
    Event *e, *ee;
-   action_stream_itt it (s.begin());
-   const action_stream_itt end (s.end());
+   stid::action_stream_itt it (s.begin());
+   const stid::action_stream_itt end (s.end());
+   Pidmap pidmap;
+   Defect defect;
 
    // disset => trail
    ASSERT (!d or t);
@@ -183,7 +224,6 @@ bool C15unfolder::stream_to_events
 
    // reset the pidpool and the pidmap for this execution
    pidpool.reset ();
-   pidmap.reset ();
    for (unsigned i = 0; i < Unfolding::MAX_PROC; i++) ASSERT (start[i] == nullptr);
 
    // skip the first context switch to pid 0, if present
@@ -201,7 +241,7 @@ bool C15unfolder::stream_to_events
       // config must not be empty
       ASSERT (! c.is_empty());
       e = t->back();
-      stream_match_trail (s, it, *t);
+      if (not stream_match_trail (s, it, *t, pidmap)) return false;
    }
    else
    {
@@ -310,6 +350,27 @@ bool C15unfolder::stream_to_events
          c.fire (e);
          break;
 
+      case RT_ABORT :
+         if (report.nr_abort >= CONFIG_MAX_DEFECT_REPETITION) break;
+         defect.description = "The program called abort()";
+         if (t)
+            defect.replay = std::move (Replay::create (u, *t));
+         else
+            defect.replay.clear();
+         report.add_defect (std::move (defect));
+         break;
+
+      case RT_EXITNZ :
+         if (report.nr_exitnz >= CONFIG_MAX_DEFECT_REPETITION) break;
+         defect.description =
+               fmt ("The program exited with errorcode %d", it.id());
+         if (t)
+            defect.replay = std::move (Replay::create (u, *t));
+         else
+            defect.replay.clear();
+         report.add_defect (std::move (defect));
+         break;
+
       case RT_RD8 :
          if (! e->flags.crb)
             e->redbox.push_back
@@ -389,6 +450,7 @@ bool C15unfolder::stream_to_events
          ASSERT (0);
       }
    }
+   if (verb_debug) pidmap.dump (true);
    return true;
 }
 

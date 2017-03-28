@@ -25,6 +25,7 @@ std::string defectspath;
 size_t memsize;
 size_t stacksize;
 unsigned optlevel;
+bool strace;
 
 void parse (int argc, char **argv_)
 {
@@ -43,6 +44,7 @@ void parse (int argc, char **argv_)
 			{"mem", required_argument, nullptr, 'm'},
 			{"stack", required_argument, nullptr, 's'},
 			{"dump-instrumented", required_argument, nullptr, 'i'},
+			{"strace", no_argument, nullptr, 'S'},
 			{0, 0, 0, 0}};
 
    // default options
@@ -51,13 +53,14 @@ void parse (int argc, char **argv_)
 	verbosity = VERB_PRINT;
    inpath = "";
    dotpath = "";
-   defectspath = "./defects.yaml";
+   defectspath = "./defects.yml";
    //alt_algo = C15unfolder::Alt_algorithm::KPARTIAL;
    alt_algo = C15unfolder::Alt_algorithm::ONLYLAST;
    kbound = 1;
    memsize = CONFIG_GUEST_DEFAULT_MEMORY_SIZE;
    stacksize = CONFIG_GUEST_DEFAULT_THREAD_STACK_SIZE;
    optlevel = 3;
+   strace = false;
 
 	// parse the command line, supress automatic error messages by getopt
 	opterr = 0;
@@ -108,6 +111,9 @@ void parse (int argc, char **argv_)
          break;
 		case 'D' :
 			dotpath = optarg;
+         break;
+		case 'S' :
+			strace = true;
          break;
 		case 'i' :
 			instpath = optarg;
@@ -195,7 +201,8 @@ void print_options ()
    fprintf (stderr, " -m N, --mem=N            sets the guest memory, in MB (default %zuM)\n", memsize / (1 << 20));
    fprintf (stderr, " -s N, --stack=N          sets default size for thread stacks, in MB (default %zuM)\n", stacksize / (1 << 20));
    fprintf (stderr, "       --dump-instr=PATH  dumps instrumented LLVM bytecode to PATH\n");
-   fprintf (stderr, " -O L                     optimization level (0 to 3) (default 3)\n");
+   fprintf (stderr, " -O L                     optimization level (0 to 3) (default %u)\n", optlevel);
+   fprintf (stderr, "       --strace           prints strace(1)-like info on program execution (default %d) \n", strace);
 }
 
 void version (void)

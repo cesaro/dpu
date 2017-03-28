@@ -40,16 +40,21 @@ main_ ()
       exit 1
    fi
 
-set -x
    # prepare the input
    if echo "$INPUT" | grep -q '\.c$\|\.i$'; then
-      clang-$LLVMVERS -O3 -emit-llvm -c -o $TMP/opt.bc -- "$INPUT" 
+      CMD="clang-$LLVMVERS -O3 -emit-llvm -c -o $TMP/opt.bc -- '$INPUT'"
+      echo $CMD
+      eval $CMD
       stopif "clang"
    else
-      opt-$LLVMVERS -mem2reg "$INPUT" -o $TMP/opt.bc
+      CMD="opt-$LLVMVERS -mem2reg '$INPUT' -o $TMP/opt.bc"
+      echo $CMD
+      eval $CMD
       stopif "opt"
    fi
-   llvm-link-$LLVMVERS $TMP/opt.bc $RT -o $TMP/input.bc
+   CMD="llvm-link-$LLVMVERS $TMP/opt.bc $RT -o $TMP/input.bc"
+   echo $CMD
+   eval $CMD
    stopif "llvm-link"
 
    # dump .bc files, for debugging purposes
@@ -69,7 +74,9 @@ set -x
    elif test $GDB = 3; then
       valgrind $BACKEND $TMP/input.bc $ARGS
    else
-      $BACKEND $TMP/input.bc $ARGS
+      CMD="$BACKEND $TMP/input.bc $ARGS"
+      echo $CMD
+      eval $CMD
       exit $?
    fi
 

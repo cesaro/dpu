@@ -194,7 +194,7 @@ bool Event::in_cfl_with (const Event *e) const
    } else {
       b = cone.in_cfl_with (&e->cone);
    }
-   DEBUG ("Event.in_cfl_with: this %p pid %u e %p pid %u ret %d", this, pid(), e, e->pid(), b);
+   //DEBUG ("Event.in_cfl_with: this %p pid %u e %p pid %u ret %d", this, pid(), e, e->pid(), b);
    return b;
 }
 

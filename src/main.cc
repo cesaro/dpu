@@ -363,9 +363,12 @@ void print_stats (C15unfolder &unf, Resources &res)
    // print times here as well!
    print_res_stats (unf, res, events);
 
-   PRINT ("\ndpu: summary: %lu max-configs, %lu SSBs, %lu events, %.3f sec, %.1f ev/trail",
+   PRINT ("\ndpu: summary: "
+         "%zu defects, %lu max-configs, %lu SSBs, %lu events, %.3f sec, %luM",
+         unf.report.defects.size(),
          unf.counters.maxconfs, unf.counters.ssbs, events,
-         res.walltime / 1000000.0, unf.counters.avg_max_trail_size);
+         res.walltime / 1000000.0,
+         res.maxrss / 1024);
 }
 
 int main (int argc, char **argv)
@@ -395,6 +398,8 @@ int main (int argc, char **argv)
       // load code and set argv
       PRINT ("dpu: loading bytecode");
       unf.load_bytecode (std::string (opts::inpath));
+
+      // set up argv
       INFO ("dpu: setting commandline arguments:");
       INFO ("dpu: argc = %zu", opts::argv.size());
       INFO_ ("dpu: argv = [");
@@ -403,8 +408,10 @@ int main (int argc, char **argv)
       INFO ("]");
       unf.set_args (opts::argv);
 
-      // set the environment
+      // set up environ(7)
+      INFO ("dpu: set up environment variables:");
       unf.set_default_environment();
+      INFO ("dpu: |environ| = %zu", unf.exec->environ.size());
 
       switch (opts::alt_algo) {
       case C15unfolder::Alt_algorithm::KPARTIAL :

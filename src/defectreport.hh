@@ -1,32 +1,41 @@
 
-#ifndef _C15U_DEFECTREPORT_HH_
-#define _C15U_DEFECTREPORT_HH_
+#ifndef _DEFECTREPORT_HH_
+#define _DEFECTREPORT_HH_
 
 #include <vector>
 #include <string>
 #include <cstdint>
 #include <system_error>
 
-#include "llvm/Support/raw_ostream.h"
-
 #include "defect.hh"
 
 struct Defectreport
 {
+   // tool version
    std::string dpuversion;
+
+   // verification instance + execution environment
    std::string path;
    std::vector<std::string> argv;
    std::vector<std::string> environ;
-   int alt;
-   unsigned kbound;
    uint64_t memsize;
    uint64_t defaultstacksize;
    uint64_t tracesize;
    unsigned optlevel;
 
+   // unfolding exploration
+   int alt;
+   unsigned kbound;
+
+   // abort + exit(x) with x!=0
+   unsigned nr_exitnz;
+   unsigned nr_abort;
+
+   // defects
    std::vector<Defect> defects;
 
-   inline void save (const char *path);
+   void save (const char *path);
+   void add_defect (Defect &&d);
 };
 
 // yaml trait for "const char *" (for some reason it doesn't work)
@@ -71,13 +80,4 @@ struct llvm::yaml::MappingTraits<Defectreport> {
    }
 };
 
-inline void Defectreport::save (const char *path)
-{
-   std::error_code ec;
-   llvm::raw_fd_ostream f (path, ec, llvm::sys::fs::OpenFlags::F_None);
-   if (ec.value() != 0)
-      throw std::system_error (ec, path);
-   llvm::yaml::Output out (f);
-   out << *this;
-}
 #endif

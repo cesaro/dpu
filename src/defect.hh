@@ -1,6 +1,6 @@
 
-#ifndef _C15U_DEFECT_HH_
-#define _C15U_DEFECT_HH_
+#ifndef _DEFECT_HH_
+#define _DEFECT_HH_
 
 #include <vector>
 #include <string>
@@ -12,7 +12,7 @@
 struct Defect
 {
    std::string description;
-   std::vector<struct replayevent> replay;
+   stid::Replay replay;
 };
 
 // yaml trait for a context switch
@@ -35,7 +35,7 @@ struct llvm::yaml::MappingTraits<struct Defect> {
    static void mapping (llvm::yaml::IO &io, struct Defect &d)
    {
       io.mapRequired ("description", d.description);
-      io.mapRequired ("replay", d.replay);
+      io.mapRequired ("replay", static_cast<stid::Replay::Vector&> (d.replay));
    }
 };
 

@@ -40,7 +40,7 @@ for i in $N; do echo "xxx $i xxx"; grep "dpu: summary: " out$i; done
 
 # exactly the espected number of configurations and events
 for i in $N; do test \
-   "$(grep "dpu: summary: " out$i | awk '{print $3, $7}')" = \
+   "$(grep "dpu: summary: " out$i | awk '{print $5, $9}')" = \
    "${conf_ev[$i]}"; done
 
 # remove intermediate files

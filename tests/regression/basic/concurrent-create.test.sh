@@ -25,7 +25,7 @@
 # xxx 12 xxx
 # dpu: summary: 6 max-configs, 0 SSBs, 141 events, 103.0 ev/trail
 # xxx 13 xxx
-# dpu: summary: 6 max-configs, 0 SSBs, 149 events, 111.0 ev/trail
+# dpu: summary: 0 defects, 6 max-configs, 0 SSBs, 149 events, 111.0 ev/trail
 
 MAX=13
 N=$(seq 1 $MAX)
@@ -58,7 +58,7 @@ for i in $N; do echo "xxx $i xxx"; grep "dpu: summary: " out$i; done
 
 # exactly the espected number of events
 for i in $N; do test \
-   "$(grep "dpu: summary: " out$i | awk '{print $7}')" = ${events[$i]}; done
+   "$(grep "dpu: summary: " out$i | awk '{print $9}')" = ${events[$i]}; done
 
 # remove intermediate files
    for i in $N; do rm input${i}.i; done

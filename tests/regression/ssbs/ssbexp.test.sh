@@ -64,7 +64,7 @@ for i in $K; do \
       grep -i " unfolding: $(($i + 4)) threads created" out.$i.$j; done; done
 
 for i in $K; do \
-   test "$(grep "dpu: summary: " out.$i | awk '{print $3, $7}')" = "${conf_ev[$i]}"; done
+   test "$(grep "dpu: summary: " out.$i | awk '{print $5, $9}')" = "${conf_ev[$i]}"; done
 
 for i in $K; do \
    rm input.$i.i; rm out.$i; done

@@ -40,7 +40,7 @@ for i in $N; do echo xxx $i xxx; grep "dpu: stats: " out$i; done
 
 # exactly the espected number of configurations, events, and threads
 for i in $N; do set -x; test \
-   "$(grep "dpu: summary: " out$i | awk '{print $3}')" = \
+   "$(grep "dpu: summary: " out$i | awk '{print $5}')" = \
    "${configs[$i]}"; done
 for i in $N; do grep " unfolding: 2 threads created" out$i; done
 

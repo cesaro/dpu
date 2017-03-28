@@ -4,5 +4,5 @@
 cmd $PROG conditional-join.c -v
 
 test $EXITCODE = 0
-grep "dpu: summary: 2 max-configs"
+grep "dpu: summary: 0 defects, 2 max-configs"
 grep "dpu: stats: unfolding: 5 threads created"

@@ -117,7 +117,7 @@ for i in $N; do \
 k=1; \
 for i in $N; do \
    for j in $L; do set -x; \
-      test "$(grep "dpu: summary: " out.$i.$j | awk '{print $3, $7}')" = "${conf_ev[$k]}"; \
+      test "$(grep "dpu: summary: " out.$i.$j | awk '{print $5, $9}')" = "${conf_ev[$k]}"; \
       k=$(($k + 1)); done; done
 
 for i in $N; do \

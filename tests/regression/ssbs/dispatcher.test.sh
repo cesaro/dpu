@@ -83,7 +83,7 @@ for i in $S; do \
 k=1; \
 for i in $S; do \
    for j in $R; do set -x; \
-      test "$(grep "dpu: summary: " out.$i.$j | awk '{print $3, $7}')" = "${conf_ev[$k]}"; \
+      test "$(grep "dpu: summary: " out.$i.$j | awk '{print $5, $9}')" = "${conf_ev[$k]}"; \
       k=$(($k + 1)); done; done
 
 #for i in $S; do \

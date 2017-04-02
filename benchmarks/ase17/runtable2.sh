@@ -132,8 +132,6 @@ runall_dpu ()
    cp $R/debian/blktrace-1.0.5/test-data/input*dat .
    ls -lh .
 
-if false; then
-
    # mafft - addsingle
    N=addsingle
    for n in $(seq 2 2 10); do
@@ -185,8 +183,6 @@ if false; then
          run_dpu
       done
    done
-
-fi
 
    # blktrace - blkiomon
    N=blkiomon

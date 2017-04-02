@@ -1,7 +1,7 @@
-# Can create up to 64 threads
+# Can create up to 32 threads
 
 # initialization
-N=$(seq 7 8 64)
+N=$(seq 7 4 31)
 for i in $N; do
    gcc -E nthreads.c -D N=$i -o input$i.i
 done

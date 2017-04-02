@@ -13,51 +13,23 @@ TIMEOUT=15s
 if test $(hostname) = mariapacum; then
    DPU=../../dist/bin/dpu
    NIDHUGG="/usr/local/bin/nidhuggc --c -sc --nidhugg=/usr/local/bin/nidhugg -extfun-no-race=printf -extfun-no-race=write -extfun-no-race=exit -extfun-no-race=atoi" 
-1;2802;0celif test $(hostname) = polaris; then
+elif test $(hostname) = polaris; then
    DPU=dpu
    NIDHUGG=mynidhugg
 elif test $(hostname) = poet; then
    DPU="/home/msousa/dpu2/dist/bin/dpu"
    NIDHUGG="nidhuggc --c -sc -extfun-no-race=printf -extfun-no-race=write -extfun-no-race=exit -extfun-no-race=atoi"
+elif test $(hostname) = polaris; then
+   DPU=dpu
+   NIDHUGG=mynidhugg
 else
    DPU=../../dist/bin/dpu
    NIDHUGGBIN=`which nidhugg`
    NIDHUGG="${NIDHUGGBIN} --c -sc -extfun-no-race=printf -extfun-no-race=write -extfun-no-race=exit -extfun-no-race=atoi" 
 fi
 
-
-preprocess_family()
-{
-   CFILE=$1
-   IPATH=$2
-   P1NAME=$3
-   P1VALS=$4
-   P2NAME=$5
-   P2VALS=$6
-   CPP=cpp
-
-   # only 1 parameter
-   if test -z "$P2NAME"; then
-      for P1 in `echo $P1VALS`; do
-         P1_=$(echo "$P1" | sed 's/^0\+//') # remove trailing 0s
-         CMD="$CPP -E -D PARAM1=$P1_ $CFILE -o ${IPATH}-${P1NAME}${P1}.i"
-         echo $CMD
-         $CMD
-      done
-      return
-   fi
-
-   # 2 parameters
-   for P1 in `echo $P1VALS`; do
-      for P2 in `echo $P2VALS`; do
-         P1_=$(echo "$P1" | sed 's/^0\+//') # remove trailing 0s
-         P2_=$(echo "$P2" | sed 's/^0\+//') # remove trailing 0s
-         CMD="$CPP -E -D PARAM1=$P1_ -D PARAM2=$P2_ $CFILE -o ${IPATH}-${P1NAME}${P1}_${P2NAME}${P2}.i"
-         echo $CMD
-         $CMD
-      done
-   done
-}
+# utilitary functions to run benchmarks
+source runlib.sh
 
 generate_bench ()
 {
@@ -88,10 +60,6 @@ generate_bench_smallest ()
    preprocess_family ../ssb3.c       ssb3         "writers" "`seq -w 2 5`" "seqlen" "4 6"
    preprocess_family ../ssbexp.c     ssbexp       "writers" "`seq -w 2 5`"
    preprocess_family ../pi/pth_pi_mutex.c pi      "threads" "`seq -w 1 3`" "iters" "`seq -w 1000 2000 9000`"
-}
-
-round() {
-    python -c "print '%.3f' % (float ($1) / (1000 * 1000 * 1000))"
 }
 
 run_dpu ()
@@ -241,10 +209,12 @@ test_can_run ()
    echo
    echo "$DPU --help"
    $DPU --help
+   $DPU --version
 
    echo
    echo "$NIDHUGG --help"
    $NIDHUGG --help
+   $NIDHUGG --version
 
    echo
    echo If you see errors above this line,
@@ -263,10 +233,10 @@ main ()
 }
 
 
-R=logs.$(date -R | sed -e 's/ /_/g' -e 's/[,+]//g' -e 's/:/-/g')
-rm -Rf $R latest
+R=table1.$(date -R | sed -e 's/ /_/g' -e 's/[,+]//g' -e 's/:/-/g')
+rm -Rf $R latest.table1
 mkdir $R
-ln -s $R latest
+ln -s $R latest.table1
 cd $R
 
 main 2>&1 | tee XXX.log

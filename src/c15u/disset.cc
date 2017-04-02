@@ -11,7 +11,7 @@ void Disset::dump () const
 
    PRINT ("== begin disset =="); 
 
-   PRINT ("%u events, top-idx %d, top-disabler %d, ssb-count %u",
+   PRINT ("%zu events, top-idx %d, top-disabler %d, ssb-count %u",
          stack.size(), top_idx, top_disabler, ssb_count);
    PRINT ("Unjustified:");
    for (e = unjust; e; e = e->next)

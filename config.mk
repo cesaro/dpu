@@ -28,10 +28,10 @@ CONFIG_LLVM_VER = 3.7
 CONFIG_STEROIDS_ROOT = $R/../steroid
 
 # maximum number of unfolding processes
-CONFIG_MAX_PROCESSES = 64
+CONFIG_MAX_PROCESSES = 32
 
 # maximum number of events per process
-CONFIG_MAX_EVENTS_PER_PROCCESS = 128000
+CONFIG_MAX_EVENTS_PER_PROCCESS = 2000100
 
 # default memory size for guest code execution
 CONFIG_GUEST_DEFAULT_MEMORY_SIZE = $(shell echo '128 * 2^20' | bc)
@@ -51,7 +51,7 @@ CONFIG_MAX_DEFECT_REPETITION = 10
 
 # define this to compile support to visualize statistics about causality/conflict
 # checks
-CONFIG_STATS_DETAILED = 1
+#CONFIG_STATS_DETAILED =
 
 ########################
 

@@ -42,10 +42,10 @@ void Trail::dump2 (const char *prefix) const
       switch (e->action.type)
       {
       case ActionType::THCREAT :
-         PRINT_ (" C%u", e->action.val);
+         PRINT_ (" C%lu", e->action.val);
          break;
       case ActionType::THJOIN :
-         PRINT_ (" J%u", e->action.val);
+         PRINT_ (" J%lu", e->action.val);
          break;
       case ActionType::THSTART :
          PRINT_ (" S");

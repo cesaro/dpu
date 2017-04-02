@@ -23,6 +23,7 @@ extern size_t memsize;
 extern size_t stacksize;
 extern unsigned optlevel;
 extern bool strace;
+extern bool dosleep;
 
 
 void parse (int argc, char **argv_);

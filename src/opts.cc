@@ -26,6 +26,7 @@ size_t memsize;
 size_t stacksize;
 unsigned optlevel;
 bool strace;
+bool dosleep;
 
 void parse (int argc, char **argv_)
 {
@@ -45,6 +46,7 @@ void parse (int argc, char **argv_)
 			{"stack", required_argument, nullptr, 's'},
 			{"dump-instrumented", required_argument, nullptr, 'i'},
 			{"strace", no_argument, nullptr, 'S'},
+			{"dosleep", no_argument, nullptr, 'L'},
 			{0, 0, 0, 0}};
 
    // default options
@@ -59,8 +61,9 @@ void parse (int argc, char **argv_)
    kbound = 1;
    memsize = CONFIG_GUEST_DEFAULT_MEMORY_SIZE;
    stacksize = CONFIG_GUEST_DEFAULT_THREAD_STACK_SIZE;
-   optlevel = 3;
+   optlevel = 1;
    strace = false;
+   dosleep = false;
 
 	// parse the command line, supress automatic error messages by getopt
 	opterr = 0;
@@ -114,6 +117,9 @@ void parse (int argc, char **argv_)
          break;
 		case 'S' :
 			strace = true;
+         break;
+		case 'L' :
+			dosleep = true;
          break;
 		case 'i' :
 			instpath = optarg;
@@ -203,6 +209,7 @@ void print_options ()
    fprintf (stderr, "       --dump-instr=PATH  dumps instrumented LLVM bytecode to PATH\n");
    fprintf (stderr, " -O L                     optimization level (0 to 3) (default %u)\n", optlevel);
    fprintf (stderr, "       --strace           prints strace(1)-like info on program execution (default %d) \n", strace);
+   fprintf (stderr, "       --dosleep          makes sleep(3) not to return EINTR immediately (default %d) \n", dosleep);
 }
 
 void version (void)
@@ -225,8 +232,8 @@ void version (void)
    PRINT_ ("-detailed-stats ");
 #endif
    PRINT ("");
-   PRINT ("Event structure: %u slots, up to %u events/slot, %u%s memory per slot, "
-         "%u%s total memory, aligned to %u%s",
+   PRINT ("Event structure: %zu slots, up to %zu events/slot, %zu%s memory per slot, "
+         "%zu%s total memory, aligned to %zu%s",
          Unfolding::MAX_PROC,
          Unfolding::PROC_SIZE / sizeof (Event),
          UNITS_SIZE (Unfolding::PROC_SIZE),
@@ -251,7 +258,7 @@ void dump ()
    PRINT (" development    %d", development);
    PRINT (" verbosity      %d", verbosity);
    PRINT (" inpath         '%s'", inpath.c_str());
-   PRINT (" argc           %d", argv.size());
+   PRINT (" argc           %zu", argv.size());
    for (i = 0; i < argv.size(); i++)
       PRINT (" argv[%u]        '%s'", i, argv[i]);
    switch (alt_algo) {

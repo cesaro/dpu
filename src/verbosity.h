@@ -28,12 +28,12 @@ extern "C" {
 #define VERB_PRINT   0
 
 // the "verbosity" of the program; initially set to VERB_DEBUG
-extern int __verb_level;
+extern unsigned __verb_level;
 
 // these evaluate to true or false depending on the current verbosity level
-extern int verb_debug;
-extern int verb_trace;
-extern int verb_info;
+extern unsigned verb_debug;
+extern unsigned verb_trace;
+extern unsigned verb_info;
 
 // setting and getting the verbosity level
 void verb_set (int i);
@@ -51,16 +51,24 @@ int verb_get ();
 #define VERB_LEVEL_INFO
 #endif
 
-// the actual primitives you should use, with and without new line
-#define DEBUG(fmt,args...)    mylog (3, fmt "\n", ##args)
-#define TRACE(fmt,args...)    mylog (2, fmt "\n", ##args)
-#define INFO(fmt,args...)     mylog (1, fmt "\n", ##args)
-#define PRINT(fmt,args...)    mylog (0, fmt "\n", ##args)
+#define MYLOG(level,fmt,args...) \
+   do { \
+      if (level <= CONFIG_MAX_VERB_LEVEL && level <= __verb_level) \
+      { \
+         printf (fmt, ##args); \
+      } \
+   } while (0)
 
-#define DEBUG_(fmt,args...)   mylog (3, fmt, ##args)
-#define TRACE_(fmt,args...)   mylog (2, fmt, ##args)
-#define INFO_(fmt,args...)    mylog (1, fmt, ##args)
-#define PRINT_(fmt,args...)   mylog (0, fmt, ##args)
+// the actual primitives you should use, with and without new line
+#define DEBUG(fmt,args...)    MYLOG (3, fmt "\n", ##args)
+#define TRACE(fmt,args...)    MYLOG (2, fmt "\n", ##args)
+#define INFO(fmt,args...)     MYLOG (1, fmt "\n", ##args)
+#define PRINT(fmt,args...)    MYLOG (0, fmt "\n", ##args)
+
+#define DEBUG_(fmt,args...)   MYLOG (3, fmt, ##args)
+#define TRACE_(fmt,args...)   MYLOG (2, fmt, ##args)
+#define INFO_(fmt,args...)    MYLOG (1, fmt, ##args)
+#define PRINT_(fmt,args...)   MYLOG (0, fmt, ##args)
 
 // remove at compile time primitives that will never be active
 #ifndef VERB_LEVEL_DEBUG
@@ -83,19 +91,6 @@ int verb_get ();
 #define INFO(fmt,args...)
 #define INFO_(fmt,args...)
 #endif
-
-// the implementation
-static inline void mylog (int level, const char * fmt, ...)
-{
-   va_list ap;
-
-   if (level > CONFIG_MAX_VERB_LEVEL) return;
-   if (level > __verb_level) return;
-   va_start (ap, fmt);
-   vprintf (fmt, ap);
-   va_end (ap);
-}
-
 
 // more debugging primitives
 void breakme (void);

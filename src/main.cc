@@ -93,7 +93,7 @@ void print_tree_stats (C15unfolder &unf)
    // trees
    for (i = 0; i < unf.u.num_procs(); i++)
    {
-      PRINT ("dpu: stats: trees: depths: t%lu: min/max/avg=%s {depth=count/mass}={%s}",
+      PRINT ("dpu: stats: trees: depths: t%u: min/max/avg=%s {depth=count/mass}={%s}",
          i,
          pd[i].summary_mma().c_str(),
          pd[i].summary_freq_maxc(4).c_str());
@@ -101,13 +101,13 @@ void print_tree_stats (C15unfolder &unf)
    for (auto &kv : ad)
    {
       PRINT ("dpu: stats: trees: depths: %p: min/max/avg=%s {depth=count/mass}={%s}",
-         kv.first,
+         (void*) kv.first,
          kv.second.summary_mma().c_str(),
          kv.second.summary_freq_maxc(4).c_str());
    }
    for (i = 0; i < unf.u.num_procs(); i++)
    {
-      PRINT ("dpu: stats: trees: branch-out: t%lu: size/nc=%s; "
+      PRINT ("dpu: stats: trees: branch-out: t%u: size/nc=%s; "
          "min/max/avg=%s; {factor=count/mass}={%s}",
          i,
          pb[i].summary_snc().c_str(),
@@ -118,29 +118,29 @@ void print_tree_stats (C15unfolder &unf)
    {
       PRINT ("dpu: stats: trees: branch-out: %p: size/nc=%s; "
          "min/max/avg=%s; {factor=count/mass}={%s}",
-         kv.first,
+         (void*) kv.first,
          kv.second.summary_snc().c_str(),
          kv.second.summary_mma().c_str(),
          kv.second.summary_freq_maxc(4).c_str());
    }
 
    // events
-   PRINT ("dpu: stats: events: pthread_create: %lu (%.1f\%)",
+   PRINT ("dpu: stats: events: pthread_create: %u (%.1f%%)",
       et.count (ActionType::THCREAT),
       100 * et.mass (ActionType::THCREAT));
-   PRINT ("dpu: stats: events: pthread_join: %lu (%.1f\%)",
+   PRINT ("dpu: stats: events: pthread_join: %u (%.1f%%)",
       et.count (ActionType::THJOIN),
       100 * et.mass (ActionType::THJOIN));
-   PRINT ("dpu: stats: events: pthread_mutex_lock: %lu (%.1f\%)",
+   PRINT ("dpu: stats: events: pthread_mutex_lock: %u (%.1f%%)",
       et.count (ActionType::MTXLOCK),
       100 * et.mass (ActionType::MTXLOCK));
-   PRINT ("dpu: stats: events: pthread_mutex_unlock: %lu (%.1f\%)",
+   PRINT ("dpu: stats: events: pthread_mutex_unlock: %u (%.1f%%)",
       et.count (ActionType::MTXUNLK),
       100 * et.mass (ActionType::MTXUNLK));
-   PRINT ("dpu: stats: events: (thread start): %lu (%.1f\%)",
+   PRINT ("dpu: stats: events: (thread start): %u (%.1f%%)",
       et.count (ActionType::THSTART),
       100 * et.mass (ActionType::THSTART));
-   PRINT ("dpu: stats: events: pthread_exit: %lu (%.1f\%)",
+   PRINT ("dpu: stats: events: pthread_exit: %u (%.1f%%)",
       et.count (ActionType::THEXIT),
       100 * et.mass (ActionType::THEXIT));
 
@@ -153,7 +153,7 @@ void print_tree_stats (C15unfolder &unf)
       et.count (ActionType::THEXIT);
    if (rest != et.size())
    {
-      PRINT ("dpu: stats: events: others: %lu (%.1f\%)",
+      PRINT ("dpu: stats: events: others: %lu (%.1f%%)",
          et.size() - rest,
          100 * (et.size() - rest) / (float) et.size());
    }
@@ -271,7 +271,7 @@ void print_res_stats (C15unfolder &unf, Resources &res, unsigned long events)
    {
       min = res.walltime / 60000000;
       sec = (res.walltime - min * 60000000) / 1000000.0;
-      PRINT (" (%umin %.3fsec)", min, sec);
+      PRINT (" (%lumin %.3fsec)", min, sec);
    }
    else
    {
@@ -308,12 +308,12 @@ void print_stats (C15unfolder &unf, Resources &res)
    //PRINT ("\ndpu: unfolding statistics:");
    PRINT ("dpu: stats: unfolding: %lu max-configs", unf.counters.maxconfs);
    PRINT ("dpu: stats: unfolding: %lu threads created", unf.counters.stid_threads);
-   PRINT ("dpu: stats: unfolding: %lu process slots used", unf.u.num_procs());
-   PRINT ("dpu: stats: unfolding: %lu events (aprox. %u%s of memory)",
+   PRINT ("dpu: stats: unfolding: %u process slots used", unf.u.num_procs());
+   PRINT ("dpu: stats: unfolding: %lu events (aprox. %zu%s of memory)",
       events, UNITS_SIZE (size), UNITS_UNIT (size));
    for (i = 0; i < unf.u.num_procs(); i++)
    {
-      PRINT ("dpu: stats: unfolding: t%u: %lu events (%u%s, %.1f%%)",
+      PRINT ("dpu: stats: unfolding: t%u: %u events (%zu%s, %.1f%%)",
             i, unf.u.proc(i)->counters.events,
             UNITS_SIZE(unf.u.proc(i)->memory_size()),
             UNITS_UNIT(unf.u.proc(i)->memory_size()),
@@ -322,7 +322,7 @@ void print_stats (C15unfolder &unf, Resources &res)
    if (verb_info)
    {
       size_t size2 = get_precise_memory_size (unf);
-      PRINT ("dpu: stats: unfolding: %u%s total allocated memory (%.1f bytes/event)",
+      PRINT ("dpu: stats: unfolding: %zu%s total allocated memory (%.1f bytes/event)",
          UNITS_SIZE (size2), UNITS_UNIT (size2),
          size2 / (float) events);
    }
@@ -378,8 +378,6 @@ int main (int argc, char **argv)
 
    breakme ();
 
-
-
    // install signal handler for segfaults
    //signal (SIGSEGV, handler);
 
@@ -396,7 +394,6 @@ int main (int argc, char **argv)
       C15unfolder unf (opts::alt_algo, opts::kbound);
 
       // load code and set argv
-      PRINT ("dpu: loading bytecode");
       unf.load_bytecode (std::string (opts::inpath));
 
       // set up argv

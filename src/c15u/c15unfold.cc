@@ -71,7 +71,6 @@ void C15unfolder::load_bytecode (std::string &&filepath)
    llvm::SMDiagnostic err;
    std::string errors;
 
-   DEBUG ("c15u: load-bytecode: this %p path '%s'", this, filepath.c_str());
 
    ASSERT (filepath.size());
    ASSERT (path.size() == 0);
@@ -93,6 +92,7 @@ void C15unfolder::load_bytecode (std::string &&filepath)
    llvm::LLVMContext &context = llvm::getGlobalContext();
 
    // parse the .ll file and get a Module out of it
+   PRINT ("dpu: loading bytecode...");
    std::unique_ptr<llvm::Module> mod (llvm::parseIRFile (path, err, context));
    m = mod.get();
 
@@ -117,7 +117,7 @@ void C15unfolder::load_bytecode (std::string &&filepath)
    conf.optlevel = opts::optlevel;
    conf.tracesize = CONFIG_GUEST_TRACE_BUFFER_SIZE;
 
-   conf.flags.dosleep = 1;
+   conf.flags.dosleep = opts::dosleep ? 1 : 0;
    conf.flags.verbose = opts::verbosity >= 3 ? 1 : 0;
 
    unsigned i = opts::strace ? 1 : 0;
@@ -127,6 +127,7 @@ void C15unfolder::load_bytecode (std::string &&filepath)
    conf.strace.proc = i;
    conf.strace.others = i;
 
+   PRINT ("dpu: O%u-optimization + jitting...", opts::optlevel);
    DEBUG ("c15u: load-bytecode: setting up the bytecode executor...");
    try {
       exec = new stid::Executor (std::move (mod), conf);
@@ -527,7 +528,7 @@ inline bool C15unfolder::find_alternative (const Trail &t, Config &c, const Diss
 
    TRACE_ ("c15u: explore: %s: alt: [", explore_stat (t, d).c_str());
 #ifdef VERB_LEVEL_TRACE
-   for (auto e : d.unjustified)  TRACE_("%u ", e->icfls().size());
+   for (auto e : d.unjustified)  TRACE_("%zu ", e->icfls().size());
 #endif
    TRACE ("\b] %s", b ? "found" : "no");
    if (b) DEBUG ("c15u: explore: %s: j: %s", explore_stat(t, d).c_str(), j.str().c_str());

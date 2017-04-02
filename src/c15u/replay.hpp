@@ -8,22 +8,20 @@ void Replay::extend_from (const Trail &t, unsigned limit)
 {
    unsigned pid;
    int count;
-   unsigned total;
 
    // if there is at least one event, then the first is for pid 0
    count = pid = 0;
    ASSERT (t.size() == 0 or t[0]->pid() == pid);
 
-   total = 0;
    for (Event *e : t)
    {
-      if (total >= limit) break;
+      if (limit == 0) break;
       // on context switches, add a new entry
       if (e->pid() != pid)
       {
          DEBUG ("c15u: trail-to-replay: r%u (#%d) count %d",
                pidmap.get(pid), pid, count);
-         push_back ({(int) pidmap.get(pid), count});
+         push_back ({.tid = (int) pidmap.get(pid), .count = count});
          pid = e->pid ();
          count = 0;
       }
@@ -31,7 +29,7 @@ void Replay::extend_from (const Trail &t, unsigned limit)
       if (e->action.type == ActionType::THCREAT)
          pidmap.add (e->action.val, pidmap.get_next_tid());
       count++;
-      total++;
+      limit--;
    }
    if (count)
    {
@@ -156,25 +154,31 @@ void Replay::build_from (const Trail &t, const Cut &c, const Cut &j)
    extend_from (j, c);
    finish ();
 
-   TRACE_ ("c15u: explore: replay seq: %s", str(lim).c_str());
-   first = true;
-   for (i = 0; i < pidmap.size(); i++)
+   // FIXME - we need to improve the TRACE/INFO/DEBUG macros so that we can
+   // avoid this ugly code ...
+   if (verb_trace)
    {
-      if (i != pidmap.get(i))
+      TRACE_ ("c15u: explore: replay seq: %s", str(lim).c_str());
+      first = true;
+      for (i = 0; i < pidmap.size(); i++)
       {
-         if (first) TRACE_ (" (pidmap: ");
-         first = false;
-         TRACE_ ("#%u -> r%u; ", i, pidmap.get(i));
+         if (i != pidmap.get(i))
+         {
+            if (first) TRACE_ (" (pidmap: ");
+            first = false;
+            TRACE_ ("#%u -> r%u; ", i, pidmap.get(i));
+         }
       }
+      if (first)
+         TRACE ("");
+      else
+         TRACE (")");
    }
-   if (first)
-      TRACE ("");
-   else
-      TRACE (")");
 }
 
 void Replay::build_from (const Trail &t, unsigned limit)
 {
+   clear();
    extend_from (t, limit);
    finish ();
 }

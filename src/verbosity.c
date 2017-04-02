@@ -1,11 +1,11 @@
 
 #include "verbosity.h"
 
-int __verb_level = VERB_PRINT;
+unsigned __verb_level = VERB_PRINT;
 
-int verb_debug = 0;
-int verb_trace = 0;
-int verb_info = 0;
+unsigned verb_debug = 0;
+unsigned verb_trace = 0;
+unsigned verb_info = 0;
 
 void verb_set (int i)
 {

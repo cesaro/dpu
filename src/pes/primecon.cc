@@ -234,7 +234,7 @@ void Primecon::__dump_lockmax () const
    for (const Event *e : lockmax)
    {
       PRINT ("Addr %16p max %s",
-            e->action.addr, e->str().c_str());
+            (void*) e->action.addr, e->str().c_str());
    }
 }
 

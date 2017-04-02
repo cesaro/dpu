@@ -218,7 +218,10 @@ bool C15unfolder::stream_to_events
    // if got a with at least 1 event => first event is bottom
    ASSERT (!t or !t->size() or (*t)[0]->is_bottom ());
    // we didn't get too many threads
-   ASSERT (s.get_rt()->trace.num_ths <= Unfolding::MAX_PROC);
+   if (s.get_rt()->trace.num_ths > Unfolding::MAX_PROC)
+      throw std::out_of_range (
+         fmt ("Execution created %u threads, but unfolder supports up to %u",
+               s.get_rt()->trace.num_ths, Unfolding::MAX_PROC));
 
    DEBUG ("c15u: s2e: c %s t %d", c.str().c_str(), t ? t->size() : -1);
 

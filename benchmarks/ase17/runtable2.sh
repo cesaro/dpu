@@ -3,7 +3,7 @@
 # ==== BEGIN CONFIGURATION VARIABLES ====
 
 # 1s = 1 second; 2m = 2 minutes; 3h = 3 hours
-TIMEOUT=30s
+TIMEOUT=20m
 
 # ==== END CONFIGURATION VARIABLES ====
 
@@ -11,7 +11,7 @@ TIMEOUT=30s
 # select the right installation depending on the machine
 
 if test $(hostname) = mariapacum; then
-   DPU=../../dist/bin/dpu
+   DPU=../../../dist/bin/dpu
    NIDHUGG="/usr/local/bin/nidhuggc --c -sc --nidhugg=/usr/local/bin/nidhugg -extfun-no-race=printf -extfun-no-race=write -extfun-no-race=exit -extfun-no-race=atoi" 
 elif test $(hostname) = polaris; then
    DPU=dpu
@@ -23,7 +23,7 @@ elif test $(hostname) = polaris; then
    DPU=dpu
    NIDHUGG=mynidhugg
 else
-   DPU=../../dist/bin/dpu
+   DPU=../../../dist/bin/dpu
    NIDHUGGBIN=`which nidhugg`
    NIDHUGG="${NIDHUGGBIN} --c -sc -extfun-no-race=printf -extfun-no-race=write -extfun-no-race=exit -extfun-no-race=atoi" 
 fi

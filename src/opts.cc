@@ -188,7 +188,7 @@ void help ()
 
 void usage (int exitcode)
 {
-   fprintf (stderr, "Usage: %s FILE.{c,bc,ll} ANALYZEROPTS -- PROGRAMOPTS\n", progname);
+   fprintf (stderr, "Usage: %s FILE.{c,i,bc,ll} ANALYZEROPTS -- PROGRAMOPTS\n", progname);
    fprintf (stderr, "Where ANALYZEROPTS can be:\n");
    print_options();
    exit (exitcode);

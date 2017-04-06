@@ -5,7 +5,7 @@
 
 // default values for PARAM1 and PARAM2
 #ifndef PARAM1
-#define PARAM1 5
+#define PARAM1 3
 #endif
 #ifndef PARAM2
 #define PARAM2 2

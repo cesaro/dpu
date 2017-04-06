@@ -37,6 +37,14 @@
  number of SSBs in nidhugg. 
 */
 
+#ifndef PARAM1
+#define PARAM1 4
+#endif
+
+#ifndef PARAM2
+#define PARAM2 4
+#endif
+
 #define SNUM PARAM1  // number of servers
 #define RNUM PARAM2  // number of requests
 

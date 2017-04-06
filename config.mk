@@ -47,7 +47,7 @@ CONFIG_SKIP_STEP = 3
 
 # defines the maximum number of times that a defect will get repeated in the
 # defect report
-CONFIG_MAX_DEFECT_REPETITION = 10
+CONFIG_MAX_DEFECT_REPETITION = 5
 
 # define this to compile support to visualize statistics about causality/conflict
 # checks

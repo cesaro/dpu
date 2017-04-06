@@ -355,6 +355,7 @@ bool C15unfolder::stream_to_events
 
       case RT_ABORT :
          if (report.nr_abort >= CONFIG_MAX_DEFECT_REPETITION) break;
+         report.nr_abort++;
          defect.description = "The program called abort()";
          if (t)
             defect.replay = std::move (Replay::create (u, *t));
@@ -365,6 +366,7 @@ bool C15unfolder::stream_to_events
 
       case RT_EXITNZ :
          if (report.nr_exitnz >= CONFIG_MAX_DEFECT_REPETITION) break;
+         report.nr_exitnz++;
          defect.description =
                fmt ("The program exited with errorcode %d", it.id());
          if (t)

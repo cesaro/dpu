@@ -1522,7 +1522,7 @@ void test55 ()
    Event *es, *ec, *el, *eu, *ecc, *ex;
    Event *es1, *ex1, *el1, *eu1;
    Event *es2, *ex2;
-   C15unfolder unf (C15unfolder::Alt_algorithm::OPTIMAL, 1);
+   C15unfolder unf (C15unfolder::Alt_algorithm::OPTIMAL, 1, UINT_MAX);
 
    /*
     * Th 0           Th 1           Th2

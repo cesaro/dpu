@@ -74,22 +74,22 @@ int verb_get ();
 #ifndef VERB_LEVEL_DEBUG
 #undef DEBUG
 #undef DEBUG_
-#define DEBUG(fmt,args...)
-#define DEBUG_(fmt,args...)
+#define DEBUG(fmt,args...) {}
+#define DEBUG_(fmt,args...) {}
 #endif
 
 #ifndef VERB_LEVEL_TRACE
 #undef TRACE
 #undef TRACE_
-#define TRACE(fmt,args...)
-#define TRACE_(fmt,args...)
+#define TRACE(fmt,args...) {}
+#define TRACE_(fmt,args...) {}
 #endif
 
 #ifndef VERB_LEVEL_INFO
 #undef INFO
 #undef INFO_
-#define INFO(fmt,args...)
-#define INFO_(fmt,args...)
+#define INFO(fmt,args...) {}
+#define INFO_(fmt,args...) {}
 #endif
 
 // more debugging primitives

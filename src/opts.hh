@@ -10,7 +10,6 @@ namespace dpu {
 namespace opts {
 
 extern const char *progname;
-extern bool development;
 extern int verbosity;
 extern std::string inpath;
 extern std::string defectspath;
@@ -22,6 +21,7 @@ extern std::string instpath;
 extern size_t memsize;
 extern size_t stacksize;
 extern unsigned optlevel;
+extern unsigned maxcts;
 extern bool strace;
 extern bool dosleep;
 

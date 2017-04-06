@@ -43,17 +43,22 @@ static void _ir_write_ll (const llvm::Module *m, const char *filename)
 }
 
 
-C15unfolder::C15unfolder (Alt_algorithm a, unsigned kbound) :
+C15unfolder::C15unfolder (Alt_algorithm a, unsigned kbound, unsigned maxcts) :
    m (nullptr),
    exec (nullptr),
    alt_algorithm (a),
    kpartial_bound (kbound),
+   max_context_switches (maxcts),
    pidpool (u)
 {
    unsigned i;
 
    if (alt_algorithm == Alt_algorithm::OPTIMAL)
       kpartial_bound = UINT_MAX;
+
+   if (alt_algorithm != Alt_algorithm::OPTIMAL and maxcts != UINT_MAX)
+      throw std::invalid_argument ("Limiting the number of context switches "
+            "is only possible with optimal alternatives");
 
    // initialize the start array (this is an invariant expected and maintained
    // by stream_to_events)
@@ -228,7 +233,7 @@ Config C15unfolder::add_one_run (const Replay &r)
    ASSERT (exec);
 
    // run the guest
-   DEBUG ("c15u: add-1-run: this %p |replay| %d", this, r.size());
+   DEBUG ("c15u: add-1-run: this %p |replay| %zu", this, r.size());
    exec->set_replay (r);
    DEBUG ("c15u: add-1-run: running the guest ...");
    exec->run ();
@@ -332,10 +337,17 @@ void C15unfolder::explore ()
       {
          // pop last event out of the trail/config; indicate so to the disset
          e = t.pop ();
-         DEBUG ("c15u: explore: %s: popping: i %2u %s",
-               explore_stat(t,d).c_str(), t.size(), e->str().c_str());
+         DEBUG ("c15u: explore: %s: popping: i %2zu ncs %u %s",
+               explore_stat(t,d).c_str(), t.size(), t.nr_context_switches(),
+               e->str().c_str());
          c.unfire (e);
          d.trail_pop (t.size ());
+
+         // skip searching for alternatives if we exceed the number of allowed
+         // context switches
+         if (t.nr_context_switches() >= max_context_switches)
+            DEBUG ("c15u: explore: %s: continue", explore_stat(t,d).c_str());
+         if (t.nr_context_switches() >= max_context_switches) continue;
 
          // check for alternatives
          counters.alt.calls++;
@@ -612,9 +624,9 @@ bool C15unfolder::find_alternative_kpartial (const Config &c, const Disset &d, C
    std::vector<std::vector<Event *>> comb;
    std::vector<Event*> solution;
 
+#ifdef VERB_LEVEL_DEBUG
    DEBUG_ ("c15u: alt: kpartial: k %u c %s d.unjust [",
          kpartial_bound, c.str().c_str());
-#ifdef VERB_LEVEL_DEBUG
    for (auto e : d.unjustified) DEBUG_("%p ", e);
 #endif
    DEBUG ("\b]");

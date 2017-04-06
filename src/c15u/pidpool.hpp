@@ -25,7 +25,7 @@ unsigned Pidpool::create (const Event *c)
    // set, as it could be there
    if (c->action.val != 0)
    {
-      DEBUG ("c15u: pidpool: create: e %s val %u depth %u (seen)",
+      DEBUG ("c15u: pidpool: create: e %s val %lu depth %u (seen)",
             c->suid().c_str(), c->action.val, h->currdepth);
       ASSERT (h->currdepth < h->pids.size());
       h->joined.erase (c->action.val);
@@ -46,7 +46,7 @@ unsigned Pidpool::create (const Event *c)
          h->joined.erase (fst);
          // add it to the spike, but negative, since we need to check if it is
          // available next time we want to return it
-         DEBUG ("c15u: pidpool: create: e %s val %u depth %u size %u newpid %u (from joined)",
+         DEBUG ("c15u: pidpool: create: e %s val %lu depth %u size %zu newpid %u (from joined)",
                c->suid().c_str(), c->action.val, h->currdepth, h->pids.size(), newpid);
          h->pids.push_back (-newpid);
       }
@@ -57,7 +57,7 @@ unsigned Pidpool::create (const Event *c)
          new_prochist ();
          // get a fresh pid from the unfolding structure; write it in the spike
          newpid = u.num_procs();
-         DEBUG ("c15u: pidpool: create: e %s val %u depth %u size %u newpid %u (new proc)",
+         DEBUG ("c15u: pidpool: create: e %s val %lu depth %u size %zu newpid %u (new proc)",
                c->suid().c_str(), c->action.val, h->currdepth, h->pids.size(), newpid);
          h->pids.push_back (newpid);
       }
@@ -80,7 +80,7 @@ unsigned Pidpool::create (const Event *c)
    if (newpid > 0)
    {
       // nothing to do here
-      DEBUG ("c15u: pidpool: create: e %s val %u depth %u size %u newpid %u (reused)",
+      DEBUG ("c15u: pidpool: create: e %s val %lu depth %u size %zu newpid %u (reused)",
             c->suid().c_str(), c->action.val, h->currdepth, h->pids.size(), newpid);
    }
    else
@@ -91,7 +91,7 @@ unsigned Pidpool::create (const Event *c)
       {
          // if newpid is in the joined set, then we can use it
          h->joined.erase (it);
-         DEBUG ("c15u: pidpool: create: e %s val %u depth %u size %u newpid %u (reused from join)",
+         DEBUG ("c15u: pidpool: create: e %s val %lu depth %u size %zu newpid %u (reused from join)",
                c->suid().c_str(), c->action.val, h->currdepth, h->pids.size(), newpid);
       }
       else
@@ -106,7 +106,7 @@ unsigned Pidpool::create (const Event *c)
          // get a fresh pid from the unfolding structure; write it in the spike
          newpid = u.num_procs();
          h->pids[h->currdepth] = newpid;
-         DEBUG ("c15u: pidpool: create: e %s val %u depth %u size %u newpid %u (new proc, join unavailable)",
+         DEBUG ("c15u: pidpool: create: e %s val %lu depth %u size %zu newpid %u (new proc, join unavailable)",
                c->suid().c_str(), c->action.val, h->currdepth, h->pids.size(), newpid);
       }
    }
@@ -138,14 +138,14 @@ void Pidpool::join (const Event *j)
    auto it = h->assigned.find (p);
    if (it != h->assigned.end())
    {
-      DEBUG ("c15u: pidpool: join: e %s val %u depth %u size %u (assigned -> joined)",
+      DEBUG ("c15u: pidpool: join: e %s val %lu depth %u size %zu (assigned -> joined)",
             j->suid().c_str(), j->action.val, h->currdepth, h->pids.size());
       h->assigned.erase (it);
       h->joined.insert (p);
    }
    else
    {
-      DEBUG ("c15u: pidpool: join: e %s val %u depth %u size %u (not assigned, join of external tid)",
+      DEBUG ("c15u: pidpool: join: e %s val %lu depth %u size %zu (not assigned, join of external tid)",
             j->suid().c_str(), j->action.val, h->currdepth, h->pids.size());
    }
 }

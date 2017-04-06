@@ -13,7 +13,6 @@ namespace opts {
 // global variables storing the corresponding commandline options
 
 const char *progname;
-bool development;
 int verbosity;
 std::string inpath;
 std::vector<const char *> argv;
@@ -25,6 +24,7 @@ std::string defectspath;
 size_t memsize;
 size_t stacksize;
 unsigned optlevel;
+unsigned maxcts;
 bool strace;
 bool dosleep;
 
@@ -38,7 +38,6 @@ void parse (int argc, char **argv_)
 			{"verbosity", optional_argument, nullptr, 'v'},
 			{"version", no_argument, nullptr, 'V'},
          //
-			{"devel", no_argument, nullptr, 'd'},
 			{"alt", required_argument, nullptr, 'a'},
 			{"arg0", required_argument, nullptr, '0'},
 			{"dot", required_argument, nullptr, 'D'},
@@ -47,11 +46,11 @@ void parse (int argc, char **argv_)
 			{"dump-instrumented", required_argument, nullptr, 'i'},
 			{"strace", no_argument, nullptr, 'S'},
 			{"dosleep", no_argument, nullptr, 'L'},
+			{"maxcts", required_argument, nullptr, 'x'},
 			{0, 0, 0, 0}};
 
    // default options
    progname = "dpu";
-   development = false;
 	verbosity = VERB_PRINT;
    inpath = "";
    dotpath = "";
@@ -62,20 +61,18 @@ void parse (int argc, char **argv_)
    memsize = CONFIG_GUEST_DEFAULT_MEMORY_SIZE;
    stacksize = CONFIG_GUEST_DEFAULT_THREAD_STACK_SIZE;
    optlevel = 1;
+   maxcts = UINT_MAX;
    strace = false;
    dosleep = false;
 
 	// parse the command line, supress automatic error messages by getopt
 	opterr = 0;
 	while (1) {
-		op = getopt_long (argc, argv_, "0:a:vhVm:s:O:", longopts, nullptr);
+		op = getopt_long (argc, argv_, "0:a:vhVm:s:O:x:", longopts, nullptr);
 		if (op == -1) break;
 		switch (op) {
 		case '0' :
          argv.push_back (optarg);
-         break;
-		case 'd' :
-         development = true;
          break;
 		case 'a' :
 			i = strtol (optarg, &endptr, 10);
@@ -103,6 +100,11 @@ void parse (int argc, char **argv_)
 			if (*endptr != 0) usage (1);
          if (u > 3) usage(1);
          optlevel = u;
+         break;
+      case 'x' :
+			u = strtoul (optarg, &endptr, 10);
+			if (*endptr != 0) usage (1);
+         maxcts = u;
          break;
       case 'm' :
          memsize = parse_size (optarg, 'M');
@@ -199,7 +201,6 @@ void print_options ()
    fprintf (stderr, " -h,   --help             shows this message\n");
    fprintf (stderr, " -V,   --version          displays version information\n");
    fprintf (stderr, " -v,   --verb=N           increments verbosity level by optional parameter N (1 to 3)\n");
-   fprintf (stderr, "       --devel            for internal use (calls internal tests)\n");
    fprintf (stderr, "       --gdb              starts a gdb session with the backend\n");
    fprintf (stderr, "       --dot=PATH         dumps DOT for full infolding into PATH\n");
    //fprintf (stderr, " -a {0,1,K}, --alt={0,1,K} alternatives: 0 optimal, 1 only-last, K K-partial (default 1)\n");
@@ -208,8 +209,9 @@ void print_options ()
    fprintf (stderr, " -s N, --stack=N          sets default size for thread stacks, in MB (default %zuM)\n", stacksize / (1 << 20));
    fprintf (stderr, "       --dump-instr=PATH  dumps instrumented LLVM bytecode to PATH\n");
    fprintf (stderr, " -O L                     optimization level (0 to 3) (default %u)\n", optlevel);
-   fprintf (stderr, "       --strace           prints strace(1)-like info on program execution (default %d) \n", strace);
-   fprintf (stderr, "       --dosleep          makes sleep(3) not to return EINTR immediately (default %d) \n", dosleep);
+   fprintf (stderr, "       --strace           prints strace(1)-like info on program execution (default %d)\n", strace);
+   fprintf (stderr, "       --dosleep          makes sleep(3) not to return EINTR immediately (default %d)\n", dosleep);
+   fprintf (stderr, " -x N  --maxcts N         prune POR tree beyond N context switches (default: no limit)\n");
 }
 
 void version (void)
@@ -255,7 +257,6 @@ void dump ()
 {
    unsigned i;
    PRINT ("== begin arguments ==");
-   PRINT (" development    %d", development);
    PRINT (" verbosity      %d", verbosity);
    PRINT (" inpath         '%s'", inpath.c_str());
    PRINT (" argc           %zu", argv.size());
@@ -279,6 +280,10 @@ void dump ()
    PRINT (" dump-instr     '%s'", instpath.c_str());
    PRINT (" memory         %zu%s", UNITS_SIZE(memsize), UNITS_UNIT(memsize));
    PRINT (" thread stacks  %zu%s", UNITS_SIZE(stacksize), UNITS_UNIT(stacksize));
+   PRINT (" optlevel       %u", optlevel);
+   PRINT (" maxcts         %u", maxcts);
+   PRINT (" strace         %u", strace);
+   PRINT (" dosleep        %u", dosleep);
    PRINT ("== end arguments ==");
 }
 

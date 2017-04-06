@@ -223,7 +223,7 @@ bool C15unfolder::stream_to_events
          fmt ("Execution created %u threads, but unfolder supports up to %u",
                s.get_rt()->trace.num_ths, Unfolding::MAX_PROC));
 
-   DEBUG ("c15u: s2e: c %s t %d", c.str().c_str(), t ? t->size() : -1);
+   DEBUG ("c15u: s2e: c %s t %zd", c.str().c_str(), t ? t->size() : -1);
 
    // reset the pidpool and the pidmap for this execution
    pidpool.reset ();
@@ -240,7 +240,7 @@ bool C15unfolder::stream_to_events
    // if we got a non-empty trail, we need to first match events from there
    if (t and t->size())
    {
-      // otherwise our "last blue event" is the last of the trail, and the
+      // our "last blue event" is the last of the trail, and the
       // config must not be empty
       ASSERT (! c.is_empty());
       e = t->back();
@@ -286,8 +286,6 @@ bool C15unfolder::stream_to_events
          e->flags.crb = 1;
          // on first context switch to a thread we push the THSTART event
          e = start[pidmap.get(it.id())];
-         SHOW (it.id(), "u");
-         SHOW (e, "p");
          if (e)
          {
             start[pidmap.get(it.id())] = nullptr;
@@ -327,8 +325,6 @@ bool C15unfolder::stream_to_events
          ee = u.event (e);
          start[e->action.val] = ee;
          ASSERT (ee->pid() == e->action.val);
-         SHOW (e->str().c_str(), "s");
-         SHOW (ee->str().c_str(), "s");
          if (d and ! d->trail_push (e, t->size())) return false;
          if (t) t->push (e);
          c.fire (e);

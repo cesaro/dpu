@@ -386,12 +386,17 @@ int main (int argc, char **argv)
    if (verb_debug) opts::dump ();
    PRINT ("dpu %s running, pid %u", CONFIG_VERSION, getpid());
 
-   //devel_hook ();
+   if (opts::alt_algo != C15unfolder::Alt_algorithm::OPTIMAL and
+         opts::maxcts != UINT_MAX)
+   {
+      PRINT ("%s: error: limiting the number of context swiches requires -a0", opts::progname);
+      return 1;
+   }
 
    // analysis
    try
    {
-      C15unfolder unf (opts::alt_algo, opts::kbound);
+      C15unfolder unf (opts::alt_algo, opts::kbound, opts::maxcts);
 
       // load code and set argv
       unf.load_bytecode (std::string (opts::inpath));

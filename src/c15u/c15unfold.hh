@@ -56,7 +56,7 @@ public:
    stid::Executor *exec;
 
    // ctor and dtor
-   C15unfolder (Alt_algorithm a, unsigned kbound);
+   C15unfolder (Alt_algorithm a, unsigned kbound, unsigned maxcts);
    ~C15unfolder ();
 
    /// load the llvm module from the "path" file
@@ -141,13 +141,18 @@ private:
    Alt_algorithm alt_algorithm;
    unsigned kpartial_bound;
 
+   /// Maximum number of context switches present in the trail for the
+   /// exploration to allow computing alternatives for an event extracted from
+   /// the trail immediately before.
+   unsigned max_context_switches;
+
    /// This object is used to select the pid of a process whenver we create a
    /// new THCREAT event
    Pidpool pidpool;
 
-   /// The method __stream_match_trail() needs to communicate to
+   /// The method tream_match_trail() needs to communicate to
    /// stream_to_events() the THSTART events of every thread whose THCREAT was
-   /// parsed in __stream_match_trail() but whose THSTART didn't make it to the
+   /// parsed in stream_match_trail() but whose THSTART didn't make it to the
    /// configuration before stream_to_events() got the control. We use this map
    /// to achieve that, we map each pid to the THSTART event in that thread for
    /// this execution.

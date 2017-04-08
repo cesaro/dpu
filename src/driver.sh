@@ -42,7 +42,7 @@ main_ ()
 
    # prepare the input
    if echo "$INPUT" | grep -q '\.c$\|\.i$'; then
-      CMD="clang-$LLVMVERS -O3 -emit-llvm -c -o $TMP/opt.bc -- '$INPUT'"
+      CMD="clang-$LLVMVERS -D __DPU__ -O3 -emit-llvm -c -o $TMP/opt.bc -- '$INPUT'"
       echo $CMD
       eval $CMD
       stopif "clang"

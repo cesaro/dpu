@@ -8,9 +8,8 @@
  lossy communication channel.
 
  This is simulated as follows: 
- The main function is going to send requests
- (via a channel) to one server
- that is represented as an element of an array.
+ The main function sends requests via a channel to one server
+ which is represented as an element of an array.
 
  Either because the server is busy or because 
  the channel is lossy, the request might be lost.
@@ -148,7 +147,7 @@ int main()
 
   //printf ("== start ==\n");
 
-  // spawn servers 
+  // spawn SNUM servers 
   pthread_mutex_init(&k, NULL);
   for (int x = 0; x < SNUM; x++)
   {

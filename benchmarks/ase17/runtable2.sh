@@ -50,73 +50,6 @@ compile_bench ()
    extract-bc $P/blkiomon -o blkiomon.bc
 }
 
-run_dpu ()
-{
-   # expects the following variables to be defiend:
-   # $N       - identifier of the benchmark
-   # $CMD     - the command to run
-   # $LOG     - the path to the log file to generate
-   # $TIMEOUT - a timeout specification valid for timeout(1)
-
-   CMD="time timeout $TIMEOUT $CMD"
-   echo "name      $N" > $LOG
-   echo "cmd       $CMD" >> $LOG
-
-   # run the program
-   echo "$CMD"
-   echo "> $LOG"
-   BEGIN=`date +%s%N`
-   $CMD > ${LOG}.stdout 2> ${LOG}.stderr
-   EXITCODE=$?
-   END=`date +%s%N`
-
-   # check for timeouts
-   if test "$EXITCODE" = 124; then
-      DEFECTS="-"
-      WALLTIME="TO"
-      MAXCONFS="-"
-      SSBS="-"
-      EVENTS="-"
-   elif test "$EXITCODE" != 0; then
-      if grep "dpu: error.*unhandled" ${LOG}.{stdout,stderr}; then
-         WALLTIME="MO"
-      else
-         WALLTIME="ERR"
-      fi
-      DEFECTS="-"
-      MAXCONFS="-"
-      SSBS="-"
-      EVENTS="-"
-   else
-      WALLTIME=`round $(($END-$BEGIN))`
-      DEFECTS=$(grep "dpu: summary" ${LOG}.stdout | awk '{print $3}')
-      MAXCONFS=$(grep "dpu: summary" ${LOG}.stdout | awk '{print $5}')
-      SSBS=$(grep "dpu: summary" ${LOG}.stdout | awk '{print $7}')
-      EVENTS=$(grep "dpu: summary" ${LOG}.stdout | awk '{print $9}')
-   fi
-
-   # dump numbers to the log file
-   echo "" >> $LOG
-   echo "exitcode  $EXITCODE" >> $LOG
-   echo "begin     $BEGIN" >> $LOG
-   echo "end       $END" >> $LOG
-   echo "defects   $DEFECTS" >> $LOG
-   echo "walltime  $WALLTIME" >> $LOG
-   echo "maxconfs  $MAXCONFS" >> $LOG
-   echo "SSBs      $SSBS" >> $LOG
-   echo "events    $EVENTS" >> $LOG
-
-   # print a summary
-   printf 'WTIME=%-8s MAXCONF=%-4s SSBS=%-5s EVENTS=%-5s DEFECTS=%-2s\n\n' $WALLTIME $MAXCONFS $SSBS $EVENTS $DEFECTS
-
-   echo -e "\n\nstdout:" >> $LOG
-   cat ${LOG}.stdout >> $LOG
-   echo -e "\nstderr:" >> $LOG
-   cat ${LOG}.stderr >> $LOG
-   rm ${LOG}.stdout
-   rm ${LOG}.stderr
-}
-
 runall_dpu ()
 {
    # pre-conditions:
@@ -193,6 +126,16 @@ runall_dpu ()
          run_dpu
       done
    done
+
+   # Already include in Table 1:
+   ## computing pi
+   #preprocess_family $R/pi/pth_pi_mutex.c pi "threads" "1 2 3 4 5 6" "iters" "`seq -w 1000 2000 9000`"
+   #for i in pi-threads*.i; do
+   #   N=`echo "$i" | sed s/.i$//`
+   #   LOG=${N}.log
+   #   CMD="$DPU $i $OPTS -- $N"
+   #   run_dpu
+   #done
 }
 
 dump_latex ()
@@ -230,7 +173,7 @@ test_can_run ()
    $NIDHUGG --version
 
    echo
-   echo If you see errors above this line,
+   echo If you see error messages above this line,
    echo then check that you understand what you are doing.
    echo
 }

@@ -3,7 +3,7 @@
 # ==== BEGIN CONFIGURATION VARIABLES ====
 
 # 1s = 1 second; 2m = 2 minutes; 3h = 3 hours
-TIMEOUT=15s
+TIMEOUT=15m
 
 # ==== END CONFIGURATION VARIABLES ====
 
@@ -33,175 +33,165 @@ source runlib.sh
 
 generate_bench ()
 {
-   preprocess_family ../dispatcher.c dispatcher   "serv" "`seq -w 1 12`" "reqs" "1 2 3 4 5 6 8 10 12"
-   preprocess_family ../mpat.c       mpat         "k" "`seq -w 1 7`"
-   preprocess_family ../poke.c       poke         "threads" "1 2 3" "iters" "`seq -w 1 2 15`"
-   preprocess_family ../spat.c       spat         "threads" "1 2 3 4 5 6" "mut" "1 2 3 4 5"
-   preprocess_family ../ssb3.c       ssb3         "writers" "`seq -w 1 9`" "seqlen" "2 4 6 8"
-   preprocess_family ../ssbexp.c     ssbexp       "writers" "`seq -w 1 18`"
-   preprocess_family ../pi/pth_pi_mutex.c pi      "threads" "`seq -w 1 6`" "iters" "`seq -w 1000 2000 9000`"
+   # pre-conditions:
+   # $R       - root of the ase17 folder
 
-   # PROPOSAL OF MARCELO: ???
-   #preprocess_family ../dispatcher.c dispatcher   "serv" "`seq -w 1 10`" "reqs" "1 2 3 4 5 6 8 10 12 13 14"
-   #preprocess_family ../mpat.c       mpat         "k" "`seq -w 1 7`"
-   #preprocess_family ../poke.c       poke         "threads" "`seq -w 1 7`" "iters" "`seq -w 1 2 15`"
-   #preprocess_family ../spat.c       spat         "threads" "1 2 3 4 5 6" "mut" "1 2 3 4 5"
-   #preprocess_family ../ssb3.c       ssb3         "writers" "`seq -w 1 9`" "seqlen" "2 4 6 8"
-   #preprocess_family ../ssbexp.c     ssbexp       "writers" "`seq -w 1 18`"
-   #preprocess_family ../pi/pth_pi_mutex.c pi      "threads" "`seq -w 1 6`" "iters" "`seq -w 1000 2000 9000`"
+   preprocess_family $R/dispatcher.c dispatch   "serv" "1 2 3 4 5 6 8 10 12 14" "reqs" "1 2 3 4"
+
+   preprocess_family $R/mpat.c       mpat       "k" "`seq -w 1 8`"
+
+   preprocess_family $R/poke.c       poke       "threads" "2 3 4" "iters" "2 3 4 5 6"
+   preprocess_family $R/poke.c       poke       "threads" "5 6 7 8" "iters" "1 2 3 4"
+
+   preprocess_family $R/multiprodcon.c multipc  "workers" "3 4 5 6 7" "prods" "1 2 3 4 5"
+
+   preprocess_family $R/pi/pth_pi_mutex.c pi    "threads" "1 2 3 4 5 6" "iters" "`seq -w 1000 2000 9000`"
+
+   # these are deemed to be not realistic:
+   #preprocess_family $R/spat.c       spat         "threads" "1 2 3 4 5 6" "mut" "1 2 3 4 5"
+   #preprocess_family $R/ssb3.c       ssb3         "writers" "`seq -w 1 9`" "seqlen" "2 4 6 8"
+   #preprocess_family $R/ssbexp.c     ssbexp       "writers" "`seq -w 1 18`"
 }
 
 generate_bench_smallest ()
 {
-   preprocess_family ../dispatcher.c dispatcher   "serv" "2 3" "reqs" "3 4"
-   preprocess_family ../mpat.c       mpat         "k" "`seq -w 2 6`"
-   preprocess_family ../poke.c       poke         "th" "1 2 3" "iters" "`seq -w 1 2 6`"
-   preprocess_family ../spat.c       spat         "threads" "2 3 4" "mut" "2 3"
-   preprocess_family ../ssb3.c       ssb3         "writers" "`seq -w 2 5`" "seqlen" "4 6"
-   preprocess_family ../ssbexp.c     ssbexp       "writers" "`seq -w 2 5`"
-   preprocess_family ../pi/pth_pi_mutex.c pi      "threads" "`seq -w 1 3`" "iters" "`seq -w 1000 2000 9000`"
+   # pre-conditions:
+   # $R       - root of the ase17 folder
+
+   preprocess_family $R/dispatcher.c dispatch   "serv" "3 4" "reqs" "2 3"
+   preprocess_family $R/mpat.c       mpat       "k" "`seq -w 2 6`"
+   preprocess_family $R/poke.c       poke       "th" "1 2 3" "iters" "`seq -w 1 2 6`"
+   preprocess_family $R/multiprodcon.c multipc  "workers" "3 4 5" "prods" "2 3"
+   preprocess_family $R/pi/pth_pi_mutex.c pi    "threads" "`seq -w 1 3`" "iters" "`seq -w 1000 2000 9000`"
+
+   preprocess_family $R/spat.c       spat       "threads" "2 3 4" "mut" "2 3"
+   preprocess_family $R/ssb3.c       ssb3       "writers" "`seq -w 2 5`" "seqlen" "4 6"
+   preprocess_family $R/ssbexp.c     ssbexp     "writers" "`seq -w 2 5`"
 }
 
-run_dpu ()
+generate_bench_cesar ()
 {
+   # pre-conditions:
+   # $R       - root of the ase17 folder
+
+   #preprocess_family $R/dispatcher.c dispatch   "serv" "3" "reqs" "4"
+   #preprocess_family $R/mpat.c       mpat       "k" "2"
+   #preprocess_family $R/spat.c       spat       "threads" "2 3" "mut" "2"
+
+   #preprocess_family $R/dispatcher.c dispatcher   "serv" "1 2 3 4 5 6 8" "reqs" "2 3"
+   #preprocess_family $R/mpat.c       mpat         "k" "4 5 6 7 8"
+
+   #preprocess_family $R/poke.c       poke         "threads" "2 3 4" "iters" "2 3 4 5 6"
+   #preprocess_family $R/poke.c       poke         "threads" "5 6 7 8" "iters" "1 2 3 4"
+
+   #preprocess_family $R/poke.c       poke         "threads" "4" "iters" "4 6"
+   #preprocess_family $R/poke.c       poke         "threads" "5" "iters" "4"
+   #preprocess_family $R/poke.c       poke         "threads" "6" "iters" "4"
+   #preprocess_family $R/poke.c       poke         "threads" "7" "iters" "4"
+   #preprocess_family $R/poke.c       poke         "threads" "8" "iters" "4"
+
+   #preprocess_family $R/multiprodcon.c multipc     "workers" "3 4 5 6 7" "prods" "1 2 3 4 5"
+
+   #preprocess_family $R/ssb3.c       ssb3         "writers" "`seq -w 1 9`" "seqlen" "2 4 6 8"
+   #preprocess_family $R/ssbexp.c     ssbexp       "writers" "`seq -w 1 18`"
+   #preprocess_family $R/pi/pth_pi_mutex.c pi      "threads" "`seq -w 1 6`" "iters" "`seq -w 1000 2000 9000`"
+}
+
+
+runall_dpu ()
+{
+   # pre-conditions:
+   # $TIMEOUT - a timeout specification valid for timeout(1)
+   # $DPU     - path to the dpu tool to run
+
+   OPTS="--mem 128M --stack 6M -O2"
    for i in *.i; do
       N=`echo "$i" | sed s/.i$//`
-      for a in -1 0 1 2; do
+
+      ## -a-1
+      #LOG=${N}_dpu_alt-1.log
+      #CMD="$DPU $i -a-1 $OPTS"
+      #run_dpu
+
+      # -a0
+      LOG=${N}_dpu_alt0.log
+      CMD="$DPU $i -a0 $OPTS"
+      run_dpu
+
+      # k-partial
+      for a in 1 2 3 4; do
          LOG=${N}_dpu_alt${a}.log
-         CMD="time timeout $TIMEOUT $DPU $i -a $a --mem 128M --stack 6M -v"
-         echo "name      $N" > $LOG
-         echo "cmd       $CMD" >> $LOG
-         echo "alt       $a" >> $LOG
+         CMD="$DPU $i -a$a $OPTS"
+         run_dpu
 
-         # run the program
-         echo "$CMD"
-         echo "> $LOG"
-         BEGIN=`date +%s%N`
-         $CMD > ${LOG}.stdout 2> ${LOG}.stderr
-         EXITCODE=$?
-         END=`date +%s%N`
-
-         # check for timeouts
-         if test "$EXITCODE" = 124; then
-            WALLTIME="TO"
-            MAXCONFS="-"
-            SSBS="-"
-            EVENTS="-"
-         elif test "$EXITCODE" != 0; then
-            if grep "dpu: error.*unhandled" ${LOG}.{stdout,stderr}; then
-               WALLTIME="MO"
-            else
-               WALLTIME="ERR"
-            fi
-            MAXCONFS="-"
-            SSBS="-"
-            EVENTS="-"
-         else
-            WALLTIME=`round $(($END-$BEGIN))`
-            MAXCONFS=$(grep "dpu: summary" ${LOG}.stdout | awk '{print $3}')
-            SSBS=$(grep "dpu: summary" ${LOG}.stdout | awk '{print $5}')
-            EVENTS=$(grep "dpu: summary" ${LOG}.stdout | awk '{print $7}')
-         fi
-
-         # dump numbers to the log file
-         echo "" >> $LOG
-         echo "exitcode  $EXITCODE" >> $LOG
-         echo "begin     $BEGIN" >> $LOG
-         echo "end       $END" >> $LOG
-         echo "walltime  $WALLTIME" >> $LOG
-         echo "maxconfs  $MAXCONFS" >> $LOG
-         echo "SSBs      $SSBS" >> $LOG
-         echo "events    $EVENTS" >> $LOG
-
-         # print a summary
-         printf 'WTIME=%-8s MAXCONF=%-4s SSBS=%-5s EVENTS=%-5s\n\n' $WALLTIME $MAXCONFS $SSBS $EVENTS
-
-         echo -e "\n\nstdout:" >> $LOG
-         cat ${LOG}.stdout >> $LOG
-         echo -e "\nstderr:" >> $LOG
-         cat ${LOG}.stderr >> $LOG
-         rm ${LOG}.stdout
-         rm ${LOG}.stderr
-
-         # if a >= 1 and we got 0 SSBs, no need to run with larger a
-         #if test \( $a -ge 1 \) -a \( "$SSBS" = 0 \); then break; fi
+         # if we got 0 SSBs we skip higher -a
+         if test "$SSBS" = 0; then break; fi
       done
    done
 }
 
-run_nidhugg ()
+runall_nidhugg ()
 {
+   # pre-conditions:
+   # $TIMEOUT - a timeout specification valid for timeout(1)
+   # $DPU     - path to the dpu tool to run
    for i in *.i; do
       N=`echo "$i" | sed s/.i$//`
       LOG=${N}_nidhugg.log
-      CMD="time timeout $TIMEOUT $NIDHUGG $i"
-      echo "name      $i" > $LOG
-      echo "cmd       $CMD" >> $LOG
-
-      # run the program
-      echo "$CMD"
-      echo "> $LOG"
-      BEGIN=`date +%s%N`
-      $CMD > ${LOG}.stdout 2> ${LOG}.stderr
-      EXITCODE=$?
-      END=`date +%s%N`
-
-      # check for timeouts
-      if test "$EXITCODE" = 124; then
-         WALLTIME="TO"
-         MAXCONFS="-"
-         SSBS="-"
-      elif test "$EXITCODE" != 0; then
-         WALLTIME="ERR"
-         MAXCONFS="-"
-         SSBS="-"
-      else
-         WALLTIME=`round $(($END-$BEGIN))`
-         MAXCONFS=$(grep 'Trace count: ' ${LOG}.stdout | sed 's/.*Trace count: //' | awk '{print $1}')
-         SSBS=$(grep 'Trace count: ' ${LOG}.stdout | sed 's/.*Trace count: //' | awk '{print $3}')
-      fi
-
-      # dump numbers to the log file
-      echo "" >> $LOG
-      echo "exitcode  $EXITCODE" >> $LOG
-      echo "begin     $BEGIN" >> $LOG
-      echo "end       $END" >> $LOG
-      echo "walltime  $WALLTIME" >> $LOG
-      echo "maxconfs  $MAXCONFS" >> $LOG
-      echo "SSBs      $SSBS" >> $LOG
-
-      # print a summary
-      printf 'WTIME=%-8s MAXCONF=%-4s SSBS=%-5s\n\n' $WALLTIME $MAXCONFS $SSBS
-
-      echo -e "\n\nstdout:" >> $LOG
-      cat ${LOG}.stdout >> $LOG
-      echo -e "\nstderr:" >> $LOG
-      cat ${LOG}.stderr >> $LOG
-      rm ${LOG}.stdout
-      rm ${LOG}.stderr
+      CMD="$NIDHUGG $i"
+      run_nidhugg
    done
 }
 
 dump_latex ()
 {
-   # in a loop, scan all .i files in $R
-   # for each .i determine the lowest K such that DPU was optimal
-   # using that file determine the number of configurations and events
-   # the DPU columns will be from that file
-   # the nidhugg columns will be from the _nidhug.log file
+   echo "Generating latex table ..."
 
-   # how to format data with fixed-size columns:
-   #ROW=$(printf '%6s & %6s & %6s' $WALLTIME $SSBS $EVENTS)
+   echo "% Benchmark              DPU (k=1)      DUP (k=2)      DUP (k=3)      DUP (optimal)  Nidhugg" >> table.tex
+   echo "% Name  LOCs Thrs Confs  Time Mem SSBs  Time Mem SSBs  Time Mem SSBs  Time Mem SSBs  Time Mem SSBs" >> table.tex
 
-   echo TODO
-}
+   INSTANCES=$(ls *.i | sed 's/.i$//' | sort -u)
 
-usage ()
-{
-   echo "Usage:"
-   echo " run.sh        Generates the benchmarks and runs dpu and nidhugg"
-   echo " run.sh gen    Generates the bemchmarks (see folder $R)"
-   echo " run.sh run    Assumes that BLA "
+   for i in $INSTANCES; do
+      echo "$i"
+      # check that all tools agree on the number of configs
+      MAXCONFS=$(cat ${i}_dpu* ${i}_nidhugg* | grep '^maxconfs ' | sort -u | grep -v 'maxconfs *-$')
+      NUM=$(wc -l <<< "$MAXCONFS")
+      if test "$NUM" -gt 1; then
+         echo "WARNING: $i: tools report != number of configurations"
+      fi
+      MAXCONFS=$(head -n1 <<< "$MAXCONFS" | awk '{print $2}')
+
+      # check that all -aX runs of DPU agree on the number threads
+      NUMTHREADS=$(cat ${i}_dpu* | grep '^dpu: stats: unfolding: .* threads created$' | sort -u)
+      NUM=$(wc -l <<< "$NUMTHREADS")
+      if test "$NUM" -gt 1; then
+         echo "WARNING: $i: dpu reports != number of threads on different runs"
+      fi
+      NUMTHREADS=$(head -n1 <<< "$NUMTHREADS" | awk '{print $4}')
+
+      # name, loc, numthreads, maxconfs
+      ROW=$(printf '%-25s &  LOC & %8s & %8s' $i $NUMTHREADS $MAXCONFS)
+
+      # columns for DPU
+      for a in 1 2 3 0; do
+         WTIME=$(cat ${i}_dpu_alt${a}.log 2> /dev/null | grep '^walltime ' | sed 's/^walltime //')
+         MAXRSS=$(cat ${i}_dpu_alt${a}.log 2> /dev/null | grep '^maxrss ' | sed 's/^maxrss //')
+         SSBS=$(cat ${i}_dpu_alt${a}.log 2> /dev/null | grep '^SSBs ' | sed 's/^SSBs //')
+         # time, memory, ssbs
+         ROW="$ROW$(printf ' & %8s & %8s & %8s' $WTIME $MAXRSS $SSBS)"
+      done
+
+      # columns for NIDHUGG
+      WTIME=$(cat ${i}_nidhugg.log 2> /dev/null | grep '^walltime ' | sed 's/^walltime //')
+      MAXRSS=$(cat ${i}_nidhugg.log 2> /dev/null | grep '^maxrss ' | sed 's/^maxrss //')
+      SSBS=$(cat ${i}_nidhugg.log 2> /dev/null | grep '^SSBs ' | sed 's/^SSBs //')
+      ROW="$ROW$(printf '  & %8s & %8s & %8s' $WTIME $MAXRSS $SSBS)"
+
+      echo "$ROW" '\newrow' >> table.tex
+   done
+
+   echo "done!"
 }
 
 test_can_run ()
@@ -209,15 +199,17 @@ test_can_run ()
    echo
    echo "$DPU --help"
    $DPU --help
+   echo "$DPU --version"
    $DPU --version
 
    echo
    echo "$NIDHUGG --help"
    $NIDHUGG --help
+   echo "$NIDHUGG --version"
    $NIDHUGG --version
 
    echo
-   echo If you see errors above this line,
+   echo If you see error messages above this line,
    echo then check that you understand what you are doing.
    echo
 }
@@ -227,8 +219,9 @@ main ()
    test_can_run
    generate_bench
    #generate_bench_smallest
-   run_dpu
-   run_nidhugg
+   #generate_bench_cesar
+   runall_dpu
+   runall_nidhugg
    dump_latex
 }
 
@@ -239,5 +232,6 @@ mkdir $R
 ln -s $R latest.table1
 cd $R
 
+R=..
 main 2>&1 | tee XXX.log
 

@@ -33,16 +33,16 @@
 */
 
 #ifndef PARAM1
-#define PARAM1 1
+#define PARAM1 4
 #endif
 
 #ifndef PARAM2
-#define PARAM2 1
+#define PARAM2 4
 #endif
 
 
-#define N PARAM1  // NUM THREADS
-#define K PARAM2  // NUM ITER
+#define N PARAM1  // number of threads
+#define K PARAM2  // nunmber of iterations
 
 pthread_mutex_t ma[N];
 int a[N];
@@ -144,13 +144,18 @@ int main()
   pthread_join(idr, NULL);
  }
 
+ assert (d >= 0);
+ assert (d <= N);
+
  // join the writer threads
  for (int x = 0; x < N; x++)
    pthread_join(idw[x],NULL);
 
+ // assert that d equals to the number of threads that finished before the
+ // poking thread checked
+ for (int x = 0; x < N; x++)
+   if (a[x]) d++;
+ assert (d == N); 
  
- //printf ("main: %d threads, %d iter, %d succ pokes\n",N,K,d);
- //printf ("== end ==\n");
- pthread_exit (0);
  return 0;
 }

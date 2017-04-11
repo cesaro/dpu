@@ -3,11 +3,11 @@
 #include <assert.h>
 
 #ifndef PARAM1
-#define PARAM1 1
+#define PARAM1 9
 #endif
 
 #ifndef PARAM2
-#define PARAM2 1
+#define PARAM2 6
 #endif
 
 #define T PARAM1 // number of threads

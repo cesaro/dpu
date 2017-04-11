@@ -1,4 +1,7 @@
-CC	= wllvm
+#CC	= wllvm
+#CC	= cilly --merge --verbose --out=full.c -undef # --dormunreach
+#CC	= goto-cc
+CC    = gcc
 CFLAGS	= -Wall -O2 -g -W
 ALL_CFLAGS = $(CFLAGS) -D_GNU_SOURCE -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
 PROGS	= blkiomon

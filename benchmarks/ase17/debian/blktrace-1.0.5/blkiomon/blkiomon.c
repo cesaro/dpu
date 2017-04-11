@@ -704,6 +704,26 @@ int main(int argc, char *argv[])
 {
 	int c;
 
+#if 0
+#ifdef __DPU__
+   char *myargv[] = {"blkiomon", "-I1", "-x20", "-y5", "-i../test-data/input1.dat"};
+   argc = 5;
+   argv = myargv;
+
+   for (c = 0; c < argc; c++)
+      printf ("argv[%d] = %s\n", c, argv[c]);
+#endif
+#ifdef __NIDHUGG__
+   char *myargv[] = {"blkiomon", "-I1", "-x20", "-y5", "-i../test-data/input1.dat"};
+   argc = 5;
+   argv = myargv;
+
+   for (c = 0; c < argc; c++)
+      printf ("argv[%d] = %s\n", c, argv[c]);
+#endif
+#endif
+
+
    // dpu
    char *input_path = "input.dat";
 

@@ -148,6 +148,14 @@ x translate e->action.val on thread creation, so that it contains the pid in the
   tool start with a high nprocs and find automatically the maximum accepted on
   the machine.
 
+- The spikes of the comb are built using the contents returned by
+  Event::icfls(); on the benchmark mpat, for k=5, we have that 60% of the time
+  spent in explore() is spent in find_alternatives(), and 61% of that time is
+  spent in the function Event::icfls(); in average, icfls() builds spikes of
+  size 156, and after filtering out undesired events, the spikes have 7.8
+  events (plus 80% of them have either size 1, or 2, or 3; 20% beyond 3).
+  This is an effect of not removing events from the overall structure.
+
 Alternatives
 ============
 

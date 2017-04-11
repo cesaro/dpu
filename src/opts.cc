@@ -17,7 +17,7 @@ int verbosity;
 std::string inpath;
 std::vector<const char *> argv;
 unsigned kbound;
-C15unfolder::Alt_algorithm alt_algo;
+Altalgo alt_algo;
 std::string dotpath;
 std::string instpath;
 std::string defectspath;
@@ -55,8 +55,8 @@ void parse (int argc, char **argv_)
    inpath = "";
    dotpath = "";
    defectspath = "./defects.yml";
-   //alt_algo = C15unfolder::Alt_algorithm::KPARTIAL;
-   alt_algo = C15unfolder::Alt_algorithm::ONLYLAST;
+   //alt_algo = Altalgo::KPARTIAL;
+   alt_algo = Altalgo::ONLYLAST;
    kbound = 1;
    memsize = CONFIG_GUEST_DEFAULT_MEMORY_SIZE;
    stacksize = CONFIG_GUEST_DEFAULT_THREAD_STACK_SIZE;
@@ -79,18 +79,18 @@ void parse (int argc, char **argv_)
          if (i < -1) usage(1);
          switch (i) {
          case -1 :
-            alt_algo = C15unfolder::Alt_algorithm::SDPOR;
+            alt_algo = Altalgo::SDPOR;
             break;
          case 0 :
-            alt_algo = C15unfolder::Alt_algorithm::OPTIMAL;
+            alt_algo = Altalgo::OPTIMAL;
             break;
          case 1 :
-            //alt_algo = C15unfolder::Alt_algorithm::KPARTIAL;
-            alt_algo = C15unfolder::Alt_algorithm::ONLYLAST;
+            //alt_algo = Altalgo::KPARTIAL;
+            alt_algo = Altalgo::ONLYLAST;
             kbound = 1;
             break;
          default :
-            alt_algo = C15unfolder::Alt_algorithm::KPARTIAL;
+            alt_algo = Altalgo::KPARTIAL;
             kbound = i;
             break;
          }
@@ -263,16 +263,16 @@ void dump ()
    for (i = 0; i < argv.size(); i++)
       PRINT (" argv[%u]        '%s'", i, argv[i]);
    switch (alt_algo) {
-   case C15unfolder::Alt_algorithm::KPARTIAL :
+   case Altalgo::KPARTIAL :
       PRINT (" alt            %u-partial", kbound);
       break;
-   case C15unfolder::Alt_algorithm::OPTIMAL :
+   case Altalgo::OPTIMAL :
       PRINT (" alt            optimal");
       break;
-   case C15unfolder::Alt_algorithm::ONLYLAST :
+   case Altalgo::ONLYLAST :
       PRINT (" alt            only-last");
       break;
-   case C15unfolder::Alt_algorithm::SDPOR :
+   case Altalgo::SDPOR :
       PRINT (" alt            sdpor");
       break;
    }

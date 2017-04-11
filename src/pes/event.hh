@@ -97,8 +97,11 @@ public:
    inline bool in_icfl_with (const Event *e) const;
 
    /// returns some set of events in conflict which includes at least all
-   /// immediate conflicts of "this"
-   inline std::vector<Event*> icfls () const;
+   /// adds to v (push_back) all immediate conflicts of the event
+   inline void icfls (std::vector<Event*> &v) const;
+
+   /// returns the number of events that would be returned by a call to icfls()
+   inline unsigned icfl_count () const;
 
    /// returns the memory size of the data pointed by fields in this object
    inline size_t pointed_memory_size () const;

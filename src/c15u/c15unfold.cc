@@ -43,20 +43,21 @@ static void _ir_write_ll (const llvm::Module *m, const char *filename)
 }
 
 
-C15unfolder::C15unfolder (Alt_algorithm a, unsigned kbound, unsigned maxcts) :
+C15unfolder::C15unfolder (Altalgo a, unsigned kbound, unsigned maxcts) :
    m (nullptr),
    exec (nullptr),
-   alt_algorithm (a),
+   altalgo (a),
    kpartial_bound (kbound),
+   comb (a, kbound),
    max_context_switches (maxcts),
    pidpool (u)
 {
    unsigned i;
 
-   if (alt_algorithm == Alt_algorithm::OPTIMAL)
+   if (altalgo == Altalgo::OPTIMAL)
       kpartial_bound = UINT_MAX;
 
-   if (alt_algorithm != Alt_algorithm::OPTIMAL and maxcts != UINT_MAX)
+   if (altalgo != Altalgo::OPTIMAL and maxcts != UINT_MAX)
       throw std::invalid_argument ("Limiting the number of context switches "
             "is only possible with optimal alternatives");
 
@@ -75,7 +76,6 @@ void C15unfolder::load_bytecode (std::string &&filepath)
 {
    llvm::SMDiagnostic err;
    std::string errors;
-
 
    ASSERT (filepath.size());
    ASSERT (path.size() == 0);
@@ -115,7 +115,6 @@ void C15unfolder::load_bytecode (std::string &&filepath)
 
    // prepare an Executor, the constructor instruments and allocates guest
    // memory
-   // FIXME - make this configurable via methods of the C15unfolder
    stid::ExecutorConfig conf;
    conf.memsize = opts::memsize;
    conf.defaultstacksize = opts::stacksize;
@@ -369,7 +368,7 @@ void C15unfolder::explore ()
    counters.maxconfs = counters.runs - counters.ssbs;
    counters.avg_max_trail_size /= counters.runs;
    DEBUG ("c15u: explore: done!");
-   ASSERT (counters.ssbs == 0 or alt_algorithm != Alt_algorithm::OPTIMAL);
+   ASSERT (counters.ssbs == 0 or altalgo != Altalgo::OPTIMAL);
 }
 
 void C15unfolder::set_replay_and_sleepset (Replay &replay, const Cut &j,
@@ -380,7 +379,7 @@ void C15unfolder::set_replay_and_sleepset (Replay &replay, const Cut &j,
    exec->set_replay (replay);
 
    // no need for sleepsets if we are optimal
-   if (alt_algorithm == Alt_algorithm::OPTIMAL) return;
+   if (altalgo == Altalgo::OPTIMAL) return;
 
    // otherwise we set sleeping the thread of every unjustified event in D that
    // is still enabled at J; this assumes that J contains C
@@ -482,7 +481,6 @@ bool C15unfolder::is_conflict_free (const std::vector<Event *> &sol, const Event
 }
 
 bool C15unfolder::enumerate_combination (unsigned i,
-      std::vector<std::vector<Event *>> &comb,
       std::vector<Event*> &sol)
 {
    // We enumerate combinations using one event from each spike
@@ -495,7 +493,7 @@ bool C15unfolder::enumerate_combination (unsigned i,
       if (! is_conflict_free (sol, e)) continue;
       sol.push_back (e);
       if (sol.size() == comb.size()) return true;
-      if (enumerate_combination (i+1, comb, sol)) return true;
+      if (enumerate_combination (i+1, sol)) return true;
       sol.pop_back ();
    }
    return false;
@@ -509,7 +507,7 @@ bool C15unfolder::might_find_alternative (Config &c, Disset &d, Event *e)
    // implementation is very fast: we return false if the event type is != lock
 
    // e->icfls() is nonempty => e is a lock
-   ASSERT (! e->icfls().size() or e->action.type == ActionType::MTXLOCK);
+   ASSERT (! e->icfl_count() or e->action.type == ActionType::MTXLOCK);
 
    return e->action.type == ActionType::MTXLOCK;
 }
@@ -518,15 +516,15 @@ inline bool C15unfolder::find_alternative (const Trail &t, Config &c, const Diss
 {
    bool b;
 
-   switch (alt_algorithm) {
-   case Alt_algorithm::OPTIMAL :
-   case Alt_algorithm::KPARTIAL :
+   switch (altalgo) {
+   case Altalgo::OPTIMAL :
+   case Altalgo::KPARTIAL :
       b = find_alternative_kpartial (c, d, j);
       break;
-   case Alt_algorithm::ONLYLAST :
+   case Altalgo::ONLYLAST :
       b = find_alternative_only_last (c, d, j);
       break;
-   case Alt_algorithm::SDPOR :
+   case Altalgo::SDPOR :
       b = find_alternative_sdpor (c, d, j);
       break;
    }
@@ -540,7 +538,16 @@ inline bool C15unfolder::find_alternative (const Trail &t, Config &c, const Diss
 
    TRACE_ ("c15u: explore: %s: alt: [", explore_stat (t, d).c_str());
 #ifdef VERB_LEVEL_TRACE
-   for (auto e : d.unjustified)  TRACE_("%zu ", e->icfls().size());
+   if (verb_trace)
+   {
+      std::vector<Event*> v;
+      for (auto e : d.unjustified)
+      {
+         e->icfls(v);
+         TRACE_("%zu ", v.size());
+         v.clear();
+      }
+   }
 #endif
    TRACE ("\b] %s", b ? "found" : "no");
    if (b) DEBUG ("c15u: explore: %s: j: %s", explore_stat(t, d).c_str(), j.str().c_str());
@@ -561,6 +568,10 @@ bool C15unfolder::find_alternative_only_last (const Config &c, const Disset &d, 
    // - if you don't find any such e', return false
 
    Event * e;
+   bool b;
+#ifdef CONFIG_STATS_DETAILED
+   unsigned count = 0;
+#endif
 
    // D is not empty
    ASSERT (d.unjustified.begin() != d.unjustified.end());
@@ -568,49 +579,36 @@ bool C15unfolder::find_alternative_only_last (const Config &c, const Disset &d, 
    // statistics
    counters.alt.calls_built_comb++;
    counters.alt.calls_explore_comb++;
-   counters.alt.spikes.sample (1);
-#ifdef CONFIG_STATS_DETAILED
-   unsigned num_unjust = 0;
-   for (auto e : d.unjustified) { (void) e; num_unjust++; } // count unjustified in D
-   counters.alt.spikesize.sample (num_unjust);
-   // the spike size recorded here is a different size (before filtering out)
-   // than that recorded in kpartial()
-#endif
+   counters.alt.spikes.sample (1); // number of spikes
 
    // last event added to D
    e = *d.unjustified.begin();
    DEBUG ("c15u: alt: only-last: c %s e %s", c.str().c_str(), e->suid().c_str());
 
-   // scan the spike of that guy
-   for (Event *ee : e->icfls())
+   // scan the spike of that guy, we use 1 spike in the comb
+   comb.clear();
+   comb.add_spike (e);
+#ifdef CONFIG_STATS_DETAILED
+   counters.alt.spikesizeunfilt.sample (comb[0].size());
+#endif
+   b = false;
+   for (Event *ee : comb[0])
    {
+#ifdef CONFIG_STATS_DETAILED
+      count++;
+#endif
       if (!ee->flags.ind and !ee->in_cfl_with (c) and !d.intersects_with (ee))
       {
          j = c;
          j.unionn (ee);
-         return true;
+         b = true;
+         break;
       }
    }
-   return false;
-}
-
-std::string comb2str (std::vector<std::vector<Event *>> &comb)
-{
-   std::string s;
-   unsigned i, j;
-
-   for (i = 0; i < comb.size(); i++)
-   {
-      s += fmt ("spike %u len %u [", i, comb[i].size());
-      for (j = 0; j < comb[i].size(); j++)
-      {
-         s += fmt ("%s ", comb[i][j]->suid().c_str());
-      }
-      if (j) s.pop_back();
-      s += fmt ("]\n");
-   }
-
-   return s;
+#ifdef CONFIG_STATS_DETAILED
+   counters.alt.spikesizefilt.sample (count);
+#endif
+   return b;
 }
 
 bool C15unfolder::find_alternative_kpartial (const Config &c, const Disset &d, Cut &j)
@@ -621,7 +619,6 @@ bool C15unfolder::find_alternative_kpartial (const Config &c, const Disset &d, C
    // unjustified events in D are all enabled in C, none of them is in cex(C).
 
    unsigned i, num_unjust;
-   std::vector<std::vector<Event *>> comb;
    std::vector<Event*> solution;
 
 #ifdef VERB_LEVEL_DEBUG
@@ -631,25 +628,29 @@ bool C15unfolder::find_alternative_kpartial (const Config &c, const Disset &d, C
 #endif
    DEBUG ("\b]");
 
-   ASSERT (alt_algorithm == Alt_algorithm::OPTIMAL or
-         alt_algorithm == Alt_algorithm::KPARTIAL);
-   ASSERT (alt_algorithm != Alt_algorithm::OPTIMAL or
+   ASSERT (altalgo == Altalgo::OPTIMAL or
+         altalgo == Altalgo::KPARTIAL);
+   ASSERT (altalgo != Altalgo::OPTIMAL or
          kpartial_bound == UINT_MAX);
    ASSERT (kpartial_bound >= 1);
 
    // build the spikes of the comb; there are many other ways to select the
    // interesting spikes much more interesting than this plain truncation ...
+   comb.clear();
    num_unjust = 0;
-   for (auto e : d.unjustified)
+   for (const auto e : d.unjustified)
    {
-      if (num_unjust < kpartial_bound) comb.push_back (e->icfls());
+      if (num_unjust < kpartial_bound) comb.add_spike (e);
       num_unjust++;
    }
-   if (comb.empty()) return false;
-   DEBUG ("c15u: alt: kpartial: comb: initially:\n%s", comb2str(comb).c_str());
+   ASSERT (! comb.empty());
+   DEBUG ("c15u: alt: kpartial: comb: initially:\n%s", comb.str().c_str());
 
    // we have constructed a (non-empty) comb
    counters.alt.calls_built_comb++;
+#ifdef CONFIG_STATS_DETAILED
+   for (auto &spike : comb) counters.alt.spikesizeunfilt.sample (spike.size());
+#endif
 
    // remove from each spike those events whose local configuration includes
    // some ujustified event in D, or in conflict with someone in C; the
@@ -663,7 +664,7 @@ bool C15unfolder::find_alternative_kpartial (const Config &c, const Disset &d, C
       while (i < spike.size())
       {
          if (spike[i]->flags.ind or spike[i]->in_cfl_with(c) or
-               (alt_algorithm != Alt_algorithm::OPTIMAL and d.intersects_with (spike[i])))
+               (altalgo != Altalgo::OPTIMAL and d.intersects_with (spike[i])))
          {
             spike[i] = spike.back();
             spike.pop_back();
@@ -675,17 +676,17 @@ bool C15unfolder::find_alternative_kpartial (const Config &c, const Disset &d, C
       if (spike.empty()) return false;
    }
    DEBUG ("c15u: alt: kpartial: comb: after removing D and #(C), and bounding:\n%s",
-         comb2str(comb).c_str());
+         comb.str().c_str());
 
    // we have to explore the comb
    counters.alt.calls_explore_comb++;
    counters.alt.spikes.sample (num_unjust);
 #ifdef CONFIG_STATS_DETAILED
-   for (auto &spike : comb) counters.alt.spikesize.sample (spike.size());
+   for (auto &spike : comb) counters.alt.spikesizefilt.sample (spike.size());
 #endif
 
    // explore the comb, the combinatorial explosion could happen here
-   if (enumerate_combination (0, comb, solution))
+   if (enumerate_combination (0, solution))
    {
       // we include C in J, it doesn't hurt and it will make the calls to
       // j.unionn() run faster; an alternative could be to do j.clear(), but we
@@ -759,7 +760,7 @@ void C15unfolder::report_init (Defectreport &r) const
    r.path = path;
    r.argv = myargv;
    r.environ = myenv;
-   r.alt = (int) alt_algorithm;
+   r.alt = (int) altalgo;
    r.kbound = kpartial_bound;
    r.memsize = exec->config.memsize;
    r.defaultstacksize = exec->config.defaultstacksize;

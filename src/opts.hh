@@ -15,7 +15,7 @@ extern std::string inpath;
 extern std::string defectspath;
 extern std::vector<const char *> argv;
 extern unsigned kbound;
-extern C15unfolder::Alt_algorithm alt_algo;
+extern Altalgo alt_algo;
 extern std::string dotpath;
 extern std::string instpath;
 extern size_t memsize;

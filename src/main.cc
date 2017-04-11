@@ -353,11 +353,16 @@ void print_stats (C15unfolder &unf, Resources &res)
          unf.counters.alt.spikes.summary_mma().c_str(),
          unf.counters.alt.spikes.summary_freq_maxc(3).c_str());
 #ifdef CONFIG_STATS_DETAILED
-   PRINT ("dpu: stats: por: |comb.spike|: size/nc=%s; "
+   PRINT ("dpu: stats: por: |comb.spike| (unfilt): size/nc=%s; "
          "min/max/avg=%s; {size=count/mass}={%s}",
-         unf.counters.alt.spikesize.summary_snc().c_str(),
-         unf.counters.alt.spikesize.summary_mma().c_str(),
-         unf.counters.alt.spikesize.summary_freq_maxc(3).c_str());
+         unf.counters.alt.spikesizeunfilt.summary_snc().c_str(),
+         unf.counters.alt.spikesizeunfilt.summary_mma().c_str(),
+         unf.counters.alt.spikesizeunfilt.summary_freq_maxc(6).c_str());
+   PRINT ("dpu: stats: por: |comb.spike| (filtrd): size/nc=%s; "
+         "min/max/avg=%s; {size=count/mass}={%s}",
+         unf.counters.alt.spikesizefilt.summary_snc().c_str(),
+         unf.counters.alt.spikesizefilt.summary_mma().c_str(),
+         unf.counters.alt.spikesizefilt.summary_freq_maxc(6).c_str());
 #endif
 
    // print times here as well!
@@ -386,7 +391,7 @@ int main (int argc, char **argv)
    if (verb_debug) opts::dump ();
    PRINT ("dpu %s running, pid %u", CONFIG_VERSION, getpid());
 
-   if (opts::alt_algo != C15unfolder::Alt_algorithm::OPTIMAL and
+   if (opts::alt_algo != Altalgo::OPTIMAL and
          opts::maxcts != UINT_MAX)
    {
       PRINT ("%s: error: limiting the number of context swiches requires -a0", opts::progname);
@@ -416,16 +421,16 @@ int main (int argc, char **argv)
       INFO ("dpu: |environ| = %zu", unf.exec->environ.size());
 
       switch (opts::alt_algo) {
-      case C15unfolder::Alt_algorithm::KPARTIAL :
+      case Altalgo::KPARTIAL :
          PRINT ("dpu: using '%u-partial' alternatives", opts::kbound);
          break;
-      case C15unfolder::Alt_algorithm::OPTIMAL :
+      case Altalgo::OPTIMAL :
          PRINT ("dpu: using 'optimal' alternatives");
          break;
-      case C15unfolder::Alt_algorithm::ONLYLAST :
+      case Altalgo::ONLYLAST :
          PRINT ("dpu: using 'only-last' (1-partial) alternatives");
          break;
-      case C15unfolder::Alt_algorithm::SDPOR :
+      case Altalgo::SDPOR :
          PRINT ("dpu: using 'sdpor' alternatives");
          break;
       }

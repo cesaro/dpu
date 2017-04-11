@@ -223,13 +223,12 @@ bool Event::in_icfl_with (const Event *e) const
          action.addr == e->action.addr;
 }
 
-std::vector<Event*> Event::icfls () const
+void Event::icfls (std::vector<Event*> &v) const
 {
-   std::vector<Event*> v;
    Event *e;
 
    // only locks have immediate conflicts
-   if (action.type != ActionType::MTXLOCK) return v;
+   if (action.type != ActionType::MTXLOCK) return;
 
    // if the event has depth 0, we have to use the circular-list hack to get to
    // the 'other roots' of the forest
@@ -240,7 +239,7 @@ std::vector<Event*> Event::icfls () const
       {
          if (e->proc() != proc()) v.push_back (e);
       }
-      return v;
+      return;
    }
 
    // for non-root events, the parent's post contains a superset of my immediate
@@ -249,7 +248,14 @@ std::vector<Event*> Event::icfls () const
    {
       if (e->proc() != proc()) v.push_back (e);
    }
-   return v;
+   return;
+}
+
+unsigned Event::icfl_count () const
+{
+   std::vector<Event*> v;
+   icfls (v);
+   return v.size();
 }
 
 size_t Event::pointed_memory_size () const

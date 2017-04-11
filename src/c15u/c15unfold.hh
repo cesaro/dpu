@@ -20,11 +20,18 @@
 
 namespace dpu
 {
+typedef enum { SDPOR, ONLYLAST, KPARTIAL, OPTIMAL } Altalgo;
+};
+
+// requires Altalgo to be defined
+#include "c15u/comb.hh"
+
+namespace dpu
+{
 
 class C15unfolder
 {
 public:
-   typedef enum { SDPOR, ONLYLAST, KPARTIAL, OPTIMAL } Alt_algorithm;
 
    /// the unfolding data structure
    Unfolding u;
@@ -45,7 +52,8 @@ public:
          long unsigned calls_explore_comb = 0; // got to explore the comb
          Probdist<unsigned> spikes; // number of spikes
 #ifdef CONFIG_STATS_DETAILED
-         Probdist<unsigned> spikesize; // size of the spikes
+         Probdist<unsigned> spikesizeunfilt; // size of the spikes before filtering out
+         Probdist<unsigned> spikesizefilt; // size of the spikes after filtering out
 #endif
       } alt;
    } counters;
@@ -56,7 +64,7 @@ public:
    stid::Executor *exec;
 
    // ctor and dtor
-   C15unfolder (Alt_algorithm a, unsigned kbound, unsigned maxcts);
+   C15unfolder (Altalgo a, unsigned kbound, unsigned maxcts);
    ~C15unfolder ();
 
    /// load the llvm module from the "path" file
@@ -96,8 +104,7 @@ public:
 
    /// recursive function to explore all combinations in the comb of
    /// alternatives
-   bool enumerate_combination (unsigned i, std::vector<std::vector<Event *>> &comb,
-         std::vector<Event*> &sol);
+   bool enumerate_combination (unsigned i, std::vector<Event*> &sol);
 
    /// returns false only if no alternative to D \cup {e} after C exists
    bool might_find_alternative (Config &c, Disset &d, Event *e);
@@ -138,8 +145,12 @@ private:
    void report_init (Defectreport &r) const;
    inline void report_add_nondet_violation (const Trail &t, unsigned where, ActionType found);
 
-   Alt_algorithm alt_algorithm;
+   /// Algorithm to compute alternatives
+   Altalgo altalgo;
+   /// When computing k-partial alternatives, the value of k
    unsigned kpartial_bound;
+   /// The comb data structure
+   Comb comb;
 
    /// Maximum number of context switches present in the trail for the
    /// exploration to allow computing alternatives for an event extracted from

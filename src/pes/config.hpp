@@ -70,7 +70,7 @@ void Config::unfire (Event *e)
 
    default :
       // locks/unlocks should be the only ones that create immediate conflicts
-      ASSERT (e->icfls().size() == 0);
+      ASSERT (e->icfl_count() == 0);
       break;
    }
 }

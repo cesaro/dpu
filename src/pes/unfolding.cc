@@ -209,6 +209,7 @@ void Unfolding::print_dot (std::ofstream &fs, unsigned col, std::string &&msg)
    unsigned i, j, count, m;
    Process *p;
    std::string var;
+   std::vector<Event*> icfls;
 
    fs << "digraph {\n";
    fs << " node [shape=\"rectangle\", fontsize=10, style=\"filled\"];\n";
@@ -318,13 +319,15 @@ void Unfolding::print_dot (std::ofstream &fs, unsigned col, std::string &&msg)
       p = proc (i);
       for (Event &e : *p)
       {
-         for (Event *ee : e.icfls ())
+         e.icfls (icfls);
+         for (Event *ee : icfls)
          {
             // avoid redrawing the same conflict lines
             if (ee < &e) continue;
             fs << " _" << &e << " -> _" << ee
                << " [constraint=true, weight=0.1, dir=none, color=red, style=dashed];\n";
          }
+         icfls.clear();
       }
    }
 

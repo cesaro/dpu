@@ -175,3 +175,23 @@ run_nidhugg ()
 
    return $EXITCODE
 }
+
+print_date()
+{
+   MSG=$1
+
+   echo "======="
+   if test "$MSG"; then
+      echo "$MSG"
+   fi
+   echo -n "Date: "
+   date -R
+   echo "======="
+}
+
+handler()
+{
+   echo "Signal received, stopping now"
+   print_date "Exiting due to signal"
+   exit 1
+}

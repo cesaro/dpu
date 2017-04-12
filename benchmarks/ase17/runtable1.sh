@@ -11,7 +11,7 @@ TIMEOUT=15m
 # select the right installation depending on the machine
 
 if test $(hostname) = mariapacum; then
-   DPU=../../dist/bin/dpu
+   DPU=../../../dist/bin/dpu
    NIDHUGG="/usr/local/bin/nidhuggc --c -sc --nidhugg=/usr/local/bin/nidhugg -extfun-no-race=printf -extfun-no-race=write -extfun-no-race=exit -extfun-no-race=atoi" 
 elif test $(hostname) = polaris; then
    DPU=dpu
@@ -23,7 +23,7 @@ elif test $(hostname) = polaris; then
    DPU=dpu
    NIDHUGG=mynidhugg
 else
-   DPU=../../dist/bin/dpu
+   DPU=../../../dist/bin/dpu
    NIDHUGGBIN=`which nidhugg`
    NIDHUGG="${NIDHUGGBIN} --c -sc -extfun-no-race=printf -extfun-no-race=write -extfun-no-race=exit -extfun-no-race=atoi" 
 fi
@@ -90,7 +90,7 @@ generate_bench_cesar ()
    #preprocess_family $R/poke.c       poke         "threads" "7" "iters" "4"
    #preprocess_family $R/poke.c       poke         "threads" "8" "iters" "4"
 
-   #preprocess_family $R/multiprodcon.c multipc     "workers" "3 4 5 6 7" "prods" "1 2 3 4 5"
+   preprocess_family $R/multiprodcon.c multipc     "workers" "3 4 5 6 7" "prods" "1 2 3 4 5"
 
    #preprocess_family $R/ssb3.c       ssb3         "writers" "`seq -w 1 9`" "seqlen" "2 4 6 8"
    #preprocess_family $R/ssbexp.c     ssbexp       "writers" "`seq -w 1 18`"
@@ -216,13 +216,18 @@ test_can_run ()
 
 main ()
 {
+   print_date "Starting the script"
    test_can_run
    generate_bench
    #generate_bench_smallest
    #generate_bench_cesar
+   print_date "Running tool DPU"
    runall_dpu
+   print_date "Running tool NIDHUGG"
    runall_nidhugg
+   print_date "Generating latex tables"
    dump_latex
+   print_date "Finished"
 }
 
 
@@ -232,6 +237,7 @@ mkdir $R
 ln -s $R latest.table1
 cd $R
 
+trap "handler | tee -a XXX.log" SIGINT SIGTERM
 R=..
 main 2>&1 | tee XXX.log
 

@@ -42,7 +42,8 @@ The steps here assume that you have a Debian/Ubuntu distribution:
    and the command ``llvm-config-3.7 --prefix`` should print the installation
    path to LLVM 3.7.
 
-3. Install the `steroids dynamic analysis <https://github.com/cesaro/steroids>`__
+3. Download and compile the
+   `steroids dynamic analysis <https://github.com/cesaro/steroids>`__
    library.
 
 4. Edit the file `<config.mk>`__. Update the value of the variable

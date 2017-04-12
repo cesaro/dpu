@@ -180,10 +180,14 @@ test_can_run ()
 
 main ()
 {
+   print_date "Starting the script"
    test_can_run
    compile_bench
+   print_date "Running tool DPU"
    runall_dpu
+   print_date "Generating latex tables"
    dump_latex
+   print_date "Finished"
 }
 
 
@@ -193,6 +197,7 @@ mkdir $R
 ln -s $R latest.table2
 cd $R
 
+trap "handler | tee -a XXX.log" SIGINT SIGTERM
 R=..
 main 2>&1 | tee XXX.log
 

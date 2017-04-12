@@ -1,11 +1,11 @@
 
-==================================
-DPU: Distributed Program Unfolding
-==================================
+==============================
+DPU: Dynamic Program Unfolding
+==============================
 
 DPU is a research tool to perform dynamic analysis of POSIX multithreaded C
 programs.  It implements optimal and unoptimal unfolding-based Partial-Order
-Reduction (POR) algorithms based on those presented in
+Reduction (POR) algorithms extending those in
 `arXiv:1507.00980 <https://arxiv.org/abs/1507.00980>`__.
 
 Dependencies
@@ -14,9 +14,9 @@ Dependencies
 - coreutils
 - git
 - GNU make
-- python2.7
-- clang-3.7
-- llvm-3.7-dev
+- Python 2
+- Clang 3.7
+- LLVM 3.7
 - The `steroids dynamic analysis <https://github.com/cesaro/steroids>`__
   library.
 

@@ -9,23 +9,14 @@ CONFIG_RELEASE = 1
 # version of the tool
 CONFIG_VERSION = v0.3.0
 
-# folder where the tool will be installed
+# folder where the tool will be installed with "make install"
 CONFIG_PREFIX = ~/x/local
-
-# maximum verbosity level at which the tool produces output when requested to be
-# verbose with --verb=N
-ifdef CONFIG_DEBUG
-CONFIG_MAX_VERB_LEVEL = 3
-endif
-ifdef CONFIG_RELEASE
-CONFIG_MAX_VERB_LEVEL = 2
-endif
 
 # LLVM version
 CONFIG_LLVM_VER = 3.7
 
 # location of the steroids project
-CONFIG_STEROIDS_ROOT = $R/../steroid
+CONFIG_STEROIDS_ROOT = $R/../steroids
 
 # maximum number of unfolding processes
 CONFIG_MAX_PROCESSES = 32
@@ -52,6 +43,15 @@ CONFIG_MAX_DEFECT_REPETITION = 5
 # define this to compile support to visualize statistics about causality/conflict
 # checks
 #CONFIG_STATS_DETAILED =
+
+# maximum verbosity level at which the tool produces output when requested to be
+# verbose with --verb=N; touch these lines only if you know what you are doing
+ifdef CONFIG_DEBUG
+CONFIG_MAX_VERB_LEVEL = 3
+endif
+ifdef CONFIG_RELEASE
+CONFIG_MAX_VERB_LEVEL = 2
+endif
 
 ########################
 

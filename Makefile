@@ -21,11 +21,7 @@ SRCS:=
 MSRCS:=
 include common.mk
 
-ifeq ($(shell id -nu),cesar)
-all : ut
-else
 all : dist
-endif
 
 dist : compile $(CONFIG_STEROIDS_ROOT)/rt/rt.bc
 	rm -Rf dist/
@@ -36,7 +32,7 @@ dist : compile $(CONFIG_STEROIDS_ROOT)/rt/rt.bc
 	
 	cp src/driver.sh dist/bin/dpu
 	cp src/main dist/lib/dpu/dpu-backend
-	cp ../steroid/rt/rt.bc dist/lib/dpu/
+	cp $(CONFIG_STEROIDS_ROOT)/rt/rt.bc dist/lib/dpu/
 
 compile :
 	make -f src/Makefile R=. $@

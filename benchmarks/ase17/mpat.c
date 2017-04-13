@@ -3,7 +3,7 @@
 
 // default value
 #ifndef PARAM1
-#define PARAM1 2
+#define PARAM1 4
 #endif
 
 #define K PARAM1

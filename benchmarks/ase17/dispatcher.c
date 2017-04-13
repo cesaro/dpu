@@ -37,11 +37,11 @@
 */
 
 #ifndef PARAM1
-#define PARAM1 4
+#define PARAM1 7
 #endif
 
 #ifndef PARAM2
-#define PARAM2 4
+#define PARAM2 5
 #endif
 
 #define SNUM PARAM1  // number of servers

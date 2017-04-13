@@ -10,22 +10,13 @@ TIMEOUT=8m
 
 # select the right installation depending on the machine
 
-if test $(hostname) = mariapacum; then
-   DPU=../../../dist/bin/dpu
-   NIDHUGG="/usr/local/bin/nidhuggc --c -sc --nidhugg=/usr/local/bin/nidhugg -extfun-no-race=printf -extfun-no-race=write -extfun-no-race=exit -extfun-no-race=atoi" 
-elif test $(hostname) = polaris; then
-   DPU=dpu
-   NIDHUGG=mynidhugg
-elif test $(hostname) = poet; then
-   DPU="/home/msousa/dpu2/dist/bin/dpu"
-   NIDHUGG="nidhuggc --c -sc -extfun-no-race=printf -extfun-no-race=write -extfun-no-race=exit -extfun-no-race=atoi"
-elif test $(hostname) = polaris; then
+if test $(hostname) = polaris; then
    DPU=dpu
    NIDHUGG=mynidhugg
 else
    DPU=../../../dist/bin/dpu
    NIDHUGGBIN=`which nidhugg`
-   NIDHUGG="${NIDHUGGBIN} --c -sc -extfun-no-race=printf -extfun-no-race=write -extfun-no-race=exit -extfun-no-race=atoi" 
+   NIDHUGG="${NIDHUGGBIN} --c -sc -extfun-no-race=printf -extfun-no-race=write -extfun-no-race=exit -extfun-no-race=atoi -extfun-no-race=pow"
 fi
 
 # utilitary functions to run benchmarks
@@ -122,7 +113,8 @@ runall_dpu ()
    for x in 5 10 15 18 20 22 24 26 28 30; do
       for y in 4 5 6; do
          LOG=${N}_x${x}_y${y}_input1.log
-         CMD="$DPU $N.bc $OPTS -- $N -I 1 -x $x -y $y -h - -i input1.dat"
+         CMD="$DPU $N.bc $OPTS -- $N -I 1 -x $x -y $y -i input1.dat"
+         # -h -
          run_dpu
       done
    done

@@ -5,17 +5,17 @@
 
 // default values for the parameters
 #ifndef PARAM1
-#define PARAM1 4
+#define PARAM1 3
 #endif
 
 #ifndef PARAM2
-#define PARAM2 2
+#define PARAM2 5
 #endif
 
-#define WORKERS PARAM1 // number of worker threads
 #define TASKS   2      // maximum number of tasks processed by a worker
-#define PRODS   PARAM2 // number of producers
+#define PRODS   PARAM1 // number of producers
 #define ITERS   2      // number of iterations that producers make before producing a number
+#define WORKERS PARAM2 // number of worker threads
 
 pthread_mutex_t mut[WORKERS];
 int workreq[WORKERS];
@@ -92,7 +92,6 @@ void *producer (void *arg)
    //printf ("prod%d: done\n", id);
    return 0;
 }
-
 
 int main ()
 {

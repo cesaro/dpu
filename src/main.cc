@@ -197,11 +197,11 @@ void print_causality_stats (C15unfolder &unf)
          Event::counters.causality.depth.summary_snc().c_str(),
          Event::counters.causality.depth.summary_mma().c_str(),
          Event::counters.causality.depth.summary_freq_maxc(5).c_str());
-   PRINT ("dpu: stats: <:   diff depth: size/nc=%s; "
+   PRINT ("dpu: stats: <:   depth diff: size/nc=%s; "
          "min/max/avg=%s; {diff=count/mass}={%s}",
          Event::counters.causality.diff.summary_snc().c_str(),
          Event::counters.causality.diff.summary_mma().c_str(),
-         Event::counters.causality.diff.summary_freq_maxc(5).c_str());
+         Event::counters.causality.diff.summary_freq_maxc(0).c_str());
 
    // conflict
    calls      = Event::counters.conflict.calls_event;
@@ -245,7 +245,7 @@ void print_causality_stats (C15unfolder &unf)
          "min/max/avg=%s; {diff=count/mass}={%s}",
          Node<Event,ss>::nodecounters.conflict.diff.summary_snc().c_str(),
          Node<Event,ss>::nodecounters.conflict.diff.summary_mma().c_str(),
-         Node<Event,ss>::nodecounters.conflict.diff.summary_freq_maxc(5).c_str());
+         Node<Event,ss>::nodecounters.conflict.diff.summary_freq_maxc(0).c_str());
    PRINT ("dpu: stats: </#: steps: size/nc=%s; "
          "min/max/avg=%s; {steps=count/mass}={%s}",
          Node<Event,ss>::nodecounters.conflict.steps.summary_snc().c_str(),

@@ -235,7 +235,7 @@ void version (void)
 #endif
    PRINT ("");
    PRINT ("Event structure: %zu slots, up to %zu events/slot, %zu%s memory per slot, "
-         "%zu%s total memory, aligned to %zu%s",
+         "%zu%s total memory, aligned to %zu%s, skip-step %u",
          Unfolding::MAX_PROC,
          Unfolding::PROC_SIZE / sizeof (Event),
          UNITS_SIZE (Unfolding::PROC_SIZE),
@@ -243,7 +243,8 @@ void version (void)
          UNITS_SIZE (Unfolding::PROC_SIZE * Unfolding::MAX_PROC),
          UNITS_UNIT (Unfolding::PROC_SIZE * Unfolding::MAX_PROC),
          UNITS_SIZE (Unfolding::ALIGN),
-         UNITS_UNIT (Unfolding::ALIGN));
+         UNITS_UNIT (Unfolding::ALIGN),
+         CONFIG_SKIP_STEP);
 
    PRINT ("Trace buffer size: : %.1f Mevents",
          CONFIG_GUEST_TRACE_BUFFER_SIZE / 1000000.0);

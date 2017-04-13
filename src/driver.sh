@@ -1,7 +1,6 @@
 #!/bin/sh
 
 # settings
-TMP=/tmp/dpu.$USER #.$$
 LLVMVERS=3.7
 PREFIX=$(readlink -f $(dirname "$0"))/..
 RT=$PREFIX/lib/dpu/rt.bc
@@ -11,7 +10,9 @@ BACKEND=$PREFIX/lib/dpu/dpu-backend
 PROGNAME=$0
 INPUT=
 ARGS=
+DEFS=
 GDB=0
+TMP=/tmp/will-change
 
 usage ()
 {
@@ -29,11 +30,14 @@ stopif ()
    fi
 }
 
+cleanup ()
+{
+   # remove temporary files
+   rm -f $TMP*
+}
+
 main_ ()
 {
-   # preliminary actions
-   rm -Rf $TMP
-   mkdir $TMP
    if test ! -e "$INPUT"
    then
       echo "dpu: $INPUT: File not found" >&2
@@ -42,46 +46,39 @@ main_ ()
 
    # prepare the input
    if echo "$INPUT" | grep -q '\.c$\|\.i$'; then
-      CMD="clang-$LLVMVERS -D __DPU__ -O3 -emit-llvm -c -o $TMP/opt.bc -- '$INPUT'"
+      CMD="clang-$LLVMVERS -D__DPU__ $DEFS -O3 -emit-llvm -c -o ${TMP}.opt.bc -- '$INPUT'"
       echo $CMD
       eval $CMD
       stopif "clang"
    else
-      CMD="opt-$LLVMVERS -mem2reg '$INPUT' -o $TMP/opt.bc"
+      CMD="opt-$LLVMVERS -mem2reg '$INPUT' -o ${TMP}.opt.bc"
       echo $CMD
       eval $CMD
       stopif "opt"
    fi
-   CMD="llvm-link-$LLVMVERS $TMP/opt.bc $RT -o $TMP/input.bc"
+   CMD="llvm-link-$LLVMVERS ${TMP}.opt.bc $RT -o ${TMP}.bc"
    echo $CMD
    eval $CMD
    stopif "llvm-link"
 
    # dump .bc files, for debugging purposes
-   #llvm-dis-$LLVMVERS $TMP/orig.bc -o $TMP/orig.ll
-   #llvm-dis-$LLVMVERS $TMP/input.bc -o $TMP/input.ll
+   #llvm-dis-$LLVMVERS ${TMP}.opt.bc -o ${TMP}.opt.ll
+   #llvm-dis-$LLVMVERS ${TMP}.bc -o ${TMP}.ll
 
    # run the backend analyzer
-   #echo "$BACKEND $TMP/input.bc $ARGS"
    if test $GDB = 1; then
-      gdb $BACKEND \
-         -ex 'break breakme' \
-         -ex 'info break' \
-         -ex "run $TMP/input.bc $ARGS"
+      CMD="gdb $BACKEND -ex 'break breakme' -ex 'info break' -ex \"run ${TMP}.bc $ARGS\""
    elif test $GDB = 2; then
-      gdb $BACKEND \
-         -ex "run $TMP/input.bc $ARGS"
+      CMD="gdb $BACKEND -ex \"run ${TMP}.bc $ARGS\""
    elif test $GDB = 3; then
-      valgrind $BACKEND $TMP/input.bc $ARGS
+      CMD="valgrind --tool=callgrind $BACKEND ${TMP}.bc $ARGS"
    else
-      CMD="$BACKEND $TMP/input.bc $ARGS"
-      echo $CMD
-      eval $CMD
-      exit $?
+      CMD="$BACKEND ${TMP}.bc $ARGS"
    fi
 
-   # FIXME - remote this from ehre, build svgs if we detect dot files in tmp
-   #for f in /tmp/dot/*.dot; do dot -Tsvg -O $f; done
+   echo $CMD
+   eval $CMD
+   exit $?
 }
 
 # parse arguments and call main_
@@ -89,31 +86,49 @@ if test $# -eq 0;
 then
    usage
 fi
-INPUT=$1
-first=1
-ARGS=
-for a in $@;
-do
-   if test $first -eq 1; then first=0; continue; fi
-   if test $a = '--gdb'; then GDB=1; continue; fi
-   if test $a = '--gdb2'; then GDB=2; continue; fi
-   if test $a = '--valgrind'; then GDB=3; continue; fi
-   ARGS="$ARGS $a"
+
+while test $# -ge 1; do
+   case $1 in
+   -h | --help)
+      $BACKEND -h
+      exit 0
+      ;;
+   -V | --ver | --vers | --versi | --versio | --version)
+      $BACKEND -V
+      exit 0
+      ;;
+   --gdb)
+      GDB=1
+      ;;
+   --gdb2)
+      GDB=2
+      ;;
+   --valgrind | --va | --val | --valg | --valgr | --valgri | --valgrin)
+      GDB=3
+      ;;
+   -D)
+      shift
+      DEFS="$DEFS -D$1"
+      ;;
+   -D*)
+      #DEFS="$DEFS -D $(cut -c 3- <<< '$1')"
+      DEFS="$DEFS -D$(echo "$1" | cut -c 3-)"
+      ;;
+   *)
+      if test -z "$INPUT"; then
+         INPUT=$1
+      else
+         ARGS="$ARGS $1"
+      fi
+      ;;
+   esac
+   shift
 done
-if test "$INPUT" = "--help"; then
-   $BACKEND --help
-   exit 0
-fi
-if test "$INPUT" = "-h"; then
-   $BACKEND --help
-   exit 0
-fi
-if test "$INPUT" = "-V"; then
-   $BACKEND --version
-   exit 0
-fi
-if test "$INPUT" = "--version"; then
-   $BACKEND --version
-   exit 0
-fi
+
+TMP=$(mktemp -t dpu.XXXX.$(basename "$INPUT"))
+trap cleanup EXIT
+trap cleanup INT
+trap cleanup QUIT
+trap cleanup TERM
+
 main_

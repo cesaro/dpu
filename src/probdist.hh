@@ -54,7 +54,7 @@ public :
 protected :
    /// 0:129/0.2%; 18:99323/81.4%; 280:12/0.5%
    void summary_freq (std::ostringstream &ss, const std::vector<std::pair<T,unsigned>> &v) const;
-   /// 0:129/0.2%
+   /// 0=129/0.2%
    void summary_freq (std::ostringstream &ss, const T &e) const;
    /// Returns the probability mass of the given count
    float count2mass (unsigned c) const;

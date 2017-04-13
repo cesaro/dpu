@@ -3,10 +3,28 @@
 DPU: Dynamic Program Unfolding
 ==============================
 
-DPU is a research tool to perform dynamic analysis of POSIX multithreaded C
-programs.  It implements optimal and unoptimal unfolding-based Partial-Order
-Reduction (POR) algorithms extending those in
-`arXiv:1507.00980 <https://arxiv.org/abs/1507.00980>`__.
+DPU is a research tool to perform `dynamic analysis`_ of POSIX multithreaded C
+programs. It will automatically and exhaustively test all possible thread
+schedules of a C program which uses `POSIX threads`_.
+
+The tool instruments the source with a specific runtime that gets the control on
+every call to a ``pthread_*`` function. That allows the tool (a) discover the
+relevant interleavings and (b) to deterministically replay the program
+execution.
+
+DPU assumes that your program is data-deterministic, that is, the only source of
+non-determinism in an execution is the order in which independent, concurrent
+statements can be interleaved. It also assumes that the program is data-race
+free. As a result, all sources of non-deterministic execution (e.g.,
+command-line arguments, input files) need to be fixed before running the tool.
+
+DPU implements optimal and non-optimal unfolding-based Partial-Order
+Reduction (POR) algorithms extending those presented in our CONCUR'15 paper
+(`arXiv:1507.00980`_).
+
+.. _arXiv:1507.00980 : https://arxiv.org/abs/1507.00980
+.. _dynamic analysis : https://en.wikipedia.org/wiki/Dynamic_program_analysis
+.. _POSIX threads: https://en.wikipedia.org/wiki/POSIX_Threads
 
 Dependencies
 ============
@@ -20,10 +38,15 @@ Dependencies
 - The `steroids dynamic analysis <https://github.com/cesaro/steroids>`__
   library.
 
+Optional:
+
+- Analyzing C programs with multiple compilation units will require
+  `Whole Program LLVM <https://github.com/travitch/whole-program-llvm>`__.
+
 Compilation
 ===========
 
-DPU has ony been compiled and tested under Debian/Ubuntu, although it should
+DPU has only been compiled and tested under Debian/Ubuntu, although it should
 probably work on other Linux distributions. Please note that the Steroids
 library only works on x86-64 machines.
 
@@ -33,14 +56,14 @@ The steps here assume that you have a Debian/Ubuntu distribution:
 
     sudo apt-get install coreutils git make python2.7
 
-2. Install clang-3.7 and LLVM v3.7. DPU currently does not compile under g++,
-   and you will need clang-3.7 to run the tool, anyway::
+2. Install clang v3.7 and LLVM v3.7. DPU currently does not compile under g++,
+   and you will need clang 3.7 to run the tool, anyway::
    
     sudo apt-get install llvm-3.7-dev clang-3.7
 
-   After the installation, the ``llvm-config-3.7`` should be in your ``PATH``,
-   and the command ``llvm-config-3.7 --prefix`` should print the installation
-   path to LLVM 3.7.
+   After the installation, the command ``llvm-config-3.7`` should be in your
+   ``PATH``, and typing ``llvm-config-3.7 --prefix`` should print the
+   installation path of LLVM 3.7.
 
 3. Download and compile the
    `steroids dynamic analysis <https://github.com/cesaro/steroids>`__
@@ -80,6 +103,10 @@ Tutorial
 ========
 
 TODO
+
+- Hello world
+- Options
+- wllvm
 
 Related tools
 =============

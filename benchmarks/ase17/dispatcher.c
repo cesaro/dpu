@@ -37,11 +37,11 @@
 */
 
 #ifndef PARAM1
-#define PARAM1 7
+#define PARAM1 4
 #endif
 
 #ifndef PARAM2
-#define PARAM2 5
+#define PARAM2 4
 #endif
 
 #define SNUM PARAM1  // number of servers
@@ -165,9 +165,9 @@ int main()
       picked_servers[r] = process_request(r,picked_servers[r-1]); 
   }
   
-  
-  //pthread_exit (0);
+  pthread_exit (0);
 
+#if 0
   //printf ("main: before joining servers\n");
   // wait for servers to join
   for (int x = 0; x < SNUM; x++)
@@ -201,4 +201,5 @@ int main()
   // printf ("total number of missed %d\n", missed_req);
   //printf ("== end ==\n");
   return 0;
+#endif
 }

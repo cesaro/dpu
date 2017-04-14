@@ -5,6 +5,14 @@
 # 1s = 1 second; 2m = 2 minutes; 3h = 3 hours
 TIMEOUT=8m
 
+WANT_DPU_ALT_SDPOR=n
+WANT_DPU_ALT0=y
+WANT_DPU_ALT1=n
+WANT_DPU_ALT2=n
+WANT_DPU_ALT3=n
+WANT_DPU_ALT4=n
+WANT_NIDHUGG=y
+
 # ==== END CONFIGURATION VARIABLES ====
 
 
@@ -15,14 +23,14 @@ if test $(hostname) = polaris; then
    NIDHUGG=mynidhugg
 elif test $(hostname) = poet; then
    DPU="/home/msousa/dpu2/dist/bin/dpu"
-   NIDHUGGBIN=`which nidhugg`
+   NIDHUGGBIN=`which nidhuggc`
    NIDHUGG="${NIDHUGGBIN} --c -sc -extfun-no-race=printf -extfun-no-race=write -extfun-no-race=exit -extfun-no-race=atoi -extfun-no-race=pow"
 elif test $(hostname) = polaris; then
    DPU=dpu
    NIDHUGG=mynidhugg
 else
    DPU=../../../dist/bin/dpu
-   NIDHUGGBIN=`which nidhugg`
+   NIDHUGGBIN=`which nidhuggc`
    NIDHUGG="${NIDHUGGBIN} --c -sc -extfun-no-race=printf -extfun-no-race=write -extfun-no-race=exit -extfun-no-race=atoi -extfun-no-race=pow"
 fi
 
@@ -35,14 +43,10 @@ generate_bench_all ()
    # $R       - root of the ase17 folder
 
    preprocess_family $R/dispatcher.c dispatch   "serv" "1 2 3 4 5 6 8 10 12 14" "reqs" "1 2 3 4"
-
    preprocess_family $R/mpat.c       mpat       "k" "`seq -w 1 8`"
-
    preprocess_family $R/poke.c       poke       "threads" "2 3 4" "iters" "2 3 4 5 6"
    preprocess_family $R/poke.c       poke       "threads" "5 6 7 8" "iters" "1 2 3 4"
-
    preprocess_family $R/multiprodcon.c multipc  "prods" "1 2 3 4 5" "workers" "3 4 5 6 7"
-
    preprocess_family $R/pi/pth_pi_mutex.c pi    "threads" "1 2 3 4 5 6" "iters" "`seq -w 1000 2000 9000`"
 
    # these are deemed to be not realistic:
@@ -51,16 +55,16 @@ generate_bench_all ()
    preprocess_family $R/ssbexp.c     ssbexp       "writers" "`seq -w 1 18`"
 }
 
-generate_bench_chosen ()
+generate_bench_selection ()
 {
    # pre-conditions:
    # $R       - root of the ase17 folder
 
-   preprocess_family $R/dispatcher.c dispatch   "serv" "5" "reqs" "`seq -w 1 7`"
-   #preprocess_family $R/mpat.c       mpat       "k" "`seq -w 4 8`"
-   #preprocess_family $R/poke.c       poke       "threads" "`seq -w 2 12`" "iters" "3"
-   #preprocess_family $R/multiprodcon.c multipc  "prods" "1 2 3 4 5" "workers" "5"
-   #preprocess_family $R/pi/pth_pi_mutex.c pi    "threads" "`seq -w 2 8`" "iters" "5000"
+   preprocess_family $R/dispatcher.c dispatch   "serv" "5" "reqs" "`seq -w 2 6`"
+   preprocess_family $R/mpat.c       mpat       "k" "`seq -w 4 8`"
+   preprocess_family $R/poke.c       poke       "threads" "`seq -w 7 12`" "iters" "3"
+   preprocess_family $R/multiprodcon.c multipc  "prods" "2 3 4 5" "workers" "5"
+   preprocess_family $R/pi/pth_pi_mutex.c pi    "threads" "`seq -w 5 8`" "iters" "5000"
 }
 
 generate_bench_smallest ()
@@ -79,7 +83,7 @@ generate_bench_smallest ()
    preprocess_family $R/ssbexp.c     ssbexp     "writers" "`seq -w 2 5`"
 }
 
-generate_bench_selection_skipstep ()
+generate_bench_smallruntime ()
 {
    # a selection of benchmarks with in the range 60 to 46K max confs and 0.4
    # secs - 63 secs running time, representative of all programs in the
@@ -220,6 +224,9 @@ generate_bench_cesar ()
    # pre-conditions:
    # $R       - root of the ase17 folder
 
+   #preprocess_family $R/dispatcher.c dispatch   "serv" "4" "reqs" "`seq -w 1 7`"
+   preprocess_family $R/dispatcher.c dispatch   "serv" "3" "reqs" "`seq -w 4 7`"
+
    #preprocess_family $R/dispatcher.c dispatch   "serv" "3" "reqs" "4"
    #preprocess_family $R/mpat.c       mpat       "k" "2"
    #preprocess_family $R/spat.c       spat       "threads" "2 3" "mut" "2"
@@ -236,7 +243,7 @@ generate_bench_cesar ()
    #preprocess_family $R/poke.c       poke         "threads" "7" "iters" "4"
    #preprocess_family $R/poke.c       poke         "threads" "8" "iters" "4"
 
-   preprocess_family $R/multiprodcon.c multipc     "workers" "3 4 5 6 7" "prods" "1 2 3 4 5"
+   #preprocess_family $R/multiprodcon.c multipc     "workers" "3 4 5 6 7" "prods" "1 2 3 4 5"
 
    #preprocess_family $R/ssb3.c       ssb3         "writers" "`seq -w 1 9`" "seqlen" "2 4 6 8"
    #preprocess_family $R/ssbexp.c     ssbexp       "writers" "`seq -w 1 18`"
@@ -250,25 +257,35 @@ runall_dpu ()
    # $TIMEOUT - a timeout specification valid for timeout(1)
    # $DPU     - path to the dpu tool to run
 
-   OPTS="--mem 128M --stack 6M -O1"
+   OPTS="--mem 128M --stack 6M -O2"
    for i in *.i; do
       N=`echo "$i" | sed s/.i$//`
 
-      ## -a-1
-      #LOG=${N}_dpu_alt-1.log
-      #CMD="$DPU $i -a-1 $OPTS"
-      #run_dpu
+      if test $WANT_DPU_ALT_SDPOR = y; then
+         # -a-1
+         LOG=${N}_dpu_alt-1.log
+         CMD="$DPU $i -a-1 $OPTS"
+         run_dpu
+      fi
 
-      # -a0
-      LOG=${N}_dpu_alt0.log
-      CMD="$DPU $i -a0 $OPTS"
-      run_dpu
+      if test $WANT_DPU_ALT0 = y; then
+         # -a0
+         LOG=${N}_dpu_alt0.log
+         CMD="$DPU $i -a0 $OPTS"
+         run_dpu
+      fi
 
       # if we got TO on -a0, surely we will also get it on -aX with X!=0
       if test "$WALLTIME" == "TO"; then continue; fi
 
       # k-partial
-      for a in 1 2 3; do
+      for a in 1 2 3 4; do
+         case $a in
+         1) if test $WANT_DPU_ALT1 = n; then continue; fi;;
+         2) if test $WANT_DPU_ALT2 = n; then continue; fi;;
+         3) if test $WANT_DPU_ALT3 = n; then continue; fi;;
+         4) if test $WANT_DPU_ALT4 = n; then continue; fi;;
+         esac
          LOG=${N}_dpu_alt${a}.log
          CMD="$DPU $i -a$a $OPTS"
          run_dpu
@@ -284,6 +301,9 @@ runall_nidhugg ()
    # pre-conditions:
    # $TIMEOUT - a timeout specification valid for timeout(1)
    # $DPU     - path to the dpu tool to run
+
+   if test $WANT_NIDHUGG = n; then return 0; fi
+
    for i in *.i; do
       N=`echo "$i" | sed s/.i$//`
       LOG=${N}_nidhugg.log
@@ -297,8 +317,8 @@ dump_latex ()
    echo "Generating latex table ..."
 
    echo "% Benchmark                                            DPU (k=1)              DUP (k=2)             DUP (k=3)             DUP (optimal)         Nidhugg" > table.tex
-   echo "% ---------------------------------------------------- ---------------------- --------------------- --------------------- --------------------- ---------------------------------" > table.tex
-   echo "% Name                       LOC       Thrs      Confs       Time       SSBs       Time       SSBs       Time       SSBs       Time        Mem        Time        Mem       SSBs" > table.tex
+   echo "% ---------------------------------------------------- ---------------------- --------------------- --------------------- --------------------- ---------------------------------" >> table.tex
+   echo "% Name                       LOC       Thrs      Confs       Time       SSBs       Time       SSBs       Time       SSBs       Time        Mem        Time        Mem       SSBs" >> table.tex
 
    INSTANCES=$(ls *.i | sed 's/.i$//' | sort -u)
 
@@ -374,17 +394,21 @@ main ()
    print_date "Starting the script"
    test_can_run
    #generate_bench_all
-   generate_bench_chosen
+   generate_bench_selection
    #generate_bench_smallest
    #generate_bench_cesar
-   #generate_bench_selection_skipstep
+   #generate_bench_smallruntime
    #generate_bench_morethan1sec
+
    print_date "Running tool DPU"
    runall_dpu
+
    print_date "Running tool NIDHUGG"
    runall_nidhugg
+
    print_date "Generating latex tables"
    dump_latex
+
    print_date "Finished"
 }
 

@@ -189,7 +189,6 @@ mkdir $R
 ln -s $R latest.table2
 cd $R
 
-trap "handler | tee -a XXX.log" SIGINT SIGTERM
 R=..
 main 2>&1 | tee XXX.log
 

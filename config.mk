@@ -34,7 +34,7 @@ CONFIG_GUEST_DEFAULT_THREAD_STACK_SIZE = $(shell echo '1 * 2^20' | bc)
 CONFIG_GUEST_TRACE_BUFFER_SIZE = $(shell echo '1 * 2^20' | bc)
 
 # defines the skip step for the sequential tree skip lists (>= 2)
-CONFIG_SKIP_STEP = 3
+CONFIG_SKIP_STEP = 2
 
 # defines the maximum number of times that a defect will get repeated in the
 # defect report

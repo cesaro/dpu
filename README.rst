@@ -70,9 +70,9 @@ The steps here assume that you have a Debian/Ubuntu distribution:
    library.
 
 4. Edit the file `<config.mk>`__. Update the value of the variable
-   ``CONFIG_STEROIDS_ROOT`` to point to the path to the root of the steroids
-   project. Give an absolute path or a path relative to the variable ``$R``,
-   which will be equal to the path of the root of the DPU project.
+   ``CONFIG_STEROIDS_ROOT`` to point to the root of the steroids project.
+   Give an absolute path or a path relative to the variable ``$R``,
+   which will equal to the path of the root folder of the DPU project.
 
 5. Compile::
 

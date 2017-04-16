@@ -11,7 +11,9 @@ WANT_DPU_ALT1=n
 WANT_DPU_ALT2=n
 WANT_DPU_ALT3=n
 WANT_DPU_ALT4=n
-WANT_NIDHUGG=y
+WANT_NIDHUGG=n
+
+DPU_OPTS="-O1 -v -m140M"
 
 # ==== END CONFIGURATION VARIABLES ====
 
@@ -19,17 +21,14 @@ WANT_NIDHUGG=y
 # select the right installation depending on the machine
 
 if test $(hostname) = polaris; then
-   DPU=dpu
+   if ! env | grep -q 'DPU='; then DPU=../../../dist/bin/dpu; fi
    NIDHUGG=mynidhugg
 elif test $(hostname) = poet; then
    DPU="/home/msousa/dpu2/dist/bin/dpu"
    NIDHUGGBIN=`which nidhuggc`
    NIDHUGG="${NIDHUGGBIN} --c -sc -extfun-no-race=printf -extfun-no-race=write -extfun-no-race=exit -extfun-no-race=atoi -extfun-no-race=pow"
-elif test $(hostname) = polaris; then
-   DPU=dpu
-   NIDHUGG=mynidhugg
 else
-   DPU=../../../dist/bin/dpu
+   if ! env | grep -q 'DPU='; then DPU=../../../dist/bin/dpu; fi
    NIDHUGGBIN=`which nidhuggc`
    NIDHUGG="${NIDHUGGBIN} --c -sc -extfun-no-race=printf -extfun-no-race=write -extfun-no-race=exit -extfun-no-race=atoi -extfun-no-race=pow"
 fi
@@ -225,7 +224,7 @@ generate_bench_cesar ()
    # $R       - root of the ase17 folder
 
    #preprocess_family $R/dispatcher.c dispatch   "serv" "4" "reqs" "`seq -w 1 7`"
-   preprocess_family $R/dispatcher.c dispatch   "serv" "3" "reqs" "`seq -w 4 7`"
+   preprocess_family $R/dispatcher.c dispatch   "serv" "3" "reqs" "`seq -w 2 4`"
 
    #preprocess_family $R/dispatcher.c dispatch   "serv" "3" "reqs" "4"
    #preprocess_family $R/mpat.c       mpat       "k" "2"
@@ -250,6 +249,14 @@ generate_bench_cesar ()
    #preprocess_family $R/pi/pth_pi_mutex.c pi      "threads" "`seq -w 1 6`" "iters" "`seq -w 1000 2000 9000`"
 }
 
+generate_bench_skiplist ()
+{
+   preprocess_family $R/dispatcher.c dispatch   "serv" "4" "reqs" "`seq -w 3 5`"
+   preprocess_family $R/mpat.c       mpat       "k" "`seq -w 4 6`"
+   preprocess_family $R/poke.c       poke       "threads" "`seq -w 11 15`" "iters" "3"
+   preprocess_family $R/multiprodcon.c multipc  "prods" "3 4" "workers" "4"
+   preprocess_family $R/pi/pth_pi_mutex.c pi    "threads" "`seq -w 6 8`" "iters" "2000"
+}
 
 runall_dpu ()
 {
@@ -257,7 +264,7 @@ runall_dpu ()
    # $TIMEOUT - a timeout specification valid for timeout(1)
    # $DPU     - path to the dpu tool to run
 
-   OPTS="--mem 128M --stack 6M -O2"
+   OPTS="--mem 128M --stack 6M $DPU_OPTS"
    for i in *.i; do
       N=`echo "$i" | sed s/.i$//`
 
@@ -316,9 +323,9 @@ dump_latex ()
 {
    echo "Generating latex table ..."
 
-   echo "% Benchmark                                            DPU (k=1)              DUP (k=2)             DUP (k=3)             DUP (optimal)         Nidhugg" > table.tex
-   echo "% ---------------------------------------------------- ---------------------- --------------------- --------------------- --------------------- ---------------------------------" >> table.tex
-   echo "% Name                       LOC       Thrs      Confs       Time       SSBs       Time       SSBs       Time       SSBs       Time        Mem        Time        Mem       SSBs" >> table.tex
+   echo "% Benchmark                                                        DPU (k=1)              DUP (k=2)             DUP (k=3)             DUP (optimal)         Nidhugg" > table.tex
+   echo "% --------------------------------------------------------------- ---------------------- --------------------- --------------------- --------------------- ---------------------------------" >> table.tex
+   echo "% Name                       LOC       Thrs      Confs     Events       Time       SSBs       Time       SSBs       Time       SSBs       Time        Mem        Time        Mem       SSBs" >> table.tex
 
    INSTANCES=$(ls *.i | sed 's/.i$//' | sort -u)
 
@@ -340,8 +347,16 @@ dump_latex ()
       fi
       NUMTHREADS=$(head -n1 <<< "$NUMTHREADS" | awk '{print $4}')
 
-      # name, loc, numthreads, maxconfs
-      ROW=$(printf '%-25s &  LOC & %8s & %8s' $i $NUMTHREADS $MAXCONFS)
+      # check that all executions of dpu agree on the number of events
+      EVENTS=$(cat ${i}_dpu* ${i}_nidhugg* | grep '^events ' | sort -u | grep -v 'events *-$')
+      NUM=$(wc -l <<< "$EVENTS")
+      if test "$NUM" -gt 1; then
+         echo "WARNING: $i: tools report != number of events"
+      fi
+      EVENTS=$(head -n1 <<< "$EVENTS" | awk '{print $2}')
+
+      # name, loc, numthreads, maxconfs, events
+      ROW=$(printf '%-25s &  LOC & %8s & %8s & %8s' $i $NUMTHREADS $MAXCONFS $EVENTS)
 
       # columns for DPU
       for a in 1 2 3 0; do
@@ -394,11 +409,12 @@ main ()
    print_date "Starting the script"
    test_can_run
    #generate_bench_all
-   generate_bench_selection
+   #generate_bench_selection
    #generate_bench_smallest
    #generate_bench_cesar
    #generate_bench_smallruntime
    #generate_bench_morethan1sec
+   generate_bench_skiplist
 
    print_date "Running tool DPU"
    runall_dpu

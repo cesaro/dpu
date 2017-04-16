@@ -232,7 +232,7 @@ void print_causality_stats (C15unfolder &unf)
    nontrivial = calls - trivial;
    PRINT ("dpu: stats: #: on sequential trees:");
    PRINT ("dpu: stats: #:   %lu calls", calls);
-   PRINT ("dpu: stats: #:   %lu trivial (%.1f%%), solved by eq checks",
+   PRINT ("dpu: stats: #:   %lu trivial (%.1f%%), solved by eq (depth) checks",
          trivial, calls ? trivial * 100.0 / calls : 0.0);
    PRINT ("dpu: stats: #:   %lu non-trivial (%.1f%%)",
       nontrivial, calls ? nontrivial * 100.0 / calls : 0.0);

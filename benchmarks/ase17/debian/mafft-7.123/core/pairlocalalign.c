@@ -1628,7 +1628,6 @@ void arguments( int argc, char *argv[] )
 	RNAppenalty = NOTSPECIFIED;
 	RNApthr = NOTSPECIFIED;
 
-   printf ("here!!\n");
     while( --argc > 0 && (*++argv)[0] == '-' )
 	{
    printf ("out!!\n");
@@ -1873,7 +1872,6 @@ void arguments( int argc, char *argv[] )
 		nextoption:
 			;
 	}
-   printf ("and here!!\n");
     if( argc == 1 )
     {
         cut = atof( (*argv) );
@@ -2755,19 +2753,15 @@ int main( int argc, char *argv[] )
 	int alloclen;
 	Lastresx **lastresx;
 
-   printf ("starting!!\n");
-
 	arguments( argc, argv );
 #ifndef enablemultithread
 	nthread = 0;
 #endif
-   printf ("aqui antes\n");
 	fprintf (stderr, "lastonce = %d\n", lastonce );
 
 	if( inputfile )
 	{
 		infp = fopen( inputfile, "r" );
-      printf ("abierto!\n");
 		if( !infp )
 		{
 			printf(  "Cannot open %s\n", inputfile );

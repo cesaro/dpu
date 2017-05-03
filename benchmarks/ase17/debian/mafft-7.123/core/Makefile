@@ -10,6 +10,8 @@ ENABLE_MULTITHREAD = -Denablemultithread
 # does not support TLS (thread-local strage).
 
 CC = wllvm
+#CC = gcc
+#CC	= cilly --merge --verbose --out=full.c # --dormunreach
 CFLAGS = -O3
 CFLAGS = -g
 

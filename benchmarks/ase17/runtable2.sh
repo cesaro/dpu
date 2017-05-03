@@ -24,7 +24,14 @@ source runlib.sh
 
 compile_bench ()
 {
+   # setup for Whole Program LLVM
    CC=wllvm
+   LLVMVERS=3.7
+   export LLVM_COMPILER=clang
+   export LLVM_CC_NAME=clang-$LLVMVERS
+   export LLVM_CXX_NAME=clang++-$LLVMVERS
+   export LLVM_LINK_NAME=llvm-link-$LLVMVERS
+   export LLVM_AR_NAME=llvm-ar-$LLVMVERS
 
    # package mafft 
    MAFFTPROGS="addsingle dndpre makedirectionlist mccaskillwrap pairlocalalign"

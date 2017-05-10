@@ -2,7 +2,7 @@
 
 # settings
 LLVMVERS=3.7
-PREFIX=$(readlink -f $(dirname "$0"))/..
+PREFIX=$(readlink -f $(dirname $(readlink -f "$0")))/..
 RT=$PREFIX/lib/dpu/rt.bc
 BACKEND=$PREFIX/lib/dpu/dpu-backend
 
@@ -71,7 +71,7 @@ main_ ()
    elif test $GDB = 2; then
       CMD="gdb $BACKEND -ex \"run ${TMP}.bc $ARGS\""
    elif test $GDB = 3; then
-      CMD="valgrind --tool=callgrind $BACKEND ${TMP}.bc $ARGS"
+      CMD="valgrind --tool=callgrind --dump-instr=yes $BACKEND ${TMP}.bc $ARGS"
    else
       CMD="$BACKEND ${TMP}.bc $ARGS"
    fi
@@ -103,7 +103,7 @@ while test $# -ge 1; do
    --gdb2)
       GDB=2
       ;;
-   --valgrind | --va | --val | --valg | --valgr | --valgri | --valgrin)
+   --callgrind | --ca | --call | --callg | --callgr | --callgri | --callgrin)
       GDB=3
       ;;
    -D)
@@ -113,6 +113,15 @@ while test $# -ge 1; do
    -D*)
       #DEFS="$DEFS -D $(cut -c 3- <<< '$1')"
       DEFS="$DEFS -D$(echo "$1" | cut -c 3-)"
+      ;;
+   --)
+      shift
+      if test -z "$INPUT"; then
+         INPUT=$1
+         shift
+      fi
+      ARGS="$ARGS -- $*"
+      break
       ;;
    *)
       if test -z "$INPUT"; then

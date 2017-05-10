@@ -27,6 +27,7 @@ unsigned optlevel;
 unsigned maxcts;
 bool strace;
 bool dosleep;
+unsigned timeout;
 
 void parse (int argc, char **argv_)
 {
@@ -47,6 +48,7 @@ void parse (int argc, char **argv_)
 			{"strace", no_argument, nullptr, 'S'},
 			{"dosleep", no_argument, nullptr, 'L'},
 			{"maxcts", required_argument, nullptr, 'x'},
+			{"timeout", required_argument, nullptr, 't'},
 			{0, 0, 0, 0}};
 
    // default options
@@ -64,6 +66,7 @@ void parse (int argc, char **argv_)
    maxcts = UINT_MAX;
    strace = false;
    dosleep = false;
+   timeout = 0;
 
 	// parse the command line, supress automatic error messages by getopt
 	opterr = 0;
@@ -105,6 +108,11 @@ void parse (int argc, char **argv_)
 			u = strtoul (optarg, &endptr, 10);
 			if (*endptr != 0) usage (1);
          maxcts = u;
+         break;
+      case 't' :
+			u = strtoul (optarg, &endptr, 10);
+			if (*endptr != 0) usage (1);
+         timeout = u;
          break;
       case 'm' :
          memsize = parse_size (optarg, 'M');
@@ -202,7 +210,9 @@ void print_options ()
    fprintf (stderr, " -V,   --version          displays version information\n");
    fprintf (stderr, " -v,   --verb=N           increments verbosity level by optional parameter N (1 to 3)\n");
    fprintf (stderr, "       --gdb              runs the backend in a gdb session\n");
+   fprintf (stderr, "       --callgrind        runs the backend in a callgrind session\n");
    fprintf (stderr, "       --dot=PATH         dumps DOT for full infolding into PATH\n");
+   fprintf (stderr, " -D MACRO                 defines a preprocessor macro\n");
    //fprintf (stderr, " -a {0,1,K}, --alt={0,1,K} alternatives: 0 optimal, 1 only-last, K K-partial (default 1)\n");
    fprintf (stderr, " -a K, --alt=K            alternatives: K=0 -> optimal, K>=1 -> K-partial (default 1)\n");
    fprintf (stderr, " -m N, --mem=N            sets the guest memory, in MB (default %zuM)\n", memsize / (1 << 20));
@@ -212,6 +222,7 @@ void print_options ()
    fprintf (stderr, "       --strace           prints strace(1)-like info on program execution (default %d)\n", strace);
    fprintf (stderr, "       --dosleep          makes sleep(3) not to return EINTR immediately (default %d)\n", dosleep);
    fprintf (stderr, " -x N  --maxcts N         prune POR tree beyond N context switches (default: no limit)\n");
+   fprintf (stderr, "       --timeout N        stop exploration after N seconds\n");
 }
 
 void version (void)

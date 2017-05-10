@@ -3,6 +3,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <math.h>
+#include <time.h>
 #include <unistd.h>
 
 #include <cstdint>
@@ -296,10 +297,12 @@ void C15unfolder::explore ()
    Replay replay (u);
    Event *e = nullptr;
    int i = 0;
+   time_t start;
 
    // initialize the defect report now that all settings for this verification
    // exploration are fixed
    report_init (report);
+   start = time (nullptr);
 
    while (1)
    {
@@ -355,6 +358,11 @@ void C15unfolder::explore ()
          if (find_alternative (t, c, d, j)) break;
          d.unadd ();
       }
+
+      // if we exhausted the time cap, we stop
+      if (counters.runs % 10 == 0 and opts::timeout)
+         if (time(nullptr) - start > opts::timeout)
+            { counters.timeout = true; break; }
 
       // if the trail is now empty, we finished; otherwise we compute a replay
       // and pass it to steroids

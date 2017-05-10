@@ -41,6 +41,7 @@ public:
 
    /// counters to obtain statistics
    struct {
+      bool timeout = false;
       long unsigned runs = 0;
       long unsigned ssbs = 0;
       long unsigned maxconfs = 0;

@@ -41,7 +41,7 @@ public:
    /// maximal event for the given pid, or nullptr
    inline Event *proc_max (unsigned pid);
    /// maximal event for the given address (or THCREAT/EXIT if pid is given)
-   inline const Event *mutex_max (Addr a) const;
+   inline const Event * mutex_max (Addr a) const;
    inline Event *mutex_max (Addr a);
    
 public:

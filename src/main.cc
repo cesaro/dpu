@@ -369,11 +369,12 @@ void print_stats (C15unfolder &unf, Resources &res)
    print_res_stats (unf, res, events);
 
    PRINT ("\ndpu: summary: "
-         "%zu defects, %lu max-configs, %lu SSBs, %lu events, %.3f sec, %luM",
+         "%zu defects, %lu max-configs, %lu SSBs, %lu events, %.3f sec, %luM%s",
          unf.report.defects.size(),
          unf.counters.maxconfs, unf.counters.ssbs, events,
          res.walltime / 1000000.0,
-         res.maxrss / 1024);
+         res.maxrss / 1024,
+         unf.counters.timeout ? " (timeout)" : "");
 }
 
 int main (int argc, char **argv)
@@ -438,7 +439,10 @@ int main (int argc, char **argv)
       // build entire unfolding
       PRINT ("dpu: starting unfolding construction");
       unf.explore ();
-      PRINT ("dpu: finished unfolding construction");
+      if (unf.counters.timeout)
+         PRINT ("dpu: TIMEOUT! stopped unfolding construction");
+      else
+         PRINT ("dpu: finished unfolding construction");
 
       // print dot
       if (opts::dotpath.size())

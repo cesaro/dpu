@@ -113,6 +113,9 @@ Related tools
 
 - `POET <https://github.com/marcelosousa/poet/>`__
 - `Nidhugg <https://github.com/nidhugg/nidhugg>`__
+- `CHESS <http://research.microsoft.com/chess/>`__
+- `Maple <https://github.com/jieyu/maple>`__
+
 
 Contact
 =======

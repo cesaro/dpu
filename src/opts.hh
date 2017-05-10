@@ -24,6 +24,7 @@ extern unsigned optlevel;
 extern unsigned maxcts;
 extern bool strace;
 extern bool dosleep;
+extern unsigned timeout;
 
 
 void parse (int argc, char **argv_);

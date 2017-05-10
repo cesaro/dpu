@@ -161,6 +161,8 @@ bool C15unfolder::stream_match_trail
          }
          break;
 
+#if 0
+      // currently steroids does not generate these events
       case RT_ALLOCA :
       case RT_MALLOC :
       case RT_FREE :
@@ -168,6 +170,7 @@ bool C15unfolder::stream_match_trail
       case RT_RET :
          // not implemented, but doesn't hurt ;)
          break;
+#endif
 
       default :
          // this is supposed to match only RD/WR actions, will produce an

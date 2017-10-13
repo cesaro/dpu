@@ -35,8 +35,8 @@ Dependencies
 - Python 2
 - Clang 3.7
 - LLVM 3.7
-- The `steroids dynamic analysis <https://github.com/cesaro/steroids>`__
-  library.
+- `Steroids v0.1.0 <https://github.com/cesaro/steroids/releases/tag/v0.1.0>`__, a
+  dynamic analysis library
 
 Optional:
 
@@ -46,9 +46,15 @@ Optional:
 Compilation
 ===========
 
-DPU has only been compiled and tested under Debian/Ubuntu, although it should
-probably work on other Linux distributions. Please note that the Steroids
-library only works on x86-64 machines.
+Before compiling DPU please notice that:
+
+- Development for DPU happens in the ``master`` branch. If you want a stable
+  version of the tool you instead download and compile the
+  `latest available release <https://github.com/cesaro/dpu/releases>`__ of the
+  tool.
+- DPU has only been compiled and tested under Debian/Ubuntu, although it should
+  probably work on other Linux distributions. Please note that the Steroids
+  library only works on x86-64 machines.
 
 The steps here assume that you have a Debian/Ubuntu distribution:
 
@@ -65,20 +71,24 @@ The steps here assume that you have a Debian/Ubuntu distribution:
    ``PATH``, and typing ``llvm-config-3.7 --prefix`` should print the
    installation path of LLVM 3.7.
 
-3. Download and compile the
-   `steroids dynamic analysis <https://github.com/cesaro/steroids>`__
-   library.
+3. Download and compile `v0.1.0 <https://github.com/cesaro/steroids/releases/tag/v0.1.0>`__
+   of the `Steroids dynamic analysis <https://github.com/cesaro/steroids>`__
+   library. Using a different version of steroids may break the compilation or
+   performance of DPU.
 
-4. Edit the file `<config.mk>`__. Update the value of the variable
+4. Download and compile the `latest release available
+   <https://github.com/cesaro/dpu/releases>`__ for the DPU tool.
+
+5. Edit the file `<config.mk>`__. Update the value of the variable
    ``CONFIG_STEROIDS_ROOT`` to point to the root of the steroids project.
    Give an absolute path or a path relative to the variable ``$R``,
    which will equal to the path of the root folder of the DPU project.
 
-5. Compile::
+6. Compile::
 
     make dist
 
-6. Optional: run regression tests::
+7. Optional: run regression tests::
 
     make regression
 

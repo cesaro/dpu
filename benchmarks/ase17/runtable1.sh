@@ -7,13 +7,13 @@ TIMEOUT=8m
 
 WANT_DPU_ALT_SDPOR=n
 WANT_DPU_ALT0=y
-WANT_DPU_ALT1=n
-WANT_DPU_ALT2=n
-WANT_DPU_ALT3=n
+WANT_DPU_ALT1=y
+WANT_DPU_ALT2=y
+WANT_DPU_ALT3=y
 WANT_DPU_ALT4=n
-WANT_NIDHUGG=n
+WANT_NIDHUGG=y
 
-DPU_OPTS="-O1 -v -m140M"
+DPU_OPTS="-O1"
 
 # ==== END CONFIGURATION VARIABLES ====
 
@@ -56,6 +56,8 @@ generate_bench_all ()
 
 generate_bench_selection ()
 {
+   # The benchmarks selected for Table 1 of the paper
+
    # pre-conditions:
    # $R       - root of the ase17 folder
 
@@ -251,11 +253,15 @@ generate_bench_cesar ()
 
 generate_bench_skiplist ()
 {
+   # Selection of benchmarks for analyzing the performance of the sequential
+   # trees. These are roughly a subset of those in generate_bench_selection
+   # (Table 1) representative of the overall set of Table 1.
+
    preprocess_family $R/dispatcher.c dispatch   "serv" "4" "reqs" "`seq -w 3 5`"
    preprocess_family $R/mpat.c       mpat       "k" "`seq -w 4 6`"
-   preprocess_family $R/poke.c       poke       "threads" "`seq -w 11 15`" "iters" "3"
    preprocess_family $R/multiprodcon.c multipc  "prods" "3 4" "workers" "4"
    preprocess_family $R/pi/pth_pi_mutex.c pi    "threads" "`seq -w 6 8`" "iters" "2000"
+   preprocess_family $R/poke.c       poke       "threads" "`seq -w 10 13`" "iters" "3"
 }
 
 runall_dpu ()
@@ -409,12 +415,12 @@ main ()
    print_date "Starting the script"
    test_can_run
    #generate_bench_all
-   #generate_bench_selection
+   generate_bench_selection
    #generate_bench_smallest
    #generate_bench_cesar
    #generate_bench_smallruntime
    #generate_bench_morethan1sec
-   generate_bench_skiplist
+   #generate_bench_skiplist
 
    print_date "Running tool DPU"
    runall_dpu

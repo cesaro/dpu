@@ -35,7 +35,7 @@ dist : compile $(CONFIG_STEROIDS_ROOT)/rt/rt.bc
 	cp $(CONFIG_STEROIDS_ROOT)/rt/rt.bc dist/lib/dpu/
 
 compile :
-	make -f src/Makefile R=. $@
+	+make -f src/Makefile R=. $@
 
 run: dist
 	./dist/bin/dpu benchmarks/basic/cjlu.c -vv --dot u.dot -- p main3

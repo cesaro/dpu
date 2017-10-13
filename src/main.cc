@@ -465,12 +465,16 @@ int main (int argc, char **argv)
 
       // report statistics
       print_stats (unf, res);
+      llvm::outs().flush();
+      llvm::errs().flush();
       fflush (stdout);
       fflush (stderr);
 
    } catch (const std::exception &e) {
       PRINT ("%s: error: unhandled exception: %s", opts::progname, e.what ());
       PRINT ("%s: aborting!", opts::progname);
+      llvm::outs().flush();
+      llvm::errs().flush();
       fflush (stdout);
       fflush (stderr);
       return 1;

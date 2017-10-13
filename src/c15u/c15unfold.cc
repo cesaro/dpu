@@ -179,7 +179,6 @@ void C15unfolder::print_external_syms (const char *prefix)
       os << *pair.second << "\n";
    }
 
-
    // global variables
    len = 0;
    for (llvm::GlobalVariable &g : m->globals())

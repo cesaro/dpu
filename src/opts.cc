@@ -211,7 +211,7 @@ void print_options ()
    fprintf (stderr, " -v,   --verb=N           increments verbosity level by optional parameter N (1 to 3)\n");
    fprintf (stderr, "       --gdb              runs the backend in a gdb session\n");
    fprintf (stderr, "       --callgrind        runs the backend in a callgrind session\n");
-   fprintf (stderr, "       --dot=PATH         dumps DOT for full infolding into PATH\n");
+   fprintf (stderr, "       --dot=PATH         dumps DOT for full unfolding into PATH\n");
    fprintf (stderr, " -D MACRO                 defines a preprocessor macro\n");
    //fprintf (stderr, " -a {0,1,K}, --alt={0,1,K} alternatives: 0 optimal, 1 only-last, K K-partial (default 1)\n");
    fprintf (stderr, " -a K, --alt=K            alternatives: K=0 -> optimal, K>=1 -> K-partial (default 1)\n");

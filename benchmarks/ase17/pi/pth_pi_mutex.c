@@ -41,6 +41,14 @@
 #endif
 #endif
 
+#ifndef THREADS
+#define THREADS 4
+#endif
+
+#ifndef ITERS
+#define ITERS 1000
+#endif
+
 long thread_count;
 long long n;
 double sum;

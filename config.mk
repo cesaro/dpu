@@ -7,7 +7,7 @@ R ?= .
 CONFIG_RELEASE = 1
 
 # version of the tool
-CONFIG_VERSION = v0.3.0
+CONFIG_VERSION = v0.4.0
 
 # folder where the tool will be installed with "make install"
 CONFIG_PREFIX = ~/x/local
@@ -22,7 +22,7 @@ CONFIG_STEROIDS_ROOT = $R/../steroids
 CONFIG_MAX_PROCESSES = 32
 
 # maximum number of events per process
-CONFIG_MAX_EVENTS_PER_PROCCESS = 2000100
+CONFIG_MAX_EVENTS_PER_PROCCESS = 1000100
 
 # default memory size for guest code execution
 CONFIG_GUEST_DEFAULT_MEMORY_SIZE = $(shell echo '128 * 2^20' | bc)
@@ -34,7 +34,7 @@ CONFIG_GUEST_DEFAULT_THREAD_STACK_SIZE = $(shell echo '1 * 2^20' | bc)
 CONFIG_GUEST_TRACE_BUFFER_SIZE = $(shell echo '1 * 2^20' | bc)
 
 # defines the skip step for the sequential tree skip lists (>= 2)
-CONFIG_SKIP_STEP = 2
+CONFIG_SKIP_STEP = 4
 
 # defines the maximum number of times that a defect will get repeated in the
 # defect report

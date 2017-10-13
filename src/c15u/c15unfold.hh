@@ -111,7 +111,7 @@ public:
    bool might_find_alternative (Config &c, Disset &d, Event *e);
 
    /// finds one alternative for C after D, and stores it in J; we select from
-   /// here the specific algorithm that we cal
+   /// here the specific algorithm that we call
    bool find_alternative (const Trail &t, Config &c, const Disset &d, Cut &j);
 
    /// Implementation 1: complete, unoptimal, searches conflict to only last event

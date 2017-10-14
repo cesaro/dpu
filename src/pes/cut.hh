@@ -86,6 +86,7 @@ public:
 protected:
    /// size of the map below (u.num_procs())
    unsigned nrp;
+
    /// map from process id (int) to maximal event in that process
    Event **max;
 

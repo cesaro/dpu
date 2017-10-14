@@ -223,6 +223,11 @@ bool Event::in_icfl_with (const Event *e) const
          action.addr == e->action.addr;
 }
 
+bool Event::in_con_with (const Event *e) const
+{
+   return !is_predeq_of(e) and !e->is_predeq_of(this) and !in_cfl_with(e);
+}
+
 void Event::icfls (std::vector<Event*> &v) const
 {
    Event *e;

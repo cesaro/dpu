@@ -24,8 +24,6 @@ class Process;
 class Event : public MultiNode<Event,CONFIG_SKIP_STEP>
 {
 public:
-   int inside; // a flag to mark that an event is inside some set or not
-
    /// THSTART(creat), where creat is the THCREAT, null for p0
    inline Event (Event *creat, bool boxfirst);
    /// THCREAT(tid) or THEXIT(), one predecessor (in the process)
@@ -42,71 +40,79 @@ public:
       int crb : 1;
       /// True iff this event is in the set D of the C'15 algorithm
       int ind : 1;
+      ///// Domain-specific flag 1
+      //int user1 : 1;
+      ///// Domain-specific flag 2
+      //int user2 : 1;
    } flags;
 
-   /// the blue action performed by this event
+   /// The blue action performed by this event
    Action action;
-   /// a list of red actions that the thread performed between Events pre() and this
+   /// A list of red actions that the thread performed between Events pre() and this
    std::vector<Action> redbox;
 
-   /// color mark for various algorithms
+   /// Color mark for various algorithms
    unsigned color;
-   /// general-purpose pointer for various algorithms
+
+   /// General-purpose pointer for various algorithms
    Event *next;
 
-   /// predecessor in my thread, or null if THSTART
+   /// Predecessor in my thread, or null if THSTART
    inline const Event *pre_proc () const;
    inline Event *pre_proc ();
-   /// predecessor in another thread (if any), or null
+
+   /// Predecessor in another thread (if any), or null
    inline const Event *pre_other () const;
    inline Event *pre_other ();
 
-   /// returns the pid of the process to which this event belongs
+   /// Returns the pid of the process to which this event belongs
    unsigned pid () const;
-   /// returns the process to which this event belongs
+   /// Returns the process to which this event belongs
    Process *proc () const;
-   /// returns a unique numeric id
+   /// Returns a unique numeric id
    unsigned uid () const;
    std::string suid () const;
-   /// returns a numeric id that is unique among events of the same process
+   /// Returns a numeric id that is unique among events of the same process
    unsigned puid () const;
 
    inline unsigned depth_proc () const;
    inline unsigned depth_other () const;
 
-   /// tests pointer equality of two events
+   /// Tests pointer equality of two events
    inline bool operator == (const Event &) const;
    /// returns a human-readable description of the event
    std::string str () const;
 
-   /// true iff this event is the THSTART event of thread 0
+   /// True iff this event is the THSTART event of thread 0
    inline bool is_bottom () const;
 
 
-   /// returns true iff (this <= e)
+   /// Returns true iff (this <= e)
    inline bool is_predeq_of (const Event *e) const;
-   /// returns true iff (this < e)
+   /// Returns true iff (this < e)
    inline bool is_pred_of (const Event *e) const;
-   /// returns true iff (this # e)
+   /// Returns true iff (this # e)
    inline bool in_cfl_with (const Event *e) const;
-   /// returns true iff (this \cup c is conflict-free)
+   /// Returns true iff (this \cup c is conflict-free)
    inline bool in_cfl_with (const Config &c) const;
-   /// returns true iff (this \cup c is conflict-free); less efficient than previous
+   /// Returns true iff (this \cup c is conflict-free); less efficient than previous
    inline bool in_cfl_with (const Cut &c) const;
-   /// returns true iff (this and e are LOCK and siblings in the node[1] tree)
+   /// Returns true iff (this and e are LOCK and siblings in the node[1] tree)
    inline bool in_icfl_with (const Event *e) const;
+   /// Returns true iff (this != e and this and e are concurrent)
+   inline bool in_con_with (const Event *e) const;
 
-   /// returns some set of events in conflict which includes at least all
+   /// Returns some set of events in conflict which includes at least all
    /// adds to v (push_back) all immediate conflicts of the event
    inline void icfls (std::vector<Event*> &v) const;
 
-   /// returns the number of events that would be returned by a call to icfls()
+   /// Returns the number of events that would be returned by a call to icfls()
    inline unsigned icfl_count () const;
 
-   /// returns the memory size of the data pointed by fields in this object
+   /// Returns the memory size of the data pointed by fields in this object
    inline size_t pointed_memory_size () const;
 
-   /// the cut of the local configuration of the event
+   /// The cut of the local configuration of the event
    const Primecon cone;
 
    /// depth of the event in the unfolding

@@ -139,7 +139,7 @@ void C15unfolder::explore ()
 
    // initialize the defect report now that all settings for this verification
    // exploration are fixed
-   report_init (report);
+   report_init ();
    start = time (nullptr);
 
    while (1)
@@ -588,14 +588,14 @@ bool C15unfolder::find_alternative_sdpor (Config &c, const Disset &d, Cut &j)
    return true;
 }
 
-void C15unfolder::report_init (Defectreport &r) const
+void C15unfolder::report_init ()
 {
    // fill the fields stored in the Unfolder base class
-   Unfolder::report_init (r);
+   Unfolder::report_init ();
 
    // fill ours
-   r.alt = (int) altalgo;
-   r.kbound = kpartial_bound;
+   report.alt = (int) altalgo;
+   report.kbound = kpartial_bound;
 }
 
 } // namespace dpu

@@ -76,14 +76,14 @@ public:
    inline bool stream_match_trail (const stid::action_streamt &s,
          stid::action_stream_itt &it, Trail &t, Pidmap &pidmap);
 
+protected:
+
    /// Initializes the fields of a Defectreport with the parameters of this
    /// C15unfolder. This method can be overloaded in subclasses. Those overloadings
    /// will, probably call to this implementation to fill the report fields with
    /// the parmeters stored in this class, and then add others possibly stored
    /// in the subclasses.
-   void report_init (Defectreport &r) const;
-
-protected:
+   void report_init ();
 
    /// FIXME
    inline void report_add_nondet_violation (const Trail &t, unsigned where,

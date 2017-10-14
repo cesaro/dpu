@@ -120,7 +120,7 @@ x translate e->action.val on thread creation, so that it contains the pid in the
   assume that c1 is marked with that color
 
 - We reserve a fixed capacity for the vector Disset::stack to avoid rellocations
-  that break pointers in the linked lists. This could be done more nicely done.
+  that break pointers in the linked lists. This could be more nicely done.
 
 - do a simple configure script, allowing to select for debug compilation
   (CONFIG_DEBUG, -g, no optimization) and release compilation (undef
@@ -130,7 +130,7 @@ x translate e->action.val on thread creation, so that it contains the pid in the
 
 - prepare regression tests and a Makefile goal "tests" to run them
 
-- Add an option ``-D MACRO`` to dpu
+x Add an option ``-D MACRO`` to dpu
 
 - We can make the maximum number of processes dynamic (commandline option) if we
   keep the max number of events per process static (define). To do it we

@@ -227,24 +227,24 @@ bool Unfolder::is_conflict_free (const std::vector<Event *> &sol,
    return true;
 }
 
-void Unfolder::report_init (Defectreport &r) const
+void Unfolder::report_init ()
 {
    ASSERT (exec);
    std::vector<std::string> myargv (exec->argv.begin(), exec->argv.end());
    std::vector<std::string> myenv (exec->environ.begin(), --(exec->environ.end()));
 
-   r.dpuversion = CONFIG_VERSION;
-   r.path = path;
-   r.argv = myargv;
-   r.environ = myenv;
-   r.memsize = exec->config.memsize;
-   r.defaultstacksize = exec->config.defaultstacksize;
-   r.tracesize = exec->config.tracesize;
-   r.optlevel = exec->config.optlevel;
+   report.dpuversion = CONFIG_VERSION;
+   report.path = path;
+   report.argv = myargv;
+   report.environ = myenv;
+   report.memsize = exec->config.memsize;
+   report.defaultstacksize = exec->config.defaultstacksize;
+   report.tracesize = exec->config.tracesize;
+   report.optlevel = exec->config.optlevel;
 
-   r.nr_exitnz = 0;
-   r.nr_abort = 0;
-   r.defects.clear ();
+   report.nr_exitnz = 0;
+   report.nr_abort = 0;
+   report.defects.clear ();
 }
 
 } // namespace dpu

@@ -98,11 +98,11 @@ public:
    /// Computes conflicting extensions associated to event e
    void compute_cex_lock (Event *e, Event **head);
 
+protected:
    /// Initializes the fields of a Defectreport with the parameters of this
    /// C15unfolder.
-   virtual void report_init (Defectreport &r) const;
+   void report_init ();
 
-private:
    /// Returns debugging output suitable to be printed
    std::string explore_stat (const Trail &t, const Disset &d) const;
 
@@ -112,6 +112,7 @@ private:
    /// When computing k-partial alternatives, the value of k
    unsigned kpartial_bound;
 
+private:
    /// The comb data structure
    Comb comb;
 

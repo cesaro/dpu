@@ -51,6 +51,9 @@ tags :
 g gdb : dist
 	./dist/bin/dpu benchmarks/basic/cjlu.c -vv --gdb -- p main3
 
+c cgdb : dist
+	./dist/bin/dpu benchmarks/basic/cjlu.c -vv --gdb -- p main3
+
 tests : unittests regression
 
 unittest ut : compile

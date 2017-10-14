@@ -138,7 +138,7 @@ public:
 };
 
 // implementation of inline methods
-#include "c15u/disset.hpp"
+#include "unfolder/disset.hpp"
 
 } //end of namespace
 #endif

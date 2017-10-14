@@ -35,88 +35,35 @@
 namespace dpu
 {
 
-static void _ir_write_ll (const llvm::Module *m, const char *filename)
-{
-   int fd = open (filename, O_WRONLY | O_TRUNC | O_CREAT, 0644);
-   ASSERT (fd >= 0);
-   llvm::raw_fd_ostream f (fd, true);
-   f << *m;
-}
-
-
 C15unfolder::C15unfolder (Altalgo a, unsigned kbound, unsigned maxcts) :
-   m (nullptr),
-   exec (nullptr),
+   Unfolder (prepare_executor_config ()),
    altalgo (a),
    kpartial_bound (kbound),
    comb (a, kbound),
-   max_context_switches (maxcts),
-   pidpool (u)
+   max_context_switches (maxcts)
 {
-   unsigned i;
+   std::string s;
 
    if (altalgo == Altalgo::OPTIMAL)
       kpartial_bound = UINT_MAX;
 
    if (altalgo != Altalgo::OPTIMAL and maxcts != UINT_MAX)
-      throw std::invalid_argument ("Limiting the number of context switches "
-            "is only possible with optimal alternatives");
-
-   // initialize the start array (this is an invariant expected and maintained
-   // by stream_to_events)
-   for (i = 0; i < Unfolding::MAX_PROC; i++) start[i] = nullptr;
+   {
+      s = "Limiting the number of context switches is only possible " \
+         "with optimal alternatives";
+      throw std::invalid_argument (s);
+   }
 }
 
 C15unfolder::~C15unfolder ()
 {
    DEBUG ("c15u.dtor: this %p", this);
-   delete exec;
 }
 
-void C15unfolder::load_bytecode (std::string &&filepath)
+stid::ExecutorConfig C15unfolder::prepare_executor_config () const
 {
-   llvm::SMDiagnostic err;
-   std::string errors;
-
-   ASSERT (filepath.size());
-   ASSERT (path.size() == 0);
-   ASSERT (exec == 0);
-   ASSERT (m == 0);
-   path = std::move (filepath);
-
-   // necessary for the JIT engine; we should move this elsewhere
-   static bool init = false;
-   if (not init)
-   {
-      init = true;
-      llvm::InitializeNativeTarget();
-      llvm::InitializeNativeTargetAsmPrinter();
-      llvm::InitializeNativeTargetAsmParser();
-   }
-
-   // get a context
-   llvm::LLVMContext &context = llvm::getGlobalContext();
-
-   // parse the .ll file and get a Module out of it
-   PRINT ("dpu: loading bytecode...");
-   std::unique_ptr<llvm::Module> mod (llvm::parseIRFile (path, err, context));
-   m = mod.get();
-
-   // if errors found, report and terminate
-   if (! mod.get ()) {
-      llvm::raw_string_ostream os (errors);
-      err.print (path.c_str(), os);
-      os.flush ();
-      DEBUG ("c51u: load-bytecode: '%s': %s\n", path.c_str(), errors.c_str());
-      throw std::invalid_argument (errors);
-   }
-
-   // print external symbols
-   if (verb_trace) print_external_syms ("dpu: ");
-
-   // prepare an Executor, the constructor instruments and allocates guest
-   // memory
    stid::ExecutorConfig conf;
+
    conf.memsize = opts::memsize;
    conf.defaultstacksize = opts::stacksize;
    conf.optlevel = opts::optlevel;
@@ -132,116 +79,8 @@ void C15unfolder::load_bytecode (std::string &&filepath)
    conf.strace.proc = i;
    conf.strace.others = i;
 
-   PRINT ("dpu: O%u-optimization + jitting...", opts::optlevel);
-   DEBUG ("c15u: load-bytecode: setting up the bytecode executor...");
-   try {
-      exec = new stid::Executor (std::move (mod), conf);
-   } catch (const std::exception &e) {
-      DEBUG ("c15u: load-bytecode: errors preparing the bytecode executor");
-      DEBUG ("c15u: load-bytecode: %s", e.what());
-      throw e;
-   }
-   DEBUG ("c15u: load-bytecode: executor successfully created!");
-
-   if (opts::instpath.size())
-   {
-      TRACE ("c15u: load-bytecode: saving instrumented bytecode to %s", opts::instpath.c_str());
-      _ir_write_ll (m, opts::instpath.c_str());
-   }
-
-   DEBUG ("c15u: load-bytecode: done!");
-}
-
-void C15unfolder::print_external_syms (const char *prefix)
-{
-   std::string str;
-   llvm::raw_string_ostream os (str);
-   std::vector<std::pair<llvm::StringRef,llvm::Type*>> funs;
-   std::vector<std::pair<llvm::StringRef,llvm::Type*>> globs;
-   size_t len;
-
-   ASSERT (m);
-
-   // functions
-   len = 0;
-   for (llvm::Function &f : m->functions())
-   {
-      if (not f.isDeclaration()) continue;
-      funs.emplace_back (f.getName(), f.getType());
-      if (len < funs.back().first.size())
-         len = funs.back().first.size();
-   }
-   std::sort (funs.begin(), funs.end());
-   os << prefix << "External functions:\n";
-   for (auto &pair : funs)
-   {
-      os << prefix << llvm::format ("  %-*s ", len, pair.first);
-      os << *pair.second << "\n";
-   }
-
-   // global variables
-   len = 0;
-   for (llvm::GlobalVariable &g : m->globals())
-   {
-      if (not g.isDeclaration()) continue;
-      globs.emplace_back (g.getName(), g.getType());
-      if (len < globs.back().first.size())
-         len = globs.back().first.size();
-   }
-   std::sort (globs.begin(), globs.end());
-   os << prefix << "External variables:\n";
-   for (auto &pair : globs)
-   {
-      os << prefix << llvm::format ("  %-*s ", len, pair.first);
-      os << *pair.second << "\n";
-   }
-   os.flush ();
-   PRINT ("%s", str.c_str());
-}
-
-void C15unfolder::set_args (std::vector<const char *> argv)
-{
-   DEBUG ("c15u: set-args: |argv| %zu", argv.size());
-   exec->argv = argv;
-}
-
-void C15unfolder::set_env (std::vector<const char *> env)
-{
-   if (env.empty() or env.back() != nullptr)
-      env.push_back (nullptr);
-   DEBUG ("c15u: set-env: |env| %zu", env.size());
-   exec->environ = env;
-}
-
-void C15unfolder::set_default_environment ()
-{
-   char * const * v;
-   std::vector<const char *> env;
-
-   // make a copy of our environment
-   for (v = environ; *v; ++v) env.push_back (*v);
-   env.push_back (nullptr);
-   DEBUG ("c15u: set-env: |env| %zu", env.size());
-   exec->environ = env;
-}
-
-Config C15unfolder::add_one_run (const Replay &r)
-{
-   Config c (Unfolding::MAX_PROC);
-
-   ASSERT (exec);
-
-   // run the guest
-   DEBUG ("c15u: add-1-run: this %p |replay| %zu", this, r.size());
-   exec->set_replay (r);
-   DEBUG ("c15u: add-1-run: running the guest ...");
-   exec->run ();
-
-   // get a stream object from the executor and transform it into events
-   stid::action_streamt actions (exec->get_trace ());
-   actions.print ();
-   stream_to_events (c, actions);
-   return c;
+   conf.do_load_store = false;
+   return conf;
 }
 
 void C15unfolder::add_multiple_runs (const Replay &r)
@@ -478,17 +317,8 @@ void C15unfolder::compute_cex (Config &c, Event **head)
    }
 }
 
-bool C15unfolder::is_conflict_free (const std::vector<Event *> &sol, const Event *e) const
-{
-   // we return false iff e is in conflict with some event of the partial solution "sol"
-   int i;
-   for (i = 0; i < sol.size(); i++)
-      if (e->in_cfl_with (sol[i])) return false;
-   return true;
-}
-
 bool C15unfolder::enumerate_combination (unsigned i,
-      std::vector<Event*> &sol)
+   std::vector<Event*> &sol)
 {
    // We enumerate combinations using one event from each spike
    // - the partial solution is stored in sol
@@ -760,23 +590,12 @@ bool C15unfolder::find_alternative_sdpor (Config &c, const Disset &d, Cut &j)
 
 void C15unfolder::report_init (Defectreport &r) const
 {
-   std::vector<std::string> myargv (exec->argv.begin(), exec->argv.end());
-   std::vector<std::string> myenv (exec->environ.begin(), --(exec->environ.end()));
+   // fill the fields stored in the Unfolder base class
+   Unfolder::report_init (r);
 
-   r.dpuversion = CONFIG_VERSION;
-   r.path = path;
-   r.argv = myargv;
-   r.environ = myenv;
+   // fill ours
    r.alt = (int) altalgo;
    r.kbound = kpartial_bound;
-   r.memsize = exec->config.memsize;
-   r.defaultstacksize = exec->config.defaultstacksize;
-   r.tracesize = exec->config.tracesize;
-   r.optlevel = exec->config.optlevel;
-
-   r.nr_exitnz = 0;
-   r.nr_abort = 0;
-   r.defects.clear ();
 }
 
 } // namespace dpu

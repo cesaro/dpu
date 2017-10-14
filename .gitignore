@@ -11,6 +11,7 @@ dot/*.png
 *.r
 *.d
 *.o
+*.a
 *.log
 *.pyc
 *.pdftex
@@ -18,3 +19,4 @@ dot/*.png
 tags
 benchmarks/basic/*.ll
 config.h
+*.swp

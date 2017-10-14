@@ -11,10 +11,11 @@
 #include "pes/process.hh"
 #include "pes/unfolding.hh"
 
-#include "c15u/disset.hh"
-#include "c15u/trail.hh"
-#include "c15u/pidpool.hh"
-#include "c15u/replay.hh"
+#include "unfolder/disset.hh"
+#include "unfolder/trail.hh"
+#include "unfolder/pidpool.hh"
+#include "unfolder/replay.hh"
+#include "unfolder/unfolder.hh"
 
 #include "defectreport.hh"
 
@@ -24,21 +25,14 @@ typedef enum { SDPOR, ONLYLAST, KPARTIAL, OPTIMAL } Altalgo;
 };
 
 // requires Altalgo to be defined
-#include "c15u/comb.hh"
+#include "unfolder/comb.hh"
 
 namespace dpu
 {
 
-class C15unfolder
+class C15unfolder : public Unfolder
 {
 public:
-
-   /// the unfolding data structure
-   Unfolding u;
-
-   /// The list of all defects found during the exploration
-   Defectreport report;
-
    /// counters to obtain statistics
    struct {
       bool timeout = false;
@@ -59,34 +53,12 @@ public:
       } alt;
    } counters;
 
-   // dynamic executor
-   std::string path;
-   llvm::Module *m;
-   stid::Executor *exec;
-
    // ctor and dtor
    C15unfolder (Altalgo a, unsigned kbound, unsigned maxcts);
-   ~C15unfolder ();
+   virtual ~C15unfolder ();
 
-   /// load the llvm module from the "path" file
-   void load_bytecode (std::string &&filepath);
-
-   /// List all external symbols in the lodaded bytecode
-   void print_external_syms (const char *prefix);
-
-   /// Sets the argv vector of the program to verify
-   void set_args (std::vector<const char *> argv);
-      
-   /// Sets the environment variables of the program to verify
-   void set_env (std::vector<const char *> env);
-
-   /// Sets the environment variables of the program to verify to be a copy of
-   /// our own environment, see environ(7)
-   void set_default_environment ();
-
-   /// runs the system up to completion (termination) using the provided replay
-   /// and returns the corresponding maximal configuration
-   Config add_one_run (const Replay &r);
+   /// Initialize and return the parameters of a stid::Executor
+   stid::ExecutorConfig prepare_executor_config () const;
 
    /// runs the system up to completion using the replay, computes CEX of the
    /// resulting configuration, constructs a replay for each one of them and
@@ -99,9 +71,6 @@ public:
    /// compute the conflicting extensions of c and add them to a singly-linked
    /// list pointed by head
    void compute_cex (Config &c, Event **head);
-
-   /// determines if the causal closure of all events in eset is a configuration
-   bool is_conflict_free(const std::vector<Event *> &sol, const Event *e) const;
 
    /// recursive function to explore all combinations in the comb of
    /// alternatives
@@ -123,33 +92,26 @@ public:
    /// Implementation 2: complete, unoptimal
    bool find_alternative_sdpor (Config &c, const Disset &d, Cut &j);
 
-   /// Translates the stream of actions into events, updating c, t, and d
-   inline bool stream_to_events (Config &c, const stid::action_streamt &s,
-         Trail *t = nullptr, Disset *d = nullptr);
-
-   /// Receives a stream, an iterator to that stream, a vector mapping stream
-   /// pids to our pids, and a trail; this method advances the iterator of the
-   /// stream asserting that the actions found match those of
-   /// the trail; the iterator is left pointing at one plus the (blue) action
-   /// matched with the last event in the trail; it also updates the pidmap at
-   /// thread-creation events
-   inline bool stream_match_trail (const stid::action_streamt &s,
-         stid::action_stream_itt &it, Trail &t, Pidmap &pidmap);
-
+   /// FIXME
    void set_replay_and_sleepset (Replay &replay, const Cut &j, const Disset &d);
 
    /// Computes conflicting extensions associated to event e
    void compute_cex_lock (Event *e, Event **head);
 
+   /// Initializes the fields of a Defectreport with the parameters of this
+   /// C15unfolder.
+   virtual void report_init (Defectreport &r) const;
+
 private:
+   /// Returns debugging output suitable to be printed
    std::string explore_stat (const Trail &t, const Disset &d) const;
-   void report_init (Defectreport &r) const;
-   inline void report_add_nondet_violation (const Trail &t, unsigned where, ActionType found);
 
    /// Algorithm to compute alternatives
    Altalgo altalgo;
+
    /// When computing k-partial alternatives, the value of k
    unsigned kpartial_bound;
+
    /// The comb data structure
    Comb comb;
 
@@ -157,22 +119,10 @@ private:
    /// exploration to allow computing alternatives for an event extracted from
    /// the trail immediately before.
    unsigned max_context_switches;
-
-   /// This object is used to select the pid of a process whenver we create a
-   /// new THCREAT event
-   Pidpool pidpool;
-
-   /// The method tream_match_trail() needs to communicate to
-   /// stream_to_events() the THSTART events of every thread whose THCREAT was
-   /// parsed in stream_match_trail() but whose THSTART didn't make it to the
-   /// configuration before stream_to_events() got the control. We use this map
-   /// to achieve that, we map each pid to the THSTART event in that thread for
-   /// this execution.
-   Event *start[Unfolding::MAX_PROC];
 };
 
 // implementation of inline methods
-#include "c15u/c15unfold.hpp"
+//#include "c15u/c15unfold.hpp"
 
 } //end of namespace
 #endif

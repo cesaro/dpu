@@ -71,6 +71,8 @@ main_ ()
    elif test $GDB = 2; then
       CMD="gdb $BACKEND -ex \"run ${TMP}.bc $ARGS\""
    elif test $GDB = 3; then
+      CMD="cgdb $BACKEND -ex \"run ${TMP}.bc $ARGS\""
+   elif test $GDB = 4; then
       CMD="valgrind --tool=callgrind --dump-instr=yes $BACKEND ${TMP}.bc $ARGS"
    else
       CMD="$BACKEND ${TMP}.bc $ARGS"
@@ -103,8 +105,11 @@ while test $# -ge 1; do
    --gdb2)
       GDB=2
       ;;
-   --callgrind | --ca | --call | --callg | --callgr | --callgri | --callgrin)
+   --gdb3)
       GDB=3
+      ;;
+   --callgrind | --ca | --call | --callg | --callgr | --callgri | --callgrin)
+      GDB=4
       ;;
    -D)
       shift

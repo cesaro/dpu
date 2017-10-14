@@ -63,9 +63,9 @@ generate_bench_selection ()
 
    preprocess_family $R/dispatcher.c dispatch   "serv" "5" "reqs" "`seq -w 2 6`"
    preprocess_family $R/mpat.c       mpat       "k" "`seq -w 4 8`"
-   preprocess_family $R/poke.c       poke       "threads" "`seq -w 7 12`" "iters" "3"
    preprocess_family $R/multiprodcon.c multipc  "prods" "2 3 4 5" "workers" "5"
    preprocess_family $R/pi/pth_pi_mutex.c pi    "threads" "`seq -w 5 8`" "iters" "5000"
+   preprocess_family $R/poke.c       poke       "threads" "`seq -w 7 12`" "iters" "3"
 }
 
 generate_bench_smallest ()

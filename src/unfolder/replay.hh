@@ -5,8 +5,8 @@
 
 #include "stid/replay.hh"
 
-#include "c15u/pidmap.hh"
-#include "c15u/trail.hh"
+#include "unfolder/pidmap.hh"
+#include "unfolder/trail.hh"
 #include "pes/cut.hh"
 
 namespace dpu {
@@ -54,7 +54,7 @@ private :
 };
 
 // implementation of inline methods
-#include "c15u/replay.hpp"
+#include "unfolder/replay.hpp"
 
 } // namespace
 

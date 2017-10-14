@@ -8,8 +8,8 @@
 #include <algorithm>
 #include <sys/stat.h>
 
-#include "c15u/c15unfold.hh" // must be before verbosity.h
-#include "c15u/pidpool.hh"
+#include "unfolder/c15unfold.hh" // must be before verbosity.h
+#include "unfolder/pidpool.hh"
 #include "verbosity.h"
 #include "misc.hh"
 #include "pes/event.hh"

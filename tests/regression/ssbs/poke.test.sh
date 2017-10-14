@@ -78,9 +78,10 @@ for i in $N; do \
    for j in $K; do \
       grep -i "ding: $((1 + $i + 2*$j)) threads created" out.$i.$j; done; done
 
+set -x; \
 k=1; \
 for i in $N; do \
-   for j in $K; do set -x; \
+   for j in $K; do \
       test "$(grep "dpu: summary: " out.$i.$j | awk '{print $5, $9}')" = "${conf_ev[$k]}"; \
       k=$(($k + 1)); done; done
 

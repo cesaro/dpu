@@ -5,7 +5,7 @@
 #include <string>
 
 #include "pes/event.hh"
-#include "c15u/c15unfold.hh"
+#include "unfolder/c15unfold.hh"
 
 #include "misc.hh"
 #include "verbosity.h"

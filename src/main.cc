@@ -8,7 +8,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include "c15u/c15unfold.hh" // must be before verbosity.h
+#include "unfolder/c15unfold.hh" // must be before verbosity.h
 #include "verbosity.h"
 #include "opts.hh"
 #include "probdist.hh"
@@ -405,7 +405,7 @@ int main (int argc, char **argv)
       C15unfolder unf (opts::alt_algo, opts::kbound, opts::maxcts);
 
       // load code and set argv
-      unf.load_bytecode (std::string (opts::inpath));
+      unf.load_bitcode (std::string (opts::inpath));
 
       // set up argv
       INFO ("dpu: setting commandline arguments:");

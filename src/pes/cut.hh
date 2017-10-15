@@ -1,3 +1,8 @@
+
+// class Cut and inline methods needs to be included exactly in the order
+// event.hh includes them to avoid circular inclusions
+#include "pes/event.hh"
+
 #ifndef __PES_CUT_HH_
 #define __PES_CUT_HH_
 
@@ -50,6 +55,7 @@ public:
    inline void clear ();
 
    /// prints the cut in stdout
+   template<typename T = void>
    void dump () const;
 
    /// returns a human-readable description
@@ -90,6 +96,7 @@ protected:
    /// map from process id (int) to maximal event in that process
    Event **max;
 
+   template<typename T>
    void __dump_cut () const;
 
    // class Primecon uses the following three constructors
@@ -97,9 +104,6 @@ protected:
    Cut (const Cut &other, Event *e);
    inline Cut (const Cut &c1, const Cut &c2, Event *e);
 };
-
-// implementation of inline methods
-#include "pes/cut.hpp"
 
 } // namespace dpu
 #endif

@@ -221,23 +221,6 @@ bool Primecon::in_cfl_with (const Config &c) const
    return false;
 }
 
-void Primecon::dump () const
-{
-   PRINT ("== begin cone =="); 
-   __dump_cut ();
-   __dump_lockmax ();
-   PRINT ("== end cone =="); 
-}
-
-void Primecon::__dump_lockmax () const
-{
-   for (const Event *e : lockmax)
-   {
-      PRINT ("Addr %16p max %s",
-            (void*) e->action.addr, e->str().c_str());
-   }
-}
-
 std::string Primecon::str () const
 {
    std::string s;

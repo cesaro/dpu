@@ -169,13 +169,14 @@ void Process::have_room () const
    }
 }
 
-/// returns the memory size of the data (indirectly) pointed by fields in this object
+/// Returns the memory size of the data (indirectly) pointed by fields in this object
+template<typename T>
 size_t Process::pointed_memory_size () const
 {
    size_t size;
 
    size = 0;
    for (const Event &e : *this)
-      size += e.pointed_memory_size();
+      size += e.pointed_memory_size<T>();
    return size;
 }

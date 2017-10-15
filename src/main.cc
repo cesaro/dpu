@@ -46,7 +46,7 @@ size_t get_precise_memory_size (C15unfolder &unf)
    for (i = 0; i < unf.u.num_procs(); i++)
    {
       size += unf.u.proc(i)->memory_size ();
-      size += unf.u.proc(i)->pointed_memory_size (); // slow
+      size += unf.u.proc(i)->pointed_memory_size<void> (); // slow
    }
    return size;
 }

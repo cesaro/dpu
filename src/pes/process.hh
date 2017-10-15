@@ -68,6 +68,7 @@ public :
       { return (size_t) (((char*) last) - (char*) this) + sizeof (Event); }
 
    /// returns the memory size of the data (indirectly) pointed by fields in this object
+   template<typename T>
    inline size_t pointed_memory_size () const;
 
    struct {

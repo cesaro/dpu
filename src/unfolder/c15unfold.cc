@@ -92,7 +92,7 @@ void C15unfolder::add_multiple_runs (const Replay &r)
    Config c (add_one_run (r));
    // add_one_run executes the system up to completion, we now compute all cex
    // of the resulting configuration and iterate through them
-   c.dump ();
+   c.dump<void> (); // FIXME
 
    // compute cex
    e = nullptr;

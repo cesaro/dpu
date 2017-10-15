@@ -17,6 +17,8 @@
 
 #include "defectreport.hh"
 
+#include "unfolder/redbox.hh" // FIXME: remove
+
 namespace dpu
 {
 
@@ -24,7 +26,7 @@ class Unfolder
 {
 public:
 
-   /// the unfolding data structure
+   /// The unfolding data structure
    Unfolding u;
 
    /// The list of all defects found during the exploration

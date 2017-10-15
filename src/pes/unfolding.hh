@@ -7,15 +7,12 @@
 
 #include "pes/event.hh"
 
-#include "misc.hh"
-#include "config.h"
-
 namespace dpu
 {
 
 class Process;
 
-class Unfolding
+class Unfolding : public UnfoldingMemoryMath
 {
 public:
    Unfolding ();
@@ -45,25 +42,6 @@ public:
    /// returns a new fresh color
    inline unsigned get_fresh_color ();
 
-   /// maximum number of processes in the unfolding
-   static constexpr size_t MAX_PROC = CONFIG_MAX_PROCESSES;
-   /// approximate maximum size (in bytes) used for the events of one process
-   static constexpr size_t PROC_SIZE = alignp2 (CONFIG_MAX_EVENTS_PER_PROCCESS * sizeof (Event));
-   /// alignment for the raw memory pool of the entire unfolding
-   static constexpr size_t ALIGN = PROC_SIZE * alignp2 (MAX_PROC);
-
-   /// extracts the pid to which an object belongs (Process, EventBox, Event)
-   static unsigned ptr2pid (const void *ptr)
-      { return (((size_t) ptr) >> int2msb (PROC_SIZE)) & int2mask (MAX_PROC - 1); }
-   /// returns a unique id (within the process) for the pointer
-   static unsigned ptr2puid (const void *ptr)
-      { return int2mask (PROC_SIZE - 1) & (size_t) ptr; }
-   /// returns a unique id (globally) for the pointer
-   static unsigned ptr2uid (const void *ptr)
-      { return int2mask (ALIGN - 1) & (size_t) ptr; }
-   /// returns the Process of any pointer in that process' address space
-   static Process *ptr2proc (const void *ptr)
-      { return (Process *) (((size_t) ptr) & ~int2mask (PROC_SIZE - 1)); }
 private :
    /// memory space where Processes, EventBoxes and Events will be stored
    char *procs;

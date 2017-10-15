@@ -96,3 +96,12 @@ Event *Config::mutex_max (Addr a)
 {
    return const_cast<Event*> (const_cast<const Config*>(this)->mutex_max (a));
 }
+
+template<typename T>
+void Config::dump () const
+{
+   PRINT ("== begin config ==");
+   __dump_cut<T> ();
+   __dump_mutexes ();
+   PRINT ("== end config ==");
+}

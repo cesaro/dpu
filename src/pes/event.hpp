@@ -4,8 +4,8 @@ Event::Event (Event *creat, bool bf) :
    MultiNode(pre_proc(bf), creat),
    flags ({.boxfirst = bf, .boxlast = 0, .crb = 0, .ind = 0}),
    action ({.type = ActionType::THSTART}),
-   redbox (),
    color (0),
+   dat (nullptr),
    // pre_proc(bf) is null or a causal predecessor of creat->cone[pid()], so
    // it's safe to construct our cone like this:
    cone (creat ? Primecon (creat->cone, this) : Primecon (pid() + 1, this)),
@@ -26,8 +26,8 @@ Event::Event (Action ac, bool bf) :
    MultiNode(pre_proc(bf), nullptr),
    flags ({.boxfirst = bf, .boxlast = 0, .crb = 0, .ind = 0}),
    action (ac),
-   redbox (),
    color (0),
+   dat (nullptr),
    cone (pre_proc()->cone, this),
    depth (pre_proc(bf)->depth + 1)
 {
@@ -43,8 +43,8 @@ Event::Event (Action ac, Event *m, bool bf) :
    MultiNode(pre_proc(bf), m),
    flags ({.boxfirst = bf, .boxlast = 0, .crb = 0, .ind = 0}),
    action (ac),
-   redbox (),
    color (0),
+   dat (nullptr),
    cone (m ?
          Primecon (pre_proc()->cone, m->cone, this) :
          Primecon (pre_proc()->cone, this)),
@@ -56,6 +56,20 @@ Event::Event (Action ac, Event *m, bool bf) :
 
    //DEBUG ("Event.ctor: %s", str().c_str());
    //DEBUG ("Event.ctor: e %-16p %s", this, cone.str().c_str());
+}
+
+template<typename T>
+EventPayload<T> &Event::data ()
+{
+   ASSERT (dat);
+   return * (EventPayload<T> *) dat;
+}
+
+template<typename T>
+const EventPayload<T> &Event::data () const
+{
+   ASSERT (dat);
+   return * (const EventPayload<T> *) dat;
 }
 
 const Event *Event::pre_proc () const
@@ -263,10 +277,51 @@ unsigned Event::icfl_count () const
    return v.size();
 }
 
+template<typename T>
 size_t Event::pointed_memory_size () const
 {
-   return \
-      MultiNode::pointed_memory_size() + \
-      redbox.capacity() * sizeof(Action) +
+   return
+      MultiNode::pointed_memory_size() +
+      (dat ? data<T>().pointed_memory_size() : 0) +
       cone.pointed_memory_size ();
+}
+
+template<typename T>
+std::string Event::str () const
+{
+   std::string s;
+
+   // a nice event id is
+   // fmt ("e%x%-6x", pid(), puid())
+
+   s = fmt ("e %0*x p %2d d %02u,%02u,%02u pre %08x %08x "
+         "%c%c%c%c dat %s ac %s",
+         1 + int2msb (UnfoldingMemoryMath::ALIGN) / 4,
+         uid(), pid(), depth, node[0].depth, node[1].depth,
+         pre_proc()->uid(), pre_other()->uid(),
+         flags.boxfirst ? 'f' : '-',
+         flags.boxlast ? 'l' : '-',
+         flags.crb ? 'c' : '-',
+         flags.ind ? 'D' : '-',
+         data<T>().str().c_str(),
+         action_type_str (action.type));
+
+   switch (action.type)
+   {
+   case ActionType::THCREAT :
+      s += fmt (" val %d", action.val);
+      break;
+   case ActionType::THJOIN :
+      s += fmt (" val %d", action.val);
+      break;
+   case ActionType::MTXLOCK :
+      s += fmt (" addr %p", (void*) action.addr);
+      break;
+   case ActionType::MTXUNLK :
+      s += fmt (" addr %p", (void*) action.addr);
+      break;
+   default :
+      break;
+   }
+   return s;
 }

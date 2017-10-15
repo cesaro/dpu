@@ -136,29 +136,6 @@ void Cut::unionn (Event *e)
    }
 }
 
-void Cut::dump () const
-{
-   PRINT ("== begin cut =="); 
-   __dump_cut ();
-   PRINT ("== end cut =="); 
-}
-
-void Cut::__dump_cut () const
-{
-   Event * e;
-   unsigned i;
-
-   for (i = 0; i < nrp; i++)
-   {
-      e = max[i] ;
-      if (e) PRINT ("Proc %d", i);
-      for (; e; e = e->pre_proc())
-      {
-         PRINT (" %s", e->str().c_str());
-      }
-   }
-}
-
 std::string Cut::str () const
 {
    std::string s;

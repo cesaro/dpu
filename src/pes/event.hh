@@ -3,14 +3,17 @@
 #define __PES_EVENT_HH_
 
 #include <vector>
+#include <string>
 
 #include "pes/action.hh"
 #include "pes/cfltree.hh"
 #include "pes/eventbox.hh"
 #include "pes/primecon.hh"
+#include "pes/event-payload-traits.hh"
 
 #include "verbosity.h"
 #include "config.h"
+#include "misc.hh"
 
 #ifdef CONFIG_STATS_DETAILED
 #include "probdist.hh"
@@ -48,14 +51,23 @@ public:
 
    /// The blue action performed by this event
    Action action;
-   /// A list of red actions that the thread performed between Events pre() and this
-   std::vector<Action> redbox;
 
    /// Color mark for various algorithms
    unsigned color;
 
    /// General-purpose pointer for various algorithms
    Event *next;
+
+   /// A pointer to some domain-specific payload of type EventPayload<T>
+   void *dat;
+
+   /// Utility method to cast and return a reference to the payload
+   template<typename T = void>
+   EventPayload<T> &data ();
+
+   /// Utility method to cast and return a reference to the payload
+   template<typename T = void>
+   const EventPayload<T> &data () const;
 
    /// Predecessor in my thread, or null if THSTART
    inline const Event *pre_proc () const;
@@ -80,12 +92,13 @@ public:
 
    /// Tests pointer equality of two events
    inline bool operator == (const Event &) const;
+
    /// returns a human-readable description of the event
+   template<typename T = void>
    std::string str () const;
 
    /// True iff this event is the THSTART event of thread 0
    inline bool is_bottom () const;
-
 
    /// Returns true iff (this <= e)
    inline bool is_predeq_of (const Event *e) const;
@@ -110,6 +123,7 @@ public:
    inline unsigned icfl_count () const;
 
    /// Returns the memory size of the data pointed by fields in this object
+   template<typename T>
    inline size_t pointed_memory_size () const;
 
    /// The cut of the local configuration of the event
@@ -148,8 +162,16 @@ private:
    friend class Process;
 };
 
-// implementation of inline methods
-#include "pes/event.hpp"
-
 } // namespace dpu
+
+// after the definition of Event but before the implementation of inline methods
+#include "pes/unfolding-memory-math.hh"
+
+// implementation of inline methods
+namespace dpu {
+#include "pes/primecon.hpp"
+#include "pes/cut.hpp"
+#include "pes/event.hpp"
+}
+
 #endif

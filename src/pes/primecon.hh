@@ -1,4 +1,8 @@
 
+// class Primecon and inline methods needs to be included exactly in the order
+// event.hh includes them to avoid circular inclusions
+#include "pes/event.hh"
+
 #ifndef __PES_PRIMECON_HH_
 #define __PES_PRIMECON_HH_
 
@@ -22,7 +26,9 @@ public:
    Primecon (const Primecon &p, const Primecon &m, Event *e);
 
    /// prints the cut in stdout
+   template<typename T = void>
    void dump () const;
+
    /// returns a human-readable description
    std::string str () const;
 
@@ -44,10 +50,9 @@ protected :
    /// the address
    std::vector<const Event*> lockmax;
 
+   template<typename T>
    void __dump_lockmax () const;
 };
-
-#include "pes/primecon.hpp"
 
 } // namespace dpu
 #endif

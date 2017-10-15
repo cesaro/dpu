@@ -128,3 +128,27 @@ inline size_t Cut::pointed_memory_size () const
    return nrp * sizeof (Event*);
 }
 
+template<typename T>
+void Cut::dump () const
+{
+   PRINT ("== begin cut ==");
+   __dump_cut<T> ();
+   PRINT ("== end cut ==");
+}
+
+template<typename T>
+void Cut::__dump_cut () const
+{
+   Event * e;
+   unsigned i;
+
+   for (i = 0; i < nrp; i++)
+   {
+      e = max[i] ;
+      if (e) PRINT ("Proc %d", i);
+      for (; e; e = e->pre_proc())
+      {
+         PRINT (" %s", e->str<T>().c_str());
+      }
+   }
+}

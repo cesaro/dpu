@@ -3,7 +3,6 @@
 #define _C15U_C15UNFOLDER_HH_
 
 #include "stid/executor.hh"
-#include "stid/action_stream.hh"
 
 #include "pes/cut.hh"
 #include "pes/event.hh"
@@ -99,6 +98,23 @@ public:
    void compute_cex_lock (Event *e, Event **head);
 
 protected:
+
+   inline void report_add_nondet_violation (const Trail &t, unsigned where,
+         ActionType found);
+
+   /// Translates the stream of actions into events, updating c, t, and d
+   inline bool stream_to_events (Config &c, const stid::action_streamt &s,
+         Trail *t = nullptr, Disset *d = nullptr);
+
+   /// Receives a stream, an iterator to that stream, a vector mapping stream
+   /// pids to our pids, and a trail; this method advances the iterator of the
+   /// stream asserting that the actions found match those of
+   /// the trail; the iterator is left pointing at one plus the (blue) action
+   /// matched with the last event in the trail; it also updates the pidmap at
+   /// thread-creation events
+   inline bool stream_match_trail (const stid::action_streamt &s,
+         stid::action_stream_itt &it, Trail &t, Pidmap &pidmap);
+
    /// Initializes the fields of a Defectreport with the parameters of this
    /// C15unfolder.
    void report_init ();
@@ -123,7 +139,7 @@ private:
 };
 
 // implementation of inline methods
-//#include "c15u/c15unfold.hpp"
+#include "unfolder/c15unfolder.hpp"
 
 } //end of namespace
 #endif

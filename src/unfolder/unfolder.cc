@@ -36,12 +36,10 @@ namespace dpu
 {
 
 Unfolder::Unfolder (stid::ExecutorConfig &&config) :
-   u (),
-   report (),
+   StreamConverter<Unfolder> (),
    exec (nullptr),
    m (nullptr),
-   config (std::move (config)),
-   pidpool (u)
+   config (std::move (config))
 {
    unsigned i;
 
@@ -110,7 +108,8 @@ void Unfolder::load_bitcode (std::string &&filepath)
 
    if (opts::instpath.size())
    {
-      TRACE ("unf: load-bytecode: saving instrumented bytecode to %s", opts::instpath.c_str());
+      TRACE ("unf: load-bytecode: saving instrumented bytecode to %s",
+         opts::instpath.c_str());
       store_bitcode (opts::instpath.c_str());
    }
 
@@ -213,7 +212,7 @@ Config Unfolder::add_one_run (const Replay &r)
    // get a stream object from the executor and transform it into events
    stid::action_streamt actions (exec->get_trace ());
    actions.print ();
-   stream_to_events (c, actions);
+   convert (actions, c);
    return c;
 }
 

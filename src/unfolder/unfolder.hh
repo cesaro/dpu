@@ -4,16 +4,12 @@
 #include "stid/executor.hh"
 #include "stid/action_stream.hh"
 
-#include "pes/cut.hh"
 #include "pes/event.hh"
 #include "pes/config.hh"
-#include "pes/process.hh"
 #include "pes/unfolding.hh"
 
-#include "unfolder/disset.hh"
-#include "unfolder/trail.hh"
-#include "unfolder/pidpool.hh"
 #include "unfolder/replay.hh"
+#include "unfolder/stream-converter.hh"
 
 #include "defectreport.hh"
 
@@ -22,15 +18,18 @@
 namespace dpu
 {
 
-class Unfolder
+class Unfolder;
+
+template<>
+struct StreamConverterTraits<Unfolder>
 {
-public:
-
-   /// The unfolding data structure
-   Unfolding u;
-
    /// The list of all defects found during the exploration
    Defectreport report;
+};
+
+class Unfolder : public StreamConverter<Unfolder>
+{
+public:
 
    /// A Steroids dynamic executor
    stid::Executor *exec;
@@ -65,19 +64,6 @@ public:
    /// determines if the causal closure of all events in eset is a configuration
    bool is_conflict_free(const std::vector<Event *> &sol, const Event *e) const;
 
-   /// Translates the stream of actions into events, updating c, t, and d
-   inline bool stream_to_events (Config &c, const stid::action_streamt &s,
-         Trail *t = nullptr, Disset *d = nullptr);
-
-   /// Receives a stream, an iterator to that stream, a vector mapping stream
-   /// pids to our pids, and a trail; this method advances the iterator of the
-   /// stream asserting that the actions found match those of
-   /// the trail; the iterator is left pointing at one plus the (blue) action
-   /// matched with the last event in the trail; it also updates the pidmap at
-   /// thread-creation events
-   inline bool stream_match_trail (const stid::action_streamt &s,
-         stid::action_stream_itt &it, Trail &t, Pidmap &pidmap);
-
 protected:
 
    /// Initializes the fields of a Defectreport with the parameters of this
@@ -99,18 +85,6 @@ protected:
 
    /// Configuration for the dynamic executor in Steroids
    stid::ExecutorConfig config;
-
-   /// This object is used to select the pid of a process whenver we create a
-   /// new THCREAT event
-   Pidpool pidpool;
-
-   /// The method tream_match_trail() needs to communicate to
-   /// stream_to_events() the THSTART events of every thread whose THCREAT was
-   /// parsed in stream_match_trail() but whose THSTART didn't make it to the
-   /// configuration before stream_to_events() got the control. We use this map
-   /// to achieve that, we map each pid to the THSTART event in that thread for
-   /// this execution.
-   Event *start[Unfolding::MAX_PROC];
 };
 
 // implementation of inline methods
@@ -118,5 +92,3 @@ protected:
 
 } //end of namespace
 #endif
-
-

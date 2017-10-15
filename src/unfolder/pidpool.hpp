@@ -150,7 +150,7 @@ void Pidpool::join (const Event *j)
    }
 }
 
-void Pidpool::reset ()
+void Pidpool::clear ()
 {
    for (auto &h : procs)
    {

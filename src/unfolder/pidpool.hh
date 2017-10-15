@@ -18,7 +18,7 @@ public:
 
    inline unsigned create (const Event *c);
    inline void join (const Event *e);
-   inline void reset ();
+   inline void clear ();
    void dump () const;
 
 protected:

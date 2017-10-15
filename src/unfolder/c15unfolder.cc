@@ -24,9 +24,10 @@
 #include <llvm/Support/YAMLTraits.h>
 #include <llvm/Support/Format.h>
 
+#include "stid/action_stream.hh"
 #include "stid/executor.hh"
 
-#include "c15unfold.hh" // must be before verbosity.h
+#include "unfolder/c15unfolder.hh" // must be before verbosity.h
 #include "misc.hh"
 #include "verbosity.h"
 #include "pes/process.hh"

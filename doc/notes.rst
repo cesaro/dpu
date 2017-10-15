@@ -152,6 +152,10 @@ x Add an option ``-D MACRO`` to dpu
   For k=6, the filtering is one order of magnitude stronger, we go from 1383
   events per unfiltered spike to 8.8 events after filtering.
 
+- Modify steroids so that we receive THSTART actions rather than having to guess
+  when it is the first context switch to that thread. The lack of actions makes
+  the logic in stream_to_events rather complex.
+
 Alternatives
 ============
 

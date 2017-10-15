@@ -17,10 +17,8 @@ inline void C15unfolder::report_add_nondet_violation (const Trail &t, unsigned w
 }
 
 bool C15unfolder::stream_match_trail
-         (const stid::action_streamt &s,
-         stid::action_stream_itt &it,
-         Trail &t,
-         Pidmap &pidmap)
+   (const stid::action_streamt &s, stid::action_stream_itt &it, Trail &t,
+   Pidmap &pidmap)
 {
    // We can see the stream as a sequence of subsequences, starting either by a
    // blue action or an "invisible" THSTART action, and followed by red actions.
@@ -51,13 +49,16 @@ bool C15unfolder::stream_match_trail
    ASSERT (t[0]->is_bottom());
    count = 0;
    pid = 0;
+
+   // match trail events as long as the trail AND the stream contain events
    for (i = 0; i < t.size() - 1 and it != end; ++it)
    {
+      SHOW (it.str(), "s");
       switch (it.type())
       {
       // blue events make the trail advance
       case RT_MTXLOCK :
-         ASSERT (t[i]->redbox.size() == count);
+         //ASSERT (t[i]->data<Redbox>().size() == count);
          i++;
          if (t[i]->action.type != ActionType::MTXLOCK)
          {
@@ -70,7 +71,7 @@ bool C15unfolder::stream_match_trail
          break;
 
       case RT_MTXUNLK :
-         ASSERT (t[i]->redbox.size() == count);
+         //ASSERT (t[i]->data<Redbox>().size() == count);
          i++;
          if (t[i]->action.type != ActionType::MTXUNLK)
          {
@@ -83,7 +84,7 @@ bool C15unfolder::stream_match_trail
          break;
 
       case RT_THCREAT :
-         ASSERT (t[i]->redbox.size() == count);
+         //ASSERT (t[i]->data<Redbox>().size() == count);
          i++;
          if (t[i]->action.type != ActionType::THCREAT)
          {
@@ -107,7 +108,7 @@ bool C15unfolder::stream_match_trail
          break;
 
       case RT_THEXIT :
-         ASSERT (t[i]->redbox.size() == count);
+         //ASSERT (t[i]->data<Redbox>().size() == count);
          i++;
          if (t[i]->action.type != ActionType::THEXIT)
          {
@@ -120,7 +121,7 @@ bool C15unfolder::stream_match_trail
          break;
 
       case RT_THJOIN :
-         ASSERT (t[i]->redbox.size() == count);
+         //ASSERT (t[i]->data<Redbox>().size() == count);
          i++;
          if (t[i]->action.type != ActionType::THJOIN)
          {
@@ -136,7 +137,7 @@ bool C15unfolder::stream_match_trail
          break;
 
       case RT_THCTXSW :
-         ASSERT (t[i]->redbox.size() == count);
+         //ASSERT (t[i]->data<Redbox>().size() == count);
          // if this is the first context switch (whcih we detect by looking into
          // the trail), we match a THSTART action with the trail and reset the
          // counter and clear the start[] vector
@@ -154,11 +155,17 @@ bool C15unfolder::stream_match_trail
             // otherwise this is not the first context switch and the stream
             // *must* contain a blue action immediately after this RT_THCTXSW
             // action; when that action arrives we will check again that the
-            // redbox.size() == count for the last event in the previous process
-            // (if red events happen between this context switch and that blue
-            // event, we will get an assertion violation); there is NOTHING to
-            // do in this "else"
+            // data<Redbox>.size() == count for the last event in the previous
+            // process (if red events happen between this context switch and
+            // that blue event, we will get an assertion violation); there is
+            // NOTHING to do in this "else"
          }
+         break;
+
+      case RT_ABORT :
+      case RT_EXITNZ :
+         // nothing to do with these when we see them again; first time we see
+         // them they will produce warnings in the defect report
          break;
 
 #if 0
@@ -212,6 +219,7 @@ bool C15unfolder::stream_to_events
    Pidmap pidmap;
    Defect defect;
 
+   // NOTE: all of these checks can be done later
    // disset => trail
    ASSERT (!d or t);
    // no trail => empty config
@@ -229,7 +237,7 @@ bool C15unfolder::stream_to_events
    DEBUG ("c15u: s2e: c %s t %zd", c.str().c_str(), t ? t->size() : -1);
 
    // reset the pidpool and the pidmap for this execution
-   pidpool.reset ();
+   pidpool.clear ();
    for (unsigned i = 0; i < Unfolding::MAX_PROC; i++) ASSERT (start[i] == nullptr);
 
    // skip the first context switch to pid 0, if present
@@ -377,63 +385,63 @@ bool C15unfolder::stream_to_events
 
       case RT_RD8 :
          if (! e->flags.crb)
-            e->redbox.push_back
-               ({.type = ActionType::RD8, .addr = it.addr(), .val = *it.val()});
+            //e->data<Redbox>().push_back
+            //   ({.type = ActionType::RD8, .addr = it.addr(), .val = *it.val()});
          break;
       case RT_RD16 :
          if (! e->flags.crb)
-            e->redbox.push_back
-               ({.type = ActionType::RD16, .addr = it.addr(), .val = *it.val()});
+            //e->data<Redbox>().push_back
+            //   ({.type = ActionType::RD16, .addr = it.addr(), .val = *it.val()});
          break;
       case RT_RD32 :
          if (! e->flags.crb)
-            e->redbox.push_back
-               ({.type = ActionType::RD32, .addr = it.addr(), .val = *it.val()});
+            //e->data<Redbox>().push_back
+            //   ({.type = ActionType::RD32, .addr = it.addr(), .val = *it.val()});
          break;
       case RT_RD64 :
          if (! e->flags.crb)
-            e->redbox.push_back
-               ({.type = ActionType::RD64, .addr = it.addr(), .val = *it.val()});
+            //e->data<Redbox>().push_back
+            //   ({.type = ActionType::RD64, .addr = it.addr(), .val = *it.val()});
          break;
       case RT_RD128 :
          ASSERT (it.val_size() == 2);
          if (! e->flags.crb)
          {
-            e->redbox.push_back
-               ({.type = ActionType::RD64, .addr = it.addr(), .val = it.val()[0]});
-            e->redbox.push_back
-               ({.type = ActionType::RD64, .addr = it.addr()+8, .val = it.val()[1]});
+            //e->data<Redbox>().push_back
+            //   ({.type = ActionType::RD64, .addr = it.addr(), .val = it.val()[0]});
+            //e->data<Redbox>().push_back
+            //   ({.type = ActionType::RD64, .addr = it.addr()+8, .val = it.val()[1]});
          }
          break;
 
       case RT_WR8 :
          if (! e->flags.crb)
-            e->redbox.push_back
-               ({.type = ActionType::WR8, .addr = it.addr(), .val = *it.val()});
+            //e->data<Redbox>().push_back
+            //   ({.type = ActionType::WR8, .addr = it.addr(), .val = *it.val()});
          break;
       case RT_WR16 :
          if (! e->flags.crb)
-            e->redbox.push_back
-               ({.type = ActionType::WR16, .addr = it.addr(), .val = *it.val()});
+            //e->data<Redbox>().push_back
+            //   ({.type = ActionType::WR16, .addr = it.addr(), .val = *it.val()});
          break;
       case RT_WR32 :
          if (! e->flags.crb)
-            e->redbox.push_back
-               ({.type = ActionType::WR32, .addr = it.addr(), .val = *it.val()});
+            //e->data<Redbox>().push_back
+            //   ({.type = ActionType::WR32, .addr = it.addr(), .val = *it.val()});
          break;
       case RT_WR64 :
          if (! e->flags.crb)
-            e->redbox.push_back
-               ({.type = ActionType::WR64, .addr = it.addr(), .val = *it.val()});
+            //e->data<Redbox>().push_back
+            //   ({.type = ActionType::WR64, .addr = it.addr(), .val = *it.val()});
          break;
       case RT_WR128 :
          ASSERT (it.val_size() == 2);
          if (! e->flags.crb)
          {
-            e->redbox.push_back
-               ({.type = ActionType::WR64, .addr = it.addr(), .val = it.val()[0]});
-            e->redbox.push_back
-               ({.type = ActionType::WR64, .addr = it.addr()+8, .val = it.val()[1]});
+            //e->data<Redbox>().push_back
+            //   ({.type = ActionType::WR64, .addr = it.addr(), .val = it.val()[0]});
+            //e->data<Redbox>().push_back
+            //   ({.type = ActionType::WR64, .addr = it.addr()+8, .val = it.val()[1]});
          }
          break;
 

@@ -41,7 +41,7 @@ public:
    unsigned get (unsigned k) const
       { ASSERT (k < map.size()); return map[k]; }
 
-   void reset ()
+   void clear ()
       { next_tid = 1; map.resize (1); }
 
    unsigned size () const

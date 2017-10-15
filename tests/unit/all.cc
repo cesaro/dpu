@@ -8,7 +8,7 @@
 #include <algorithm>
 #include <sys/stat.h>
 
-#include "unfolder/c15unfold.hh" // must be before verbosity.h
+#include "unfolder/c15unfolder.hh" // must be before verbosity.h
 #include "unfolder/pidpool.hh"
 #include "verbosity.h"
 #include "misc.hh"
@@ -18,7 +18,6 @@
 #include "pes/eventbox.hh"
 #include "pes/config.hh"
 #include "pes/cut.hh"
-#include "por.hh"
 #include "opts.hh"
 
 namespace dpu

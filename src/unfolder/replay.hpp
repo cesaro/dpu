@@ -144,7 +144,7 @@ void Replay::build_from (const Trail &t, const Cut &c, const Cut &j)
    // THCREAT we add one entry to the map. We use the size of the map to keep
    // track of the next fresh tid. The map automagically keeps track of the
    // mapping 0 -> 0. We now reset the map.
-   pidmap.reset ();
+   pidmap.clear ();
    ASSERT (pidmap.size() == 1);
    ASSERT (pidmap.get(0) == 0);
 

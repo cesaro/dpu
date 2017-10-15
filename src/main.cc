@@ -8,7 +8,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include "unfolder/c15unfold.hh" // must be before verbosity.h
+#include "unfolder/c15unfolder.hh" // must be before verbosity.h
 #include "verbosity.h"
 #include "opts.hh"
 #include "probdist.hh"

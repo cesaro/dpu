@@ -11,9 +11,8 @@
 #include "unfolder/replay.hh"
 #include "unfolder/stream-converter.hh"
 
-#include "defectreport.hh"
-
-#include "unfolder/redbox.hh" // FIXME: remove
+#include "defectreport.hh" // FIXME: remove
+#include "redbox.hh" // FIXME: remove
 
 namespace dpu
 {

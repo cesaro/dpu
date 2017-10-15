@@ -3,6 +3,7 @@
 #define __PES_EVENTPAYLOAD_HH_
 
 #include <unistd.h>
+#include <string>
 
 namespace dpu
 {

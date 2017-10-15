@@ -1,3 +1,8 @@
+
+// class Cut and inline methods needs to be included exactly in the order
+// event.hh includes them to avoid circular inclusions
+#include "pes/event.hh"
+
 #ifndef __PES_CUT_HH_
 #define __PES_CUT_HH_
 
@@ -97,9 +102,6 @@ protected:
    Cut (const Cut &other, Event *e);
    inline Cut (const Cut &c1, const Cut &c2, Event *e);
 };
-
-// implementation of inline methods
-#include "pes/cut.hpp"
 
 } // namespace dpu
 #endif

@@ -14,8 +14,7 @@ namespace dpu
 class Config : public Cut
 {
 public:
-//   /// FIXME - is this necessary?
-//   std::vector<Event *> cex; // don't need
+
    /// creates an empty onfiguration for as much as u.num_procs processes
    inline Config (const Unfolding &u);
    /// creates an empty configuration for as much as n processes
@@ -35,6 +34,7 @@ public:
 
    /// empties the configuration
    inline void clear ();
+
    /// prints the cut in stdout
    void dump () const;
 

@@ -43,7 +43,7 @@ std::string Event::str () const
    // fmt ("e%x%-6x", pid(), puid())
 
    s = fmt ("e %0*x p %2d d %02u,%02u,%02u pre %08x %08x "
-         "%c%c%c%c |rb| %lu ac %s",
+         "%c%c%c%c dat %s ac %s",
          1 + int2msb (Unfolding::ALIGN) / 4,
          uid(), pid(), depth, node[0].depth, node[1].depth,
          pre_proc()->uid(), pre_other()->uid(),
@@ -51,7 +51,7 @@ std::string Event::str () const
          flags.boxlast ? 'l' : '-',
          flags.crb ? 'c' : '-',
          flags.ind ? 'D' : '-',
-         redbox.size (),
+         dat ? dat->str().c_str() : "null",
          action_type_str (action.type));
 
    switch (action.type)

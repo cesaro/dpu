@@ -53,7 +53,7 @@ Compilation
 Before compiling DPU please notice that:
 
 - Development for DPU happens in the ``master`` branch. If you want a stable
-  version of the tool you instead download and compile the
+  version of the tool you should download and compile the
   `latest available release <https://github.com/cesaro/dpu/releases>`__ of the
   tool.
 - DPU has only been compiled and tested under Debian/Ubuntu, although it should

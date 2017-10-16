@@ -22,6 +22,8 @@ public:
 
    void dump () const;
    void print_dot (std::ofstream &fs, unsigned col = 0, std::string &&msg = "");
+   void print_dot (const std::string &path, unsigned col = 0,
+         std::string &&msg = "");
    void print_dot (Cut &c, std::ofstream &fs, std::string &&msg = "");
 
    /// returns a pointer to the process number pid

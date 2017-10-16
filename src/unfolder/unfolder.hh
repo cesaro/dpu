@@ -23,7 +23,11 @@ template<>
 struct StreamConverterTraits<Unfolder>
 {
    /// The list of all defects found during the exploration
+   /// FIXME: this should not be here
    Defectreport report;
+
+   /// FIXME: this should be in the race checker, not here.
+   RedboxFactory redboxfac;
 };
 
 class Unfolder : public StreamConverter<Unfolder>
@@ -34,7 +38,7 @@ public:
    stid::Executor *exec;
 
    // ctor and dtor
-   Unfolder (stid::ExecutorConfig &&config);
+   Unfolder (const stid::ExecutorConfig &config);
    virtual ~Unfolder ();
 
    /// Load the llvm module from the file \p filepath

@@ -9,6 +9,8 @@
 #include "unfolder/trail.hh"
 #include "pes/cut.hh"
 
+#include "verbosity.h"
+
 namespace dpu {
 
 class Replay : public stid::Replay
@@ -16,8 +18,32 @@ class Replay : public stid::Replay
 public :
    Replay (Unfolding &u_) : u (u_) {}
 
+   /// Returns a replay sequence suitable for replaying the trail \p t.
    static Replay create (Unfolding &u, const Trail &t, unsigned limit = UINT_MAX)
-      { Replay r(u); r.build_from (t, limit); return r; }
+   {
+      Replay r(u);
+      r.build_from (t, limit);
+      return r;
+   }
+
+   /// Returns a replay sequence suitable setting Steroids in FREE mode
+   static Replay create (Unfolding &u)
+   {
+      Replay r(u);
+      r.finish ();
+      return r;
+   }
+
+   /// Returns a replay sequence constructed from a vector of integers. The
+   /// vector shall **not** include the last step {-1, -1}
+   static Replay create (Unfolding &u, std::vector<int> &&v)
+   {
+      Replay r(u);
+      ASSERT ((v.size() & 1) == 0);
+      for (int i = 0; i < v.size(); i += 2) r.push_back ({v[i], v[i+1]});
+      r.finish ();
+      return r;
+   }
 
    /// Extends the replay vector with a sequence suitable to replay the trail
    inline void extend_from (const Trail &t, unsigned limit = UINT_MAX);
@@ -41,7 +67,7 @@ public :
 
    /// Returns a string depicting the replay sequence; altidx is the offset at
    /// which the replay sequence switches between the trail and the alternative
-   inline std::string str (unsigned altidx);
+   inline std::string str (unsigned altidx = UINT_MAX);
 
    // This object maps steroids tids to dpu pids when transforming the action
    // stream into events, and dpu pids to steroids tids when generating replays.

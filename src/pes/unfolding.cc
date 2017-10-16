@@ -347,4 +347,12 @@ void Unfolding::print_dot (Cut &c, std::ofstream &fs, std::string &&msg)
    print_dot (fs, col, std::move(msg));
 }
 
+void Unfolding::print_dot (const std::string &path, unsigned col,
+   std::string &&msg)
+{
+   std::ofstream f (path);
+   print_dot (f, col, std::move(msg));
+   f.close ();
+}
+
 } // namespace dpu

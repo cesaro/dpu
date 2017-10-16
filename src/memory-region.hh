@@ -25,11 +25,27 @@ public:
       upper (base + size)
    {}
 
+   /// Returns true iff the intersection of *this and \p other is non-empty.
    bool overlaps (const MemoryRegion<Addr> &other) const
    {
       ASSERT (lower <= upper);
       ASSERT (other.lower <= other.upper);
-      return other.lower < upper and lower < other.upper;
+      return 
+         other.lower < upper and
+         lower < other.upper and
+         lower != upper and
+         other.lower != other.upper;
+   }
+
+   /// Returns the intersection of *this and \p other. Could be empty.
+   MemoryRegion<Addr> intersection (const MemoryRegion<Addr> &other) const
+   {
+      Addr l = std::max (lower, other.lower);
+      Addr u = std::min (upper, other.upper);
+      if (l < u)
+         return MemoryRegion<Addr> (l, u - l);
+      else
+         return MemoryRegion<Addr> (); // empty interval
    }
 
    bool is_adjacent_below (const MemoryRegion<Addr> &other) const

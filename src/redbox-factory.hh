@@ -37,7 +37,7 @@ public:
 
    inline Redbox *create ();
 
-public:
+private:
    MemoryPool::Container read_regions;
    MemoryPool::Container write_regions;
    std::vector<Redbox*> boxes;

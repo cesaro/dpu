@@ -35,11 +35,11 @@
 namespace dpu
 {
 
-Unfolder::Unfolder (stid::ExecutorConfig &&config) :
+Unfolder::Unfolder (const stid::ExecutorConfig &config) :
    StreamConverter<Unfolder> (),
    exec (nullptr),
    m (nullptr),
-   config (std::move (config))
+   config (config)
 {
    unsigned i;
 
@@ -133,6 +133,7 @@ void Unfolder::print_external_syms (const char *prefix)
    size_t len;
 
    ASSERT (m);
+   if (! prefix) prefix = "";
 
    // functions
    len = 0;

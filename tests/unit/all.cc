@@ -657,7 +657,7 @@ void test35 ()
       C15unfolder unf (C15unfolder::Alt_algorithm::OPTIMAL, 0);
 
       // load code and set argv
-      unf.load_bytecode ("./input.ll");
+      unf.load_bitcode ("./input.ll");
       unf.set_args (argv);
       
       // run the system 1 time
@@ -707,7 +707,7 @@ void test36 ()
    {
       std::vector<int> replay {-1};
       C15unfolder unf (C15unfolder::Alt_algorithm::OPTIMAL, 1);
-      unf.load_bytecode ("./input.ll");
+      unf.load_bitcode ("./input.ll");
       unf.set_args (argv);
 
       Config c (unf.add_one_run (replay));
@@ -1209,7 +1209,7 @@ void test42 ()
          C15unfolder unf (C15unfolder::Alt_algorithm::OPTIMAL, 1);
 
          // load code and set argv
-         unf.load_bytecode ("./input.ll");
+         unf.load_bitcode ("./input.ll");
          unf.set_args ({"prog", "main4"});
 
          // build entire unfolding
@@ -1270,7 +1270,7 @@ void test50 ()
       C15unfolder unf (C15unfolder::Alt_algorithm::OPTIMAL, 1);
 
       // load code and set argv
-      unf.load_bytecode ("./input.ll");
+      unf.load_bitcode ("./input.ll");
       unf.set_args (argv);
       
       // run system, get config, compute cex, and run 1 time per cex
@@ -1297,7 +1297,7 @@ void test51 ()
       Event *e = nullptr;
       std::vector<int> replay {-1};
       C15unfolder unf (C15unfolder::Alt_algorithm::OPTIMAL, 1);
-      unf.load_bytecode ("./input.ll");
+      unf.load_bitcode ("./input.ll");
       unf.set_args (argv);
 
       Config c (unf.add_one_run (replay));
@@ -1328,7 +1328,7 @@ void test52 ()
 
       std::vector<int> replay {-1};
       C15unfolder unf (C15unfolder::Alt_algorithm::OPTIMAL, 1);
-      unf.load_bytecode ("./input.ll");
+      unf.load_bitcode ("./input.ll");
       unf.set_args ({"prog", "main4"});
       
       // run 1 time, compute cex
@@ -1496,7 +1496,7 @@ void test54 ()
       C15unfolder unf (C15unfolder::Alt_algorithm::OPTIMAL, 1);
 
       // load code and set argv
-      unf.load_bytecode ("./input.ll");
+      unf.load_bitcode ("./input.ll");
       unf.set_args ({"prog", "main4"});
       
       // build entire unfolding
@@ -1676,6 +1676,34 @@ void test56 ()
 
 void test57 ()
 {
+   stid::ExecutorConfig config;
+   config.strace.pthreads = 1;
+   config.do_load_store = 1;
+
+   Unfolder unf (config);
+   unf.load_bitcode ("/tmp/input.ll");
+   unf.print_external_syms (nullptr);
+   unf.set_default_environment ();
+   unf.set_args ({"c", "arg1", "arg2"});
+
+   DEBUG ("before running steroids:");
+   unf.u.dump ();
+   
+   //// run 1 time in free mode
+   //Replay replay1 = Replay::create (unf.u);
+   //SHOW (replay1.str().c_str(), "s");
+   //Config c1 (unf.add_one_run (replay1));
+   //c1.dump ();
+
+   // run 1 time in free mode
+   Replay replay2 = Replay::create (unf.u, {0, 3, 2, 3, 1, 3});
+   SHOW (replay2.str().c_str(), "s");
+   Config c2 (unf.add_one_run (replay2));
+   c2.dump ();
+
+   // dump to stdout and in dot format
+   unf.u.dump ();
+   unf.u.print_dot ("u.dot");
 }
 void test58 ()
 {

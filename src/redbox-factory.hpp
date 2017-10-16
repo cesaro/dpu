@@ -47,15 +47,26 @@ Redbox *RedboxFactory::create ()
 {
    Redbox *b;
 
+   // allocate a new Redbox and keep the pointer to it, we are the container
    b = new Redbox ();
    boxes.push_back (b);
    
+   // compress the lists of memory areas
    compress (read_regions);
    compress (write_regions);
 
+   // copy them to the new redbox
    b->readpool = read_regions;
    b->writepool = write_regions;
 
+#ifdef CONFIG_DEBUG
+   // this will assert that the memory pools are a sorted sequence of disjoint
+   // memory areas
+   b->readpool.assertt ();
+   b->writepool.assertt ();
+#endif
+
+   // restart the internal arrays
    read_regions.clear ();
    write_regions.clear ();
    return b;

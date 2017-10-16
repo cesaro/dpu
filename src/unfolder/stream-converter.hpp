@@ -27,7 +27,7 @@ bool StreamConverter<T>::convert (stid::action_streamt &s, Config &c)
    stid::action_stream_itt it (s.begin());
    const stid::action_stream_itt end (s.end());
 
-   DEBUG ("unf: s2e: c %s", c.str().c_str());
+   DEBUG ("sconv: convert: c %s", c.str().c_str());
 
    // reset the pidpool, the pidmap, and the start map for this execution
    pidmap.clear ();
@@ -44,7 +44,9 @@ bool StreamConverter<T>::convert (stid::action_streamt &s, Config &c)
    }
 
    // event "begin"
-   if (! convert_begin (s, it, c)) return false;
+   e = u.event (nullptr); // bottom
+   if (! convert_begin (s, it, e, c)) return false;
+   c.fire (e);
 
    // we create (or retrieve) an event for every action remaining in the stream
    for (; it != end; ++it)

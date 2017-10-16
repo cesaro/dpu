@@ -9,7 +9,8 @@ inline bool operator> (const MemoryPool &a, const MemoryPool &b)
    return b < a;
 }
 
-bool MemoryPool::overlaps (const MemoryPool &other) const
+bool
+MemoryPool::overlaps (const MemoryPool &other, MemoryRegion<Addr> &inter) const
 {
    const_iterator it1 (begin());
    const_iterator it2 (other.begin());
@@ -43,7 +44,12 @@ bool MemoryPool::overlaps (const MemoryPool &other) const
          ++it2;
       }
       // check if the two memory regions overlap
-      if (it1->overlaps (*it2)) return true;
+      if (it1->overlaps (*it2))
+      {
+         inter = it1->intersection (*it2);
+         ASSERT (! inter.empty());
+         return true;
+      }
    }
    return false;
 }

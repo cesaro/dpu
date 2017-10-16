@@ -39,7 +39,11 @@ public :
    Addr upper () const { return regions.back().upper; }
    size_t span () const { return lower() - upper(); }
 
-   inline bool overlaps (const MemoryPool &other) const;
+   /// Returns true iff memory pools *this and \p other have overlapping memory
+   /// regions. When the answer is yes, \p inter will be a non-empty
+   /// intersection of two overlapping regions.
+   inline bool
+      overlaps (const MemoryPool &other, MemoryRegion<Addr> &inter) const;
 
    size_t size () const { return regions.size(); }
    bool empty () const { return regions.empty(); }

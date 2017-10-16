@@ -60,7 +60,7 @@ public:
 
 protected:
    bool convert_begin (stid::action_streamt &s, stid::action_stream_itt &it,
-      Config &c) { return true; }
+      Event *e, Config &c) { return true; }
    bool convert_end (stid::action_streamt &s, Config &c) { return true; }
 
    bool convert_mtxlock (Event *e, Event *epp, Config &c) { return true; }

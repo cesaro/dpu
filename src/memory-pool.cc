@@ -9,13 +9,11 @@ void MemoryPool::assertt () const
 {
    int i;
 
-   // each redbox stores a non-empty range of memory addresses
-   ASSERT (begin() != end());
-   ASSERT (! empty ());
-   ASSERT (! regions[0].empty());
+   if (regions.empty()) return;
 
-   // check that the memory regions are non-empty, disjoint, and sorted by
-   // increasing order
+   // check that each memory region is non-empty, disjoint with others, and
+   // sorted by increasing order
+   ASSERT (! regions[0].empty());
    for (i = 1; i < regions.size(); ++i)
    {
       ASSERT (! regions[i].empty());

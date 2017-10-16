@@ -61,7 +61,8 @@ public:
 protected:
    bool convert_begin (stid::action_streamt &s, stid::action_stream_itt &it,
       Event *e, Config &c) { return true; }
-   bool convert_end (stid::action_streamt &s, Config &c) { return true; }
+   bool convert_end (stid::action_streamt &s, Event *e, Config &c)
+      { return true; }
 
    bool convert_mtxlock (Event *e, Event *epp, Config &c) { return true; }
    bool convert_mtxunlock (Event *e, Event *epp, Config &c) { return true; }
@@ -74,11 +75,13 @@ protected:
    bool convert_abort (Event *e, Config &c) { return true; }
    bool convert_exitnz (Event *e, Config &c) { return true; }
 
-   template<int bits>
-   bool convert_rd (Event *e, Config &c) { return true; }
+   template<int bytes>
+   bool convert_rd (Event *e, Addr addr, uint64_t val, Config &c)
+      { return true; }
 
    template<int bits>
-   bool convert_wr (Event *e, Config &c) { return true; }
+   bool convert_wr (Event *e, Addr addr, uint64_t val, Config &c)
+      { return true; }
 };
 
 #include "unfolder/stream-converter.hpp"

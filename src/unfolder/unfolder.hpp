@@ -6,13 +6,19 @@ inline bool StreamConverter<Unfolder>::convert_begin (stid::action_streamt &s,
    stid::action_stream_itt &it, Event *e, Config &c)
 {
    DEBUG ("unf: conv: begin");
+   ASSERT (e->is_bottom());
+   ASSERT (redboxfac.empty());
+   blue = e;
    return true;
 }
 
 template<>
-inline bool StreamConverter<Unfolder>::convert_end (stid::action_streamt &s, Config &c)
+inline bool StreamConverter<Unfolder>::convert_end (stid::action_streamt &s,
+   Event *e, Config &c)
 {
    DEBUG ("unf: conv: end");
+   ASSERT (blue->dat == nullptr);
+   blue->dat = redboxfac.create ();
    return true;
 }
 
@@ -42,7 +48,7 @@ inline bool StreamConverter<Unfolder>::convert_ctxsw (unsigned pid)
 template<>
 inline bool StreamConverter<Unfolder>::convert_start (Event *e, Config &c)
 {
-   DEBUG ("unf: conv: start");
+   DEBUG ("unf: conv: start: %s", e->str().c_str());
    return true;
 }
 
@@ -82,17 +88,46 @@ inline bool StreamConverter<Unfolder>::convert_exitnz (Event *e, Config &c)
 }
 
 template<>
-template<int bits>
-inline bool StreamConverter<Unfolder>::convert_rd (Event *e, Config &c)
+template<int bytes>
+inline bool StreamConverter<Unfolder>::convert_rd (Event *e, Addr addr,
+   uint64_t val, Config &c)
 {
-   DEBUG ("unf: conv: rd: %s bits %d", e->str().c_str(), bits);
+   DEBUG ("unf: conv: read: %s addr %p bytes %d", e->str().c_str(),
+      (void*) addr, bytes);
+
+   if (blue == e)
+   {
+      redboxfac.add_read (addr, bytes);
+   }
+   else
+   {
+      ASSERT (blue->dat == nullptr);
+      blue->dat = redboxfac.create ();
+      blue = e;
+      ASSERT (redboxfac.empty());
+      redboxfac.add_read (addr, bytes);
+   }
    return true;
 }
 
 template<>
-template<int bits>
-inline bool StreamConverter<Unfolder>::convert_wr (Event *e, Config &c)
+template<int bytes>
+inline bool StreamConverter<Unfolder>::convert_wr (Event *e, Addr addr,
+   uint64_t val, Config &c)
 {
-   DEBUG ("unf: conv: write: %s bits %d", e->str().c_str(), bits);
+   DEBUG ("unf: conv: write: %s addr %p bytes %d", e->str().c_str(),
+      (void*) addr, bytes);
+   if (blue == e)
+   {
+      redboxfac.add_write (addr, bytes);
+   }
+   else
+   {
+      ASSERT (blue->dat == nullptr);
+      blue->dat = redboxfac.create ();
+      blue = e;
+      ASSERT (redboxfac.empty());
+      redboxfac.add_read (addr, bytes);
+   }
    return true;
 }

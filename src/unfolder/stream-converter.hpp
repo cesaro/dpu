@@ -2,12 +2,10 @@
 template<typename T>
 bool StreamConverter<T>::convert (stid::action_streamt &s, Config &c)
 {
-   // - If we get a Disset, then we also need to get a trail.
-   // - If we get a Trail, then the Config represents the state *at the end* of
-   //   the Trail.
-   // - If there is no trail or the provide trail is empty, then the Config
-   //   needs to be empty
    // - The stream is a sequence of actions starting from the initial state
+   // - The config is empty
+   //
+   // FIXME: review this text
    //
    // This function transforms the stream into events, updating the Config, the
    // Trail and the Disset if they are provided. If a trail is provided the
@@ -32,6 +30,7 @@ bool StreamConverter<T>::convert (stid::action_streamt &s, Config &c)
    // reset the pidpool, the pidmap, and the start map for this execution
    pidmap.clear ();
    pidpool.clear ();
+   ASSERT (c.empty ());
    for (unsigned i = 0; i < Unfolding::MAX_PROC; i++)
       ASSERT (start[i] == nullptr);
 
@@ -141,39 +140,40 @@ bool StreamConverter<T>::convert (stid::action_streamt &s, Config &c)
       case RT_EXITNZ :
          if (! convert_exitnz (e, c)) return false;
          break;
-
       case RT_RD8 :
-         if (! convert_rd<8> (e, c)) return false;
+         if (! convert_rd<1> (e, it.addr(), *it.val(), c)) return false;
          break;
       case RT_RD16 :
-         if (! convert_rd<16> (e, c)) return false;
+         if (! convert_rd<2> (e, it.addr(), *it.val(), c)) return false;
          break;
       case RT_RD32 :
-         if (! convert_rd<32> (e, c)) return false;
+         if (! convert_rd<4> (e, it.addr(), *it.val(), c)) return false;
          break;
       case RT_RD64 :
-         if (! convert_rd<64> (e, c)) return false;
+         if (! convert_rd<8> (e, it.addr(), *it.val(), c)) return false;
          break;
       case RT_RD128 :
          ASSERT (it.val_size() == 2);
-         if (! convert_rd<128> (e, c)) return false;
+         if (! convert_rd<8> (e, it.addr(), it.val()[0], c)) return false;
+         if (! convert_rd<8> (e, it.addr() + 8, it.val()[1], c)) return false;
          break;
 
       case RT_WR8 :
-         if (! convert_wr<8> (e, c)) return false;
+         if (! convert_wr<1> (e, it.addr(), *it.val(), c)) return false;
          break;
       case RT_WR16 :
-         if (! convert_wr<16> (e, c)) return false;
+         if (! convert_wr<2> (e, it.addr(), *it.val(), c)) return false;
          break;
       case RT_WR32 :
-         if (! convert_wr<32> (e, c)) return false;
+         if (! convert_wr<4> (e, it.addr(), *it.val(), c)) return false;
          break;
       case RT_WR64 :
-         if (! convert_wr<64> (e, c)) return false;
+         if (! convert_wr<8> (e, it.addr(), *it.val(), c)) return false;
          break;
       case RT_WR128 :
          ASSERT (it.val_size() == 2);
-         if (! convert_wr<128> (e, c)) return false;
+         if (! convert_wr<8> (e, it.addr(), it.val()[0], c)) return false;
+         if (! convert_wr<8> (e, it.addr() + 8, it.val()[1], c)) return false;
          break;
 
       case RT_ALLOCA :
@@ -194,7 +194,7 @@ bool StreamConverter<T>::convert (stid::action_streamt &s, Config &c)
       }
    }
 
-   if (! convert_end (s, c)) return false;
+   if (! convert_end (s, e, c)) return false;
 
    if (verb_debug) pidmap.dump (true);
    return true;

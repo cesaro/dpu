@@ -156,6 +156,9 @@ x Add an option ``-D MACRO`` to dpu
   when it is the first context switch to that thread. The lack of actions makes
   the logic in stream_to_events rather complex.
 
+- Add regression tests ensuring that the dot output is still working. Run dot(1)
+  on the output to ensure it is good.
+
 Alternatives
 ============
 

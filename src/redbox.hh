@@ -10,7 +10,7 @@
 namespace dpu
 {
 
-class Redbox : private EventPayload
+class Redbox : public EventPayload
 {
 public :
 

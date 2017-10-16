@@ -59,6 +59,7 @@ Redbox *RedboxFactory::create ()
    b->readpool = read_regions;
    b->writepool = write_regions;
 
+   b->dump ();
 #ifdef CONFIG_DEBUG
    // this will assert that the memory pools are a sorted sequence of disjoint
    // memory areas
@@ -69,6 +70,7 @@ Redbox *RedboxFactory::create ()
    // restart the internal arrays
    read_regions.clear ();
    write_regions.clear ();
+   ASSERT (empty());
    return b;
 }
 
@@ -76,6 +78,9 @@ void RedboxFactory::compress (MemoryPool::Container &regions)
 {
    unsigned i, j;
    size_t s;
+
+   // nothing to do if we have no regions; code below assumes we have at least 1
+   if (regions.empty ()) return;
 
    // sort the memory regions by increasing value of lower bound
    struct compare {

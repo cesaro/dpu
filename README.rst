@@ -12,13 +12,17 @@ every call to a ``pthread_*`` function. That allows the tool (a) discover the
 relevant interleavings and (b) to deterministically replay the program
 execution.
 
-DPU assumes that your program is data-deterministic, that is, the only source of
-non-determinism in an execution is the order in which independent, concurrent
-statements can be interleaved. It also assumes that the program is data-race
-free. As a result, all sources of non-deterministic execution (e.g.,
-command-line arguments, input files) need to be fixed before running the tool.
+DPU assumes that your program is **data-deterministic**, that is, the only
+source of non-determinism in an execution is the order in which independent,
+concurrent statements can be interleaved.  As a result, all sources of
+non-deterministic execution (e.g., command-line arguments, input files) need to
+be fixed before running the tool.
 
-DPU implements optimal and non-optimal unfolding-based Partial-Order
+DPU also assumes that the program is **data-race free**, it will not detect data
+races (I'm currently working on a new version that actually detects them, so
+stay tunned), and it will not explore executions that "reverse" data races.
+
+The tool implements optimal and non-optimal unfolding-based Partial-Order
 Reduction (POR) algorithms extending those presented in our CONCUR'15 paper
 (`arXiv:1507.00980`_).
 

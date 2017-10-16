@@ -93,7 +93,7 @@ unsigned Cut::num_procs() const
    return nrp;
 }
 
-bool Cut::is_empty() const
+bool Cut::empty() const
 {
    for (unsigned i = 0; i < nrp; i++)
       if (max[i] != nullptr)
@@ -101,21 +101,21 @@ bool Cut::is_empty() const
    return true;
 }
 
-bool Cut::is_enabled (const Event *e) const
+bool Cut::enabled (const Event *e) const
 {
    // unimplemented
    ASSERT (0);
    return false;
 }
 
-bool Cut::is_extension (const Event *e) const
+bool Cut::extension (const Event *e) const
 {
    // unimplemented
    ASSERT (0);
    return false;
 }
 
-bool Cut::is_cex (const Event *e) const
+bool Cut::cex (const Event *e) const
 {
    // unimplemented
    ASSERT (0);

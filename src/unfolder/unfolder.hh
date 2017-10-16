@@ -12,7 +12,7 @@
 #include "unfolder/stream-converter.hh"
 
 #include "defectreport.hh" // FIXME: remove
-#include "redbox.hh" // FIXME: remove
+#include "redbox-factory.hh" // FIXME: remove
 
 namespace dpu
 {
@@ -26,8 +26,12 @@ struct StreamConverterTraits<Unfolder>
    /// FIXME: this should not be here
    Defectreport report;
 
+protected:
    /// FIXME: this should be in the race checker, not here.
    RedboxFactory redboxfac;
+
+   /// FIXME: this should go away
+   Event *blue;
 };
 
 class Unfolder : public StreamConverter<Unfolder>

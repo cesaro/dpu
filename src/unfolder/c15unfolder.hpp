@@ -223,9 +223,9 @@ bool C15unfolder::stream_to_events
    // disset => trail
    ASSERT (!d or t);
    // no trail => empty config
-   ASSERT (t or c.is_empty());
+   ASSERT (t or c.empty());
    // if got a trail and it is empty => empty config
-   ASSERT (!t or t->size() or c.is_empty());
+   ASSERT (!t or t->size() or c.empty());
    // if got a with at least 1 event => first event is bottom
    ASSERT (!t or !t->size() or (*t)[0]->is_bottom ());
    // we didn't get too many threads
@@ -253,7 +253,7 @@ bool C15unfolder::stream_to_events
    {
       // our "last blue event" is the last of the trail, and the
       // config must not be empty
-      ASSERT (! c.is_empty());
+      ASSERT (! c.empty());
       e = t->back();
       if (not stream_match_trail (s, it, *t, pidmap)) return false;
    }
@@ -261,7 +261,7 @@ bool C15unfolder::stream_to_events
    {
       // we got no trail, or an empty trail; the config will be empty and we
       // need to insert bottom; our "last blue event" (e) is bottom
-      ASSERT (c.is_empty());
+      ASSERT (c.empty());
       e = u.event (nullptr); // bottom
       c.fire (e);
       ASSERT (!e->flags.ind);

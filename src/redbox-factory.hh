@@ -37,6 +37,11 @@ public:
 
    inline Redbox *create ();
 
+   inline bool empty () const
+   {
+      return read_regions.empty() and write_regions.empty();
+   }
+
 private:
    MemoryPool::Container read_regions;
    MemoryPool::Container write_regions;

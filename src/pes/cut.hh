@@ -61,16 +61,16 @@ public:
    std::string str () const;
 
    /// returns true if the cut (configuration) is empty
-   inline bool is_empty() const;
+   inline bool empty() const;
 
    /// returns true iff event e \in en(C), where C is this Cut
-   inline bool is_enabled (const Event *e) const;
+   inline bool enabled (const Event *e) const;
 
    /// returns true iff event e \in ex(C), where C is this Cut
-   inline bool is_extension (const Event *e) const;
+   inline bool extension (const Event *e) const;
 
    /// returns true iff event e \in cex(C), where C is this Cut
-   inline bool is_cex (const Event *e) const;
+   inline bool cex (const Event *e) const;
 
    /// assumes that e is in ex(C); returns true iff e in cex(C)
    bool ex_is_cex (const Event *e) const;

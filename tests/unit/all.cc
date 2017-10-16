@@ -1680,7 +1680,7 @@ void test57 ()
    config.strace.pthreads = 1;
    config.do_load_store = 1;
 
-   Unfolder unf (config);
+   Unfolder<> unf (config);
    unf.load_bitcode ("/tmp/input.ll");
    unf.print_external_syms (nullptr);
    unf.set_default_environment ();

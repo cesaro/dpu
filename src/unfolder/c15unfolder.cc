@@ -5,26 +5,15 @@
 #include <math.h>
 #include <time.h>
 #include <unistd.h>
+#include <stdlib.h>
 
 #include <cstdint>
 #include <cstring>
-#include <stdlib.h>
 #include <cstdio>
+#include <vector>
 #include <string>
-#include <algorithm>
 
-#include "llvm/IR/Module.h"
-#include "llvm/IR/Verifier.h"
-#include "llvm/IR/LLVMContext.h"
-#include "llvm/IRReader/IRReader.h"
-#include "llvm/Bitcode/ReaderWriter.h"
-#include "llvm/Support/SourceMgr.h"
-#include "llvm/Support/raw_ostream.h"
-#include "llvm/Support/TargetSelect.h"
-#include <llvm/Support/YAMLTraits.h>
-#include <llvm/Support/Format.h>
-
-#include "stid/action_stream.hh"
+//#include "stid/action_stream.hh"
 #include "stid/executor.hh"
 
 #include "unfolder/c15unfolder.hh" // must be before verbosity.h
@@ -592,7 +581,22 @@ bool C15unfolder::find_alternative_sdpor (Config &c, const Disset &d, Cut &j)
 void C15unfolder::report_init ()
 {
    // fill the fields stored in the Unfolder base class
-   Unfolder::report_init ();
+   ASSERT (exec);
+   std::vector<std::string> myargv (exec->argv.begin(), exec->argv.end());
+   std::vector<std::string> myenv (exec->environ.begin(), --(exec->environ.end()));
+
+   report.dpuversion = CONFIG_VERSION;
+   report.path = path;
+   report.argv = myargv;
+   report.environ = myenv;
+   report.memsize = exec->config.memsize;
+   report.defaultstacksize = exec->config.defaultstacksize;
+   report.tracesize = exec->config.tracesize;
+   report.optlevel = exec->config.optlevel;
+
+   report.nr_exitnz = 0;
+   report.nr_abort = 0;
+   report.defects.clear ();
 
    // fill ours
    report.alt = (int) altalgo;

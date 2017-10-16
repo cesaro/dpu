@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#include "unfolder/c15unfolder.hh"
+#include "unfolder/alt-algorithm.hh"
 
 namespace dpu {
 namespace opts {

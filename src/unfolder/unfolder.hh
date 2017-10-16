@@ -17,24 +17,8 @@
 namespace dpu
 {
 
-class Unfolder;
-
-template<>
-struct StreamConverterTraits<Unfolder>
-{
-   /// The list of all defects found during the exploration
-   /// FIXME: this should not be here
-   Defectreport report;
-
-protected:
-   /// FIXME: this should be in the race checker, not here.
-   RedboxFactory redboxfac;
-
-   /// FIXME: this should go away
-   Event *blue;
-};
-
-class Unfolder : public StreamConverter<Unfolder>
+template<typename T = void>
+class Unfolder : public StreamConverter<T>
 {
 public:
 
@@ -73,17 +57,6 @@ public:
 
 protected:
 
-   /// Initializes the fields of a Defectreport with the parameters of this
-   /// C15unfolder. This method can be overloaded in subclasses. Those overloadings
-   /// will, probably call to this implementation to fill the report fields with
-   /// the parmeters stored in this class, and then add others possibly stored
-   /// in the subclasses.
-   void report_init ();
-
-   /// FIXME
-   inline void report_add_nondet_violation (const Trail &t, unsigned where,
-      ActionType found);
-
    /// File name for the llvm module under analysis
    std::string path;
 
@@ -94,8 +67,9 @@ protected:
    stid::ExecutorConfig config;
 };
 
-// implementation of inline methods
+} //end of namespace
+
+// implementation of inline methods, outside of the namespace
 #include "unfolder/unfolder.hpp"
 
-} //end of namespace
 #endif

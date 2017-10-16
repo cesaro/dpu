@@ -15,21 +15,15 @@
 #include "unfolder/pidpool.hh"
 #include "unfolder/replay.hh"
 #include "unfolder/unfolder.hh"
+#include "unfolder/comb.hh"
+#include "unfolder/alt-algorithm.hh"
 
 #include "defectreport.hh"
 
 namespace dpu
 {
-typedef enum { SDPOR, ONLYLAST, KPARTIAL, OPTIMAL } Altalgo;
-};
 
-// requires Altalgo to be defined
-#include "unfolder/comb.hh"
-
-namespace dpu
-{
-
-class C15unfolder : public Unfolder
+class C15unfolder : public Unfolder<C15unfolder>
 {
 public:
    /// counters to obtain statistics
@@ -51,6 +45,9 @@ public:
 #endif
       } alt;
    } counters;
+
+   /// The list of all defects found during the exploration
+   Defectreport report;
 
    // ctor and dtor
    C15unfolder (Altalgo a, unsigned kbound, unsigned maxcts);

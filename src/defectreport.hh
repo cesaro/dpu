@@ -7,6 +7,8 @@
 #include <cstdint>
 #include <system_error>
 
+#include <llvm/Support/YAMLTraits.h>
+
 #include "defect.hh"
 
 struct Defectreport

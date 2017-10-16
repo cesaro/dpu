@@ -1,7 +1,12 @@
+
 #include <cstdio>
 #include <cstdlib>
+#include <climits>
+
 #include <getopt.h>
 #include <unistd.h>
+
+#include "pes/unfolding.hh"
 
 #include "opts.hh"
 #include "verbosity.h"

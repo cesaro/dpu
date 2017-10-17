@@ -201,34 +201,65 @@ void help ()
    usage (0);
 }
 
+#define P(fmt,args...) fprintf (stderr, fmt "\n", ##args)
+
 void usage (int exitcode)
 {
-   fprintf (stderr, "Usage: %s FILE.{c,i,bc,ll} ANALYZEROPTS -- PROGRAMOPTS\n", progname);
-   fprintf (stderr, "Where ANALYZEROPTS can be:\n");
+   P ("Usage: %s FILE.{c,i,bc,ll} ANALYZEROPTS -- PROGRAMOPTS", progname);
+   P ("");
+   P ("where ANALYZEROPTS are options for DPU and PROGRAMOPTS is the command-line");
+   P ("(the value of argv) that the program under analysis will receive. Note that");
+   P ("PROGRAMOPTS shall include argv[0], usually the program name.");
+   P ("");
+   P ("Options in ANALYZEROPTS can be:");
+   P ("");
    print_options();
    exit (exitcode);
 }
 
 void print_options ()
 {
-   fprintf (stderr, " -h,   --help             shows this message\n");
-   fprintf (stderr, " -V,   --version          displays version information\n");
-   fprintf (stderr, " -v,   --verb=N           increments verbosity level by optional parameter N (1 to 3)\n");
-   fprintf (stderr, "       --gdb              runs the backend in a gdb session\n");
-   fprintf (stderr, "       --callgrind        runs the backend in a callgrind session\n");
-   fprintf (stderr, "       --dot=PATH         dumps DOT for full unfolding into PATH\n");
-   fprintf (stderr, " -D MACRO                 defines a preprocessor macro\n");
-   //fprintf (stderr, " -a {0,1,K}, --alt={0,1,K} alternatives: 0 optimal, 1 only-last, K K-partial (default 1)\n");
-   fprintf (stderr, " -a K, --alt=K            alternatives: K=0 -> optimal, K>=1 -> K-partial (default 1)\n");
-   fprintf (stderr, " -m N, --mem=N            sets the guest memory, in MB (default %zuM)\n", memsize / (1 << 20));
-   fprintf (stderr, " -s N, --stack=N          sets default size for thread stacks, in MB (default %zuM)\n", stacksize / (1 << 20));
-   fprintf (stderr, "       --dump-instr=PATH  dumps instrumented LLVM bytecode to PATH\n");
-   fprintf (stderr, " -O L                     optimization level (0 to 3) (default %u)\n", optlevel);
-   fprintf (stderr, "       --strace           prints strace(1)-like info on program execution (default %d)\n", strace);
-   fprintf (stderr, "       --dosleep          makes sleep(3) not to return EINTR immediately (default %d)\n", dosleep);
-   fprintf (stderr, " -x N  --maxcts N         prune POR tree beyond N context switches (default: no limit)\n");
-   fprintf (stderr, "       --timeout N        stop exploration after N seconds\n");
+   P ("General:");
+   P (" -h, --help");
+   P ("   Show this message.");
+   P (" -V, --version");
+   P ("   Display version information.");
+   P (" -v [N], --verb=N");
+   P ("   Increment verbosity level by optional parameter N (1 to 3). Can be repeated.");
+   P (" --gdb");
+   P ("   Runs dpu in a gdb session.");
+   P (" --callgrind");
+   P ("   Runs dpu in a callgrind session.");
+   P ("");
+   P ("Analysis:");
+   //P (" -a {0,1,K}, --alt={0,1,K} alternatives: 0 optimal, 1 only-last, K K-partial (default 1)");
+   P (" -a K, --alt=K");
+   P ("   Alternatives: K=0 -> optimal, K>=1 -> K-partial (default 1)");
+   P (" -x N, --maxcts N");
+   P ("   Prune POR tree beyond N context switches (default: no limit)");
+   P (" --strace");
+   P ("   Print strace(1)-like info on program execution (default %d)", strace);
+   P (" --dosleep");
+   P ("   Make sleep(3) not to return EINTR immediately (default %d).", dosleep);
+   P (" --timeout N");
+   P ("   Abort exploration after N seconds.");
+   P (" --dot=PATH");
+   P ("   Generate a DOT digraph representing the full unfolding in file PATH.");
+   P ("");
+   P ("Execution environment:");
+   P (" -D MACRO");
+   P ("   Define a preprocessor macro.");
+   P (" -O N");
+   P ("   Set the optimization level (0 to 3) to N (default %u)", optlevel);
+   P (" -m N, --mem=N");
+   P ("   Set the guest memory, in MB (default %zuM)", memsize / (1 << 20));
+   P (" -s N, --stack=N");
+   P ("   Set default size for thread stacks, in MB (default %zuM)", stacksize / (1 << 20));
+   P (" --dump-instr=PATH");
+   P ("   Dump instrumented LLVM bytecode to PATH.");
 }
+
+#undef P
 
 void version (void)
 {

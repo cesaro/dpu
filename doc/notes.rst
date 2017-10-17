@@ -165,7 +165,8 @@ x Add an option ``-D MACRO`` to dpu
   better by taking the unfolding. A consequence of having to take the unfolding
   is the the object is not default constructible, which means that a Defect is
   not default constructible should it use the dpu::Replay instead of the
-  stid::Replay, as it should.
+  stid::Replay, as it should. Similarly the DataRaceAnalysis cannot store a
+  vector of dpu::Replay because it's not default constructible (grrrrrrrrr).
 
 Alternatives
 ============

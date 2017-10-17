@@ -65,8 +65,11 @@ public :
 
 private :
    Container regions;
+
+   friend bool operator== (const MemoryPool &a, const MemoryPool &b);
 };
 
+inline bool operator== (const MemoryPool &a, const MemoryPool &b);
 inline bool operator< (const MemoryPool &a, const MemoryPool &b);
 inline bool operator> (const MemoryPool &a, const MemoryPool &b);
 

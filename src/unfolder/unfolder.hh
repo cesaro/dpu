@@ -48,9 +48,11 @@ public:
    /// our own environment, see environ(7)
    void set_default_environment ();
 
-   /// runs the system up to completion (termination) using the provided replay
-   /// and returns the corresponding maximal configuration
-   Config add_one_run (const Replay &r);
+   /// Runs the system up to completion (termination) using the provided replay
+   /// and returns the corresponding maximal configuration. FIXME: the replay
+   /// should be a dpu::Replay, but I temporarily reverted it to a stid::Replay
+   /// to get something working ...
+   Config add_one_run (const stid::Replay &r);
 
    /// determines if the causal closure of all events in eset is a configuration
    bool is_conflict_free(const std::vector<Event *> &sol, const Event *e) const;

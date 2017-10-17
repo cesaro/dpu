@@ -1,4 +1,9 @@
 
+inline bool operator== (const MemoryPool &a, const MemoryPool &b)
+{
+   return a.regions == b.regions;
+}
+
 inline bool operator< (const MemoryPool &a, const MemoryPool &b)
 {
    return a.upper() < b.lower();

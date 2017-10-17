@@ -41,5 +41,11 @@ public :
    }
 };
 
+inline
+bool operator== (const Redbox &b1, const Redbox &b2)
+{
+   return b1.readpool == b2.readpool and b1.writepool == b2.writepool;
+}
+
 } // namespace dpu
 #endif

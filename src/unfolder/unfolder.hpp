@@ -205,7 +205,7 @@ void Unfolder<T>::set_default_environment ()
 }
 
 template<typename T>
-Config Unfolder<T>::add_one_run (const Replay &r)
+Config Unfolder<T>::add_one_run (const stid::Replay &r)
 {
    Config c (Unfolding::MAX_PROC);
 

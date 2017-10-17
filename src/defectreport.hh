@@ -87,4 +87,12 @@ struct llvm::yaml::MappingTraits<dpu::Defectreport> {
    }
 };
 
+inline
+llvm::raw_ostream &operator<< (llvm::raw_ostream &os, dpu::Defectreport &r)
+{
+   llvm::yaml::Output out (os);
+   out << r;
+   return os;
+}
+
 #endif

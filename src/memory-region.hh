@@ -71,6 +71,14 @@ public:
 };
 
 template<typename Addr>
+bool operator== (const MemoryRegion<Addr> &a, const MemoryRegion<Addr> &b)
+{
+   ASSERT (a.lower <= a.upper);
+   ASSERT (b.lower <= b.upper);
+   return a.lower == b.lower and a.upper == b.upper;
+}
+
+template<typename Addr>
 bool operator< (const MemoryRegion<Addr> &a, const MemoryRegion<Addr> &b)
 {
    ASSERT (a.lower <= a.upper);

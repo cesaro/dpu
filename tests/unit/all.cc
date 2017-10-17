@@ -19,6 +19,7 @@
 #include "pes/config.hh"
 #include "pes/cut.hh"
 #include "opts.hh"
+#include "datarace-analysis.hh"
 
 namespace dpu
 {
@@ -1705,9 +1706,44 @@ void test57 ()
    unf.u.dump ();
    unf.u.print_dot ("u.dot");
 }
+
 void test58 ()
 {
+
+   char *argv[] = {(char*) "dpu", (char*) "/tmp/input.ll", (char*) "-vvv"};
+   int argc = 3;
+
+   // necessary so that the DataRaceAnalysis initializes itself correctly
+   opts::parse (argc, argv);
+
+   dpu::DataRaceAnalysis dra;
+   dra.load_bitcode (std::string (opts::inpath));
+   dra.print_external_syms (nullptr);
+   dra.set_default_environment ();
+   dra.set_args ({"p", "arg1", "arg2"});
+
+   DEBUG ("before running steroids:");
+   dra.u.dump ();
+
+   // run 1 time in free mode
+   Replay r1 (dra.u);
+   Replay r2 (dra.u, {0, 3, 2, 3, 1, 3});
+   Replay r3 (dra.u, {0, 3, 1, 1, 2, 2});
+   std::vector<stid::Replay> v {r1, r2, r3}; // FIXME cast done here!
+
+   dra.load_replays (v);
+   dra.run ();
+
+   SHOW (dra.race, "p");
+
+   // dump unfolding to stdout and in dot format
+   dra.u.dump ();
+   dra.u.print_dot ("u.dot");
+
+   // and also the report
+   dra.report.save ("/tmp/defects.yml");
 }
+
 void test59 ()
 {
 }

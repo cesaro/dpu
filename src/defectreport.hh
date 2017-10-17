@@ -11,6 +11,9 @@
 
 #include "defect.hh"
 
+namespace dpu
+{
+
 struct Defectreport
 {
    // tool version
@@ -37,8 +40,10 @@ struct Defectreport
    std::vector<Defect> defects;
 
    void save (const char *path);
-   void add_defect (Defect &&d);
+   void add_defect (const Defect &d);
 };
+
+} // namespace
 
 // yaml trait for "const char *" (for some reason it doesn't work)
 template<>
@@ -61,12 +66,12 @@ struct llvm::yaml::ScalarTraits<const char *> {
 LLVM_YAML_IS_SEQUENCE_VECTOR(std::string);
 
 // yaml trait for the vector of defects
-LLVM_YAML_IS_SEQUENCE_VECTOR(Defect);
+LLVM_YAML_IS_SEQUENCE_VECTOR(dpu::Defect);
 
 // yaml trait for the defect report
 template<>
-struct llvm::yaml::MappingTraits<Defectreport> {
-   static void mapping (llvm::yaml::IO &io, Defectreport &r)
+struct llvm::yaml::MappingTraits<dpu::Defectreport> {
+   static void mapping (llvm::yaml::IO &io, dpu::Defectreport &r)
    {
       io.mapRequired ("dpu-version", r.dpuversion);
       io.mapRequired ("bitcode", r.path);

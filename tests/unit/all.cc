@@ -1690,13 +1690,13 @@ void test57 ()
    unf.u.dump ();
    
    //// run 1 time in free mode
-   //Replay replay1 = Replay::create (unf.u);
+   //Replay replay1 (unf.u);
    //SHOW (replay1.str().c_str(), "s");
    //Config c1 (unf.add_one_run (replay1));
    //c1.dump ();
 
    // run 1 time in free mode
-   Replay replay2 = Replay::create (unf.u, {0, 3, 2, 3, 1, 3});
+   Replay replay2 (unf.u, {0, 3, 2, 3, 1, 3});
    SHOW (replay2.str().c_str(), "s");
    Config c2 (unf.add_one_run (replay2));
    c2.dump ();

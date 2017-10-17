@@ -33,7 +33,7 @@ public:
    Cut (const Cut &c1, const Cut &c2);
 
    /// destructor
-   inline ~Cut ();
+   virtual inline ~Cut ();
 
    /// assignment operator
    inline Cut & operator= (const Cut & other);

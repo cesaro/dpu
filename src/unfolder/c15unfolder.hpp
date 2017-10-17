@@ -1,19 +1,19 @@
 
 inline void C15unfolder::report_add_nondet_violation (const Trail &t, unsigned where, ActionType found)
 {
-   Defect d;
+   std::string description;
 
    ASSERT (where < t.size());
    ASSERT (t[where]->action.type != found);
 
-   d.description = fmt (
+   description = fmt (
       "WARNING: the program dind't replay deterministically: "
       "expected %s but got %s",
       action_type_str (t[where]->action.type),
       action_type_str (found));
-   d.replay = std::move (Replay::create (u, t, where + 1));
+   Replay replay (u, t, where + 1);
 
-   report.add_defect (std::move (d));
+   report.add_defect (Defect (description, replay));
 }
 
 bool C15unfolder::stream_match_trail
@@ -365,10 +365,10 @@ bool C15unfolder::stream_to_events
          report.nr_abort++;
          defect.description = "The program called abort()";
          if (t)
-            defect.replay = std::move (Replay::create (u, *t));
+            defect.replay = std::move (Replay (u, *t));
          else
             defect.replay.clear();
-         report.add_defect (std::move (defect));
+         report.add_defect (defect);
          break;
 
       case RT_EXITNZ :
@@ -377,10 +377,10 @@ bool C15unfolder::stream_to_events
          defect.description =
                fmt ("The program exited with errorcode %d", it.id());
          if (t)
-            defect.replay = std::move (Replay::create (u, *t));
+            defect.replay = std::move (Replay (u, *t));
          else
             defect.replay.clear();
-         report.add_defect (std::move (defect));
+         report.add_defect (defect);
          break;
 
       case RT_RD8 :

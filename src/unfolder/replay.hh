@@ -1,12 +1,15 @@
 
-#ifndef _C15U_REPLAY_HH_
-#define _C15U_REPLAY_HH_
+#ifndef _UNFOLDER_REPLAY_HH_
+#define _UNFOLDER_REPLAY_HH_
 
+#include <climits>
 
 #include "stid/replay.hh"
 
+#include "pes/unfolding.hh"
 #include "unfolder/pidmap.hh"
 #include "unfolder/trail.hh"
+#include "pes/event.hh"
 #include "pes/cut.hh"
 
 #include "verbosity.h"
@@ -16,33 +19,37 @@ namespace dpu {
 class Replay : public stid::Replay
 {
 public :
-   Replay (Unfolding &u_) : u (u_) {}
 
-   /// Returns a replay sequence suitable for replaying the trail \p t.
-   static Replay create (Unfolding &u, const Trail &t, unsigned limit = UINT_MAX)
+   /// Constructs a replay sequence suitable setting Steroids in FREE mode
+   Replay (const Unfolding &u) :
+      u (u)
    {
-      Replay r(u);
-      r.build_from (t, limit);
-      return r;
+      finish ();
    }
 
-   /// Returns a replay sequence suitable setting Steroids in FREE mode
-   static Replay create (Unfolding &u)
+   Replay (const Unfolding &u, const Cut &c) :
+      u (u)
    {
-      Replay r(u);
-      r.finish ();
-      return r;
+      extend_from (c);
+      finish ();
    }
 
-   /// Returns a replay sequence constructed from a vector of integers. The
+   /// Constructs a replay sequence suitable for replaying the trail \p t.
+   Replay (const Unfolding &u, const Trail &t, unsigned limit = UINT_MAX) :
+      u (u)
+   {
+      extend_from (t, limit);
+      finish ();
+   }
+
+   /// Constructs a replay sequence from a vector of integers. The
    /// vector shall **not** include the last step {-1, -1}
-   static Replay create (Unfolding &u, std::vector<int> &&v)
+   Replay (const Unfolding &u, std::vector<int> &&v) :
+      u (u)
    {
-      Replay r(u);
       ASSERT ((v.size() & 1) == 0);
-      for (int i = 0; i < v.size(); i += 2) r.push_back ({v[i], v[i+1]});
-      r.finish ();
-      return r;
+      for (int i = 0; i < v.size(); i += 2) push_back ({v[i], v[i+1]});
+      finish ();
    }
 
    /// Extends the replay vector with a sequence suitable to replay the trail
@@ -62,6 +69,9 @@ public :
    /// Stores in the replay vector a sequence suitable to replay the trail
    inline void build_from (const Trail &t, unsigned limit = UINT_MAX);
 
+   /// Stores in the replay vector a sequence suitable to replay \p c
+   inline void build_from (const Cut &c);
+
    /// Adds the {-1, -1} event to the end of the replay vector
    inline void finish ();
 
@@ -69,14 +79,21 @@ public :
    /// which the replay sequence switches between the trail and the alternative
    inline std::string str (unsigned altidx = UINT_MAX);
 
-   // This object maps steroids tids to dpu pids when transforming the action
-   // stream into events, and dpu pids to steroids tids when generating replays.
-   // It is cleared before starting any of these two transformations, but stores
-   // data shared across multiple methods involved in them. Pid #0 always maps
-   // to tid t0, and vice versa, so the map always has at least one entry.
+   /// This object is a mapping from integers to integers. In the context of the
+   /// Replay class, it is used as a map from DPU thread ids to Steroids thread
+   /// ids. The mapping 0 -> 0 is always there, even after a call to clear().
+   /// It is iteratively filled when transforming a configuration / trail / cut
+   /// into a stid::Replay. Elsewhere (not in this class) it is also used in the
+   /// opposite way, to store a mapping from Steroids tids to DPU tids. The
+   /// scope of interpretation of the information contained in it is the
+   /// represented execution. The Pidmap constructed during the transformation
+   /// of 1 configuration cannot be used to map DPU tids to Steroid tids when
+   /// translating a different configuration. (The same applies, by the way, in
+   /// the opposite direction.). So any of the methods in this class that
+   /// constructs or initializes the replay vector will clear() this map.
    Pidmap pidmap;
 private :
-   Unfolding &u;
+   const Unfolding &u;
 };
 
 // implementation of inline methods

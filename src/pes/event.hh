@@ -61,6 +61,7 @@ public:
    /// A pointer to some domain-specific payload of type EventPayload<T>
    EventPayload *dat;
 
+#if 0
    /// Utility method to cast and return a reference to the payload
    template<typename T>
    T &data ();
@@ -68,6 +69,7 @@ public:
    /// Utility method to cast and return a reference to the payload
    template<typename T>
    const T &data () const;
+#endif
 
    /// Predecessor in my thread, or null if THSTART
    inline const Event *pre_proc () const;
@@ -79,8 +81,15 @@ public:
 
    /// Returns the pid of the process to which this event belongs
    unsigned pid () const;
-   /// Returns the process to which this event belongs
-   Process *proc () const;
+
+   /// Returns the process which this event belongs to.
+   const Process *process () const;
+   Process *process ();
+
+   /// Returns the unfolding this event belongs to.
+   const Unfolding *unfolding () const;
+   Unfolding *unfolding ();
+
    /// Returns a unique numeric id
    unsigned uid () const;
    std::string suid () const;

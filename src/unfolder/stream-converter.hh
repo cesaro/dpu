@@ -2,6 +2,8 @@
 #ifndef __UNFOLDER_STREAMTOEVENTS_HH_
 #define __UNFOLDER_STREAMTOEVENTS_HH_
 
+#include "stid/action_stream.hh"
+
 #include "pes/event.hh"
 #include "pes/config.hh"
 #include "pes/unfolding.hh"

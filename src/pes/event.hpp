@@ -58,6 +58,7 @@ Event::Event (Action ac, Event *m, bool bf) :
    //DEBUG ("Event.ctor: e %-16p %s", this, cone.str().c_str());
 }
 
+#if 0
 template<typename T>
 T &Event::data ()
 {
@@ -71,6 +72,7 @@ const T &Event::data () const
    ASSERT (dat);
    return * (const T *) dat;
 }
+#endif
 
 const Event *Event::pre_proc () const
 {
@@ -111,7 +113,7 @@ bool Event::is_bottom () const
    return action.type == ActionType::THSTART and pid () == 0;
 }
 
-// Process *Event::proc () const in pes/event.cc
+// Process *Event::process () const in pes/event.cc
 
 unsigned Event::depth_proc () const
 {
@@ -256,7 +258,7 @@ void Event::icfls (std::vector<Event*> &v) const
       for (e = (Event*) node[1].skiptab; e != this;
             e = (Event*) e->node[1].skiptab)
       {
-         if (e->proc() != proc()) v.push_back (e);
+         if (e->process() != process()) v.push_back (e);
       }
       return;
    }
@@ -265,7 +267,7 @@ void Event::icfls (std::vector<Event*> &v) const
    // conflicts
    for (Event *e : node[1].pre->node[1].post)
    {
-      if (e->proc() != proc()) v.push_back (e);
+      if (e->process() != process()) v.push_back (e);
    }
    return;
 }

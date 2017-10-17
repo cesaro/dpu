@@ -8,6 +8,9 @@
 #include "defect.hh"
 #include "defectreport.hh"
 
+namespace dpu
+{
+
 void Defectreport::save (const char *path)
 {
    std::error_code ec;
@@ -18,8 +21,10 @@ void Defectreport::save (const char *path)
    out << *this;
 }
 
-void Defectreport::add_defect (Defect &&d)
+void Defectreport::add_defect (const Defect &d)
 {
    PRINT ("dpu: defect found: %s", d.description.c_str());
-   defects.emplace_back (std::move (d));
+   defects.emplace_back (d);
 }
+
+} // namespace

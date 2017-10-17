@@ -112,7 +112,7 @@ Event *Unfolding::event (Action ac, Event *p)
    if (e) return e;
 
    // otherwise we create it
-   return p->proc()->add_event_1p (ac, p);
+   return p->process()->add_event_1p (ac, p);
 }
 
 /// THJOIN(tid), MTXLOCK(addr), MTXUNLK(addr), two predecessors (process, memory/exit)
@@ -143,7 +143,7 @@ Event *Unfolding::event (Action ac, Event *p, Event *m)
    if (e) return e;
 
    // otherwise we create it
-   e = p->proc()->add_event_2p (ac, p, m);
+   e = p->process()->add_event_2p (ac, p, m);
 
    // hack to be able to list in Event::icfl() the root events of an address
    // tree
@@ -177,7 +177,7 @@ Process *Unfolding::new_proc (Event *creat)
    // construct the process object, increment nrp
    p = (void*) (procs + nrp * PROC_SIZE);
    nrp++;
-   return new (p) Process (creat);
+   return new (p) Process (creat, this);
 }
 
 void Unfolding::dump () const

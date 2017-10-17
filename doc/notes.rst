@@ -159,6 +159,14 @@ x Add an option ``-D MACRO`` to dpu
 - Add regression tests ensuring that the dot output is still working. Run dot(1)
   on the output to ensure it is good.
 
+- The replay class has one annoying feature: it requires having the unfolding to
+  optimize the size of the array scanned in one of the `extend_from` functions.
+  This could be obtained from UnfoldingMemoryMath::MAX_PROC, but we can do
+  better by taking the unfolding. A consequence of having to take the unfolding
+  is the the object is not default constructible, which means that a Defect is
+  not default constructible should it use the dpu::Replay instead of the
+  stid::Replay, as it should.
+
 Alternatives
 ============
 

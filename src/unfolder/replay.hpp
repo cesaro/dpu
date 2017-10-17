@@ -1,9 +1,4 @@
 
-#include "pes/unfolding.hh"
-#include "pes/event.hh"
-
-#include "verbosity.h"
-
 void Replay::extend_from (const Trail &t, unsigned limit)
 {
    unsigned pid;
@@ -180,6 +175,13 @@ void Replay::build_from (const Trail &t, unsigned limit)
 {
    clear();
    extend_from (t, limit);
+   finish ();
+}
+
+void Replay::build_from (const Cut &c)
+{
+   clear ();
+   extend_from (c);
    finish ();
 }
 

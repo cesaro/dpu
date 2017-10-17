@@ -35,9 +35,10 @@ protected :
    };
 
 public :
-   /// ctor, creat is null for the first process or the first THCREAT event that
-   /// created this process
-   inline Process (Event *creat);
+   /// Constructor, \p creat is null for the first process or the first THCREAT
+   /// event that created this process. \p u is the unfolding this process
+   /// belongs to.
+   inline Process (Event *creat, Unfolding *u);
 
    /// pretty print of the process' events
    void dump ();
@@ -48,10 +49,15 @@ public :
    inline const It<const Event> begin () const;
    inline const It<const Event> end () const;
 
-   /// returns the pid of this process
+   /// Returns the pid of this process
    inline unsigned pid () const;
-   /// returns the offset of a pointer within the memory pool of this process
+
+   /// Returns the offset of a pointer within the memory pool of this process
    inline size_t offset (void *ptr) const;
+
+   /// Returns the unfolding this process belongs to
+   Unfolding *unfolding () { return u; }
+   const Unfolding *unfolding () const { return u; }
 
    /// returns the first event (necessarily a THSTART) of this process
    inline Event *first_event () const;
@@ -75,7 +81,10 @@ public :
    } counters;
 
 private :
-   /// last event inserted in the memory pool of this process
+   /// Pointer to the unfolding this process belongs to
+   Unfolding *u;
+
+   /// Last event inserted in the memory pool of this process
    Event *last;
 
    /// returns a pointer to the first box (lowest address) in the process

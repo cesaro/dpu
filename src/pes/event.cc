@@ -1,6 +1,7 @@
 
 #include "pes/event.hh"
 #include "pes/eventbox.hh"
+#include "pes/process.hh"
 #include "pes/unfolding.hh"
 
 namespace dpu {
@@ -30,10 +31,26 @@ unsigned Event::puid () const
    return Unfolding::ptr2puid (this);
 }
 
-Process *Event::proc () const
+const Process *Event::process () const
 {
    return Unfolding::ptr2proc (this);
 }
+
+Process *Event::process ()
+{
+   return Unfolding::ptr2proc (this);
+}
+
+const Unfolding *Event::unfolding () const
+{
+   return process()->unfolding();
+}
+
+Unfolding *Event::unfolding ()
+{
+   return process()->unfolding();
+}
+
 
 std::string Event::str () const
 {

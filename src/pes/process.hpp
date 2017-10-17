@@ -1,6 +1,7 @@
 
-Process::Process (Event *creat) :
-   counters {1}
+Process::Process (Event *creat, Unfolding *u) :
+   counters {1},
+   u (u)
 {
    //DEBUG ("Process.ctor: this %p pid %d sizeof %d", this, pid(), sizeof (Process));
 

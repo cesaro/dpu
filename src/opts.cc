@@ -21,6 +21,7 @@ const char *progname;
 int verbosity;
 std::string inpath;
 std::vector<const char *> argv;
+Analysis analysis;
 unsigned kbound;
 Altalgo alt_algo;
 std::string dotpath;
@@ -44,7 +45,8 @@ void parse (int argc, char **argv_)
 			{"verbosity", optional_argument, nullptr, 'v'},
 			{"version", no_argument, nullptr, 'V'},
          //
-			{"alt", required_argument, nullptr, 'a'},
+			{"analysis", required_argument, nullptr, 'a'},
+			{"altbound", required_argument, nullptr, 'k'},
 			{"arg0", required_argument, nullptr, '0'},
 			{"dot", required_argument, nullptr, 'D'},
 			{"mem", required_argument, nullptr, 'm'},
@@ -64,6 +66,7 @@ void parse (int argc, char **argv_)
    defectspath = "./defects.yml";
    //alt_algo = Altalgo::KPARTIAL;
    alt_algo = Altalgo::ONLYLAST;
+   analysis = Analysis::POR;
    kbound = 1;
    memsize = CONFIG_GUEST_DEFAULT_MEMORY_SIZE;
    stacksize = CONFIG_GUEST_DEFAULT_THREAD_STACK_SIZE;
@@ -76,13 +79,21 @@ void parse (int argc, char **argv_)
 	// parse the command line, supress automatic error messages by getopt
 	opterr = 0;
 	while (1) {
-		op = getopt_long (argc, argv_, "0:a:vhVm:s:O:x:", longopts, nullptr);
+		op = getopt_long (argc, argv_, "0:a:k:vhVm:s:O:x:", longopts, nullptr);
 		if (op == -1) break;
 		switch (op) {
 		case '0' :
          argv.push_back (optarg);
          break;
 		case 'a' :
+         if (strcmp (optarg, "por") == 0)
+            analysis = Analysis::POR;
+         else if (strcmp (optarg, "por+dr") == 0)
+            analysis = Analysis::POR_DR;
+         else
+            usage(1);
+         break;
+		case 'k' :
 			i = strtol (optarg, &endptr, 10);
          if (i < -1) usage(1);
          switch (i) {
@@ -233,28 +244,40 @@ void print_options ()
    P ("");
    P ("Analysis:");
    //P (" -a {0,1,K}, --alt={0,1,K} alternatives: 0 optimal, 1 only-last, K K-partial (default 1)");
-   P (" -a K, --alt=K");
-   P ("   Alternatives: K=0 -> optimal, K>=1 -> K-partial (default 1)");
+   P (" -a A, --analysis=A");
+   P ("   Perform one of the following dynamic analyses (default 'por'):");
+   ASSERT (analysis == Analysis::POR);
+   P ("   * A = por    : Partial-order reduction");
+   P ("   * A = por+dr : Partial-order reduction followed by data-race detection");
+   P (" -k N, --altbound=N");
+   P ("   Use N-partial alternatives during POR exploration (default %d). "
+         "Valid values are:", kbound);
+   P ("   * N = -1 : Source DPOR. This is slighly different and less powerful than N=1. FIXME");
+   P ("   * N = 0  : Optimal DPOR");
+   P ("   * N >= 1 : Quasi-Optimal POR using N-partial alternatives");
    P (" -x N, --maxcts N");
-   P ("   Prune POR tree beyond N context switches (default: no limit)");
+   P ("   Prune POR tree beyond N context switches (default: no limit).");
    P (" --strace");
-   P ("   Print strace(1)-like info on program execution (default %d)", strace);
+   P ("   Print strace(1)-like info on program execution (default %d).",
+         strace);
    P (" --dosleep");
-   P ("   Make sleep(3) not to return EINTR immediately (default %d).", dosleep);
+   P ("   Make sleep(3) not to return EINTR immediately (default %d).",
+         dosleep);
    P (" --timeout N");
    P ("   Abort exploration after N seconds.");
    P (" --dot=PATH");
-   P ("   Generate a DOT digraph representing the full unfolding in file PATH.");
+   P ("   Store in PATH a DOT digraph representing the full unfolding.");
    P ("");
    P ("Execution environment:");
    P (" -D MACRO");
    P ("   Define a preprocessor macro.");
    P (" -O N");
-   P ("   Set the optimization level (0 to 3) to N (default %u)", optlevel);
+   P ("   Set the optimization level (0 to 3) to N (default %u).", optlevel);
    P (" -m N, --mem=N");
-   P ("   Set the guest memory, in MB (default %zuM)", memsize / (1 << 20));
+   P ("   Set the guest memory, in MB (default %zuM).", memsize / (1 << 20));
    P (" -s N, --stack=N");
-   P ("   Set default size for thread stacks, in MB (default %zuM)", stacksize / (1 << 20));
+   P ("   Set default size for thread stacks, in MB (default %zuM).",
+         stacksize / (1 << 20));
    P (" --dump-instr=PATH");
    P ("   Dump instrumented LLVM bytecode to PATH.");
 }
@@ -310,6 +333,13 @@ void dump ()
    PRINT (" argc           %zu", argv.size());
    for (i = 0; i < argv.size(); i++)
       PRINT (" argv[%u]        '%s'", i, argv[i]);
+   switch (analysis) {
+   case Analysis::POR :
+      PRINT (" analysis       POR");
+      break;
+   case Analysis::POR_DR :
+      PRINT (" analysis       POR + data-races");
+   }
    switch (alt_algo) {
    case Altalgo::KPARTIAL :
       PRINT (" alt            %u-partial", kbound);

@@ -9,10 +9,13 @@
 namespace dpu {
 namespace opts {
 
+typedef enum {POR, POR_DR} Analysis;
+
 extern const char *progname;
 extern int verbosity;
 extern std::string inpath;
 extern std::string defectspath;
+extern Analysis analysis;
 extern std::vector<const char *> argv;
 extern unsigned kbound;
 extern Altalgo alt_algo;

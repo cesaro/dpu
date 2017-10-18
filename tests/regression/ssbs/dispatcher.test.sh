@@ -1,31 +1,31 @@
 # S servers exchange R request
 
 #xxx S=3 R=2 xxx
-#dpu: summary: 59 max-configs, 0 SSBs, 834 events, 48.0 ev/trail
+#dpu: por: summary: 59 max-configs, 0 SSBs, 834 events, 48.0 ev/trail
 #xxx S=4 R=2 xxx
-#dpu: summary: 94 max-configs, 0 SSBs, 1445 events, 58.0 ev/trail
+#dpu: por: summary: 94 max-configs, 0 SSBs, 1445 events, 58.0 ev/trail
 #xxx S=5 R=2 xxx
-#dpu: summary: 137 max-configs, 0 SSBs, 2288 events, 68.0 ev/trail
+#dpu: por: summary: 137 max-configs, 0 SSBs, 2288 events, 68.0 ev/trail
 #xxx S=6 R=2 xxx
-#dpu: summary: 188 max-configs, 0 SSBs, 3399 events, 78.0 ev/trail
+#dpu: por: summary: 188 max-configs, 0 SSBs, 3399 events, 78.0 ev/trail
 #xxx S=7 R=2 xxx
-#dpu: summary: 247 max-configs, 0 SSBs, 4814 events, 88.0 ev/trail
+#dpu: por: summary: 247 max-configs, 0 SSBs, 4814 events, 88.0 ev/trail
 #xxx S=8 R=2 xxx
-#dpu: summary: 314 max-configs, 0 SSBs, 6569 events, 98.0 ev/trail (confirmed up to here with nidhugg)
+#dpu: por: summary: 314 max-configs, 0 SSBs, 6569 events, 98.0 ev/trail (confirmed up to here with nidhugg)
 #xxx S=9 R=2 xxx
-#dpu: summary: 389 max-configs, 0 SSBs, 8700 events, 108.0 ev/trail
+#dpu: por: summary: 389 max-configs, 0 SSBs, 8700 events, 108.0 ev/trail
 #xxx S=10 R=2 xxx
-#dpu: summary: 472 max-configs, 0 SSBs, 11243 events, 118.0 ev/trail
+#dpu: por: summary: 472 max-configs, 0 SSBs, 11243 events, 118.0 ev/trail
 #xxx S=11 R=2 xxx
-#dpu: summary: 563 max-configs, 0 SSBs, 14234 events, 128.0 ev/trail
+#dpu: por: summary: 563 max-configs, 0 SSBs, 14234 events, 128.0 ev/trail
 #xxx S=12 R=2 xxx
-#dpu: summary: 662 max-configs, 0 SSBs, 17709 events, 138.0 ev/trail
+#dpu: por: summary: 662 max-configs, 0 SSBs, 17709 events, 138.0 ev/trail
 #xxx S=13 R=2 xxx
-#dpu: summary: 769 max-configs, 0 SSBs, 21704 events, 148.0 ev/trail
+#dpu: por: summary: 769 max-configs, 0 SSBs, 21704 events, 148.0 ev/trail
 #xxx S=14 R=2 xxx
-#dpu: summary: 884 max-configs, 0 SSBs, 26255 events, 158.0 ev/trail
+#dpu: por: summary: 884 max-configs, 0 SSBs, 26255 events, 158.0 ev/trail
 #xxx S=15 R=2 xxx
-#dpu: summary: 1007 max-configs, 0 SSBs, 31398 events, 168.0 ev/trail
+#dpu: por: summary: 1007 max-configs, 0 SSBs, 31398 events, 168.0 ev/trail
 
 conf_ev[1 ]="59 834"
 conf_ev[2 ]="94 1445"
@@ -55,7 +55,7 @@ done
 # the command to test
 cmd for i in $S; do \
       for j in $R; do \
-         $PROG input.$i.$j.i -a3 -s 1M -vv > out.$i.$j; done; done
+         $PROG input.$i.$j.i -k3 -s 1M -vv > out.$i.$j; done; done
 
 # the checks to perform on the output
 echo S is -$S-
@@ -65,11 +65,11 @@ ls -l out*
 
 for i in $S; do \
    for j in $R; do \
-      echo xxx S=$i R=$j xxx; grep "dpu: stats: " out.$i.$j; done; done
+      echo xxx S=$i R=$j xxx; grep "dpu: por: stats: " out.$i.$j; done; done
 
 for i in $S; do \
    for j in $R; do \
-      echo xxx S=$i R=$j xxx; grep "dpu: summary: " out.$i.$j; done; done
+      echo xxx S=$i R=$j xxx; grep "dpu: por: summary: " out.$i.$j; done; done
 
 for i in $S; do \
    for j in $R; do \
@@ -83,7 +83,7 @@ for i in $S; do \
 k=1; \
 for i in $S; do \
    for j in $R; do set -x; \
-      test "$(grep "dpu: summary: " out.$i.$j | awk '{print $5, $9}')" = "${conf_ev[$k]}"; \
+      test "$(grep "dpu: por: summary: " out.$i.$j | awk '{print $6, $10}')" = "${conf_ev[$k]}"; \
       k=$(($k + 1)); done; done
 
 #for i in $S; do \

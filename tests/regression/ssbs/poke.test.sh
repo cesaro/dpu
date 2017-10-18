@@ -1,29 +1,29 @@
 # Non-deterministic poke a thread pool of workers
 
 # xxx N=2 K=1 xxx
-# dpu: summary: 4 max-configs, 0 SSBs, 61 events, 28.0 ev/trail
+# dpu: por: summary: 4 max-configs, 0 SSBs, 61 events, 28.0 ev/trail
 # xxx N=2 K=2 xxx
-# dpu: summary: 14 max-configs, 0 SSBs, 229 events, 42.0 ev/trail
+# dpu: por: summary: 14 max-configs, 0 SSBs, 229 events, 42.0 ev/trail
 # xxx N=2 K=3 xxx
-# dpu: summary: 40 max-configs, 0 SSBs, 727 events, 56.0 ev/trail
+# dpu: por: summary: 40 max-configs, 0 SSBs, 727 events, 56.0 ev/trail
 # xxx N=4 K=1 xxx
-# dpu: summary: 8 max-configs, 0 SSBs, 143 events, 44.0 ev/trail
+# dpu: por: summary: 8 max-configs, 0 SSBs, 143 events, 44.0 ev/trail
 # xxx N=4 K=2 xxx
-# dpu: summary: 60 max-configs, 0 SSBs, 1031 events, 62.0 ev/trail
+# dpu: por: summary: 60 max-configs, 0 SSBs, 1031 events, 62.0 ev/trail
 # xxx N=4 K=3 xxx
-# dpu: summary: 412 max-configs, 1 SSBs, 7235 events, 80.0 ev/trail
+# dpu: por: summary: 412 max-configs, 1 SSBs, 7235 events, 80.0 ev/trail
 # xxx N=6 K=1 xxx
-# dpu: summary: 12 max-configs, 0 SSBs, 249 events, 60.0 ev/trail
+# dpu: por: summary: 12 max-configs, 0 SSBs, 249 events, 60.0 ev/trail
 # xxx N=6 K=2 xxx
-# dpu: summary: 138 max-configs, 0 SSBs, 2697 events, 82.0 ev/trail
+# dpu: por: summary: 138 max-configs, 0 SSBs, 2697 events, 82.0 ev/trail
 # xxx N=6 K=3 xxx
-# dpu: summary: 1504 max-configs, 3 SSBs, 29687 events, 104.0 ev/trail
+# dpu: por: summary: 1504 max-configs, 3 SSBs, 29687 events, 104.0 ev/trail
 # xxx N=8 K=1 xxx
-# dpu: summary: 16 max-configs, 0 SSBs, 379 events, 76.0 ev/trail
+# dpu: por: summary: 16 max-configs, 0 SSBs, 379 events, 76.0 ev/trail
 # xxx N=8 K=2 xxx
-# dpu: summary: 248 max-configs, 0 SSBs, 5515 events, 102.0 ev/trail
+# dpu: por: summary: 248 max-configs, 0 SSBs, 5515 events, 102.0 ev/trail
 # xxx N=8 K=3 xxx
-# dpu: summary: 3700 max-configs, 10 SSBs, 82819 events, 128.0 ev/trail
+# dpu: por: summary: 3700 max-configs, 10 SSBs, 82819 events, 128.0 ev/trail
 
 conf_ev[1 ]="4 61"
 conf_ev[2 ]="14 229"
@@ -53,7 +53,7 @@ done
 # the command to test
 cmd for i in $N; do \
       for j in $K; do \
-         $PROG input.$i.$j.i -a4 -s 1M -vv > out.$i.$j; done; done
+         $PROG input.$i.$j.i -k4 -s 1M -vv > out.$i.$j; done; done
 
 # the checks to perform on the output
 echo N is -$N-
@@ -63,11 +63,11 @@ ls -l out*
 
 for i in $N; do \
    for j in $K; do \
-      echo xxx N=$i K=$j xxx; grep "dpu: stats: " out.$i.$j; done; done
+      echo xxx N=$i K=$j xxx; grep "dpu: por: stats: " out.$i.$j; done; done
 
 for i in $N; do \
    for j in $K; do \
-      echo xxx N=$i K=$j xxx; grep "dpu: summary: " out.$i.$j; done; done
+      echo xxx N=$i K=$j xxx; grep "dpu: por: summary: " out.$i.$j; done; done
 
 for i in $N; do \
    for j in $K; do \
@@ -82,7 +82,7 @@ set -x; \
 k=1; \
 for i in $N; do \
    for j in $K; do \
-      test "$(grep "dpu: summary: " out.$i.$j | awk '{print $5, $9}')" = "${conf_ev[$k]}"; \
+      test "$(grep "dpu: por: summary: " out.$i.$j | awk '{print $6, $10}')" = "${conf_ev[$k]}"; \
       k=$(($k + 1)); done; done
 
 for i in $N; do \

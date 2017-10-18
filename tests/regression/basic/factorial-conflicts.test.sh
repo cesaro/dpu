@@ -1,12 +1,12 @@
 # Unfolding with N threads and N! executions
 
-# dpu: summary: 1 max-configs, 0 SSBs, 8 events, 8.0 ev/trail
-# dpu: summary: 2 max-configs, 0 SSBs, 23 events, 14.0 ev/trail
-# dpu: summary: 6 max-configs, 0 SSBs, 75 events, 20.0 ev/trail
-# dpu: summary: 24 max-configs, 0 SSBs, 311 events, 26.0 ev/trail
-# dpu: summary: 120 max-configs, 0 SSBs, 1623 events, 32.0 ev/trail
-# dpu: summary: 720 max-configs, 0 SSBs, 10221 events, 38.0 ev/trail
-# dpu: summary: 5040 max-configs, 0 SSBs, 75113 events, 44.0 ev/trail
+# dpu: por: summary: 1 max-configs, 0 SSBs, 8 events, 8.0 ev/trail
+# dpu: por: summary: 2 max-configs, 0 SSBs, 23 events, 14.0 ev/trail
+# dpu: por: summary: 6 max-configs, 0 SSBs, 75 events, 20.0 ev/trail
+# dpu: por: summary: 24 max-configs, 0 SSBs, 311 events, 26.0 ev/trail
+# dpu: por: summary: 120 max-configs, 0 SSBs, 1623 events, 32.0 ev/trail
+# dpu: por: summary: 720 max-configs, 0 SSBs, 10221 events, 38.0 ev/trail
+# dpu: por: summary: 5040 max-configs, 0 SSBs, 75113 events, 44.0 ev/trail
 
 MAX=5
 N=$(seq 1 $MAX)
@@ -39,11 +39,11 @@ cmd for i in $N; do $PROG input$i.i -vv > out$i; cat out$i; done
 
 # exactly MAX executions terminated
 test $EXITCODE = 0
-for i in $N; do echo "xxx $i xxx"; grep "dpu: stats: " out$i; done
+for i in $N; do echo "xxx $i xxx"; grep "dpu: por: stats: " out$i; done
 
 # exactly the espected number of configurations and events
 for i in $N; do test \
-   "$(grep "dpu: summary: " out$i | awk '{print $5, $9}')" = \
+   "$(grep "dpu: por: summary: " out$i | awk '{print $6, $10}')" = \
    "${configs[$i]} ${events[$i]}"; done
 
 # remove intermediate files

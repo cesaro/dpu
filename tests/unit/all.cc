@@ -1731,7 +1731,7 @@ void test58 ()
    Replay r3 (dra.u, {0, 3, 1, 1, 2, 2});
    std::vector<stid::Replay> v {r1, r2, r3}; // FIXME cast done here!
 
-   dra.load_replays (v);
+   dra.replays = v;
    dra.run ();
 
    SHOW (dra.race, "p");

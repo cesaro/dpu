@@ -15,8 +15,8 @@ cmd for i in $N; do \
 # the checks to perform on the output
 echo $N
 test $EXITCODE = 0
-for i in $N; do echo xxx $i xxx; grep "dpu: stats: " out$i; done
-for i in $N; do echo xxx $i xxx; grep "dpu: summary: " out$i; done
+for i in $N; do echo xxx $i xxx; grep "dpu: por: stats: " out$i; done
+for i in $N; do echo xxx $i xxx; grep "dpu: por: summary: " out$i; done
 
 for i in $N; do grep -i " unfolding: $(($i + 1)) threads created" out$i; done
 for i in $N; do rm input${i}.i; done

@@ -12,30 +12,34 @@ namespace dpu {
 
 void DataRaceAnalysis::run ()
 {
+   unsigned count;
    report_init ();
 
    ASSERT (race == nullptr);
 
-   PRINT ("dpu: race-checker: starting, %zu replay sequences to analyze...",
-      replays.size());
+   PRINT ("dpu: dr: starting data-race detection analysis...");
+   PRINT ("dpu: dr: analyzing %zu replay sequences", replays.size());
+   count = 0;
    for (const stid::Replay &r : replays)
    {
       Config c (add_one_run (r));
-      c.dump ();
+      count++;
+      //c.dump ();
       race = check_data_races (c);
       if (race) break;
    }
+   PRINT ("dpu: dr: finished data-race detection, %u of %zu replays analyzed",
+      count, replays.size());
 
    if (race)
    {
-      PRINT ("dpu: race-checker: data race found:");
+      PRINT ("dpu: dr: at least one DATA RACE FOUND (program may have more)");
       report.add_defect (*race);
       race->dump ();
-      PRINT ("dpu: race-checker: done, 1 data race found (program may have more)");
    }
    else
    {
-      PRINT ("dpu: race-checker: done, no data race found");
+      PRINT ("dpu: dr: NO data race found");
    }
 }
 
@@ -105,8 +109,8 @@ void DataRaceAnalysis::report_init ()
    report.nr_abort = 0;
    report.defects.clear ();
 
-   // fill ours
-   // FIXME
+   // FIXME the report contains other fields that irrelevant for this analysis!
+
    report.alt = 0;
    report.kbound = 0;
 }

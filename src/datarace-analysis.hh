@@ -34,12 +34,21 @@ class DataRaceAnalysis : public Unfolder<DataRaceAnalysis>
 {
 public :
 
-   /// A pointer to a DataRace object, if one data race is ever found
+   /// A pointer to a DataRace object, if one data race is ever found.
    DataRace *race;
 
-   /// The list of all defects found during the exploration
+   /// The list of all defects found during the exploration.
    Defectreport report;
 
+   /// Stores the liset of program executions where we are going to search for
+   /// data races.
+   std::vector<stid::Replay> replays;
+
+   /// Maximum number of seconds that the analysis is able to work. Set to 0 to
+   /// disable.
+   unsigned timeout;
+
+public:
    /// Constructor
    DataRaceAnalysis () :
       Unfolder (prepare_executor_config ()),
@@ -48,19 +57,6 @@ public :
       replays ()
    {}
 
-   void load_replays (const std::vector<stid::Replay> &replays)
-   {
-      this->replays = replays;
-   }
-
-   /// Perform the analysis.
-   void run ();
-
-   /// Returns true iff configuration \p has two racy events.
-   DataRace *check_data_races (const Config &c);
-
-private :
-
    /// Initializes the fields of a Defectreport with the parameters of this
    /// C15unfolder. This method can be overloaded in subclasses. Those overloadings
    /// will, probably call to this implementation to fill the report fields with
@@ -68,11 +64,16 @@ private :
    /// in the subclasses.
    void report_init ();
 
+   /// Perform the analysis.
+   void run ();
+
+   /// Returns true iff configuration \p has two racy events.
+   static DataRace *check_data_races (const Config &c);
+
+private :
+
    /// Initialize and return the parameters of a stid::Executor
    stid::ExecutorConfig prepare_executor_config () const;
-
-   /// Stores all replay sequences that we will analyze
-   std::vector<stid::Replay> replays;
 };
 
 // implementation of inline methods, outside of the namespace

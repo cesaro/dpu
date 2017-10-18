@@ -9,7 +9,7 @@
 namespace dpu {
 namespace opts {
 
-typedef enum {POR, POR_DR} Analysis;
+typedef enum {POR, DRA} Analysis;
 
 extern const char *progname;
 extern int verbosity;

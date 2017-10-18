@@ -26,7 +26,6 @@ unsigned kbound;
 Altalgo alt_algo;
 std::string dotpath;
 std::string instpath;
-std::string defectspath;
 size_t memsize;
 size_t stacksize;
 unsigned optlevel;
@@ -63,7 +62,6 @@ void parse (int argc, char **argv_)
 	verbosity = VERB_PRINT;
    inpath = "";
    dotpath = "";
-   defectspath = "./defects.yml";
    //alt_algo = Altalgo::KPARTIAL;
    alt_algo = Altalgo::ONLYLAST;
    analysis = Analysis::POR;
@@ -88,8 +86,8 @@ void parse (int argc, char **argv_)
 		case 'a' :
          if (strcmp (optarg, "por") == 0)
             analysis = Analysis::POR;
-         else if (strcmp (optarg, "por+dr") == 0)
-            analysis = Analysis::POR_DR;
+         else if (strcmp (optarg, "dr") == 0)
+            analysis = Analysis::DRA;
          else
             usage(1);
          break;
@@ -247,8 +245,8 @@ void print_options ()
    P (" -a A, --analysis=A");
    P ("   Perform one of the following dynamic analyses (default 'por'):");
    ASSERT (analysis == Analysis::POR);
-   P ("   * A = por    : Partial-order reduction");
-   P ("   * A = por+dr : Partial-order reduction followed by data-race detection");
+   P ("   * A = por : Partial-order reduction");
+   P ("   * A = dr  : Partial-order reduction followed by data-race detection");
    P (" -k N, --altbound=N");
    P ("   Use N-partial alternatives during POR exploration (default %d). "
          "Valid values are:", kbound);
@@ -337,7 +335,7 @@ void dump ()
    case Analysis::POR :
       PRINT (" analysis       POR");
       break;
-   case Analysis::POR_DR :
+   case Analysis::DRA :
       PRINT (" analysis       POR + data-races");
    }
    switch (alt_algo) {

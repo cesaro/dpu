@@ -19,7 +19,6 @@ template<>
 inline bool StreamConverter<DataRaceAnalysis>::convert_end
    (stid::action_streamt &s, Event *e, Config &c)
 {
-   Redbox *b;
    DEBUG ("unf: conv: end: %s", e->str().c_str());
    SHOW (blue->str().c_str(), "s");
 
@@ -30,6 +29,7 @@ inline bool StreamConverter<DataRaceAnalysis>::convert_end
    else
    {
 #ifdef CONFIG_DEBUG
+      Redbox *b;
       b = redboxfac.create ();
       ASSERT (*static_cast<Redbox*>(blue->dat) == *b);
       //delete b; // illegal, the redbox factory is responsible for this
@@ -113,7 +113,6 @@ template<int bytes>
 inline bool StreamConverter<DataRaceAnalysis>::convert_rd (Event *e, Addr addr,
    uint64_t val, Config &c)
 {
-   Redbox *b;
    DEBUG ("unf: conv: read: %s addr %p bytes %d", e->str().c_str(),
       (void*) addr, bytes);
 
@@ -126,6 +125,7 @@ inline bool StreamConverter<DataRaceAnalysis>::convert_rd (Event *e, Addr addr,
       else
       {
 #ifdef CONFIG_DEBUG
+         Redbox *b;
          b = redboxfac.create ();
          ASSERT (*static_cast<Redbox*>(blue->dat) == *b);
          //delete b; // illegal, the redbox factory is responsible for this
@@ -144,19 +144,24 @@ template<int bytes>
 inline bool StreamConverter<DataRaceAnalysis>::convert_wr (Event *e, Addr addr,
    uint64_t val, Config &c)
 {
-   Redbox *b;
    DEBUG ("unf: conv: write: %s addr %p bytes %d", e->str().c_str(),
       (void*) addr, bytes);
 
+   // when the blue event changes, we need to create a red box and append it to
+   // the blue event
    if (blue != e)
    {
+      // first time we see this event
       if (blue->dat == nullptr)
       {
-         blue->dat = redboxfac.create ();
+         // if the redbox is empty, we don't insert it
+         if (! redboxfac.empty()) blue->dat = redboxfac.create ();
       }
       else
       {
+         // the blue event already has a redbox
 #ifdef CONFIG_DEBUG
+         Redbox *b;
          b = redboxfac.create ();
          ASSERT (*static_cast<Redbox*>(blue->dat) == *b);
          //delete b; // illegal, the redbox factory is responsible for this
@@ -169,4 +174,3 @@ inline bool StreamConverter<DataRaceAnalysis>::convert_wr (Event *e, Addr addr,
    redboxfac.add_write (addr, bytes);
    return true;
 }
-

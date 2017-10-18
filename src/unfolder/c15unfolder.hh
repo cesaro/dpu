@@ -49,7 +49,36 @@ public:
    /// The list of all defects found during the exploration
    Defectreport report;
 
-   // ctor and dtor
+   /// Set to true for the explore() method to store each of the replays sent to
+   /// Steroids in the field replays
+   bool record_replays;
+
+   /// All replay sequences sent to steroids will be recorded here if
+   /// record_replays is true.
+   std::vector<stid::Replay> replays;
+
+   /// Maximum number of seconds that the unfolder is able to work. Set to 0 to
+   /// disable.
+   unsigned timeout;
+
+protected:
+   /// Algorithm to compute alternatives
+   Altalgo altalgo;
+
+   /// When computing k-partial alternatives, the value of k
+   unsigned kpartial_bound;
+
+private:
+   /// The comb data structure
+   Comb comb;
+
+   /// Maximum number of context switches present in the trail for the
+   /// exploration to allow computing alternatives for an event extracted from
+   /// the trail immediately before.
+   unsigned max_context_switches;
+
+public:
+   // Constructor
    C15unfolder (Altalgo a, unsigned kbound, unsigned maxcts);
    virtual ~C15unfolder ();
 
@@ -118,21 +147,6 @@ protected:
 
    /// Returns debugging output suitable to be printed
    std::string explore_stat (const Trail &t, const Disset &d) const;
-
-   /// Algorithm to compute alternatives
-   Altalgo altalgo;
-
-   /// When computing k-partial alternatives, the value of k
-   unsigned kpartial_bound;
-
-private:
-   /// The comb data structure
-   Comb comb;
-
-   /// Maximum number of context switches present in the trail for the
-   /// exploration to allow computing alternatives for an event extracted from
-   /// the trail immediately before.
-   unsigned max_context_switches;
 };
 
 // implementation of inline methods

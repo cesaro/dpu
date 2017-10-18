@@ -23,7 +23,7 @@ void Defectreport::save (const char *path)
 
 void Defectreport::add_defect (const Defect &d)
 {
-   PRINT ("dpu: defect found: %s", d.description.c_str());
+   //PRINT ("dpu: defect found: %s", d.description.c_str());
    defects.emplace_back (d);
 }
 

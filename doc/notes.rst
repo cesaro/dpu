@@ -168,6 +168,8 @@ x Add an option ``-D MACRO`` to dpu
   stid::Replay, as it should. Similarly the DataRaceAnalysis cannot store a
   vector of dpu::Replay because it's not default constructible (grrrrrrrrr).
 
+- include deadlocking programs in the regression tests
+
 Alternatives
 ============
 

@@ -27,6 +27,10 @@ namespace dpu
 
 C15unfolder::C15unfolder (Altalgo a, unsigned kbound, unsigned maxcts) :
    Unfolder (prepare_executor_config ()),
+   report (),
+   record_replays (false),
+   replays (),
+   timeout (0),
    altalgo (a),
    kpartial_bound (kbound),
    comb (a, kbound),
@@ -134,6 +138,9 @@ void C15unfolder::explore ()
 
    while (1)
    {
+      // if requested, record the replay sequence
+      if (record_replays) replays.push_back (replay);
+
       // explore the leftmost branch starting from our current node
       DEBUG ("c15u: explore: %s: running the system...",
             explore_stat (t, d).c_str());
@@ -188,8 +195,8 @@ void C15unfolder::explore ()
       }
 
       // if we exhausted the time cap, we stop
-      if (counters.runs % 10 == 0 and opts::timeout)
-         if (time(nullptr) - start > opts::timeout)
+      if (counters.runs % 10 == 0 and timeout)
+         if (time(nullptr) - start > timeout)
             { counters.timeout = true; break; }
 
       // if the trail is now empty, we finished; otherwise we compute a replay

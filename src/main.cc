@@ -521,6 +521,20 @@ std::unique_ptr<DataRaceAnalysis> get_dr_analysis ()
    return dra;
 }
 
+void copy_replays_for_dr (std::vector<stid::Replay> &dst,
+   const std::vector<stid::Replay> &src)
+{
+   unsigned seed;
+   int cutoff;
+
+   seed = 0;
+   cutoff = RAND_MAX * (opts::drfreq / 100.0);
+   for (const auto &r : src)
+   {
+      if (rand_r(&seed) <= cutoff) dst.push_back (r);
+   }
+}
+
 int main (int argc, char **argv)
 {
    unsigned i;
@@ -621,7 +635,8 @@ int main (int argc, char **argv)
       if (opts::analysis == opts::Analysis::DRA)
       {
          // save the replays in a temporary vector and delete the analysis
-         std::vector<stid::Replay> replays = std::move (unf->replays);
+         std::vector<stid::Replay> replays;
+         copy_replays_for_dr (replays, unf->replays);
          unf.reset (nullptr);
 
          PRINT ("\ndpu: ================");

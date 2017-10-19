@@ -33,6 +33,7 @@ unsigned maxcts;
 bool strace;
 bool dosleep;
 unsigned timeout;
+unsigned drfreq;
 
 void parse (int argc, char **argv_)
 {
@@ -55,6 +56,7 @@ void parse (int argc, char **argv_)
 			{"dosleep", no_argument, nullptr, 'L'},
 			{"maxcts", required_argument, nullptr, 'x'},
 			{"timeout", required_argument, nullptr, 't'},
+			{"drfreq", required_argument, nullptr, 'f'},
 			{0, 0, 0, 0}};
 
    // default options
@@ -73,6 +75,7 @@ void parse (int argc, char **argv_)
    strace = false;
    dosleep = false;
    timeout = 0;
+   drfreq = 10;
 
 	// parse the command line, supress automatic error messages by getopt
 	opterr = 0;
@@ -127,6 +130,12 @@ void parse (int argc, char **argv_)
 			u = strtoul (optarg, &endptr, 10);
 			if (*endptr != 0) usage (1);
          timeout = u;
+         break;
+      case 'f' :
+			u = strtoul (optarg, &endptr, 10);
+			if (*endptr != 0) usage (1);
+         if (u > 100) usage (1);
+         drfreq = u;
          break;
       case 'm' :
          memsize = parse_size (optarg, 'M');
@@ -265,6 +274,9 @@ void print_options ()
    P ("   Abort exploration after N seconds.");
    P (" --dot=PATH");
    P ("   Store in PATH a DOT digraph representing the full unfolding.");
+   P (" --drfreq=N");
+   P ("   Use N%% of the Mazurkiewicz traces found during POR analysis for");
+   P ("   data-race detection (default 10).");
    P ("");
    P ("Execution environment:");
    P (" -D MACRO");
@@ -352,6 +364,8 @@ void dump ()
       PRINT (" alt            sdpor");
       break;
    }
+   PRINT (" timeout        %u", timeout);
+   PRINT (" drfreq         %u%%", drfreq);
    PRINT (" dot            '%s'", dotpath.c_str());
    PRINT (" dump-instr     '%s'", instpath.c_str());
    PRINT (" memory         %zu%s", UNITS_SIZE(memsize), UNITS_UNIT(memsize));

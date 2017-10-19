@@ -28,6 +28,7 @@ extern unsigned maxcts;
 extern bool strace;
 extern bool dosleep;
 extern unsigned timeout;
+extern unsigned drfreq;
 
 
 void parse (int argc, char **argv_);

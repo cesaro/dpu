@@ -47,6 +47,14 @@ Redbox *RedboxFactory::create ()
 {
    Redbox *b;
 
+   // Special case: we return a null pointer if both memory pools are empty.
+   // In this case the event will continue being labelled by a null pointer
+   // rather than a pointer to a Redbox. This is useful during the data race
+   // detection in DataRaceAnalysis::find_data_races(), because that way we
+   // don't even need to look inside of the red box to see if it has events, the
+   // event will straightfowardly be discarde for DR detection
+   if (read_regions.empty() and write_regions.empty()) return nullptr;
+
    // allocate a new Redbox and keep the pointer to it, we are the container
    b = new Redbox ();
    boxes.push_back (b);
@@ -59,8 +67,8 @@ Redbox *RedboxFactory::create ()
    b->readpool = read_regions;
    b->writepool = write_regions;
 
-   b->dump ();
 #ifdef CONFIG_DEBUG
+   if (verb_debug) b->dump ();
    // this will assert that the memory pools are a sorted sequence of disjoint
    // memory areas
    b->readpool.assertt ();

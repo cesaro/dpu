@@ -68,7 +68,7 @@ public:
    void run ();
 
    /// Returns true iff configuration \p has two racy events.
-   static DataRace *check_data_races (const Config &c);
+   static DataRace *find_data_races (const Config &c);
 
 private :
 

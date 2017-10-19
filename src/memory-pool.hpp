@@ -6,7 +6,8 @@ inline bool operator== (const MemoryPool &a, const MemoryPool &b)
 
 inline bool operator< (const MemoryPool &a, const MemoryPool &b)
 {
-   return a.upper() < b.lower();
+   // <= because a.upper is not included in the pool a
+   return a.upper() <= b.lower();
 }
 
 inline bool operator> (const MemoryPool &a, const MemoryPool &b)
@@ -29,6 +30,9 @@ MemoryPool::overlaps (const MemoryPool &other, MemoryRegion<Addr> &inter) const
    // if they are clearly disjoint, the answer is no
    if (*this < other or other < *this) return false;
 
+   //DEBUG ("memory-pool: overlaps: this\n%s", str().c_str());
+   //DEBUG ("memory-pool: overlaps: other\n%s", other.str().c_str());
+
    // otherwise the range of memory regions overlap and we need to check the
    // underlying MemoryRegions
    while (true)
@@ -48,6 +52,7 @@ MemoryPool::overlaps (const MemoryPool &other, MemoryRegion<Addr> &inter) const
          if (! (*it2 < *it1)) break;
          ++it2;
       }
+
       // check if the two memory regions overlap
       if (it1->overlaps (*it2))
       {
@@ -55,6 +60,8 @@ MemoryPool::overlaps (const MemoryPool &other, MemoryRegion<Addr> &inter) const
          ASSERT (! inter.empty());
          return true;
       }
+
+      // if not
    }
    return false;
 }

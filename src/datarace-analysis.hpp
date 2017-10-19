@@ -8,7 +8,7 @@ template<>
 inline bool StreamConverter<DataRaceAnalysis>::convert_begin
    (stid::action_streamt &s, stid::action_stream_itt &it, Event *e, Config &c)
 {
-   DEBUG ("unf: conv: begin");
+   //DEBUG ("unf: conv: begin");
    ASSERT (e->is_bottom());
    ASSERT (redboxfac.empty());
    blue = e;
@@ -19,8 +19,7 @@ template<>
 inline bool StreamConverter<DataRaceAnalysis>::convert_end
    (stid::action_streamt &s, Event *e, Config &c)
 {
-   DEBUG ("unf: conv: end: %s", e->str().c_str());
-   SHOW (blue->str().c_str(), "s");
+   //DEBUG ("unf: conv: end: %s", e->str().c_str());
 
    if (blue->dat == nullptr)
    {
@@ -44,7 +43,7 @@ template<>
 inline bool StreamConverter<DataRaceAnalysis>::convert_mtxlock (Event *e,
    Event *epp, Config &c)
 {
-   DEBUG ("unf: conv: mtxlock");
+   //DEBUG ("unf: conv: mtxlock");
    return true;
 }
 
@@ -52,21 +51,21 @@ template<>
 inline bool StreamConverter<DataRaceAnalysis>::convert_mtxunlock (Event *e,
    Event *epp, Config &c)
 {
-   DEBUG ("unf: conv: mtxunlock");
+   //DEBUG ("unf: conv: mtxunlock");
    return true;
 }
 
 template<>
 inline bool StreamConverter<DataRaceAnalysis>::convert_ctxsw (unsigned pid)
 {
-   DEBUG ("unf: conv: ctxsw");
+   //DEBUG ("unf: conv: ctxsw");
    return true;
 }
 
 template<>
 inline bool StreamConverter<DataRaceAnalysis>::convert_start (Event *e, Config &c)
 {
-   DEBUG ("unf: conv: start: %s", e->str().c_str());
+   //DEBUG ("unf: conv: start: %s", e->str().c_str());
    return true;
 }
 
@@ -74,7 +73,7 @@ template<>
 inline bool StreamConverter<DataRaceAnalysis>::convert_creat (Event *e,
    Event *epp, Config &c)
 {
-   DEBUG ("unf: conv: creat");
+   //DEBUG ("unf: conv: creat");
    return true;
 }
 
@@ -82,7 +81,7 @@ template<>
 inline bool StreamConverter<DataRaceAnalysis>::convert_exit (Event *e,
    Event *epp, Config &c)
 {
-   DEBUG ("unf: conv: exit");
+   //DEBUG ("unf: conv: exit");
    return true;
 }
 
@@ -90,21 +89,21 @@ template<>
 inline bool StreamConverter<DataRaceAnalysis>::convert_join (Event *e,
    Event *epp, Config &c)
 {
-   DEBUG ("unf: conv: join");
+   //DEBUG ("unf: conv: join");
    return true;
 }
 
 template<>
 inline bool StreamConverter<DataRaceAnalysis>::convert_abort (Event *e, Config &c)
 {
-   DEBUG ("unf: conv: abort");
+   //DEBUG ("unf: conv: abort");
    return true;
 }
 
 template<>
 inline bool StreamConverter<DataRaceAnalysis>::convert_exitnz (Event *e, Config &c)
 {
-   DEBUG ("unf: conv: exitnz");
+   //DEBUG ("unf: conv: exitnz");
    return true;
 }
 
@@ -154,8 +153,7 @@ inline bool StreamConverter<DataRaceAnalysis>::convert_wr (Event *e, Addr addr,
       // first time we see this event
       if (blue->dat == nullptr)
       {
-         // if the redbox is empty, we don't insert it
-         if (! redboxfac.empty()) blue->dat = redboxfac.create ();
+         blue->dat = redboxfac.create ();
       }
       else
       {

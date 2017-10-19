@@ -50,7 +50,7 @@ bool StreamConverter<T>::convert (stid::action_streamt &s, Config &c)
    // we create (or retrieve) an event for every action remaining in the stream
    for (; it != end; ++it)
    {
-      SHOW (it.str(), "s");
+      DEBUG ("sconv: convert: it %s", it.str());
       epp = e;
       switch (it.type())
       {

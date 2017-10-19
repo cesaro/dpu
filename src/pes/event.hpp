@@ -58,7 +58,7 @@ Event::Event (Action ac, Event *m, bool bf) :
    //DEBUG ("Event.ctor: e %-16p %s", this, cone.str().c_str());
 }
 
-#if 0
+#if 1
 template<typename T>
 T &Event::data ()
 {

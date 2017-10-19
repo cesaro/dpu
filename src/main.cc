@@ -94,14 +94,16 @@ void print_tree_stats (C15unfolder &unf)
    // trees
    for (i = 0; i < unf.u.num_procs(); i++)
    {
-      PRINT ("dpu: por: stats: trees: depths: t%u: min/max/avg=%s {depth=count/mass}={%s}",
+      PRINT ("dpu: por: stats: trees: depths: "
+         "t%u: min/max/avg=%s {depth=count/mass}={%s}",
          i,
          pd[i].summary_mma().c_str(),
          pd[i].summary_freq_maxc(4).c_str());
    }
    for (auto &kv : ad)
    {
-      PRINT ("dpu: por: stats: trees: depths: %p: min/max/avg=%s {depth=count/mass}={%s}",
+      PRINT ("dpu: por: stats: trees: depths: "
+         "%p: min/max/avg=%s {depth=count/mass}={%s}",
          (void*) kv.first,
          kv.second.summary_mma().c_str(),
          kv.second.summary_freq_maxc(4).c_str());
@@ -184,7 +186,8 @@ void print_causality_stats (C15unfolder &unf)
 
    PRINT ("dpu: por: stats: <: on events:");
    PRINT ("dpu: por: stats: <:   %lu calls", calls);
-   PRINT ("dpu: por: stats: <:   %lu trivial (%.1f%%), solved by null/eq/invdep %lu/%lu/%lu checks",
+   PRINT ("dpu: por: stats: <:   %lu trivial (%.1f%%), "
+         "solved by null/eq/invdep %lu/%lu/%lu checks",
          trivial,
          calls ?  trivial * 100.0 / calls : 0.0,
          null, eq, invdep);
@@ -213,7 +216,8 @@ void print_causality_stats (C15unfolder &unf)
 
    PRINT ("dpu: por: stats: #: on events (e#e):");
    PRINT ("dpu: por: stats: #:   %lu calls", calls);
-   PRINT ("dpu: por: stats: #:   %lu trivial (%.1f%%), solved by eq/empty %lu/%lu checks",
+   PRINT ("dpu: por: stats: #:   %lu trivial (%.1f%%), "
+         "solved by eq/empty %lu/%lu checks",
          trivial,
          calls ? trivial * 100.0 / calls : 0.0,
          eq, empty);
@@ -347,7 +351,8 @@ void print_por_stats (C15unfolder &unf, Resources &res)
 
    //PRINT ("\ndpu: unfolding statistics:");
    PRINT ("dpu: por: stats: unfolding: %lu max-configs", unf.counters.maxconfs);
-   PRINT ("dpu: por: stats: unfolding: %lu threads created", unf.counters.stid_threads);
+   PRINT ("dpu: por: stats: unfolding: %lu threads created",
+         unf.counters.stid_threads);
    PRINT ("dpu: por: stats: unfolding: %u process slots used", unf.u.num_procs());
    PRINT ("dpu: por: stats: unfolding: %lu events (aprox. %zu%s of memory)",
       events, UNITS_SIZE (size), UNITS_UNIT (size));
@@ -362,7 +367,8 @@ void print_por_stats (C15unfolder &unf, Resources &res)
    if (verb_info)
    {
       size_t size2 = get_precise_memory_size (unf);
-      PRINT ("dpu: por: stats: unfolding: %zu%s total allocated memory (%.1f bytes/event)",
+      PRINT ("dpu: por: stats: unfolding: "
+         "%zu%s total allocated memory (%.1f bytes/event)",
          UNITS_SIZE (size2), UNITS_UNIT (size2),
          size2 / (float) events);
    }

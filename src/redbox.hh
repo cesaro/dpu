@@ -30,6 +30,16 @@ public :
       return fmt ("%d+%d", readpool.size(), writepool.size());
    }
 
+   size_t size () const
+   {
+      return readpool.size() + writepool.size();
+   }
+
+   bool empty () const
+   {
+      return readpool.empty() and writepool.empty();
+   }
+
    void dump () const
    {
       std::cout << "=== begin redbox ===\n";

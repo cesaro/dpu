@@ -219,7 +219,7 @@ Config Unfolder<T>::add_one_run (const stid::Replay &r)
 
    // get a stream object from the executor and transform it into events
    stid::action_streamt actions (exec->get_trace ());
-   actions.print ();
+   //actions.print ();
    StreamConverter<T>::convert (actions, c);
    return c;
 }

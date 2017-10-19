@@ -66,7 +66,7 @@ public:
 
    std::string str () const
    {
-      return fmt ("[%16x %16x (%d)]", lower, upper, size());
+      return fmt ("[%#16zx %#16zx (%d)]", lower, upper, size());
    }
 };
 
@@ -83,7 +83,7 @@ bool operator< (const MemoryRegion<Addr> &a, const MemoryRegion<Addr> &b)
 {
    ASSERT (a.lower <= a.upper);
    ASSERT (b.lower <= b.upper);
-   return a.upper < b.lower;
+   return a.upper <= b.lower;
 }
 
 template<typename Addr>

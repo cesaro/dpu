@@ -24,8 +24,8 @@ void DataRaceAnalysis::run ()
    {
       Config c (add_one_run (r));
       count++;
-      //c.dump ();
-      race = check_data_races (c);
+      if (verb_debug) c.dump ();
+      race = find_data_races (c);
       if (race) break;
    }
    PRINT ("dpu: dr: finished data-race detection, %u of %zu replays analyzed",
@@ -33,51 +33,61 @@ void DataRaceAnalysis::run ()
 
    if (race)
    {
-      PRINT ("dpu: dr: at least one DATA RACE FOUND (program may have more)");
+      PRINT ("dpu: dr: result: one data race FOUND, (program may have more)");
       report.add_defect (*race);
       race->dump ();
    }
    else
    {
-      PRINT ("dpu: dr: NO data race found");
+      PRINT ("dpu: dr: result: NO data race found");
    }
 }
 
-DataRace * DataRaceAnalysis::check_data_races (const Config &c)
+DataRace * DataRaceAnalysis::find_data_races (const Config &c)
 {
    int i, j, nrp;
    const Event *e1, *e2;
-   const Redbox *b1, *b2;
    MemoryRegion<Addr> region;
 
+   DEBUG ("dpu: dr: find: c %p", &c);
+
    nrp = c.num_procs ();
+
+   // FIXME: document what's being implemented in this loop!
 
    for (i = 0; i < nrp - 1; ++i)
    {
       for (e1 = c[i]; e1; e1 = e1->pre_proc())
       {
-         // if e1 does not read or write to some memory location, skip it
+         // if e1 does not read or write to at least 1 memory location, skip it
          if (e1->dat == nullptr) continue;
+         ASSERT (! e1->data<const Redbox>().empty ());
+         ASSERT (e1->pid() == i);
 
          for (j = i + 1; j < nrp; ++j)
          {
+            // iterate over the maximal event for process j in [e1] and all its
+            // (process) causal successors e2 that are **not** causal successors
+            // of e1, except if e1 is the maximal event for process i in [e2]
             for (e2 = c[j]; e2; e2 = e2->pre_proc())
             {
-               // if e2 does not read or write to some memory location, skip it
+               // if e2 does not read or write to at least 1 memory location,
+               // skip it
+               if (e2->is_predeq_of (e1) and e2 != e1->cone[j]) break;
                if (e2->dat == nullptr) continue;
-               // if e1 and e2 are not concurrent, skip them
-               if (! e1->in_con_with (e2)) continue;
+               if (e1->is_predeq_of (e2) and e1 != e2->cone[i]) continue;
 
-               // for every pair e1, e2 of concurrent events in c check if:
+               // for every pair of events e1, e2 in c whose red boxes
+               // represent concurrent statements we have a data race iff:
                // - e1 writes where e2 reads, or
                // - e1 writes where e2 writes, or
                // - e1 reads where e2 writes
                
-               b1 = static_cast<const Redbox*> (e1->dat);
-               b2 = static_cast<const Redbox*> (e2->dat);
-               if (b1->writepool.overlaps (b2->readpool, region) or
-                  b1->writepool.overlaps (b2->writepool, region) or
-                  b1->readpool.overlaps (b2->writepool, region))
+               const Redbox &b1 = e1->data<const Redbox>();
+               const Redbox &b2 = e2->data<const Redbox>();
+               if (b1.writepool.overlaps (b2.readpool, region) or
+                  b1.writepool.overlaps (b2.writepool, region) or
+                  b1.readpool.overlaps (b2.writepool, region))
                {
                   return new DataRace (e1, e2, region.lower, region.size());
                }

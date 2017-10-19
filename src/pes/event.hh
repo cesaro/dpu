@@ -31,7 +31,8 @@ public:
    inline Event (Event *creat, bool boxfirst);
    /// THCREAT(tid) or THEXIT(), one predecessor (in the process)
    inline Event (Action ac, bool boxfirst);
-   /// THJOIN(tid), MTXLOCK(addr), MTXUNLK(addr), two predecessors (process, memory/exit)
+   /// THJOIN(tid), MTXLOCK(addr), MTXUNLK(addr), two predecessors
+   /// (process, memory/exit)
    inline Event (Action ac, Event *m, bool boxfirst);
 
    struct {
@@ -61,7 +62,7 @@ public:
    /// A pointer to some domain-specific payload of type EventPayload<T>
    EventPayload *dat;
 
-#if 0
+#if 1
    /// Utility method to cast and return a reference to the payload
    template<typename T>
    T &data ();

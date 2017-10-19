@@ -74,10 +74,10 @@ run_dpu ()
       EVENTS="-"
    else
       WALLTIME=`round $(($END-$BEGIN))`
-      DEFECTS=$(grep "dpu: summary" ${LOG}.stdout | awk '{print $3}')
-      MAXCONFS=$(grep "dpu: summary" ${LOG}.stdout | awk '{print $5}')
-      SSBS=$(grep "dpu: summary" ${LOG}.stdout | awk '{print $7}')
-      EVENTS=$(grep "dpu: summary" ${LOG}.stdout | awk '{print $9}')
+      DEFECTS=$(grep "dpu: por: summary" ${LOG}.stdout | awk '{print $4}')
+      MAXCONFS=$(grep "dpu: por: summary" ${LOG}.stdout | awk '{print $6}')
+      SSBS=$(grep "dpu: por: summary" ${LOG}.stdout | awk '{print $8}')
+      EVENTS=$(grep "dpu: por: summary" ${LOG}.stdout | awk '{print $10}')
    fi
 
    # max RSS

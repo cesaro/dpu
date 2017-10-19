@@ -55,7 +55,7 @@ runall_dpu ()
    # $TIMEOUT - a timeout specification valid for timeout(1)
    # $DPU     - path to the dpu tool to run
 
-   OPTS='-a0 --mem 350M --stack 2M -O2'
+   OPTS='-k0 --mem 350M --stack 2M -O2'
    cp $R/debian/mafft-7.123/test-data/*fasta .
    cp $R/debian/mafft-7.123/test-data/hat2* .
    cp $R/debian/mafft-7.123/test-data/hat3* .

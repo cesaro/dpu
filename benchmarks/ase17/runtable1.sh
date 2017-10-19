@@ -68,6 +68,23 @@ generate_bench_selection ()
    preprocess_family $R/poke.c       poke       "threads" "`seq -w 7 12`" "iters" "3"
 }
 
+generate_bench_selection_below10s ()
+{
+   # The same as in generate_bench_selection but restricted to those yielding a
+   # running time below 20 secs
+
+   # pre-conditions:
+   # $R       - root of the ase17 folder
+
+   preprocess_family $R/dispatcher.c dispatch   "serv" "5" "reqs" "`seq -w 2 4`"
+   preprocess_family $R/mpat.c       mpat       "k" "`seq -w 4 5`"
+   preprocess_family $R/multiprodcon.c multipc  "prods" "2 3" "workers" "5"
+   preprocess_family $R/pi/pth_pi_mutex.c pi    "threads" "`seq -w 5 7`" "iters" "5000"
+   preprocess_family $R/poke.c       poke       "threads" "`seq -w 7 12`" "iters" "3"
+}
+
+
+
 generate_bench_smallest ()
 {
    # pre-conditions:
@@ -275,20 +292,20 @@ runall_dpu ()
       N=`echo "$i" | sed s/.i$//`
 
       if test $WANT_DPU_ALT_SDPOR = y; then
-         # -a-1
+         # -k-1
          LOG=${N}_dpu_alt-1.log
-         CMD="$DPU $i -a-1 $OPTS"
+         CMD="$DPU $i -k-1 $OPTS"
          run_dpu
       fi
 
       if test $WANT_DPU_ALT0 = y; then
-         # -a0
+         # -k0
          LOG=${N}_dpu_alt0.log
-         CMD="$DPU $i -a0 $OPTS"
+         CMD="$DPU $i -k0 $OPTS"
          run_dpu
       fi
 
-      # if we got TO on -a0, surely we will also get it on -aX with X!=0
+      # if we got TO on -k0, surely we will also get it on -kX with X!=0
       if test "$WALLTIME" == "TO"; then continue; fi
 
       # k-partial
@@ -300,7 +317,7 @@ runall_dpu ()
          4) if test $WANT_DPU_ALT4 = n; then continue; fi;;
          esac
          LOG=${N}_dpu_alt${a}.log
-         CMD="$DPU $i -a$a $OPTS"
+         CMD="$DPU $i -k$a $OPTS"
          run_dpu
 
          # if we got 0 SSBs we skip higher -a
@@ -313,7 +330,7 @@ runall_nidhugg ()
 {
    # pre-conditions:
    # $TIMEOUT - a timeout specification valid for timeout(1)
-   # $DPU     - path to the dpu tool to run
+   # $NIDHUGG - path to the nidhugg tool to run
 
    if test $WANT_NIDHUGG = n; then return 0; fi
 
@@ -415,7 +432,8 @@ main ()
    print_date "Starting the script"
    test_can_run
    #generate_bench_all
-   generate_bench_selection
+   generate_bench_selection #xxxxxxxxx
+   #generate_bench_selection_below10s
    #generate_bench_smallest
    #generate_bench_cesar
    #generate_bench_smallruntime

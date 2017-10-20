@@ -63,6 +63,13 @@ unittest ut : compile
 regression : dist
 	make -f tests/regression/Makefile R=.
 
+REL:=dpu-$(shell uname -p)-$(CONFIG_VERSION)
+
+release : dist
+	rm -Rf $(REL)
+	cp -Rv dist $(REL)
+	tar czvf $(REL).tar.gz $(REL)
+
 clean : clean_
 clean_ :
 	make -f src/Makefile R=. clean
@@ -79,9 +86,10 @@ realclean_ :
 	make -f src/Makefile R=. realclean
 	make -f tests/unit/Makefile R=. realclean
 	make -f tests/regression/Makefile R=. realclean
-	rm -Rf dist/
+	rm -Rf dist/ $(REL)
 	rm -f config.h
 	rm -f regression.log*
+	rm -f $(REL).tar.gz
 
 install : dist
 	cd dist; cp -Rv * $(CONFIG_PREFIX)

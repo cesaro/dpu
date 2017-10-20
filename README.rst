@@ -5,12 +5,35 @@ DPU: Dynamic Program Unfolding
 
 DPU is a research tool to perform `dynamic analysis`_ of POSIX multithreaded C
 programs. It will automatically and exhaustively test all possible thread
-schedules of a C program which uses `POSIX threads`_.
+schedules of a C program that uses `POSIX threads`_.
 
 The tool instruments the source with a specific runtime that gets the control on
-every call to a ``pthread_*`` function. That allows the tool (a) discover the
-relevant interleavings and (b) to deterministically replay the program
-execution.
+every call to a ``pthread_*`` function. That way it can (a) discover the
+relevant thread interleavings and (b) control the thread scheduler to
+deterministically replay threaded executions.
+
+.. _dynamic analysis : https://en.wikipedia.org/wiki/Dynamic_program_analysis
+.. _POSIX threads: https://en.wikipedia.org/wiki/POSIX_Threads
+
+Detected Flaws
+==============
+
+For each execution of the program DPU can currently detect the following flaws:
+
+- Assertion violations, as triggered by the function `assert(3)`_.
+- Calls to `abort(3)`_.
+- Executions where the program calls `exit(3)`_ with a non-zero exit code. This
+  is not necessarily a flaw, but a non-zero exit code usually denotes that an
+  error ocurred.
+- Data races.
+- Deadlocks.
+
+.. _assert(3) : http://man7.org/linux/man-pages/man3/assert.3.html
+.. _abort(3) : http://man7.org/linux/man-pages/man3/abort.3.html
+.. _exit(3) : http://man7.org/linux/man-pages/man3/exit.3.html
+
+Assumptions About the Input Program
+===================================
 
 DPU assumes that your program is **data-deterministic**, that is, the only
 source of non-determinism in an execution is the order in which independent,
@@ -18,100 +41,64 @@ concurrent statements can be interleaved.  As a result, all sources of
 non-deterministic execution (e.g., command-line arguments, input files) need to
 be fixed before running the tool.
 
-DPU also assumes that the program is **data-race free**, it will not detect data
-races (I'm currently working on a new version that actually detects them, so
-stay tunned), and it will not explore executions that "reverse" data races.
+Data-race Detection
+===================
 
-The tool implements optimal and non-optimal unfolding-based Partial-Order
-Reduction (POR) algorithms extending those presented in our CONCUR'15 paper
-(`arXiv:1507.00980`_).
+DPU can detect and report data-races in the input program (option ``-a dr``),
+but those will not be used as source of thread interference to find new thread
+interleavings.  The tool will not explore two execution orders for the two
+instructions that exhibit a data-race.
+
+When data-race analysis is enabled, DPU will record memory load/store operations
+performed by the program, in addition to the calls to `pthread_*` functions.
+This detection happens for a user-provided percentage (option ``--drfreq``,
+default 10%) of the executions explored by the tool. This analysis is thus not
+guaranteed to find all data-races, but any data-race found is a genuine one.
+
+Exploration Algorithm
+=====================
+
+The tool explores the state-space of thread interleavings using optimal and
+non-optimal unfolding-based Partial-Order Reduction (POR) algorithms extending
+those presented in our CONCUR'15 paper (`arXiv:1507.00980`_).
 
 .. _arXiv:1507.00980 : https://arxiv.org/abs/1507.00980
-.. _dynamic analysis : https://en.wikipedia.org/wiki/Dynamic_program_analysis
-.. _POSIX threads: https://en.wikipedia.org/wiki/POSIX_Threads
 
-Dependencies
-============
 
-- coreutils
-- git
-- GNU make
-- Python 2
-- Clang 3.7
-- LLVM 3.7
-- `Steroids v0.1.0 <https://github.com/cesaro/steroids/releases/tag/v0.1.0>`__, a
-  dynamic analysis library
+Installing Precompiled Binaries
+===============================
 
-Optional:
+The following steps assume that you have a Debian/Ubuntu distribution:
 
-- Analyzing C programs with multiple compilation units will require
-  `Whole Program LLVM <https://github.com/travitch/whole-program-llvm>`__.
+1. Install Clang v3.7 and LLVM v3.7::
+
+    sudo apt-get install clang-3.7 llvm-3.7
+
+   Commands ``clang-3.7`` and ``llvm-link-3.7`` should now be available in
+   your ``$PATH``.
+
+2. Download the precompiled binaries from the `latest release`_ and unpack them
+   anywhere in your machine.
+
+3. The DPU tool is located in the ``dpu-vx.x.x/bin`` folder of the
+   downloaded package. You can either run DPU from there or update your
+   ``$PATH`` variable to include this folder. In the second case add the
+   following line to your ``~/.bashrc`` file::
+
+    export PATH=$PATH:/path/to/dpu-vx.x.x/bin
+
+4. Done. You should now be able to run::
+
+    dpu --help
+    dpu --version
+
+.. _latest release : https://github.com/cesaro/dpu/releases/latest
 
 Compilation
 ===========
 
-Before compiling DPU please notice that:
-
-- Development for DPU happens in the ``master`` branch. If you want a stable
-  version of the tool you should download and compile the
-  `latest available release <https://github.com/cesaro/dpu/releases>`__ of the
-  tool.
-- DPU has only been compiled and tested under Debian/Ubuntu, although it should
-  probably work on other Linux distributions. Please note that the Steroids
-  library only works on x86-64 machines.
-
-The steps here assume that you have a Debian/Ubuntu distribution:
-
-1. Install a suitable development environment::
-
-    sudo apt-get install coreutils git make python2.7
-
-2. Install clang v3.7 and LLVM v3.7. DPU currently does not compile under g++,
-   and you will need clang 3.7 to run the tool, anyway::
-   
-    sudo apt-get install llvm-3.7-dev clang-3.7
-
-   After the installation, the command ``llvm-config-3.7`` should be in your
-   ``PATH``, and typing ``llvm-config-3.7 --prefix`` should print the
-   installation path of LLVM 3.7.
-
-3. Download and compile `v0.1.0 <https://github.com/cesaro/steroids/releases/tag/v0.1.0>`__
-   of the `Steroids dynamic analysis <https://github.com/cesaro/steroids>`__
-   library. Using a different version of steroids may break the compilation or
-   performance of DPU.
-
-4. Download and compile the `latest release available
-   <https://github.com/cesaro/dpu/releases>`__ for the DPU tool.
-
-5. Edit the file `<config.mk>`__. Update the value of the variable
-   ``CONFIG_STEROIDS_ROOT`` to point to the root of the steroids project.
-   Give an absolute path or a path relative to the variable ``$R``,
-   which will equal to the path of the root folder of the DPU project.
-
-6. Compile::
-
-    make dist
-
-7. Optional: run regression tests::
-
-    make regression
-
-DPU is now installed in the ``dist/`` folder. You can run the tool from there
-using the command::
-
- ./dist/bin/dpu --help
-
-Installation
-============
-
-You can also install DPU elsewhere on your system. For that, move
-the ``dist/`` directory to any location of your convenience, but make sure you do not
-alter the internal contents of the folder. Include the directory ``dist/bin`` in your
-``PATH`` and you are good to go.
-
-Alternatively, you may update the value of the variable ``CONFIG_PREFIX`` in the
-`<config.mk>`__ file. This way, ``make`` will copy the ``dist`` folder to the
-installation directory every time you type ``make install``.
+Instructions for compiling from the sources are available in the
+`<COMPILING.rst>`__ file.
 
 Tutorial
 ========
@@ -137,4 +124,3 @@ Contact
 DPU is currently maintained by 
 `César Rodríguez <http://lipn.univ-paris13.fr/~rodriguez/>`__.
 Please feel free to contact me in case of questions or to send feedback.
-

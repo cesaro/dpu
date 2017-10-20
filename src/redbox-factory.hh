@@ -37,9 +37,24 @@ public:
 
    inline Redbox *create ();
 
-   inline bool empty () const
+   bool empty () const
    {
       return read_regions.empty() and write_regions.empty();
+   }
+
+   size_t size() const
+   {
+      return read_size() + write_size();
+   }
+
+   size_t read_size() const
+   {
+      return read_regions.size();
+   }
+
+   size_t write_size() const
+   {
+      return write_regions.size();
    }
 
 private:

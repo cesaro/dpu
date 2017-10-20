@@ -75,7 +75,7 @@ void parse (int argc, char **argv_)
    strace = false;
    dosleep = false;
    timeout = 0;
-   drfreq = 10;
+   drfreq = 20;
 
 	// parse the command line, supress automatic error messages by getopt
 	opterr = 0;

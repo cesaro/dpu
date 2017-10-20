@@ -10,7 +10,10 @@
 #include "unfolder/stream-converter.hh"
 #include "unfolder/unfolder.hh"
 
+#include "redbox-factory.hh"
 #include "memory-region.hh"
+#include "defectreport.hh"
+#include "resources.hh"
 #include "datarace.hh"
 
 namespace dpu {
@@ -20,6 +23,18 @@ class DataRaceAnalysis;
 template<>
 struct StreamConverterTraits<DataRaceAnalysis>
 {
+
+public:
+   struct
+   {
+      long unsigned replays = 0;
+      long unsigned ldops = 0;
+      long unsigned stops = 0;
+      long unsigned readregions = 0;
+      long unsigned writeregions = 0;
+      bool timeout = false;
+   } counters;
+
 protected:
    /// A factory for and container of the Redboxes that label blue events in the
    /// Unfolding constructed by the DataRaceAnalysis.
@@ -48,13 +63,18 @@ public :
    /// disable.
    unsigned timeout;
 
+   /// Time and memory consumed by the analysis
+   Resources resources;
+
 public:
    /// Constructor
    DataRaceAnalysis () :
       Unfolder (prepare_executor_config ()),
       race (nullptr),
       report (),
-      replays ()
+      replays (),
+      timeout (0),
+      resources ()
    {}
 
    /// Initializes the fields of a Defectreport with the parameters of this

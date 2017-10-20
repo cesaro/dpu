@@ -12,24 +12,34 @@ namespace dpu {
 
 void DataRaceAnalysis::run ()
 {
-   unsigned count;
    report_init ();
 
    ASSERT (race == nullptr);
+   ASSERT (counters.replays == 0);
 
-   PRINT ("dpu: dr: starting data-race detection analysis...");
-   PRINT ("dpu: dr: analyzing %zu replay sequences", replays.size());
-   count = 0;
+   PRINT ("dpu: dr: starting data-race detection analysis on %zu executions...",
+      replays.size());
+
    for (const stid::Replay &r : replays)
    {
       Config c (add_one_run (r));
-      count++;
+      counters.replays++;
       if (verb_debug) c.dump ();
       race = find_data_races (c);
+      // FIXME: add an option to scan all traces instead of stopping on the
+      // first one
+#if 1
       if (race) break;
+#else
+      if (race)
+      {
+         PRINT ("dpu: dr: data race FOUND");
+         report.add_defect (*race);
+         race->dump ();
+      }
+#endif
    }
-   PRINT ("dpu: dr: finished data-race detection, %u of %zu replays analyzed",
-      count, replays.size());
+   PRINT ("dpu: dr: finished data-race detection");
 
    if (race)
    {
@@ -41,6 +51,7 @@ void DataRaceAnalysis::run ()
    {
       PRINT ("dpu: dr: result: NO data race found");
    }
+   resources.update();
 }
 
 DataRace * DataRaceAnalysis::find_data_races (const Config &c)

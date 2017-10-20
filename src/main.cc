@@ -414,7 +414,7 @@ void print_por_stats (C15unfolder &unf, Resources &res)
    // print times here as well!
    print_res_stats (unf, res, events);
 
-   PRINT ("\ndpu: por: summary: "
+   PRINT ("dpu: por: summary: "
          "%zu defects, %lu max-configs, %lu SSBs, %lu events, %.3f sec, %luM%s",
          unf.report.defects.size(),
          unf.counters.maxconfs, unf.counters.ssbs, events,
@@ -423,65 +423,47 @@ void print_por_stats (C15unfolder &unf, Resources &res)
          unf.counters.timeout ? " (timeout)" : "");
 }
 
-#if 0
-void print_dr_stats (DataRaceAnalysis &dra, Resources &res)
+void print_dra_stats (DataRaceAnalysis &dra)
 {
-   unsigned long events, calls, built, expl;
+   unsigned long events, memops, memregs, execs;
    unsigned i;
-   size_t size;
+
+   Resources &res = dra.resources;
+   memops = dra.counters.ldops + dra.counters.stops;
+   memregs = dra.counters.readregions + dra.counters.writeregions;
+   execs = dra.counters.replays;
 
    events = 0;
-   size = 0;
-   for (i = 0; i < unf.u.num_procs(); i++)
+   for (i = 0; i < dra.u.num_procs(); i++)
    {
-      events += unf.u.proc(i)->counters.events;
-      size += unf.u.proc(i)->memory_size();
+      events += dra.u.proc(i)->counters.events;
    }
 
-   //PRINT ("\ndpu: unfolding statistics:");
-   PRINT ("dpu: dr: stats: unfolding: %lu max-configs", unf.counters.maxconfs);
-   PRINT ("dpu: dr: stats: unfolding: %lu threads created", unf.counters.stid_threads);
-   PRINT ("dpu: dr: stats: unfolding: %u process slots used", unf.u.num_procs());
-   PRINT ("dpu: dr: stats: unfolding: %lu events (aprox. %zu%s of memory)",
-      events, UNITS_SIZE (size), UNITS_UNIT (size));
-   for (i = 0; i < unf.u.num_procs(); i++)
-   {
-      PRINT ("dpu: dr: stats: unfolding: t%u: %u events (%zu%s, %.1f%%)",
-            i, unf.u.proc(i)->counters.events,
-            UNITS_SIZE(unf.u.proc(i)->memory_size()),
-            UNITS_UNIT(unf.u.proc(i)->memory_size()),
-            (100.0 * unf.u.proc(i)->memory_size()) / size);
-   }
-   if (verb_info)
-   {
-      size_t size2 = get_precise_memory_size (unf);
-      PRINT ("dpu: dr: stats: unfolding: %zu%s total allocated memory (%.1f bytes/event)",
-         UNITS_SIZE (size2), UNITS_UNIT (size2),
-         size2 / (float) events);
-   }
+   PRINT ("dpu: dr: stats: analysis: %lu of %lu replay seqs analyzed",
+         execs, dra.replays.size());
+   PRINT ("dpu: dr: stats: analysis: %.1f/%.1f load/store ops per exec",
+         dra.counters.ldops / (float) execs,
+         dra.counters.stops / (float) execs);
+   PRINT ("dpu: dr: stats: analysis: "
+         "%.1f/%.1f read/write memory regions per exec (%.1f%%)",
+         dra.counters.readregions / (float) execs,
+         dra.counters.writeregions / (float) execs,
+         memregs * 100.0 / memops);
+   PRINT ("dpu: dr: stats: resources: %.3f s wall time", res.walltime / 1000000.0);
+   //PRINT ("dpu: dr: stats: resources: %.3f s cpu time", res.cputime / 1000000.0);
+   PRINT ("dpu: dr: stats: resources: %luM max RSS", res.maxrss / 1024);
+   PRINT ("dpu: dr: stats: perf: %u executions/sec",
+         (unsigned) (execs / (res.walltime / 1000000.0)));
 
-   if (verb_info) print_tree_stats (unf);
-#ifdef CONFIG_STATS_DETAILED
-   if (verb_info) print_causality_stats (unf);
-#endif
-
-   // POR statistics
-   PRINT ("dpu: dr: stats: por: %lu executions", unf.counters.runs);
-   PRINT ("dpu: dr: stats: por: %.1f average ev/trail",
-         unf.counters.avg_max_trail_size);
-
-   // print times here as well!
-   print_res_stats (dra, res, events);
-
-   PRINT ("\ndpu: dr: summary: "
-         "%zu defects, %lu max-configs, %lu SSBs, %lu events, %.3f sec, %luM%s",
-         unf.report.defects.size(),
-         unf.counters.maxconfs, unf.counters.ssbs, events,
+   PRINT ("dpu: dr: summary: "
+         "%zu defects, %lu executions, %lu events, %.3f sec, %luM%s",
+         dra.report.defects.size(),
+         execs,
+         events,
          res.walltime / 1000000.0,
          res.maxrss / 1024,
-         unf.counters.timeout ? " (timeout)" : "");
+         dra.counters.timeout ? " (timeout)" : "");
 }
-#endif
 
 /// Builds and configures a new POR anlaysis. It won't run the analysis.
 std::unique_ptr<C15unfolder> get_por_analysis ()
@@ -565,7 +547,7 @@ int main (int argc, char **argv)
       break;
    case opts::Analysis::DRA :
       PRINT ("dpu: - POR: checking for assertion violations + deadlocks");
-      PRINT ("dpu: - Data race detection on 10%% of the executions");
+      PRINT ("dpu: - Data race detection on %d%% of the executions", opts::drfreq);
       break;
    }
 
@@ -651,6 +633,9 @@ int main (int argc, char **argv)
             PRINT ("dpu: saving data-race defects report to '%s'", path);
             dra->report.save (path);
          }
+         print_dra_stats (*dra.get());
+
+         dra->u.dump ();
       }
 
       // flush output streams

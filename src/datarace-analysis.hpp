@@ -36,6 +36,13 @@ inline bool StreamConverter<DataRaceAnalysis>::convert_end
       redboxfac.clear ();
    }
    ASSERT (redboxfac.empty());
+
+   if (blue->dat)
+   {
+      counters.readregions += blue->data<Redbox>().readpool.size();
+      counters.writeregions += blue->data<Redbox>().writepool.size();
+   }
+
    return true;
 }
 
@@ -115,6 +122,8 @@ inline bool StreamConverter<DataRaceAnalysis>::convert_rd (Event *e, Addr addr,
    DEBUG ("unf: conv: read: %s addr %p bytes %d", e->str().c_str(),
       (void*) addr, bytes);
 
+   counters.ldops++;
+
    if (blue != e)
    {
       if (blue->dat == nullptr)
@@ -131,6 +140,13 @@ inline bool StreamConverter<DataRaceAnalysis>::convert_rd (Event *e, Addr addr,
 #endif
          redboxfac.clear ();
       }
+
+      if (blue->dat)
+      {
+         counters.readregions += blue->data<Redbox>().readpool.size();
+         counters.writeregions += blue->data<Redbox>().writepool.size();
+      }
+
       blue = e;
       ASSERT (redboxfac.empty());
    }
@@ -145,6 +161,8 @@ inline bool StreamConverter<DataRaceAnalysis>::convert_wr (Event *e, Addr addr,
 {
    DEBUG ("unf: conv: write: %s addr %p bytes %d", e->str().c_str(),
       (void*) addr, bytes);
+
+   counters.stops++;
 
    // when the blue event changes, we need to create a red box and append it to
    // the blue event
@@ -166,6 +184,13 @@ inline bool StreamConverter<DataRaceAnalysis>::convert_wr (Event *e, Addr addr,
 #endif
          redboxfac.clear ();
       }
+
+      if (blue->dat)
+      {
+         counters.readregions += blue->data<Redbox>().readpool.size();
+         counters.writeregions += blue->data<Redbox>().writepool.size();
+      }
+
       blue = e;
       ASSERT (redboxfac.empty());
    }

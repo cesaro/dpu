@@ -19,6 +19,7 @@
 #include "llvm/Bitcode/ReaderWriter.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Support/TargetSelect.h"
+#include <llvm/Support/SourceMgr.h>
 #include <llvm/Support/Format.h>
 
 #include "stid/executor.hh"

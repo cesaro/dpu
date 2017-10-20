@@ -83,7 +83,7 @@ The following steps assume that you have a Debian/Ubuntu distribution:
 3. The DPU tool is located in the ``dpu-vx.x.x/bin`` folder of the
    downloaded package. You can either run DPU from there or update your
    ``$PATH`` variable to include this folder. In the second case add the
-   following line to your ``~/.bashrc`` file::
+   following line to your ``~/.bashrc`` file *and* restart your teminal::
 
     export PATH=$PATH:/path/to/dpu-vx.x.x/bin
 

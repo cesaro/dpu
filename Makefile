@@ -27,15 +27,18 @@ dist : compile $(CONFIG_STEROIDS_ROOT)/rt/rt.bc
 	rm -Rf dist/
 	mkdir dist/
 	mkdir dist/bin
+	mkdir dist/include
 	mkdir dist/lib
 	mkdir dist/lib/dpu
 	
 	cp src/driver.sh dist/bin/dpu
 	cp src/main dist/lib/dpu/dpu-backend
-	cp $(CONFIG_STEROIDS_ROOT)/rt/rt.bc dist/lib/dpu/
+	cp rt/verifier.h dist/include
+	llvm-link-3.7 $(CONFIG_STEROIDS_ROOT)/rt/rt.bc rt/verifier.bc -o dist/lib/dpu/rt.bc
 
 compile :
 	+make -f src/Makefile R=. $@
+	+make -f rt/Makefile R=. $@
 
 run: dist
 	./dist/bin/dpu benchmarks/basic/cjlu.c -vv --dot u.dot -- p main3
@@ -73,6 +76,7 @@ release : dist
 clean : clean_
 clean_ :
 	make -f src/Makefile R=. clean
+	make -f rt/Makefile R=. clean
 	make -f tests/unit/Makefile R=. clean
 	make -f tests/regression/Makefile R=. clean
 	rm -f u.dot

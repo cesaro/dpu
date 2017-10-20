@@ -48,13 +48,12 @@ The following steps assume that you have a Debian/Ubuntu distribution:
    ``PATH``, and typing ``llvm-config-3.7 --prefix`` should print the
    installation path of LLVM 3.7.
 
-3. Download and compile `v0.1.0 <https://github.com/cesaro/steroids/releases/tag/v0.1.0>`__
+3. Download and compile `v0.2.0 <https://github.com/cesaro/steroids/releases/tag/v0.2.0>`__
    of the `Steroids dynamic analysis <https://github.com/cesaro/steroids>`__
    library. Using a different version of steroids may break the compilation or
    performance of DPU.
 
-4. Download and compile the `latest release available
-   <https://github.com/cesaro/dpu/releases>`__ for the DPU tool.
+4. Download and compile the `latest release`_ available.
 
 5. Edit the file `<config.mk>`__. Update the value of the variable
    ``CONFIG_STEROIDS_ROOT`` to point to the root of the steroids project.
@@ -85,4 +84,6 @@ alter the internal contents of the folder. Include the directory ``dist/bin`` in
 Alternatively, you may update the value of the variable ``CONFIG_PREFIX`` in the
 `<config.mk>`__ file. This way, ``make`` will copy the ``dist`` folder to the
 installation directory every time you type ``make install``.
+
+.. _latest release : https://github.com/cesaro/dpu/releases/latest
 

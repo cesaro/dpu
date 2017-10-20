@@ -622,7 +622,7 @@ int main (int argc, char **argv)
          unf.reset (nullptr);
 
          PRINT ("\ndpu: ================");
-         PRINT ("dpu: data race analysis requested, re-loading source...");
+         PRINT ("dpu: data race analysis requested, reloading source...");
          dra = get_dr_analysis ();
          dra->replays = std::move (replays);
          dra->report_init ();
@@ -634,8 +634,6 @@ int main (int argc, char **argv)
             dra->report.save (path);
          }
          print_dra_stats (*dra.get());
-
-         dra->u.dump ();
       }
 
       // flush output streams

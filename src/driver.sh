@@ -4,6 +4,7 @@
 LLVMVERS=3.7
 PREFIX=$(readlink -f $(dirname $(readlink -f "$0")))/..
 RT=$PREFIX/lib/dpu/rt.bc
+INC=$PREFIX/include
 BACKEND=$PREFIX/lib/dpu/dpu-backend
 
 # input parameters
@@ -46,7 +47,7 @@ main_ ()
 
    # prepare the input
    if echo "$INPUT" | grep -q '\.c$\|\.i$'; then
-      CMD="clang-$LLVMVERS -D__DPU__ $DEFS -O3 -emit-llvm -c -o ${TMP}.opt.bc -- '$INPUT'"
+      CMD="clang-$LLVMVERS -I $INC -D__DPU__ $DEFS -O3 -emit-llvm -c -o ${TMP}.opt.bc -- '$INPUT'"
       echo $CMD
       eval $CMD
       stopif "clang"

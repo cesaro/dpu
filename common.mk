@@ -18,7 +18,7 @@
 # INC       Optional (default ""). Options -I and -D for the cpp.
 # SRCS      Optional (default "$D/*.{c,cc}"). Sources to compile.
 # MSRCS     Optional (default "$D/main.cc"). Sources that contain a main()
-# LIBS      Optional (default ""). Libraries to link with (.{a,o,so} files)
+# LIBS      Optional (default ""). Libraries to link to (.{a,o,so} files)
 #
 # defines the following variables:
 # CC
@@ -97,11 +97,11 @@ LINK.cc = $(CXX) $(LDFLAGS) -o $@ $^ $(LDLIBS)
 
 %.d : %.c
 	@echo "DEP $<"
-	@$(CC) -MM -MT "$*.o $*.i $@" $(CFLAGS) $(CPPFLAGS) $< -o $@
+	@$(CC) -MM -MT "$*.o $*.bc $*.i $@" $(CFLAGS) $(CPPFLAGS) $< -o $@
 
 %.d : %.cc
 	@echo "DEP $<"
-	@$(CXX) -MM -MT "$*.o $*.i $@" $(CXXFLAGS) $(CPPFLAGS) $< -o $@
+	@$(CXX) -MM -MT "$*.o $*.bc $*.i $@" $(CXXFLAGS) $(CPPFLAGS) $< -o $@
 
 %.cc : %.l
 	@echo "LEX $<"
@@ -152,13 +152,17 @@ CFLAGS_:=-Wall -Wextra -std=c11 -O3
 CXXFLAGS_:=-Wall -Wextra -std=c++11 -O3
 
 %.ll : %.c
-	$(CC) $(CFLAGS_) -S -flto $< -o $@
+	@echo "LL  $<"
+	@$(CC) $(CFLAGS_) -S -flto $< -o $@
 %.bc : %.c
-	$(CC) $(CFLAGS_) -c -flto $< -o $@
+	@echo "BC  $<"
+	@$(CC) $(CFLAGS_) -c -flto $< -o $@
 %.ll : %.cc
-	$(CXX) $(CXXFLAGS_) -S -flto $< -o $@
+	@echo "LL  $<"
+	@$(CXX) $(CXXFLAGS_) -S -flto $< -o $@
 %.bc : %.cc
-	$(CXX) $(CXXFLAGS_) -c -flto $< -o $@
+	@echo "BC  $<"
+	@$(CXX) $(CXXFLAGS_) -c -flto $< -o $@
 %.bc : %.ll
 	llvm-as-$(CONFIG_LLVM_VER) $< -o $@
 %.ll : %.bc

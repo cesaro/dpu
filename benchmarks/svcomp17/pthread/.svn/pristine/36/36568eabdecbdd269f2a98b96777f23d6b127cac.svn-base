@@ -1,1 +1,0 @@
-Contributed by: ESBMC project

@@ -22,7 +22,7 @@ CONFIG_STEROIDS_ROOT = $R/../steroids
 CONFIG_MAX_PROCESSES = 32
 
 # maximum number of events per process
-CONFIG_MAX_EVENTS_PER_PROCCESS = 1000100
+CONFIG_MAX_EVENTS_PER_PROCCESS = 2000100
 
 # default memory size for guest code execution
 CONFIG_GUEST_DEFAULT_MEMORY_SIZE = $(shell echo '128 * 2^20' | bc)

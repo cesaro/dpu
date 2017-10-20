@@ -75,7 +75,7 @@ void parse (int argc, char **argv_)
    strace = false;
    dosleep = false;
    timeout = 0;
-   drfreq = 20;
+   drfreq = 10;
 
 	// parse the command line, supress automatic error messages by getopt
 	opterr = 0;
@@ -276,7 +276,7 @@ void print_options ()
    P ("   Store in PATH a DOT digraph representing the full unfolding.");
    P (" --drfreq=N");
    P ("   Use N%% of the Mazurkiewicz traces found during POR analysis for");
-   P ("   data-race detection (default 10).");
+   P ("   data-race detection (default %d).", drfreq);
    P ("");
    P ("Execution environment:");
    P (" -D MACRO");
@@ -288,8 +288,8 @@ void print_options ()
    P (" -s N, --stack=N");
    P ("   Set default size for thread stacks, in MB (default %zuM).",
          stacksize / (1 << 20));
-   P (" --dump-instr=PATH");
-   P ("   Dump instrumented LLVM bytecode to PATH.");
+   P (" --dump-instr=FILE.ll");
+   P ("   Dump instrumented LLVM bytecode to FILE.ll.");
 }
 
 #undef P

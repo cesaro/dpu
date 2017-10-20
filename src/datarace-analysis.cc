@@ -43,7 +43,7 @@ void DataRaceAnalysis::run ()
 
    if (race)
    {
-      PRINT ("dpu: dr: result: one data race FOUND, (program may have more)");
+      PRINT ("dpu: dr: result: one data race FOUND (but the program may have more)");
       report.add_defect (*race);
       race->dump ();
    }

@@ -71,6 +71,8 @@ REL:=dpu-$(shell uname -p)-$(CONFIG_VERSION)
 release : dist
 	rm -Rf $(REL)
 	cp -Rv dist $(REL)
+	cp LICENSE $(REL)
+	cp README.rst $(REL)
 	tar czvf $(REL).tar.gz $(REL)
 
 clean : clean_
@@ -79,6 +81,7 @@ clean_ :
 	make -f rt/Makefile R=. clean
 	make -f tests/unit/Makefile R=. clean
 	make -f tests/regression/Makefile R=. clean
+	rm -f regression.log*
 	rm -f u.dot
 	rm -f dot/*.dot
 	rm -f dot/*.png

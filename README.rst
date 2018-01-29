@@ -3,7 +3,7 @@
 DPU: Dynamic Program Unfolding
 ==============================
 
-DPU is a research tool to perform `dynamic analysis`_ of POSIX multithreaded C
+DPU is a research tool to perform `dynamic analysis`_ of multithreaded POSIX C
 programs. It will automatically and exhaustively test all possible thread
 schedules of a C program that uses `POSIX threads`_.
 
@@ -109,7 +109,7 @@ TODO
 - Options
 - wllvm
 
-Related tools
+Related Tools
 =============
 
 - `POET <https://github.com/marcelosousa/poet/>`__

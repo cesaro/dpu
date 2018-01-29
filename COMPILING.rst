@@ -53,7 +53,7 @@ The following steps assume that you have a Debian/Ubuntu distribution:
    library. Using a different version of steroids may break the compilation or
    performance of DPU.
 
-4. Download and compile the `latest release`_ available.
+4. Download and compile the sources of the `latest release`_ available.
 
 5. Edit the file `<config.mk>`__. Update the value of the variable
    ``CONFIG_STEROIDS_ROOT`` to point to the root of the steroids project.

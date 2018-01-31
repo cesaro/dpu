@@ -37,16 +37,16 @@ dist : compile $(CONFIG_STEROIDS_ROOT)/rt/rt.bc
 	llvm-link-3.7 $(CONFIG_STEROIDS_ROOT)/rt/rt.bc rt/verifier.bc -o dist/lib/dpu/rt.bc
 
 compile :
-	+make -f src/Makefile R=. $@
-	+make -f rt/Makefile R=. $@
+	+$(MAKE) -f src/Makefile R=. $@ $(MAKEFLAGS)
+	+$(MAKE) -f rt/Makefile R=. $@ $(MAKEFLAGS)
 
 run: dist
 	./dist/bin/dpu benchmarks/basic/cjlu.c -vv --dot u.dot -- p main3
-	make u.svg
+	$(MAKE) u.svg
 
 run2: dist
 	./dist/bin/dpu benchmarks/basic/cjlu.c -vv --dot u.dot -- p main4
-	make u.svg
+	$(MAKE) u.svg
 
 tags :
 	ctags -R --c++-kinds=+p --fields=+K --extra=+q src/ tests/unit/ config.h $(shell llvm-config$(LLVMVERS) --includedir)
@@ -60,11 +60,11 @@ c cgdb : dist
 tests : unittests regression
 
 unittest ut : compile
-	make -f tests/unit/Makefile R=.
-	make u.svg
+	$(MAKE) -f tests/unit/Makefile R=. $(MAKEFLAGS)
+	$(MAKE) u.svg
 
 regression : dist
-	make -f tests/regression/Makefile R=.
+	$(MAKE) -f tests/regression/Makefile R=. $(MAKEFLAGS)
 
 REL:=dpu-$(shell uname -p)-$(CONFIG_VERSION)
 
@@ -75,10 +75,10 @@ release : dist
 
 clean : clean_
 clean_ :
-	make -f src/Makefile R=. clean
-	make -f rt/Makefile R=. clean
-	make -f tests/unit/Makefile R=. clean
-	make -f tests/regression/Makefile R=. clean
+	$(MAKE) -f src/Makefile R=. clean $(MAKEFLAGS)
+	$(MAKE) -f rt/Makefile R=. clean $(MAKEFLAGS)
+	$(MAKE) -f tests/unit/Makefile R=. clean $(MAKEFLAGS)
+	$(MAKE) -f tests/regression/Makefile R=. clean $(MAKEFLAGS)
 	rm -f u.dot
 	rm -f dot/*.dot
 	rm -f dot/*.png
@@ -87,9 +87,9 @@ clean_ :
 distclean : realclean
 realclean : realclean_
 realclean_ :
-	make -f src/Makefile R=. realclean
-	make -f tests/unit/Makefile R=. realclean
-	make -f tests/regression/Makefile R=. realclean
+	$(MAKE) -f src/Makefile R=. realclean $(MAKEFLAGS)
+	$(MAKE) -f tests/unit/Makefile R=. realclean $(MAKEFLAGS)
+	$(MAKE) -f tests/regression/Makefile R=. realclean $(MAKEFLAGS)
 	rm -Rf dist/ $(REL)
 	rm -f config.h
 	rm -f regression.log*

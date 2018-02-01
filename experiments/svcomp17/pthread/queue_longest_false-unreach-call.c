@@ -28,6 +28,7 @@ int init(QType *q)
   q->head=0;
   q->tail=0;
   q->amount=0;
+  return 0;
 }
 
 int empty(QType * q) 
@@ -89,7 +90,7 @@ void *t1(void *arg)
   int value, i;
 
   pthread_mutex_lock(&m);
-  value = __VERIFIER_nondet_int();
+  value = 17; //__VERIFIER_nondet_int();
   if (enqueue(&queue,value)) {
     goto ERROR;
   }
@@ -106,7 +107,7 @@ void *t1(void *arg)
     pthread_mutex_lock(&m);
     if (enqueue_flag)
     {
-      value = __VERIFIER_nondet_int();
+      value = 17 + i; //__VERIFIER_nondet_int();
       enqueue(&queue,value);
       stored_elements[i+1]=value;
       enqueue_flag=FALSE;

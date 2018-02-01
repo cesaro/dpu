@@ -8,7 +8,7 @@ extern void __VERIFIER_error() __attribute__ ((__noreturn__));
 void __VERIFIER_assert(int expression) { if (!expression) { ERROR: __VERIFIER_error();}; return; }
 
 // DPU: sigma reduced from 16 to 5
-const int SIGMA = 3;
+const int SIGMA = 5;
 
 int *array;
 int array_index=-1;
@@ -60,7 +60,7 @@ int main()
       sum += array[tid];
    }
 
-   //__VERIFIER_assert(sum == SIGMA);  // <-- wrong, different threads might use the same array offset when writing
+   __VERIFIER_assert(sum == SIGMA);  // <-- wrong, different threads might use the same array offset when writing
 
    return 0;
 }

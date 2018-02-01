@@ -94,7 +94,7 @@ void *t1(void *arg)
   {
     for(i=0; i<SIZE; i++)  
     {
-      value = __VERIFIER_nondet_int();
+      value = 17 + i; //__VERIFIER_nondet_int();
       enqueue(&queue,value);
       stored_elements[i]=value;
     }

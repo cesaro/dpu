@@ -140,7 +140,7 @@ while test $# -ge 1; do
    shift
 done
 
-TMP=$(mktemp -t dpu.XXXX.$(basename "$INPUT"))
+TMP=$(mktemp -t dpu.XXXX.$(basename -- "$INPUT"))
 trap cleanup EXIT
 trap cleanup INT
 trap cleanup QUIT

@@ -91,7 +91,7 @@ runall_nidhugg ()
 
 generate_bench_selection ()
 {
-   cp -R $R/pthread .
+   cp -R $R/../svcomp17/pthread .
 
    echo Benchmarks:
    ls -l */*.c
@@ -137,21 +137,21 @@ get_tool_binaries ()
    h2 "Getting Tool Binaries"
 
    echo ::
-   #echo
-   #(
-   #   mkdir tools
-   #   #make -C $R/../../ dist
-   #   #cp -Rv $R/../../dist/ tools/dpu
-   #   #cp $HOME/x/devel/nidhugg/src/{nidhugg,nidhuggc} tools
-   #   wget XXXXX
-   #   tar xzvf cav18-table1-tool-binaries.tar.gz -C tools
-   #) 2>&1 | quote
+   echo
+   (
+      mkdir tools
+      #make -C $R/../../ dist
+      #cp -Rv $R/../../dist/ tools/dpu
+      #cp $HOME/x/devel/nidhugg/src/{nidhugg,nidhuggc} tools
+      wget 'https://www.dropbox.com/s/p8leb9f9vkv3crr/cav18-tool-binaries.tar.gz'
+      tar xzvf cav18-tool-binaries.tar.gz -C tools
+   ) 2>&1 | quote
 
-   #DPU="tools/dpu/bin/dpu"
-   #NIDHUGG="tools/nidhuggc --nidhugg=tools/nidhugg"
+   DPU="tools/dpu/bin/dpu"
+   NIDHUGG="tools/nidhuggc --nidhugg=tools/nidhugg"
 
-   DPU=../../../../dist/bin/dpu
-   NIDHUGG="nidhuggc --nidhugg=nidhugg"
+   #DPU=../../../../dist/bin/dpu
+   #NIDHUGG="nidhuggc --nidhugg=nidhugg"
 }
 
 main ()
@@ -182,11 +182,6 @@ main ()
    echo
    runall_nidhugg 2>&1 | quote
 
-   h1_date "Generating latex tables"
-   echo ::
-   echo
-   #dump_latex 2>&1 | quote
-
    echo
    echo
    echo End of the log.
@@ -203,6 +198,6 @@ cd table3
 ln -s $R logs
 cd $R
 
-R=../.. # root of the svcomp17/ folder
+R=../.. # root of the cav18/ folder
 main 2>&1 | tee OUTPUT.rst
 

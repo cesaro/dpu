@@ -8,6 +8,8 @@ table1 :
 	./runtable1.sh
 table2 :
 	./runtable2.sh
+table3 :
+	./runtable3.sh
 
 nohup1 :
 	nohup ./runtable1.sh > nohup.out 2>&1 &
@@ -19,3 +21,4 @@ nohup12 :
 clean :
 	rm -Rf table1/log*
 	rm -Rf table2/log*
+	rm -Rf table3/log*

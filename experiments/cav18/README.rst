@@ -1,6 +1,6 @@
 
-TACAS'18 Paper Experiments
-==========================
+CAV'18 Paper Experiments
+========================
 
 This folder contains all the necessary scripts to reproduce the experimental
 results of the TACAS'18 paper submission.
@@ -39,7 +39,11 @@ Table 2: Debian Experiments
 Currently all data is in the file ``maple-exp.tar.gz``.
 I will expand this README here in a couple of days.
 
-Experiments with the SVCOMP'17 Benchmarks
------------------------------------------
+Table 3: Experiments with the SVCOMP'17 Benchmarks
+--------------------------------------------------
 
-See the folder `<../svcomp17>`_.
+In order to build Table 3 from the paper (shown below), just run::
+
+  make table3
+
+.. image:: table3/table3.png

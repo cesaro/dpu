@@ -71,7 +71,14 @@ REL:=dpu-$(shell uname -p)-$(CONFIG_VERSION)
 release : dist
 	rm -Rf $(REL)
 	cp -Rv dist $(REL)
+	cp README.rst $(REL)
 	tar czvf $(REL).tar.gz $(REL)
+
+cav18-release : release
+	git archive HEAD experiments src rt | tar x -C $(REL)
+	rm -R $(REL)/experiments/stuff
+	mv $(REL)/experiments/cav18/README.CAV18.rst $(REL)
+	./scripts/anonymize.sh $(REL)
 
 clean : clean_
 clean_ :

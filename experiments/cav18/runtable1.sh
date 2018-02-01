@@ -451,8 +451,8 @@ get_tool_binaries ()
       #make -C $R/../../ dist
       #cp -Rv $R/../../dist/ tools/dpu
       #cp $HOME/x/devel/nidhugg/src/{nidhugg,nidhuggc} tools
-      wget 'https://github.com/cesaro/dpu/releases/download/v0.5.0-dr/tacas18-table1-tool-binaries.tar.gz'
-      tar xzvf tacas18-table1-tool-binaries.tar.gz -C tools
+      wget 'https://www.dropbox.com/s/p8leb9f9vkv3crr/cav18-tool-binaries.tar.gz'
+      tar xzvf cav18-tool-binaries.tar.gz -C tools
    ) 2>&1 | quote
 
    DPU="tools/dpu/bin/dpu"

@@ -103,7 +103,7 @@ run_dpu ()
 
    # print a summary
 
-   FORMAT='%-40s %8s %8s %8s %8s %8s %8s\n'
+   FORMAT='%-70s %8s %8s %8s %8s %8s %8s\n'
    printf "$FORMAT" LOG, WTIME, MAXRSS, MAXCON, SSBS, EVENTS, DEFECTS,
    printf "$FORMAT\n" $LOG, $WALLTIME, $MAXRSS, $MAXCONFS, $SSBS, $EVENTS, $DEFECTS,
 
@@ -166,7 +166,7 @@ run_nidhugg ()
    echo "SSBs      $SSBS" >> $LOG
 
    # print a summary
-   FORMAT='%-40s %8s %8s %8s %8s\n'
+   FORMAT='%-70s %8s %8s %8s %8s\n'
    printf "$FORMAT" LOG, WTIME, MAXRSS, MAXCON, SSBS,
    printf "$FORMAT\n" $LOG, $WALLTIME, $MAXRSS, $MAXCONFS, $SSBS,
 

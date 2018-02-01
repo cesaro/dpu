@@ -23,7 +23,7 @@ source runlib.sh
 generate_bench_all ()
 {
    # pre-conditions:
-   # $R       - root of the tacas18 folder
+   # $R       - root of the cav18 folder
 
    preprocess_family $R/bench/dispatcher.c dispatch   "serv" "1 2 3 4 5 6 8 10 12 14" "reqs" "1 2 3 4"
    preprocess_family $R/bench/mpat.c       mpat       "k" "`seq -w 1 8`"
@@ -43,7 +43,7 @@ generate_bench_selection ()
    # The benchmarks selected for Table 1 of the paper
 
    # pre-conditions:
-   # $R       - root of the tacas18 folder
+   # $R       - root of the cav18 folder
 
    preprocess_family $R/bench/dispatcher.c dispatch   "serv" "5" "reqs" "`seq -w 2 6`"
    preprocess_family $R/bench/mpat.c       mpat       "k" "`seq -w 4 8`"
@@ -58,7 +58,7 @@ generate_bench_selection_below10s ()
    # running time below 20 secs
 
    # pre-conditions:
-   # $R       - root of the tacas18 folder
+   # $R       - root of the cav18 folder
 
    preprocess_family $R/bench/dispatcher.c dispatch   "serv" "5" "reqs" "`seq -w 2 4`"
    preprocess_family $R/bench/mpat.c       mpat       "k" "`seq -w 4 5`"
@@ -72,7 +72,7 @@ generate_bench_selection_below10s ()
 generate_bench_smallest ()
 {
    # pre-conditions:
-   # $R       - root of the tacas18 folder
+   # $R       - root of the cav18 folder
 
    preprocess_family $R/bench/dispatcher.c dispatch   "serv" "3 4" "reqs" "2 3"
    preprocess_family $R/bench/mpat.c       mpat       "k" "`seq -w 2 6`"
@@ -224,7 +224,7 @@ generate_bench_morethan1sec()
 generate_bench_cesar ()
 {
    # pre-conditions:
-   # $R       - root of the tacas18 folder
+   # $R       - root of the cav18 folder
 
    #preprocess_family $R/bench/dispatcher.c dispatch   "serv" "4" "reqs" "`seq -w 1 7`"
    preprocess_family $R/bench/dispatcher.c dispatch   "serv" "3" "reqs" "`seq -w 2 3`"
@@ -287,10 +287,10 @@ runall_dpu ()
          LOG=${N}_dpu_alt0.txt
          CMD="$DPU $i -k0 $OPTS"
          run_dpu
-      fi
 
-      # if we got TO on -k0, surely we will also get it on -kX with X!=0
-      if test "$WALLTIME" == "TO"; then continue; fi
+         # if we got TO on -k0, surely we will also get it on -kX with X!=0
+         if test "$WALLTIME" == "TO"; then continue; fi
+      fi
 
       # k-partial
       for a in 1 2 3 4; do
@@ -304,7 +304,7 @@ runall_dpu ()
          CMD="$DPU $i -k$a $OPTS"
          run_dpu
 
-         # if we got 0 SSBs we skip higher -a
+         # if we got 0 SSBs we skip higher -k
          if test "$SSBS" = 0; then break; fi
       done
    done
@@ -514,6 +514,6 @@ cd table1
 ln -s $R logs
 cd $R
 
-R=../.. # root of the tacas18/ folder
+R=../.. # root of the cav18/ folder
 main 2>&1 | tee OUTPUT.rst
 

@@ -7,7 +7,7 @@ R ?= .
 CONFIG_RELEASE = 1
 
 # version of the tool
-CONFIG_VERSION = v0.5.1
+CONFIG_VERSION = v0.5.2
 
 # folder where the tool will be installed with "make install"
 CONFIG_PREFIX = ~/x/local

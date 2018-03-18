@@ -5,9 +5,9 @@ Compiling DPU
 Compiling DPU requires ``clang++-6.0``, among other packages. Please also
 notice that:
 
-- Development for DPU happens in the ``master`` branch. If you want a stable
-  version of the tool you should download and compile the sources of the
-  `latest release`_ of the tool.
+- The ``master`` branch in this project always points to the version of the code
+  in the `latest release`_ of the tool.  The development version is available in
+  the ``develop`` branch.
 - DPU has only been compiled and tested under Debian/Ubuntu, although it should
   probably work on other Linux distributions. Please note that the Steroids
   library only works on x86-64 machines.

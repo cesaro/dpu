@@ -50,7 +50,7 @@ interleavings.  The tool will not explore two execution orders for the two
 instructions that exhibit a data-race.
 
 When data-race analysis is enabled, DPU will record memory load/store operations
-performed by the program, in addition to the calls to `pthread_*` functions.
+performed by the program, in addition to the calls to ``pthread_*`` functions.
 This detection happens for a user-provided percentage (option ``--drfreq``,
 default 10%) of the executions explored by the tool. This analysis is thus not
 guaranteed to find all data-races, but any data-race found is a genuine one.

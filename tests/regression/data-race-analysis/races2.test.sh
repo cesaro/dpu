@@ -3,7 +3,7 @@
 N="2 3"
 
 cmd for i in $N; do \
-      $PROG races2.c -D N=$i -a dr -v > out$i; done
+      $PROG races2.c -D N=$i -a dr -v --drfreq 100 > out$i; done
 
 test $EXITCODE = 0
 for i in $N; do echo xxx $i xxx; grep "dpu: dr: result: " out$i; done

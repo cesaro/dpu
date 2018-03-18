@@ -75,7 +75,7 @@ gcc -E races1.c -D ST9=1 -D ST3=1 -o input43.i
 gcc -E races1.c -D ST11=1 -D LD8=1 -D ST3=1 -o input44.i
 
 cmd for i in $SAFE $RACY; do \
-      $PROG input$i.i -a dr -v > out$i; done
+      $PROG input$i.i -a dr -v --drfreq 100 > out$i; done
 
 test $EXITCODE = 0
 for i in $SAFE; do echo xxx $i xxx; grep "dpu: dr: result: " out$i; done

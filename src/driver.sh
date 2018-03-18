@@ -46,8 +46,13 @@ main_ ()
    fi
 
    # prepare the input
-   if echo "$INPUT" | grep -q '\.c$\|\.i$'; then
+   if echo "$INPUT" | grep -q '.\.c$'; then
       CMD="clang-$LLVMVERS -I $INC -D__DPU__ $DEFS -O3 -emit-llvm -c -o ${TMP}.opt.bc -- '$INPUT'"
+      echo $CMD
+      eval $CMD
+      stopif "clang"
+   elif echo "$INPUT" | grep -q '.\.i$'; then
+      CMD="clang-$LLVMVERS -D__DPU__ $DEFS -O3 -emit-llvm -c -o ${TMP}.opt.bc -- '$INPUT'"
       echo $CMD
       eval $CMD
       stopif "clang"

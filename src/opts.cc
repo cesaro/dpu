@@ -326,7 +326,7 @@ void version (void)
          UNITS_UNIT (Unfolding::ALIGN),
          CONFIG_SKIP_STEP);
 
-   PRINT ("Trace buffer size: : %.1f Mevents",
+   PRINT ("Trace buffer size: %.1f Mevents",
          CONFIG_GUEST_TRACE_BUFFER_SIZE / 1000000.0);
    PRINT ("Maximum verbosity level: %d", CONFIG_MAX_VERB_LEVEL);
 	PRINT ("Compilation: %s", CONFIG_COMPILE);

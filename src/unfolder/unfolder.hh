@@ -59,6 +59,9 @@ public:
 
 protected:
 
+   /// A context object where LLVM will store the types and constants
+   llvm::LLVMContext context;
+
    /// File name for the llvm module under analysis
    std::string path;
 

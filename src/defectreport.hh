@@ -62,9 +62,6 @@ struct llvm::yaml::ScalarTraits<const char *> {
    }
 };
 
-// yaml trait for the argv/environ vectors
-LLVM_YAML_IS_SEQUENCE_VECTOR(std::string);
-
 // yaml trait for the vector of defects
 LLVM_YAML_IS_SEQUENCE_VECTOR(dpu::Defect);
 

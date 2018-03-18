@@ -82,11 +82,10 @@ LDFLAGS = $(LLVMLDFLAGS) $(STIDLDFLAGS) # -dead_strip -static
 LDLIBS = $(LIBS) $(STIDLDLIBS) $(LLVMLIBS)
 
 # define the toolchain
-LLVMVERS:=-3.7
-LD := ld$(LLVMVERS)
-CC := clang$(LLVMVERS)
-CXX := clang++$(LLVMVERS)
-CPP := cpp$(LLVMVERS)
+LD := ld$(CONFIG_LLVM_VER)
+CC := clang-$(CONFIG_LLVM_VER)
+CXX := clang++-$(CONFIG_LLVM_VER)
+CPP := cpp$(CONFIG_LLVM_VER)
 LEX := flex
 YACC := bison
 

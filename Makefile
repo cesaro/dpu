@@ -34,7 +34,7 @@ dist : compile $(CONFIG_STEROIDS_ROOT)/rt/rt.bc
 	cp src/driver.sh dist/bin/dpu
 	cp src/main dist/lib/dpu/dpu-backend
 	cp rt/verifier.h dist/include
-	llvm-link-3.7 $(CONFIG_STEROIDS_ROOT)/rt/rt.bc rt/verifier.bc -o dist/lib/dpu/rt.bc
+	llvm-link-$(CONFIG_LLVM_VER) $(CONFIG_STEROIDS_ROOT)/rt/rt.bc rt/verifier.bc -o dist/lib/dpu/rt.bc
 
 compile :
 	+$(MAKE) -f src/Makefile R=. $@ $(MAKEFLAGS)
@@ -49,7 +49,7 @@ run2: dist
 	$(MAKE) u.svg
 
 tags :
-	ctags -R --c++-kinds=+p --fields=+K --extra=+q src/ tests/unit/ config.h $(shell llvm-config$(LLVMVERS) --includedir)
+	ctags -R --c++-kinds=+p --fields=+K --extra=+q src/ tests/unit/ config.h $(shell llvm-config-$(CONFIG_LLVM_VER) --includedir)
 
 g gdb : dist
 	./dist/bin/dpu benchmarks/basic/cjlu.c -vv --gdb -- p main3

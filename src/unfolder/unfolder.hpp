@@ -14,9 +14,7 @@
 
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Verifier.h"
-#include "llvm/IR/LLVMContext.h"
 #include "llvm/IRReader/IRReader.h"
-#include "llvm/Bitcode/ReaderWriter.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Support/TargetSelect.h"
 #include <llvm/Support/SourceMgr.h>
@@ -76,9 +74,6 @@ void Unfolder<T>::load_bitcode (std::string &&filepath)
       llvm::InitializeNativeTargetAsmPrinter();
       llvm::InitializeNativeTargetAsmParser();
    }
-
-   // get a context
-   llvm::LLVMContext &context = llvm::getGlobalContext();
 
    // parse the .ll file and get a Module out of it
    PRINT ("dpu: unf: loading bitcode");
@@ -152,7 +147,7 @@ void Unfolder<T>::print_external_syms (const char *prefix)
    os << prefix << "External functions:\n";
    for (auto &pair : funs)
    {
-      os << prefix << llvm::format ("  %-*s ", len, pair.first);
+      os << prefix << llvm::format ("  %-*s ", len, pair.first.str().c_str());
       os << *pair.second << "\n";
    }
 
@@ -169,7 +164,7 @@ void Unfolder<T>::print_external_syms (const char *prefix)
    os << prefix << "External variables:\n";
    for (auto &pair : globs)
    {
-      os << prefix << llvm::format ("  %-*s ", len, pair.first);
+      os << prefix << llvm::format ("  %-*s ", len, pair.first.str().c_str());
       os << *pair.second << "\n";
    }
    os.flush ();

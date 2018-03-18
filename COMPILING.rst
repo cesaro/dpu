@@ -2,7 +2,7 @@
 Compiling DPU
 =============
 
-Compiling DPU requires ``clang++`` v3.7, among other packages. Please also
+Compiling DPU requires ``clang++`` v6.0, among other packages. Please also
 notice that:
 
 - Development for DPU happens in the ``master`` branch. If you want a stable
@@ -20,8 +20,8 @@ Dependencies
 - git
 - GNU make
 - Python 2
-- Clang 3.7
-- LLVM 3.7
+- Clang 6.0
+- LLVM 6.0
 - `Steroids v0.2.0 <https://github.com/cesaro/steroids/releases/tag/v0.2.0>`__, a
   dynamic analysis library
 
@@ -39,14 +39,15 @@ The following steps assume that you have a Debian/Ubuntu distribution:
 
     sudo apt-get install coreutils git make python2.7
 
-2. Install clang v3.7 and LLVM v3.7. DPU currently does not compile under g++,
-   and you will need clang 3.7 to run the tool, anyway::
+2. Install Clang v6.0 and LLVM v6.0 (binaries and packages available `here
+   <http://releases.llvm.org/download.html#6.0.0>`__). DPU currently does not
+   compile under ``g++``, and you will need Clang 6.0 to run the tool, anyway::
 
-    sudo apt-get install llvm-3.7-dev clang-3.7
+    sudo apt-get install llvm-6.0-dev clang-6.0
 
-   After the installation, the command ``llvm-config-3.7`` should be in your
-   ``PATH``, and typing ``llvm-config-3.7 --prefix`` should print the
-   installation path of LLVM 3.7.
+   After the installation, the command ``llvm-config-6.0`` should be in your
+   ``PATH``, and typing ``llvm-config-6.0 --prefix`` should print the
+   installation path of LLVM 6.0.
 
 3. Download and compile `v0.2.0 <https://github.com/cesaro/steroids/releases/tag/v0.2.0>`__
    of the `Steroids dynamic analysis <https://github.com/cesaro/steroids>`__

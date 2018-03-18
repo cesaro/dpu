@@ -70,24 +70,25 @@ Installing Precompiled Binaries
 
 The following steps assume that you have a Debian/Ubuntu distribution:
 
-1. Install Clang v3.7 and LLVM v3.7::
+1. Install Clang v6.0 and LLVM v6.0 (binaries and packages available
+   `here <http://releases.llvm.org/download.html#6.0.0>`__)::
 
-    sudo apt-get install clang-3.7 llvm-3.7
+    sudo apt-get install clang-6.0 llvm-6.0
 
-   Commands ``clang-3.7`` and ``llvm-link-3.7`` should now be available in
+   The commands ``clang-6.0`` and ``llvm-link-6.0`` should now be available in
    your ``$PATH``.
 
 2. Download the precompiled binaries from the `latest release`_ and unpack them
    anywhere in your machine.
 
-3. The DPU tool is located in the ``dpu-vx.x.x/bin`` folder of the
+3. The DPU tool is located within the folder ``dpu-vx.x.x/bin`` in the
    downloaded package. You can either run DPU from there or update your
    ``$PATH`` variable to include this folder. In the second case add the
    following line to your ``~/.bashrc`` file *and* restart your teminal::
 
     export PATH=$PATH:/path/to/dpu-vx.x.x/bin
 
-4. Done. You should now be able to run::
+4. You should now be able to run::
 
     dpu --help
     dpu --version

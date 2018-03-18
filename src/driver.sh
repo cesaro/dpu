@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # settings
-LLVMVERS=3.7
+LLVMVERS=6.0
 PREFIX=$(readlink -f $(dirname $(readlink -f "$0")))/..
 RT=$PREFIX/lib/dpu/rt.bc
 INC=$PREFIX/include

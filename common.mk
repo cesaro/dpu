@@ -63,8 +63,9 @@ LLVMLDFLAGS := $(shell llvm-config-$(CONFIG_LLVM_VER) --ldflags)
 LLVMLIBS := $(shell llvm-config-$(CONFIG_LLVM_VER) --libs all) -lz -lpthread -lffi -lncurses -ldl -lm
 
 # == steroids ==
-STIDCPPFLAGS := -I $(CONFIG_STEROIDS_ROOT)/include/
-STIDLDFLAGS := -L $(CONFIG_STEROIDS_ROOT)/src/
+STIDROOT := $R/lib/steroids
+STIDCPPFLAGS := -I $(STIDROOT)/include/
+STIDLDFLAGS := -L $(STIDROOT)/src/
 STIDLDLIBS := -Wl,-Bstatic -lsteroids -Wl,-Bdynamic
 #STIDLDLIBS := -lsteroids
 

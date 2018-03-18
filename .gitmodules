@@ -1,0 +1,3 @@
+[submodule "lib/steroids"]
+	path = lib/steroids
+	url = git@github.com:cesaro/steroids.git

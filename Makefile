@@ -23,7 +23,7 @@ include common.mk
 
 all : dist
 
-dist : compile $(CONFIG_STEROIDS_ROOT)/rt/rt.bc
+dist : compile $(STIDROOT)/rt/rt.bc
 	rm -Rf dist/
 	mkdir dist/
 	mkdir dist/bin
@@ -34,11 +34,15 @@ dist : compile $(CONFIG_STEROIDS_ROOT)/rt/rt.bc
 	cp src/driver.sh dist/bin/dpu
 	cp src/main dist/lib/dpu/dpu-backend
 	cp rt/verifier.h dist/include
-	llvm-link-$(CONFIG_LLVM_VER) $(CONFIG_STEROIDS_ROOT)/rt/rt.bc rt/verifier.bc -o dist/lib/dpu/rt.bc
+	llvm-link-$(CONFIG_LLVM_VER) $(STIDROOT)/rt/rt.bc rt/verifier.bc -o dist/lib/dpu/rt.bc
 
 compile :
 	+$(MAKE) -f src/Makefile R=. $@ $(MAKEFLAGS)
 	+$(MAKE) -f rt/Makefile R=. $@ $(MAKEFLAGS)
+
+.PHONY: $(STIDROOT)/rt/rt.bc
+$(STIDROOT)/rt/rt.bc :
+	$(MAKE) -C lib/steroids rt/rt.bc
 
 run: dist
 	./dist/bin/dpu benchmarks/basic/cjlu.c -vv --dot u.dot -- p main3

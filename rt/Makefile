@@ -14,4 +14,4 @@ compile : $D/verifier.bc
 clean : clean_
 
 clean_ :
-	rm -f $D/verifier.bc
+	@rm -f $D/verifier.bc

@@ -20,4 +20,4 @@ $D/googletest/gtest_main.a $D/googletest/gtest.a :
 
 clean : clean_
 clean_ :
-	make -C $D/googletest/ clean
+	@make -C $D/googletest/ clean

@@ -2,16 +2,17 @@
 Compiling DPU
 =============
 
-Compiling DPU requires ``clang++`` v6.0, among other packages. Please also
+Compiling DPU requires ``clang++-6.0``, among other packages. Please also
 notice that:
 
 - Development for DPU happens in the ``master`` branch. If you want a stable
   version of the tool you should download and compile the sources of the
-  `latest available release <https://github.com/cesaro/dpu/releases>`__ of the
-  tool.
+  `latest release`_ of the tool.
 - DPU has only been compiled and tested under Debian/Ubuntu, although it should
   probably work on other Linux distributions. Please note that the Steroids
   library only works on x86-64 machines.
+
+.. _latest release : https://github.com/cesaro/dpu/releases/latest
 
 Dependencies
 ------------
@@ -22,13 +23,15 @@ Dependencies
 - Python 2
 - Clang 6.0
 - LLVM 6.0
-- `Steroids v0.2.0 <https://github.com/cesaro/steroids/releases/tag/v0.2.0>`__, a
-  dynamic analysis library
+- The Steroids dynamic analysis library (included as a `Git submodule`_)
 
 Optional:
 
 - Analyzing C programs with multiple compilation units will require
-  `Whole Program LLVM <https://github.com/travitch/whole-program-llvm>`__.
+  `Whole Program LLVM`_.
+
+.. _Git submodule: https://git-scm.com/book/en/v2/Git-Tools-Submodules
+.. _Whole Program LLVM: https://github.com/travitch/whole-program-llvm
 
 Compilation
 -----------
@@ -39,9 +42,8 @@ The following steps assume that you have a Debian/Ubuntu distribution:
 
     sudo apt-get install coreutils git make python2.7
 
-2. Install Clang v6.0 and LLVM v6.0 (binaries and packages available `here
-   <http://releases.llvm.org/download.html#6.0.0>`__). DPU currently does not
-   compile under ``g++``, and you will need Clang 6.0 to run the tool, anyway::
+2. Install Clang v6.0 and LLVM v6.0 (see the `LLVM releases`_). DPU currently does not
+   compile under ``g++``, and you will need Clang 6.0 to run the tool anyway::
 
     sudo apt-get install llvm-6.0-dev clang-6.0
 
@@ -49,23 +51,23 @@ The following steps assume that you have a Debian/Ubuntu distribution:
    ``PATH``, and typing ``llvm-config-6.0 --prefix`` should print the
    installation path of LLVM 6.0.
 
-3. Download and compile `v0.2.0 <https://github.com/cesaro/steroids/releases/tag/v0.2.0>`__
-   of the `Steroids dynamic analysis <https://github.com/cesaro/steroids>`__
-   library. Using a different version of steroids may break the compilation or
-   performance of DPU.
+3. Clone this project and initialize the git submodule containing the Steroids
+   library::
 
-4. Download and compile the `latest release`_ available.
+    git clone https://github.com/cesaro/dpu.git
+    cd dpu
+    git submodule init
+    git submodule update
 
-5. Edit the file `<config.mk>`__. Update the value of the variable
-   ``CONFIG_STEROIDS_ROOT`` to point to the root of the steroids project.
-   Give an absolute path or a path relative to the variable ``$R``,
-   which will equal to the path of the root folder of the DPU project.
+4. A number of compilation-time configuration parameters are available in the
+   file `<config.mk>`__. All of them have a safe default values but you might
+   want to modify any of them now.
 
-6. Compile::
+5. Compile the tool::
 
     make dist
 
-7. Optional: run regression tests::
+6. Optional: run regression tests::
 
     make regression
 
@@ -73,6 +75,8 @@ DPU is now installed in the ``dist/`` folder. You can run the tool from there
 using the command::
 
  ./dist/bin/dpu --help
+
+.. _LLVM releases : http://releases.llvm.org/download.html#6.0.0
 
 Installing the dist/ folder
 ===========================
@@ -85,6 +89,3 @@ alter the internal contents of the folder. Include the directory ``dist/bin`` in
 Alternatively, you may update the value of the variable ``CONFIG_PREFIX`` in the
 `<config.mk>`__ file. This way, ``make`` will copy the ``dist`` folder to the
 installation directory every time you type ``make install``.
-
-.. _latest release : https://github.com/cesaro/dpu/releases/latest
-

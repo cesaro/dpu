@@ -80,7 +80,7 @@ public:
    inline const Event *pre_other () const;
    inline Event *pre_other ();
 
-   /// Returns the pid of the process to which this event belongs
+   /// Returns the pid of the Process to which this event belongs
    unsigned pid () const;
 
    /// Returns the process which this event belongs to.

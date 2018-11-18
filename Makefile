@@ -37,8 +37,8 @@ dist : compile $(STIDROOT)/rt/rt.bc
 	llvm-link-$(CONFIG_LLVM_VER) $(STIDROOT)/rt/rt.bc rt/verifier.bc -o dist/lib/dpu/rt.bc
 
 compile :
-	+$(MAKE) -f src/Makefile R=. $@ $(MAKEFLAGS)
-	+$(MAKE) -f rt/Makefile R=. $@ $(MAKEFLAGS)
+	+$(MAKE) -f src/Makefile R=. $@
+	+$(MAKE) -f rt/Makefile R=. $@
 
 .PHONY: $(STIDROOT)/rt/rt.bc
 $(STIDROOT)/rt/rt.bc :
@@ -64,11 +64,11 @@ c cgdb : dist
 tests : unittests regression
 
 unittest ut : compile
-	$(MAKE) -f tests/unit/Makefile R=. $(MAKEFLAGS)
+	$(MAKE) -f tests/unit/Makefile R=.
 	$(MAKE) u.svg
 
 regression : dist
-	$(MAKE) -f tests/regression/Makefile R=. $(MAKEFLAGS)
+	$(MAKE) -f tests/regression/Makefile R=.
 
 REL:=dpu-$(shell uname -p)-$(CONFIG_VERSION)
 
@@ -86,10 +86,10 @@ cav18-release : release
 
 clean : clean_
 clean_ :
-	$(MAKE) -f src/Makefile R=. clean $(MAKEFLAGS)
-	$(MAKE) -f rt/Makefile R=. clean $(MAKEFLAGS)
-	$(MAKE) -f tests/unit/Makefile R=. clean $(MAKEFLAGS)
-	$(MAKE) -f tests/regression/Makefile R=. clean $(MAKEFLAGS)
+	$(MAKE) -f src/Makefile R=. clean
+	$(MAKE) -f rt/Makefile R=. clean
+	$(MAKE) -f tests/unit/Makefile R=. clean
+	$(MAKE) -f tests/regression/Makefile R=. clean
 	rm -f u.dot
 	rm -f dot/*.dot
 	rm -f dot/*.png
@@ -98,9 +98,9 @@ clean_ :
 distclean : realclean
 realclean : realclean_
 realclean_ :
-	$(MAKE) -f src/Makefile R=. realclean $(MAKEFLAGS)
-	$(MAKE) -f tests/unit/Makefile R=. realclean $(MAKEFLAGS)
-	$(MAKE) -f tests/regression/Makefile R=. realclean $(MAKEFLAGS)
+	$(MAKE) -f src/Makefile R=. realclean
+	$(MAKE) -f tests/unit/Makefile R=. realclean
+	$(MAKE) -f tests/regression/Makefile R=. realclean
 	rm -Rf dist/ $(REL)
 	rm -f config.h
 	rm -f regression.log*

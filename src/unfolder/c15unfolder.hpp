@@ -327,7 +327,9 @@ bool C15unfolder::stream_to_events
          }
          else
          {
-            ASSERT (newpid == 0); // the pidpool must have been aware
+            // the pidpool must have been aware that the event was already in
+            // the unfolding
+            ASSERT (newpid == 0);
          }
          // we update the pidmap for this execution
          pidmap.add (it.id(), e->action.val);

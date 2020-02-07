@@ -119,6 +119,73 @@ std::string C15unfolder::explore_stat (const Trail &t, const Disset &d) const
    return fmt ("%2ue %2uj %2uu", t.size(), j, u);
 }
 
+void C15unfolder::test_cex ()
+{
+   Replay replay (u);
+   std::vector<Event*> queue;
+   Event *bot;
+   Event *e, *ee;
+   unsigned i;
+   EventPayload *visited = new EventPayload();
+   Config c (Unfolding::MAX_PROC);
+
+   bot = u.proc(0)->first_event();
+   ASSERT(bot->dat == nullptr);
+   ASSERT(bot->dat != visited)
+   queue.push_back(bot);
+
+   DEBUG ("c15u: ubc: starting!!!!!");
+   u.dump();
+   DEBUG ("c15u: ubc: visited mark: %p", visited);
+
+   while (! queue.empty())
+   {
+      DEBUG ("c15u: ubc: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
+      // get one unvisited event from the queue
+      e = queue.back();
+      queue.pop_back();
+      DEBUG ("c15u: ubc: extracted event %s", e->str().c_str());
+      if (e->dat == visited) continue;
+
+      // run some configuration of the program that contains that event
+      replay.build_from (e->cone);
+      DEBUG ("c15u: ubc: replaying %s", replay.str().c_str());
+      exec->set_replay (replay);
+      exec->run ();
+      stid::action_streamt actions (exec->get_trace ());
+      //actions.print ();
+      c.clear();
+      convert (actions, c);
+      DEBUG ("c15u: ubc: new configuration:");
+      c.dump();
+
+      counters.runs++;
+      i = actions.get_rt()->trace.num_ths;
+      if (counters.stid_threads < i) counters.stid_threads = i;
+
+      // mark all events in C as visited
+      for (i = 0; i < c.num_procs(); ++i)
+         for (ee = c[i]; ee; ee = ee->pre_proc())
+            ee->dat = visited;
+      ASSERT (e->dat == visited);
+
+      // compute the cex(C), add to the queue any event in cex(C) that is not
+      // visited
+      DEBUG ("c15u: ubc: computing cex:");
+      e = nullptr;
+      compute_cex(c, &e);
+      for (; e; e = e->next)
+      {
+         if (e->dat == nullptr)
+         {
+            DEBUG ("c15u: ubc: queuing %s", e->str().c_str());
+            queue.push_back(e);
+         }
+      }
+   }
+   DEBUG ("c15u: ubc: doneeeeeeeeeeeeee!");
+}
+
 void C15unfolder::explore ()
 {
    bool b;
@@ -135,6 +202,12 @@ void C15unfolder::explore ()
    // exploration are fixed
    report_init ();
    start = time (nullptr);
+
+   if (config.memsize == 351 * 1024 * 1024)
+   {
+      test_cex();
+      goto end;
+   }
 
    while (1)
    {
@@ -206,6 +279,7 @@ void C15unfolder::explore ()
       set_replay_and_sleepset (replay, j, d);
    }
 
+end:
    // statistics
    counters.ssbs = d.ssb_count;
    counters.maxconfs = counters.runs - counters.ssbs;

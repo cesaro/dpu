@@ -92,6 +92,7 @@ public:
 
    /// the CONCUR'15 POR algorithm
    void explore ();
+   void test_cex ();
 
    /// compute the conflicting extensions of c and add them to a singly-linked
    /// list pointed by head

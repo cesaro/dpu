@@ -173,6 +173,11 @@ void Replay::build_from (const Trail &t, const Cut &c, const Cut &j)
 
 void Replay::build_from (const Trail &t, unsigned limit)
 {
+   // see comments in build_from(Trail, Cut, Cut)
+   pidmap.clear ();
+   ASSERT (pidmap.size() == 1);
+   ASSERT (pidmap.get(0) == 0);
+
    clear();
    extend_from (t, limit);
    finish ();
@@ -180,6 +185,11 @@ void Replay::build_from (const Trail &t, unsigned limit)
 
 void Replay::build_from (const Cut &c)
 {
+   // see comments in build_from(Trail, Cut, Cut)
+   pidmap.clear ();
+   ASSERT (pidmap.size() == 1);
+   ASSERT (pidmap.get(0) == 0);
+
    clear ();
    extend_from (c);
    finish ();

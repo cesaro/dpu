@@ -1253,26 +1253,31 @@ void test50 ()
 {
 #if 0
    // p0 creates p1,p2; p1 creates p3
-   // std::vector<int> replay {0, 5, 1, 5, 2, 2, 3, 2, 0, 4, -1};
+   // std::vector<int> rep {0, 5, 1, 5, 2, 2, 3, 2, 0, 4};
    // p0 creates p1,p3; p1 creates p2
-   // std::vector<int> replay {0, 2, 1, 3, -1};
-   std::vector<int> replay {-1}; // free mode
+   // std::vector<int> rep {0, 2, 1, 3};
+   std::vector<int> rep {}; // free mode
    std::vector<const char *> argv {"prog", "main3"};
 #endif
 #if 1
-   // std::vector<int> replay {0, 2, 1, 2, -1}; // p1 lock first
-   // std::vector<int> replay {0, 3, -1}; // p0 lock first
-   std::vector<int> replay {-1}; // free mode
+   // std::vector<int> rep {0, 2, 1, 2}; // p1 lock first
+   // std::vector<int> rep {0, 3}; // p0 lock first
+   std::vector<int> rep {}; // free mode
    std::vector<const char *> argv {"prog", "main4"};
 #endif
 
    try
    {
-      C15unfolder unf (C15unfolder::Alt_algorithm::OPTIMAL, 1);
+      C15unfolder unf (Altalgo::OPTIMAL, 1, UINT_MAX);
+      Replay replay (unf.u, std::move(rep));
 
       // load code and set argv
       unf.load_bitcode ("./input.ll");
       unf.set_args (argv);
+
+      DEBUG ("hello");
+      unf.u.dump();
+      return;
       
       // run system, get config, compute cex, and run 1 time per cex
       unf.add_multiple_runs (replay);
@@ -1747,5 +1752,7 @@ void test58 ()
 void test59 ()
 {
 }
+
+
 
 } // namespace

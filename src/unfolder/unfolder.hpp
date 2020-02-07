@@ -85,7 +85,7 @@ void Unfolder<T>::load_bitcode (std::string &&filepath)
       llvm::raw_string_ostream os (errors);
       err.print (path.c_str(), os);
       os.flush ();
-      DEBUG ("unf: unf: load-bytecode: '%s': %s\n", path.c_str(), errors.c_str());
+      DEBUG ("dpu: unf: load-bytecode: '%s': %s\n", path.c_str(), errors.c_str());
       throw std::invalid_argument (errors);
    }
 
@@ -93,15 +93,15 @@ void Unfolder<T>::load_bitcode (std::string &&filepath)
    if (verb_trace) print_external_syms ("dpu: ");
 
    PRINT ("dpu: unf: O%u-optimization + jitting...", opts::optlevel);
-   DEBUG ("unf: unf: load-bytecode: setting up the bytecode executor...");
+   DEBUG ("dpu: unf: load-bytecode: setting up the bytecode executor...");
    try {
       exec = new stid::Executor (std::move (mod), config);
    } catch (const std::exception &e) {
-      DEBUG ("unf: unf: load-bytecode: errors preparing the bytecode executor");
-      DEBUG ("unf: unf: load-bytecode: %s", e.what());
+      DEBUG ("dpu: unf: load-bytecode: errors preparing the bytecode executor");
+      DEBUG ("dpu: unf: load-bytecode: %s", e.what());
       throw e;
    }
-   DEBUG ("unf: unf: load-bytecode: executor successfully created!");
+   DEBUG ("dpu: unf: load-bytecode: executor successfully created!");
 
    if (opts::instpath.size())
    {
